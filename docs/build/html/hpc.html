@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HPC for PlatoSim &mdash; PLATOnium 0.1.0 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Achknowledgements" href="acknowledgements.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> PLATOnium
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgements.html">Achknowledgements</a></li>
+</ul>
+<p class="caption"><span class="caption-text">High Performance Computing:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">HPC for PlatoSim</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prior-hpc-linux-knowledge">Prior HPC/Linux knowledge</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vsc-account">VSC account</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#login-to-the-tier-2-cluster-infrastructure">Login to the Tier-2 cluster infrastructure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-storage">Data storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#software-on-clusters">Software on clusters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#job-scripts">Job scripts</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PLATOnium</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>HPC for PlatoSim</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/hpc.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="section" id="hpc-for-platosim">
+<h1>HPC for PlatoSim<a class="headerlink" href="#hpc-for-platosim" title="Permalink to this headline">¶</a></h1>
+<p># High Performance Computing (HPC) with PlatoSim3 &lt;br/&gt; <em>A Quick guide on how to use the KU Leuven’s HCP infrastructure</em></p>
+<p>This is a small guide how to sucessfully install and build the PlatoSim3 software on KU Leuven’s HPC infrastructure, which is part of the Vlaams Supercomputer Centrum (VSC). As a subplement to this small tutorial, it is highly recommended to read the [VSC documentation](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/index.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/index.html</a>), and the concept and methedology behind [HPC at KU Leuven](<a class="reference external" href="https://icts.kuleuven.be/sc/english/research/HPC">https://icts.kuleuven.be/sc/english/research/HPC</a>) and at the [VSC webpage](<a class="reference external" href="https://www.vscentrum.be/">https://www.vscentrum.be/</a>). This tutorial is specifically directed to Linux and Mac users, hence, for Windows please have a look at the VSC documentation for setting up access rights and how to connect to the VSC. Finally, to become an expert sign-up for the [ADS training](<a class="reference external" href="https://www.vscentrum.be/training">https://www.vscentrum.be/training</a>) course <em>HPC Intro</em> and <em>Linux for HPC</em>. These courses (and several more) are also available for free on [HPC Leuven’s Github repository](<a class="reference external" href="https://github.com/hpcleuven">https://github.com/hpcleuven</a>) in video or readable format. If you already have a VSC login and are familiar with the HPC infrastructure, you can skip the following section <em>Prio HPC/Linus knowledge</em> and jump directly to the section of <em>HPC for PlatoSim3</em>.</p>
+<div class="section" id="prior-hpc-linux-knowledge">
+<h2>Prior HPC/Linux knowledge<a class="headerlink" href="#prior-hpc-linux-knowledge" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="vsc-account">
+<h3>VSC account<a class="headerlink" href="#vsc-account" title="Permalink to this headline">¶</a></h3>
+<p>To run simulations on the HPC you will first need an VSC account (and a VSC-user ID), for which you can find a thorough description on the VSC documentation given above. To boil it down, you will need to open a terminal and:</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>Create a public/private key pair in the following way:
+- Check that OpenSSH is installed (<cite>ssh -V</cite>) or install it.
+- Create a new keypair with a unique name in your <strong>.ssh</strong> folder, e.g. <cite>ssh-keygen -t rsa -b 4096 -f .ssh/rsa_vsc</cite>. &lt;br/&gt; You will be prompt to create and verify a password of your choice.
+- Check that your ssh key are indeed identified by the ssh-agent: <cite>ssh-add -l</cite>.</li>
+</ol>
+<ol class="arabic simple">
+<li>Sign up for a [VSC account](<a class="reference external" href="https://www.vscentrum.be/user-portal">https://www.vscentrum.be/user-portal</a>) by selectting <em>VSC account page</em>. Fill in your account details and lastly provide the public part of the keypair that you just created. Since <strong>.ssh</strong> is a hidden folder, you can open your <strong>home</strong> folder GUI and toggle <cite>Crtl + h</cite> to see all your hidden files and folders in any directory. If your Linux distribution do not support uploadsing the public key from a hidden folder, simply copy the public key into your <strong>home</strong> by <cite>cp .ssh/rsa_vsc.pub .</cite> and then upload it (afterwards you can safely remove the dublicate public key you just created).</li>
+</ol>
+</div></blockquote>
+<dl class="docutils">
+<dt>Next to speed up things, you should already now apply for your free introduction credits. The following links are the formal KU Leuven webpages for requesting credits (consult your project manager for the two latter)</dt>
+<dd><ul class="first last simple">
+<li>[Request introduction credits](<a class="reference external" href="https://admin.kuleuven.be/icts/onderzoek/hpc/request-introduction-credits">https://admin.kuleuven.be/icts/onderzoek/hpc/request-introduction-credits</a>)</li>
+<li>[Request project credits](<a class="reference external" href="https://admin.kuleuven.be/icts/onderzoek/hpc/request-project-credits">https://admin.kuleuven.be/icts/onderzoek/hpc/request-project-credits</a>)</li>
+<li>[Extra project credits to existing project](<a class="reference external" href="https://admin.kuleuven.be/icts/onderzoek/hpc/extra-project-credits">https://admin.kuleuven.be/icts/onderzoek/hpc/extra-project-credits</a>)</li>
+</ul>
+</dd>
+</dl>
+</div>
+<div class="section" id="login-to-the-tier-2-cluster-infrastructure">
+<h3>Login to the Tier-2 cluster infrastructure<a class="headerlink" href="#login-to-the-tier-2-cluster-infrastructure" title="Permalink to this headline">¶</a></h3>
+<p>If everything goes well you will, shortly after submission, recieve a confirmation email, and by confirming this, you will be granded access to your VSC user account beloging to a VSC ID. Remember this ID as you will use it everytime you login to the HPC facility; the ID can be written as <cite>vsc&lt;XY&gt;</cite> where <cite>X</cite> (being the first 3 digits) refers to your KU Leuven account group, and <cite>Y</cite> (being the last 2 digits) refers to your registration number within that group. The standard account you just created gives you access to most of the VSC <em>Tier-2 infrastructure</em>, which for most PlatoSim3 simulations should be sufficient.</p>
+<p>The good thing about Tier-2 infrastructure is that you will start with 2000 introduction credits, you pay as you go, there is no computaion limits nor application deadlines, and lastly the available run time is up to 1 week. For bigger simulations you will need to turn to Tier-1 and adhere to application deadlines (February 3rd, June 5th, and October 2nd) and a lower/upper computation limit. The aforementioned introductionary session (HPC-Intro) is highly recommended for a broader review on the infrastructures and the different clusters, however, since Tier-2 will be your first go-to cluster infrastructure, we present here a small list of available <strong>CPU types</strong>, <em>clusters</em>, and their associated node types (i.e. Haswells, Skylake, etc.)</p>
+<ul>
+<li><p class="first"><strong>Compute (thin) nodes:</strong>
+- <em>ThinKing:</em></p>
+<blockquote>
+<div><ul class="simple">
+<li>Haswells: 48n/86n x 24c with 64/128 GB</li>
+</ul>
+</div></blockquote>
+<ul>
+<li><p class="first"><em>Genius:</em>
+- Skylake: 92n x 36c with 192 GB</p>
+<blockquote>
+<div><ul class="simple">
+<li>CascadeLake: 120n x 36c with 192 GB</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+</li>
+<li><p class="first"><strong>Large memory nodes:</strong>
+- <em>Genius:</em></p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="first docutils">
+<dt>Skylake: 10n x 36c with 768 GB</dt>
+<dd><ul class="first last">
+<li>Superdome: 8n x 14c with 6 TB</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first"><strong>GPU nodes:</strong>
+- <em>Genius:</em></p>
+<blockquote>
+<div><ul class="simple">
+<li><dl class="first docutils">
+<dt>Skylake: 20n x 36c with 192 GB + nodes have 4xP100 devices with 16 GB</dt>
+<dd><ul class="first last">
+<li>CascadeLake: 2s x 36c with 192 GB + nodes have 8xV100 devices with 32 GB</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div></blockquote>
+</li>
+</ul>
+<p>Here to keep the format short, “n” and “c” refers to nodes and cores, respectively. Keep in mind that depending on which cluster you want to run your simulations on, you might need to login to a different login-node or import special modules. Check these requirements at the [VSC Hardware specifications](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/hardware.html#hardware">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/hardware.html#hardware</a>).</p>
+<p>In order to access the Tier-2 infrastructure you will need to use a cluster <em>login node</em>, for which the recommended <em>Genius</em> login node will be used in this tutorial. There is a number of ways to login through the OpenSSH access, however, here we stick to the use of bash providing the hostname for <em>Genius</em></p>
+<blockquote>
+<div>ssh -X vsc&lt;XY&gt;&#64;&lt;hostname&gt;
+ssh -X vsc&lt;XY&gt;&#64;login.hpc.kuleuven.be</div></blockquote>
+<p>Use your VSC ID as parameter and confirm with your newly created password.</p>
+</div>
+<div class="section" id="data-storage">
+<h3>Data storage<a class="headerlink" href="#data-storage" title="Permalink to this headline">¶</a></h3>
+<p>When logged in, you can quick-access your internal directories using the enviroment variables</p>
+<ul class="simple">
+<li><strong>home:</strong> <cite>$VSC_HOME</cite></li>
+<li><strong>data</strong>: <cite>$VSC_DATA</cite></li>
+<li><strong>scratch:</strong> <cite>$VSC_SCRATCH</cite></li>
+<li><strong>node scratch:</strong> <cite>$VSC_SCRATCH_NODE</cite> (Only while running jobs)</li>
+<li><strong>staging:</strong> <cite>/staging/leuven/stg_XY</cite> (KU Leuven access only)</li>
+<li><strong>archive:</strong> <cite>/archive/leuven/arc_XY</cite> (KU Leuven access only)</li>
+</ul>
+<p>Since the <strong>home</strong> folder (3 GB) is only for small files (such as configuration files), and since the <strong>scratch</strong> (100 GB) are not backed-up, best practice is to clone and build PlatoSim3 in the <strong>data</strong> directory (75 GB). A word concerning data storage is, <strong>data</strong> is well suited for initial/final results, but ill suited for intensive or parallel read-and-write (Input/Output) jobs, however, <strong>scratch</strong> are optimized toward I/O situations and storage can be extended for free by request. <em>At runtime only</em> a <strong>node scratch</strong> (200 GB) is an availble scratch on the compute node that provide the optimal I/O workflow, since no information is inter-changed over the network. The <strong>staiging</strong> and <strong>archive</strong> foldes are on demand and can only be requested by KU Leuven associates. As the name suggest, <strong>staging</strong> (from 1 TB) is well suited for staging your jobs/simulations as it is accessable from your login and the compute nodes, as well as for sharing data with collaborations (since you need to grand access to collaborators for the deafult folders). Like <strong>scratch</strong>, <strong>staging</strong> share the same capabilitiesis of fast file system optimized for parallel I/O simulations. Lastly, <strong>archive</strong> (from 1 TB) is a more slow backup and storage folder that likewise are easy platform for sharing data with collaborators, but only available from login nodes. <strong>Remember to keep track of your storage using the command `myquota`.</strong></p>
+<p>The above mentioned path-variables becomes very useful when running simulations, however, notice that these variables are not back-linked to your local machine, meaning that from your local machine, you’ll need to specify the full path, e.g. <cite>/&lt;folder&gt;/leuven/&lt;X&gt;/vsc&lt;XY&gt;</cite>). For more information have a look at [KU Leuven Storage](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/leuven/tier2_hardware/kuleuven_storage.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/leuven/tier2_hardware/kuleuven_storage.html</a>) and [Where to store what kind of data](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/access/where_can_i_store_what_kind_of_data.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/access/where_can_i_store_what_kind_of_data.html</a>). If you would need more storage you can [Request extra storage](<a class="reference external" href="https://admin.kuleuven.be/icts/onderzoek/hpc/hpc-storage">https://admin.kuleuven.be/icts/onderzoek/hpc/hpc-storage</a>).</p>
+</div>
+<div class="section" id="software-on-clusters">
+<h3>Software on clusters<a class="headerlink" href="#software-on-clusters" title="Permalink to this headline">¶</a></h3>
+<p>Before continuing to building PlatoSim3, we here provide a few words on the in-build software/modules of the clusters. You can easily find modules using either <cite>module av/spider &lt;ModuleName&gt;</cite> where the latter (<cite>spider</cite>) is used to find all possible modules and extension of the name search. Notice that if you load a module without specifying a version, the system will simply choose the lastest release. You load modules by <cite>module load/add &lt;ModuleName&gt;</cite> and to see all loaded modules use <cite>module list</cite>. Likewise, you can easily remove a loaded module with <cite>module unload/del &lt;ModuleName&gt;</cite>, or all loaded modules with <cite>module purge</cite>. For further information, have a look at the [Module System](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/software_stack.html#using-the-module-system">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/software_stack.html#using-the-module-system</a>) and the usage of the module script itself <cite>module -h</cite>.</p>
+</div>
+<div class="section" id="job-scripts">
+<h3>Job scripts<a class="headerlink" href="#job-scripts" title="Permalink to this headline">¶</a></h3>
+<p>To grasp the information to come, let’s quickly take a look on how to declare nodes, cores, memory, etc. in a so-called “job-script” (<cite>&lt;JobScriptName&gt;.pbs</cite>) that can be used for the HPC facility to read and execute our simulations. The ingredients of a simple job script using the default <em>PBS/Torque</em> framework are</p>
+<blockquote>
+<div><p>#!/bin/bash
+#PBS -l nodes=1:ppn=1
+#PBS -l pmem=1gb</p>
+<blockquote>
+<div>#PBS -l walltime=00:00:01</div></blockquote>
+<dl class="docutils">
+<dt>#PBS -N &lt;JobName&gt;</dt>
+<dd>#PBS -A &lt;ProjectCredits&gt;</dd>
+</dl>
+<p>#PBS -m abe -M &lt;Email&gt;
+cd $VSC_DATA/PlatoSim3</p>
+</div></blockquote>
+<ul class="simple">
+<li><strong>She-bang:</strong> The first line simply indicates that we are writing a bash script and shall use syntax of such, a so-called <em>she-bang</em>.</li>
+<li><strong>Resources:</strong> The following lines of code starting with <cite>#PBS</cite> are the <em>job resources</em> for the scheduler and for this simple example we show:
+- <em>Nodes and Cores:</em> The <cite>nodes</cite> and <cite>ppn</cite> parameters refers nodes and cores (or processors per node; CPUs), and explicit we choose here the number of nodes and number of cores per node, respectively.
+- <em>Memory:</em> is the memory RAM needed for the job. Units can be given in (<cite>kb, mb, gb, ..</cite>). Notice that the memory for most HPC clusters nodes comes in a few hundred of GBs.
+- <em>Walltime:</em> is your estimated time for the computations to finish. If your job exceeds the specified walltime, it will be killed, so the walltime should not be underestimated.
+- <em>Job name:</em> For a greater overview it is very handy to give your job a name using <cite>-N</cite>.
+- <em>Project credits:</em> First, use the identifier from your <em>introductionary credits</em> and later the <em>project credits</em> belonging to a VSC group (created by your supervisor/project leader). Upon submission this resource is mandatory and your script will not run without specifying it.
+- <em>Notification:</em> <cite>#PBS -m abe -M &lt;Email&gt;</cite> tells the scheduler to send a notification to the specified email (<cite>-M</cite>) when the job begins (<cite>-m b</cite>), ends normally (<cite>-m e</cite>), or aborts due to errors (<cite>-m a</cite>). Seen here you can specify everything altogether by <cite>-m abe</cite>.</li>
+<li><strong>Working directory:</strong> should be specified by <cite>cd $PBS_O_WORKDIR</cite> if you submit your job within the folder where you script(s) will be running.</li>
+</ul>
+<p>A more ellaborate example on how to create a simple job script, can be found in the VSC section [Running Jobs](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/running_jobs.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/running_jobs.html</a>). Also, more information can be found on how to [Specify Job Resources](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/specifying_resources.html#resource-specification">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/specifying_resources.html#resource-specification</a>).</p>
+<p>The job script “skeleton” presented here do not take advantage of the great capabilities of running computations in parallel, hence, do take a look at the availble resources within the Tier-2 infrastructure regarding nodes, cores, memory, etc. The concept of parallelism is equal to employing multiple processors (cores/CPUs) for a single problem, and good instruction are to be found on how to run [Applications in parallel](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/parallel_software.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/parallel_software.html</a>).</p>
+<p>Another solution of parallization is to use <em>GPU partitions</em>. On <em>Genius</em> the choice is between P100 (<em>skylake</em>) or V100 (<em>cascadelake</em>) GPUs, and the following needs to be added to your job script</p>
+<blockquote>
+<div>#PBS -l partition=gpu
+#PBS -l nodes=1:ppn=1:gpus=1:&lt;GPU-node-name&gt;</div></blockquote>
+<p>Remember that there is a lower limit/upper limit on used GPUs for each GPU partition.</p>
+<p>In cases where a huge amount simulations needs to be performed, you can use the <em>large memory nodes</em> for which there are 3 ways of requesting larger memory than normal</p>
+<ul class="simple">
+<li>Use thin nodes but lower <cite>ppn</cite> and increase <cite>pmem</cite></li>
+<li>Use large memory node <cite>skylake</cite> with: <cite>#PBS -l partition=bigmem</cite></li>
+<li>Use stand-alone large memory node <cite>superdome</cite>: First <cite>module load superdome</cite> and add the following lines to your job script: <cite>#PBS -l partition=superdome -L tasks=1:place=numanode=1:lproces=1</cite></li>
+</ul>
+<p>For more information take a look at the [Genius quick start guide](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/leuven/genius_quick_start.html?highlight=submit%20to%20a%20GPU%20node">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/leuven/genius_quick_start.html?highlight=submit%20to%20a%20GPU%20node</a>).</p>
+<p>### Submitting and managing jobs</p>
+<p>Next, one can sumit the job to the cluster scheduler by <cite>qsub &lt;JobName&gt;.pbs</cite>. The job-ID that is returned after a submission is your unique identifier to follow a job status (<cite>qstat [-f &lt;JobID&gt;]</cite>), delete a job from the que (<cite>qdel &lt;JobID&gt;</cite>), etc. Further information can be found on [Submitting and Managing Jobs](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/submitting_and_managing_jobs_with_torque_and_moab.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/submitting_and_managing_jobs_with_torque_and_moab.html</a>) but let us sumarize a small list of the most-used commands</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>qsub &lt;JobName&gt;.pbs</dt>
+<dd>qstat &lt;JobID&gt;
+qdel &lt;JobID&gt;
+showq
+checkjob -v &lt;JobID&gt;
+showstart &lt;JobID&gt;
+pbstop</dd>
+</dl>
+<p>monitor &lt;JobScript/Software&gt;</p>
+</div></blockquote>
+<p>The the job output is by default saved in two files called <cite>&lt;JobName&gt;.o&lt;JobID&gt;</cite> and <cite>&lt;JobName&gt;.e&lt;JobID&gt;</cite>, which follow default Linux <cite>stdout</cite> (standard output) and <cite>stderr</cite> (standard error) output, respectively. Notice besides these default output files, the PlatoSim3 HDF5 output file will likewise be created upon a successful run. If you receive an email that your job terminated abnormally, have a look at the errors written to your <cite>&lt;JobName&gt;.e&lt;JobID&gt;</cite>. For trouble shooting have a look at the following pages: [Time line](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/why_doesn_t_my_job_start.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/why_doesn_t_my_job_start.html</a>) and [Missing output](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/what_if_jobs_fail_after_starting_successfully.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/what_if_jobs_fail_after_starting_successfully.html</a>). For a more ellaborate description on the output file format have a look at [Specifying job name, output files and notifications](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/specifying_output_files_and_notifications.html#specifying-output-files-and-notifications">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/specifying_output_files_and_notifications.html#specifying-output-files-and-notifications</a>).</p>
+<p>### Credit system</p>
+<p>In short all necessary information is stated in the [Credit system basic](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/credit_system_basics.html?highlight=credit%20system%20">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/credit_system_basics.html?highlight=credit%20system%20</a>) VSC documentation, however, for completeness we simply summeriaze some often used commands as follows</p>
+<ul class="simple">
+<li><cite>man-balance</cite>: List active projects and available credits</li>
+<li><cite>mam-list-chargerates</cite>: List the validity dates of different projects/allocations</li>
+<li><cite>mam-list-allocations -a &lt;ProjectCredits&gt;</cite>: List current charge rates for different nodes</li>
+<li><cite>mam-list-users -a &lt;AccountName&gt;</cite>: List the members of an account</li>
+<li><cite>gquote &lt;jobName&gt;.pbs</cite>: Determine maximum cost of a job</li>
+</ul>
+<p>—</p>
+<p>## HPC for PlatoSim3</p>
+<p>### Building PlatoSim3 on VSC</p>
+<p>Assuming that you are a developer and already have the PlatoSim3 Github repository forked to your privat profile (otherwise see the [PlatoSim3 documentation](<a class="reference external" href="http://ivs-kuleuven.github.io/PlatoSim3/">http://ivs-kuleuven.github.io/PlatoSim3/</a>)), login with ssh to <em>Genius</em> and follow these steps to clone the software into your <strong>data</strong> folder:</p>
+<blockquote>
+<div>cd $VSC_DATA
+git clone <a class="reference external" href="https://github.com">https://github.com</a>/&lt;YourGithubUsername&gt;/PlatoSim3.git .</div></blockquote>
+<p>Upon cloning, the <strong>PlatoSim3</strong> repository folder will automatically be created. Next we need to specify some HPC modules internally in order for the infrastructure to recognize the specefic software versions that build and run PlatoSim3. PlatoSim3 uses the gnu compilers (gcc, g++, OpenMPI, ScaLAPACK, and OpenBLAS) which by this writing is from FOSS 2018a. Thus, the Intel compilers will not work for PlatoSim3, and in general never mix Intel and FOSS compilers. More generally this is shown in the following (compatible versions that builds the software presently are written after each backslash):</p>
+<blockquote>
+<div>module load GCC/6.4.0-2.28
+module load CMake/3.16.1
+module load OpenBLAS/0.2.20-GCC-6.4.0-2.28
+module load ScaLAPACK/2.0.2-gompi-2018a-OpenBLAS-0.2.20
+module load Python/3.7.2-foss-2018a
+module load worker</div></blockquote>
+<p>Now build the software by running</p>
+<blockquote>
+<div>./install.sh</div></blockquote>
+<p>Check that the build of PlatoSim3 was sucessful by first running the <cite>testplatosim</cite> and hereafter <cite>platosim</cite> using the pre-defined <cite>inpufile.yaml</cite> (all of this is documented on the PlatoSim3 webpage).</p>
+<p>In order to do scripting in Python, notice that PlatoSim3’s Python simulation environment dependent on <cite>astropy</cite> which is only supported for Python 3.7 or later according to the [astropy documentation](<a class="reference external" href="https://docs.astropy.org/en/stable/install.html">https://docs.astropy.org/en/stable/install.html</a>). Thus, we need to install a few packages that are not immediately available as modules for Python-3.7, but easily can installed by ceating our own local library in <strong>data</strong>. If you prefer to use <cite>conda</cite> (Anaconda) then please have a look at the [Python package management](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/python_package_management.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/python_package_management.html</a>) page, however, to have full control/only install packages we specifically need, we will install with <cite>pip</cite> as follows</p>
+<blockquote>
+<div><p>mkdir -p “${VSC_DATA}/python_lib/lib/python3.7/site-packages/”
+export PYTHONPATH=”${VSC_DATA}/python_lib/lib/python3.7/site-packages/:${PYTHONPATH}”</p>
+<p>pip install  –prefix=”${VSC_DATA}/python_lib” matplotlib
+pip install  –prefix=”${VSC_DATA}/python_lib” colorama
+pip install  –prefix=”${VSC_DATA}/python_lib” astropy
+pip install  –prefix=”${VSC_DATA}/python_lib” pyaml
+pip install  –prefix=”${VSC_DATA}/python_lib” h5py
+pip install  –prefix=”${VSC_DATA}/python_lib” time</p>
+</div></blockquote>
+<p>Now add the environment variables (for PlatoSim3 and your newly created Python library) to your <cite>~/.bashrc</cite> file</p>
+<blockquote>
+<div><p>PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
+export PLATO_PROJECT_HOME</p>
+<p>PLATO_WORKDIR=$PLATO_PROJECT_HOME
+export PLATO_WORKDIR</p>
+<p>PYTHONPATH=$PLATO_PROJECT_HOME/python:$VSC_DATA/python_lib/lib/python3.7/site-packages/
+export PYTHONPATH</p>
+</div></blockquote>
+<p>If the build and package installations were sucessful, then save the <em>enviroment</em> of modules so they (after a module purge or re-login) can be restored, respectively by</p>
+<blockquote>
+<div>module save &lt;EnvironmentName&gt;
+module restore &lt;EnvironmentName&gt;</div></blockquote>
+<p>Here <cite>env-PlatoSim3</cite> is the environment name choosen for the rest of this tutorial.</p>
+<p>### Installing with Anaconda (conda)</p>
+<p>Follow this [page](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/python_package_management.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/python_package_management.html</a>). In the following we create a conda environment called <cite>plato</cite> where all packages are installed at <cite>$VSC_DATA/miniconda3</cite> seen below</p>
+<blockquote>
+<div><blockquote>
+<div>wget <a class="reference external" href="https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh">https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh</a></div></blockquote>
+<p>bash Miniconda3-latest-Linux-x86_64.sh -b -p $VSC_DATA/miniconda3
+export PATH=”${VSC_DATA}/miniconda3/bin:${PATH}”
+which conda
+conda create -n plato python=3.7 numpy scipy matplotlib</p>
+</div></blockquote>
+<p>Using Pip to install packages to Anaconda Environment</p>
+<blockquote>
+<div>source activate plato
+conda install pip
+miniconda3/envs/plato/bin/pip install &lt;package&gt;</div></blockquote>
+<p>The following packages needs to be installed in this manner</p>
+<blockquote>
+<div>miniconda3/envs/plato/bin/pip install batman-package
+miniconda3/envs/plato/bin/pip install PyAstronomy</div></blockquote>
+<p>The following paths needs to be loaded for every node-core</p>
+<blockquote>
+<div><blockquote>
+<div>PYTHON_PATH=$VSC_DATA/miniconda3/envs/plato/lib/python3.7/site-packages/
+export PYTHON_PATH</div></blockquote>
+<dl class="docutils">
+<dt>PLATO_OUTDIR=$VSC_DATA/platonium/sims/L1-pipeline/varsource</dt>
+<dd>export PLATO_SIMDIR</dd>
+<dt>PLATO_SIMDIR=$VSC_DATA/platonium/variability</dt>
+<dd>export PLATO_OUTDIR</dd>
+</dl>
+</div></blockquote>
+<p>### Transfering files</p>
+<p>Since the access from your local machine and your VSC account is protected by a firewall, tranfering files relies on your ssh authentication. FileZilla is an easy installable GUI for mvoing data across local to server platforms and is available for both Linux, Mac, and Windows users. However, if you prefer to use bash, files can be transfered by the <cite>rsync</cite>, <cite>scp</cite>, <cite>sftp</cite>, or <cite>sshfs</cite> commands. For more details see the [rsync documentation](<a class="reference external" href="https://rsync.samba.org/documentation.html">https://rsync.samba.org/documentation.html</a>) or the [scp/sftp VSC tutorial](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/access/data_transfer_with_scp_sftp.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/access/data_transfer_with_scp_sftp.html</a>).</p>
+<p>For your convenience we here present a bash script called <cite>sshfs-vsc.sh</cite> that allows to <em>mount</em> and <em>dismount</em> your VSC account to your local machine through a folder of your choice. This script is made available to you in the <cite>$PLATO_PROJECT_HOME/python/examples/highPerformanceComputing/</cite> folder. Within this script, change the <em>User parameters</em> being the directory name of your choise, <cite>VSC=&lt;FolderName&gt;</cite>, and the <cite>X=&lt;X&gt;</cite> and <cite>Y=&lt;Y&gt;</cite> user ID</p>
+<blockquote>
+<div><p>#!/usr/bin/env bash</p>
+<p># User parameters
+VSC=”&lt;folder name&gt;”
+X=&lt;X&gt;
+Y=&lt;Y&gt;</p>
+<p># Provide directory structure
+if [ ! -d “$VSC” ]; then</p>
+<blockquote>
+<div>echo “Creating VSC file structure locally”
+mkdir $VSC
+mkdir $VSC/home
+mkdir $VSC/data
+mkdir $VSC/scratch</div></blockquote>
+<p>fi</p>
+<p># If no arguments are given write usage message
+if [ -z “$1” ]; then</p>
+<blockquote>
+<div>echo “Usage: server-sshfs &lt;option&gt;”
+echo ”       mount    :   &lt;option&gt; = m”
+echo ”       dismount :   &lt;option&gt; = d”
+exit 1</div></blockquote>
+<p>else</p>
+<blockquote>
+<div><p># Mount VSC account
+if [ $1 = “m” ]; then</p>
+<blockquote>
+<div>echo “Mounting VSC account”
+sshfs <a class="reference external" href="mailto:vsc$X$Y&#37;&#52;&#48;login&#46;hpc&#46;kuleuven&#46;be">vsc$X$Y<span>&#64;</span>login<span>&#46;</span>hpc<span>&#46;</span>kuleuven<span>&#46;</span>be</a>:/user/leuven/$X/vsc$X$Y $VSC/home
+sshfs <a class="reference external" href="mailto:vsc$X$Y&#37;&#52;&#48;login&#46;hpc&#46;kuleuven&#46;be">vsc$X$Y<span>&#64;</span>login<span>&#46;</span>hpc<span>&#46;</span>kuleuven<span>&#46;</span>be</a>:/data/leuven/$X/vsc$X$Y $VSC/data
+sshfs <a class="reference external" href="mailto:vsc$X$Y&#37;&#52;&#48;login&#46;hpc&#46;kuleuven&#46;be">vsc$X$Y<span>&#64;</span>login<span>&#46;</span>hpc<span>&#46;</span>kuleuven<span>&#46;</span>be</a>:/scratch/leuven/$X/vsc$X$Y $VSC/scratch</div></blockquote>
+<p>fi</p>
+<p># Dismount VSC account
+if [ $1 = “d” ]; then</p>
+<blockquote>
+<div>echo “Dismounting VSC account”
+fusermount -u $VSC/home
+fusermount -u $VSC/data
+fusermount -u $VSC/scratch</div></blockquote>
+<p>fi</p>
+</div></blockquote>
+<p>fi</p>
+</div></blockquote>
+<p>By running the script without any input argument <cite>./server-sshfs.sh</cite>, a usage message will appear and remind you to use either the mount (<cite>m</cite>) or dismount (<cite>d</cite>) option, for which the latter obviously does not do anything (except of reporting an error) unless you actually did mount your VSC account first. Upon first execution, the script will automatically create a folder <cite>&lt;FolderName&gt;</cite> and within setup a file system of folders (<strong>home</strong>, <strong>data</strong>, and <strong>scratch</strong>) alike your VSC account. Hopefully seen quite intuatively from the code, you can also add your potential <strong>staging</strong> or <strong>archive</strong> folders.</p>
+<p>Files can now simply be moved across your local-server mount, but remember not to dismount before making sure that files are fully moved/copied, which can take some time. Advancing to a rare problem, since the script here works on the assumption that your distribution independently can select free ports locally, the script will not work if the number of folders on your VSC account are greater than local free ports.</p>
+<p>### Frameworks optimized for PlatoSim3</p>
+<p>Starting from the simple job script we would immediately like to take advantage of multiple cores, but increasing the number of cores within the default PBS/Torque cluster environment will still only make our job run once on the first node of our allocation. To start processes on other nodes, we either choose to use tools like <cite>pbsdsh</cite> or change framework to e.g., <cite>worker</cite>/<cite>atools</cite> (notice that the MPI tool <cite>mpirun</cite> are specifically designed to start a distributed memory which is not yet applicable for PlatoSim3).</p>
+<p>Altough in theory starting a single-core program on each assigned core should be straight forward, the scheduler do not always serve you justice regarding the job CPU capacity, resulting in a inefficiency use of job resources. The <cite>pbsdsh</cite> command assures that all programs will execute under the full control of the resource manager on the cores allocated to your job. We refer the reader to the page [Starting programs in a job](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/starting_programs_in_a_job.html?highlight=pbsdsh#starting-a-single-core-program-on-each-assigned-core">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/starting_programs_in_a_job.html?highlight=pbsdsh#starting-a-single-core-program-on-each-assigned-core</a>) for the use of <cite>pbsdsh</cite>.</p>
+<p>[How to conveniently run many similar computations](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_or_atools.html#worker-or-atools">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_or_atools.html#worker-or-atools</a>) are optimal using the <cite>worker</cite> and <cite>atools</cite> frameworks, since they are specifically designed to automatically handle the delegation of cores from a large bundle of sigle-core jobs. Advantageous compared to <cite>pbsdsh</cite>, this also means that one can specify the numbers of cores explicit (e.g., <cite>ppn=10</cite>) and the scheduler will automatically try to give you those resources. A computation for an individual input file, or, equivalently, an array id, is called a work item in both frameworks. For clarification, note that the <cite>worker</cite> and <cite>atools</cite> frameworks has been developed for <em>parameter variation</em> and <em>array-like patterns</em> jobs, which we will see in the next section are the main use of PlatoSim3.</p>
+<p>Choosing between the <cite>worker</cite> and <cite>atools</cite> framework depends on the following items</p>
+<ul class="simple">
+<li><strong>Single Work Item Walltime (SWIW):</strong> The time efficiency for <cite>worker</cite> and <cite>atools</cite> in respect to the walltime per work item, is by anology the same problem observational astronomers face regarding exposure time vs. overheads (from CCD readout): When work items take only a short time (&lt; 1 min) to complete, the overhead for starting new work items will be a considerable time fraction compared to the total computational run. Since <cite>worker</cite> do not rely on the scheduler to start individual work items, and <cite>atools</cite> does, <cite>worker</cite> can efficiently be used for work items (1s &lt; SWIW &lt; 1min), where <cite>atools</cite> should only be considered for a sigle work item walltime of &gt; 1 min. However, both <cite>worker</cite> and <cite>atools</cite> peak in performance using (1 min &lt; SWIW &lt; 1 day). [&lt;8;126;28m]</li>
+<li><strong>Number Of Work Items (NOWI):</strong> While computing a very high number (in the hundres) of SWIW, <cite>worker</cite> is the better choice as it run these as a single job, while <cite>atools</cite> runs very efficiently for jobs in the bold park of tens to a few hundred. Hence, again the efficiency comes down to how oppressed the scheduler will be upon your job’s NOWI.</li>
+<li><strong>Cluster job policy:</strong> Lastly, the choice of framework depends heavilly on if the desireable cluster has accounting enabled, a single user policy, or a shared user policy. Generally, it is more favorable to use <cite>atools</cite> on clusters with a sigle or shared policy (as <cite>worker</cite> more agressively block nodes and allows less flexibility for the scheduler), whereas the single job workflow of <cite>worker</cite> are more favorable from an accounting (pay as you go) perspective, as charges will be made for each individual work item.</li>
+</ul>
+<p>From the items presented above we might conclude that initially <cite>worker</cite> is the better framework for PlatoSim3 since our main aim is to simulate a large amount of images/imagttes as observed from all of the 6 x 4 normal cameras. Thus, a choice of framework will specifically depend on the number of cameras included, the baseline of the timeseries, and if parameter variantion is desired along the timeseries (e.g. to investigate instrumental effects, mission efficiency degration, etc.). For optimal use have a look at the commands <cite>tail</cite>, <cite>watch</cite>, <cite>wload</cite>, <cite>timedrun</cite>, and <cite>wresume</cite>.</p>
+<p>There might be special cases where simulations favorably can be submitted as <cite>atools</cite> jobs, however to keep the price to a minimum, if you run simulations on an accounting cluster (like <em>Genius</em>) try always to maximumize the use of node-cores before including more nodes. For more information have a look at [worker quick start guide](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html#worker-framework),the">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html#worker-framework),the</a> [worker documentation](<a class="reference external" href="https://worker.readthedocs.io/en/latest/">https://worker.readthedocs.io/en/latest/</a>), and the [atools documentation](<a class="reference external" href="https://atools.readthedocs.io/en/latest/">https://atools.readthedocs.io/en/latest/</a>).</p>
+<p>### Words on scheduling</p>
+<p>Before showing real simulation examples, we need to add a few words on scheduling. Creating a proper job script for your simulations depends on your preparation. The following can be used as a good-practice check list before creating and submitting a job</p>
+<ul class="simple">
+<li><strong>Debugging and test jobs</strong> can nicely be handled by 2 dedicated nodes on <em>Genius</em> (one GPU and one CPU node) and <em>ThinKing</em> (two CPU nodes), hence, remember to take advantage of these nodes if your job fits this description, as the walltime are reduced to 30 minutes. Simply specify <em>quality of service</em> to debugging (<cite>-l qos=debugging</cite>) and a walltime of maximum 30 minutes in your job script, e.g. <cite>-l walltime=30:00</cite>.</li>
+<li><strong>Check available storage</strong> on your VSC account using the command <cite>myquota</cite>. Make sure that you have enough RAM to run your job(s).</li>
+<li><strong>Check the availability</strong> of nodes, cores, and GPUs for the different clusters (<cite>clusterview</cite>); check the overview of the different partitions (<cite>queueview</cite>); check the que from the schedular’s perspective (<cite>showq</cite>). Some clusters are faster than others, but if these are occupied, it might be better to use one that is available already. You can specify the cluster by name on the same line as <cite>#PBS -l nodes=1:ppn=1:&lt;cluster&gt;</cite>.</li>
+<li><strong>Number of nodes and cores/GPUs</strong> that is available depends on which cluster you want to run your simulations on. Notice that jobs requesting a large number of nodes typically spend quite some time in the queue, compared to equal computational heavy jobs, that use less nodes but an increased number of cores. In short for normal applications; try to use all cores on a single node before adding more nodes to your computation.</li>
+<li><strong>Specify the walltime</strong> by measuring the PlatoSim3 simulation time of a single/subset of images on your local machine, and multiply with the appropiate factor in correspondance to the total amount of image output. While using parallelization remember to take this into account (i.e. divided the run time with the number of cores), however, please do not underestimate the walltime as your job will terminate.</li>
+<li><strong>How much RAM memory</strong> per core is needed for your job. It is important to check that job memory never exceeds the maximum RAM memory of each cluster node (<cite>nmax</cite>). Use this inequality as a check: <cite>ppn * pmem &lt; nmax - 8 GB</cite>, where the 8 GB is to insure the operating system/other services can function properly.</li>
+</ul>
+<p>—</p>
+<p>## Examples of PlatoSim3 simulations</p>
+<p>As mention, PlatoSim3 as it is (in serial) will need to be submitted with the calculations as single-node jobs, whereas in parallel, multiple nodes can be put in use. We will here start with the simplest HPC usage example and gradually build ontop with advancing examples. All examples presented here can be found in <cite>$PLATO_PROJECT_HOME/python/examples/highPerformanceComputing/</cite>.</p>
+<p>### Simplest PBS/Torque workflow</p>
+<p>As mentioned before, simulations can be executed either directly from bash or from a python script. Let’s illustrate this with the PlatoSim3’s default simulation (see <strong>testPlatosim</strong>) where we use the <cite>inputfiles/inputfile.yaml</cite> simulating 10 imagettes. Since this simulation can be done on our local machine, a test shows that approximately 1 imagettes/second is simulated and the <cite>output.hdf5</cite> file takes up around 10 Mb. Hence, as this job requieres very limited resources and we will use a debugging node. A reasonable job script (without running PlatoSim3) would be</p>
+<blockquote>
+<div><p>#!/bin/bash</p>
+<p>#PBS -l nodes=1:ppn=1
+#PBS -l pmem=150mb</p>
+<blockquote>
+<div>#PBS -l walltime=00:00:30</div></blockquote>
+<dl class="docutils">
+<dt>#PBS -l qos=debugging</dt>
+<dd>#PBS -A default_project</dd>
+</dl>
+<p>#PBS -N output</p>
+<p>cd $PBS_O_WORKDIR</p>
+<p>module purge
+module restore env-PlatoSim3</p>
+<p>PLATO_PROJECT_HOME=${VSC_DATA}/PlatoSim3
+export PLATO_PROJECT_HOME
+PYTHONPATH=$PLATO_PROJECT_HOME/python:$VSC_DATA/python_lib/lib/python3.7/site-packages/
+export PYTHONPATH</p>
+</div></blockquote>
+<p>Notice that the <cite>PLATO_PROJECT_HOME</cite> and <cite>PYTHONPATH</cite> needs to be defined and exported within every job script in order for the PBS system to recognize them. Now running PlatoSim3 using bash is done by adding the following line of code to the job script (<cite>testPlatosim-sh.pbs</cite>)</p>
+<blockquote>
+<div>$PLATO_PROJECT_HOME/build/platosim $PLATO_PROJECT_HOME/inputfiles/input.yaml output.hdf5</div></blockquote>
+<p>The same simple job script can be utilized using python scripting as seen here (<cite>testPlatosim.py</cite>)</p>
+<blockquote>
+<div><p>#!/usr/bin/env python3</p>
+<p>import os
+from platosim.simulation import Simulation</p>
+<p>runDir  = os.getcwd()
+simName = ‘ouput’
+sim     = Simulation(simName, outputDir=runDir)
+sim[“ObservingParameters/NumExposures”] = 10
+simFile = sim.run()</p>
+</div></blockquote>
+<p>and insted we add the following line of code to our job script (<cite>testPlatosim-py.pbs</cite>)</p>
+<blockquote>
+<div>python testPlatosim.py</div></blockquote>
+<p>### Enabling the <em>sequential</em> parallelism of PlatoSim3</p>
+<p>As stated in the PlatoSim3 documentation under [Configuration Parameters](<a class="reference external" href="http://ivs-kuleuven.github.io/PlatoSim3/ConfigurationParameters.html">http://ivs-kuleuven.github.io/PlatoSim3/ConfigurationParameters.html</a>), one can take advantage of PlatoSim3’s (quasi) parallelism in its source code using the input parameter <cite>BeginExposureNr</cite>. As <cite>BeginExposureNr</cite> defines the number of the first exposure in a sequence, bigger simulations can be chopped-up into smaller simulation chunks and handled in parallel by the scheduler. E.g., if <cite>BeginExposureNr = 10</cite> and 100 simulations are choosen, then 10 simulation chunks can be handled in parallel. However, the backward calculation of defining <cite>BeginExposureNr</cite> from the number images forming a sequence, or the total number of smaller simulation jobs, are usually desired. Hence, for demonstration a python module called <cite>runSequential.py</cite>, that uses these formalisms, is available in <strong>simSequential</strong> folder. Running <cite>python runSequential.py</cite> (without input arguments) will print the usage of the script, however, be aware that this module needs to launched by the job script called <cite>jobSequential.pbs</cite>.</p>
+<p>In order to use these demo scripts you’ll first need to edit/add all the relevant informations regarding your simulation under the <em>Setup simulations</em> within <cite>runSequential.py</cite>. Specifically, you should define the total number of exposures, <cite>Nexps</cite>, of your combined simulation together with the parameter <cite>N</cite> that, from the discussing above, is defined as the number of images in one sequence (if <cite>selectSequence = True</cite>) or the total number of parallel jobs (if <cite>selectSequence = False</cite>). As an example, say that <cite>Nexps = 105</cite> and <cite>N = 10</cite>. While <cite>selectSequence = True</cite> notice in the following that this generate 11 jobs and that the last job only include 5 images</p>
+<blockquote>
+<div>Monitoring (Njobs, Nexp)=(11, 105): jobNr=1, jobExp=1-10
+.
+.
+Monitoring (Njobs, Nexp)=(11, 105): jobNr=11, jobExp=101-105</div></blockquote>
+<p>whereas if <cite>selectSequene = False</cite> you’ve bootstrapped <cite>N = Njobs = 10</cite> and the script will try to divide <cite>Nexp</cite> up into 10 equal simulations. In this example, this is clearly not possible (since <cite>Njobs = 10.5</cite>) and instead the first <cite>Njobs-1</cite> jobs will include <cite>ceil(Njobs) = 11</cite> images, whereas the modulus of 6 images are placed in the last job as follows</p>
+<blockquote>
+<div>Monitoring (Njobs, Nexp)=(10, 105): jobNr=1, jobExp=1-11
+.
+.
+Monitoring (Njobs, Nexp)=(10, 105): jobNr=10, jobExp=100-105</div></blockquote>
+<p>Hence, if by mistake the <cite>Nexps/N</cite> is not an integer, this demo automatically takes care of the last job. While the job script is running on the HPC, the above job message is written to your <cite>&lt;JobName&gt;.o&lt;JobID&gt;</cite> for you to monitor the job and for extra trouble shooting.</p>
+<p>Finally, it is time to adjust the PBS resources within the job script <cite>jobSequential.pbs</cite>, and when everything is set up, the job script can be submitted with worker using</p>
+<blockquote>
+<div><blockquote>
+<div>module load worker</div></blockquote>
+<p>wsub -t 1-&lt;Njobs&gt; -batch jobSequential.pbs</p>
+</div></blockquote>
+<p>Notice that different from SLURM job arrays, first both numbers in the ranges shown in this section are included in the Torque array calculations and, secondly, the Torque <cite>qsub</cite> command (for which <cite>wsub</cite> depends on) also takes complex task ID/ranges, e.g., <cite>qsub -t 1-5,12,17-35</cite>, and hence the min and max array IDs usually used in SLURM are here meaningles. Although not applicable for this demostration, the advantage of this complex array behavior is, e.g., that you can “add” large time jumps to one long simulation, instead of splitting up the simulation into different time domains.</p>
+<p>### Simulating PLATO mission <em>quarters</em></p>
+<p>In this example we show how you can simulate an arbitary number of mission <em>quarters</em>. Since a nescessary rotation (along the roll axis) of the spacecraft platform is required in order to repoint the solar panels every 90 days, simulations cannot realistically extend beyond a quarter of a year. This together with the fact that the PLATO spacecraft will be equipped with 4 camera groups consisting o[&lt;8;8;26m]f 6 cameras each, constrains the efficient use of nodes and cores. In order to make the simulation as realistic as possible, random seats of various intrinsic- and instrumental effects needs to be included, meaning that each camera within each camera group needs to be simulated independently (which indeed are the raw imaging output of PLATO).</p>
+<p>In the context of the the above description, this example (<strong>simQuarter</strong>) will only focus on how to create job script for <cite>worker</cite>. To remove the burden of creating a script that generates all of the possible {camera group, camera, quarter} simulation instances, a dedicated script called <cite>makeSimQuarter.py</cite> is made available. The MapReduce approach here boils down to defining a function that simulates a timeseries of 88 days (where 2 days are used for rotation and stabilazation), given an <cite>inputfile.yaml</cite>, the camera group (1-4), the camera within that group (1-6), and a quarter (1-N) out of N quarters simulated. For your convenience, running the script <cite>python makeSimQuarter.py</cite> will again print the usage function to bash</p>
+<blockquote>
+<div><p>Usage: python makeSimQuater.py &lt;cameraGroupNo&gt; &lt;cameraNo&gt; &lt;quarterNo&gt;</p>
+<p>cameraGroupNo : [1, 2, 3, 4]        (Maximum 4 camera groups)
+cameraNo      : [1, 2, 3, 4, 5, 6]  (Maximum 6 cameras per group)
+quarterNo     : [1, 2, 3, 4, .. n]  (No maximum, hence use logic)</p>
+<p>For each input argument select either
+- A number  : e.g. “1”
+- A range   : e.g. “1-2”
+- Full range: i.e. “0”     (default for quarterNo is 8 = 2 years)</p>
+<p>Example: python makeSimQuarter.py 1 0 1-4</p>
+<p>Before running this script all the ‘user defined parameters’ needs
+to be modified to ensure that the automatic estimation of needed
+nodes, cores, and memory are rigthfully calculated.</p>
+</div></blockquote>
+<p>Seen here, before running the script with input arguments, you’ll need to customize the <em>user defined parameters</em> within the script. Most importantly, the <cite>timePerImage</cite> and <cite>memoryPerImage</cite> needs to be determine accurately (e.g. from a smaller simulation of the eaxct setup) to ensure that the automatic estimation of resources (nodes, cores, memory) are rightfully calculated by the script. The automation ensures that the memory equation (<cite>ppn * pmem &lt; nmax - 8 GB</cite>) is satisfied together with an optimized use cores per node(s). However, notice the scheduler might choose otherwise e.g., if 2 nodes x 24 cores are specified, the scheduler will most likely try to fill up the first node completely, meaning for a 36 core-node, all 36 cores will be used on the first node and the remaining 12 cores on the second node. Running <cite>makeSimQuarter.py</cite> (with input arguments) will create a textfile with a line for each of the (groups x telescopes x quarters) observational configurations and a job script to execute these. If the automatic generated job resources given in the <cite>simQuarter.pbs</cite> doesn’t cut it, the job resources can safely be modified after need.</p>
+<p>As a small example of an realistic simulation, assume that we only want to simulate small stellar masks (imagettes) for a sample of stars. The simplest simulation is obviously to select only one group, one telescope, and one quarter: <cite>python makeSimQuarter.py 1 1 1</cite>. One quarter corresponds to (60 x 60 x 24 x 88) s / 25 s = 304,128 exposures. If one simulation (meaning one imagette of each star) is 50 kb and takes 1 s, then a quarter simulation is 432 Mb and takes 2h 24min using 36 node-cores. Try play around with different configurations and notice that <cite>makeSimQuarter.py</cite> automatically provides you the calculation just shown - e.g., the simplest simulation just shown and the default simulation prints the following to bash</p>
+<blockquote>
+<div>Preparing   1 simulations with resources: nodes=1, cores=36, pmem=432mb, walltime=2:24:00
+Preparing 192 simulations with resources: nodes=6, cores=32, pmem=81mb,  walltime=0:27:00</div></blockquote>
+<p>Submitting the job script is simply done by</p>
+<blockquote>
+<div><blockquote>
+<div>module load worker</div></blockquote>
+<p>wsub -batch &lt;simPrefix&gt;.pbs -data &lt;simPrefix&gt;.txt</p>
+</div></blockquote>
+<p>Since calculations can get rather large quickly (involving a lot of nodes and cores) something will most likely go wrong at some point. If not all work items are finished during your specified walltime, your job can be resumed with <cite>wresume -jobid &lt;jobID&gt;</cite>, where you most likely also will add a longer walltime or maybe more nodes or cores to keep the walltime. If some work items failed, after correcting the mistake, it is possible to resume and complete these failed items using <cite>wresume -jobid &lt;jobID&gt; - retry</cite>.</p>
+<p><strong>Notice that further work is needed confirm the different uses of resources in this example, plus to couple the sequential approach with the example of simulating quarters.</strong></p>
+<p>—</p>
+<p>## Resources and compression of data</p>
+<p>### Resources</p>
+<p>Computation time and memory WITHOUT HPC:</p>
+<p>1 star 1 Q:
+* LC     : 385 s,   7.4 Mb
+* LC+IMA : 385 s, 154.0 Mb
+* LC+COOR: 600 s, 890.0 Mb</p>
+<p>### Compression</p>
+<p>LC only (1 file = 7.4 Mb):
+* 1 cfile  :  1.6 Mb
+* 8 cfiles : 13.1 Mb
+* 8 ccfiles: 12.9 Mb</p>
+<p>Both large memory nodes satisfy the memory requirement for the “minimum cases” but for the “optimal case” only Superdome satisfy the memory needed to store the files. In any case we should find a way to compress and transfer teh files meanwhile the simulations are running. In conclusion the task will be possible and so within a week from start time of executing the jobs.</p>
+<p>### Workflows with PlatoSim TODO</p>
+<ul class="simple">
+<li><strong>Workflows on an HPC cluster</strong>: See [here](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/workflows_using_job_dependencies.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/workflows_using_job_dependencies.html</a>)</li>
+</ul>
+<p>### Containers with PlatoSim TODO</p>
+<p>[Containers on the HPC system](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/singularity.html">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/singularity.html</a>)</p>
+<p>—</p>
+<p>## Trouble shooting TODO</p>
+<ul class="simple">
+<li>What are the current performance bottlenecks?</li>
+<li>Identify possible ways in which this workload can be distributed over multiple processes or threads.</li>
+<li><strong>Multi-threading:</strong> Unfortunately, PlatoSim3 do not support multithreading so this is just extra knowledge. If OpenMPI, use the <cite>-L task</cite> value to execute a job on multiple nodes. This can be combined with <cite>-L lproces</cite> which allows multithreading (i.e. CPUs per task) <cite>#PBS -L task=1:lproces=1</cite>. Intel-based toolchains (e.g. intel/2018a, offering Intel compilers and MKL libraries)</li>
+</ul>
+<p>If you prefer not to have Python 3 as your default and are using Python 2, you can find-and-replace instances by <cite>grep -rl “python” install.sh | xargs sed -i “s/python/python3/g”</cite></p>
+<p>For any other support please consult the [VSC technical support](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/user_support.html#user-support-vsc">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/user_support.html#user-support-vsc</a>) and have a look at information at [Contact VSC](<a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/contact_vsc.html?highlight=see%20adminstrator#technical-support">https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/contact_vsc.html?highlight=see%20adminstrator#technical-support</a>).</p>
+<p>Notice the folder <strong>server</strong> is an entry-point for the sshfs connection to the HPC (scripts are in <strong>source</strong>).</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="acknowledgements.html" class="btn btn-neutral float-left" title="Achknowledgements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Nicholas Jannsen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html4" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Light Curve Production &mdash; PLATOnium 0.1.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/fonts.css" type="text/css" />
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/fonts.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Troubleshooting" href="l1_troubleshooting.html" />
+    <link rel="prev" title="Microscanning &amp; PSF Inversion" href="l1_microscanning.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> PLATOnium
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Getting started:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="repo_installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="repo_tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="repo_api.html">API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="repo_troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="repo_acknowledgements.html">Acknowledgements</a></li>
+</ul>
+<p class="caption"><span class="caption-text">Parallel computing:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="hpc_installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc_introduction.html">Introduction to HPC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc_platosim.html">HPC for PlatoSim3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc_examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc_resources.html">Resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc_advanced.html">Advanced</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hpc_troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption"><span class="caption-text">L1 pipeline:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="l1_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="l1_installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="l1_microscanning.html">Microscanning &amp; PSF Inversion</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Light Curve Production</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pre-processing">Pre-processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#on-ground-l1-pipeline">On-ground L1 pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#in-flight-l1-pipeline">In-flight L1 pipeline</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="l1_troubleshooting.html">Troubleshooting</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PLATOnium</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+<div class="git-ribbon">
+  <a href="http://github.com/SwissDataScienceCenter" rel="me">Join us on GitHub</a>
+</div>
+
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Light Curve Production</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/l1_lightcurve.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="light-curve-production">
+<h1>Light Curve Production<a class="headerlink" href="#light-curve-production" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="pre-processing">
+<h2>Pre-processing<a class="headerlink" href="#pre-processing" title="Permalink to this headline">¶</a></h2>
+<p>The first step in the L1 pipeline is running a so-called pre-processing module. This module, called <code class="docutils literal notranslate"><span class="pre">pproc.py</span></code>, performs the following corrections:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Bias subtraction</li>
+<li></li>
+</ul>
+</div></blockquote>
+<p>The following mandatory PlatoSim outputs:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">WritePixelMaps</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteSmearingMaps</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteThroughputMaps</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteFlatfieldMap</span></code> (Will be calculated in FOV later)</li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteStarPositions</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteACS</span></code> (Optional if jitter cadence is below 4 mHz: then use flag <code class="docutils literal notranslate"><span class="pre">--high-cadence-displacement</span></code>)</li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteDiffusedPSF</span></code> (if MappedFromFile PSFs are used and if diffusion is included)</li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteRotatedPSF</span></code>  (if MappedFromFile PSFs are used and if diffusion is turned off)</li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteHighResolutionPSF</span></code> (if analytic non-gaussian PSFs are used)</li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteStarCatalog</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">WriteTransmissionEfficiency</span></code></li>
+</ul>
+</div></blockquote>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The pre-processing scirpt extract the star IDs from the PlatoSim HDF5 <code class="docutils literal notranslate"><span class="pre">StarCatalog/starID</span></code> output file entry. The information given in this data set must be consistent with the catalogue your are working and for which you extract the stars for which you  want to generate simulations.</p>
+</div>
+<p>Note that after having run all processing modules you can remove the following files:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>&lt;starID&gt;-pp.hdf5
+&lt;starID&gt;_psfccd.fits
+&lt;starID&gt;_displacement.dat
+&lt;starID&gt;.times
+</pre></div>
+</div>
+<p>they can be quite large in particular if the time-series are long and if needed they can be re-generated with <code class="docutils literal notranslate"><span class="pre">pproc.py</span></code> from &lt;starID&gt;.hdf5
+The other files generated by pproc.py are anyway small.</p>
+</div>
+<div class="section" id="on-ground-l1-pipeline">
+<h2>On-ground L1 pipeline<a class="headerlink" href="#on-ground-l1-pipeline" title="Permalink to this headline">¶</a></h2>
+<p>The strategy for the on-ground photometric extraction is using PSF photometry. This strategy allows higher precision photometry than binary mask extraction, since each star (targets and contaminats) within an imagette can be moduled, which especially is advantagous for PLATO’s scarse sampling of the PSF onto the pixel-grid focal plane. This is especially true for crowded regions, however, PSF fitting do also fail when crowding becomes to prominents (e.g. when stars contaminants are within the same pixel as the target star).</p>
+<p>The module <code class="docutils literal notranslate"><span class="pre">pproc.py</span></code> has the following mandatory PlatoSim outputs:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>ThroughputMaps
+WriteDiffusedPSF <span class="o">(</span>when analytical MappedFromFile PSFs are used<span class="o">)</span>
+WriteHighResolutionPSF <span class="o">(</span>when analytical non-gaussian PSFs are used<span class="o">)</span>
+WriteTransmissionEfficiency
+WriteStarPositions
+WriteFlatfieldMap
+WriteThroughputMaps
+WriteSmearingMaps
+</pre></div>
+</div>
+<ul>
+<li><dl class="first docutils">
+<dt><cite>postPSIM.sh</cite> is that for the PSF fitting?</dt>
+<dd><blockquote class="first">
+<div><ul class="simple">
+<li><cite>lightcurve.py</cite> (with or without mask update)</li>
+<li>Calling this function twice: to either use real PSF or inverted (last is what we want)</li>
+</ul>
+</div></blockquote>
+<ul class="last">
+<li><dl class="first docutils">
+<dt><cite>jittercorrection.py</cite></dt>
+<dd><ul class="first last">
+<li><p class="first">-I: path to the inverse PSF with B-spline</p>
+</li>
+<li><p class="first">–bres 20: B-spline resolution</p>
+</li>
+<li><p class="first">–bsktype: scheme of nodge</p>
+</li>
+<li><p class="first"><cite>psffit.py</cite></p>
+</li>
+<li><p class="first">This include a background option: –no-bg-corr</p>
+</li>
+<li><dl class="first docutils">
+<dt>Also takes into account of contaminants but need guesses:</dt>
+<dd><blockquote class="first">
+<div><ul class="simple">
+<li>See -F, -D, -s, -C, no error for target and contaminant separation as per Gaia is very accurate</li>
+</ul>
+</div></blockquote>
+<ul class="last simple">
+<li>Réza will provide representative values</li>
+<li>-P: error of PRNU (0.1%)</li>
+<li>–fix-relative-pos and –fix-intensity</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+</li>
+</ul>
+</div>
+<div class="section" id="in-flight-l1-pipeline">
+<h2>In-flight L1 pipeline<a class="headerlink" href="#in-flight-l1-pipeline" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="l1_troubleshooting.html" class="btn btn-neutral float-right" title="Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="l1_microscanning.html" class="btn btn-neutral float-left" title="Microscanning &amp; PSF Inversion" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2022, Nicholas Jannsen
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

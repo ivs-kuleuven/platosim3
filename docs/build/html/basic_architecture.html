@@ -1,0 +1,286 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>Architecture &mdash; PlatoSim 3.5.4 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  <link rel="stylesheet" href="_static/fonts.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Overview" href="install_overview.html" />
+    <link rel="prev" title="Acknowledgements" href="basic_acknowledgements.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html">
+          
+
+          
+            
+            <img src="_static/logo_platosim_crop.png" class="logo" alt="Logo"/>
+          
+          </a>
+
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">General:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#general-overview">General overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#conceptual-design">Conceptual design</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#control-flow">Control flow</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run Simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_output.html">Output Files</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_cluster.html">Parallel Computing</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">PlatoSim</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+<div class="git-ribbon">
+  <a href="http://github.com/SwissDataScienceCenter" rel="me">Join us on GitHub</a>
+</div>
+
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Architecture</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/basic_architecture.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h1>
+<p>The goal of PlatoSim’s C++ code is to model a part of one CCD of a single telescope on the platform. We refer to this as the <code class="docutils literal notranslate"><span class="pre">subfield</span></code>. On this page we describe the steps that are executed within a simulation in more detail.</p>
+<p>PlatoSim has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.</p>
+<p>We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained.</p>
+<hr><div class="section" id="general-overview">
+<h2>General overview<a class="headerlink" href="#general-overview" title="Permalink to this headline">¶</a></h2>
+<p>The design of the PlatoSim started from the concept displayed in Fig. 1. The main hardware components that make up the PLATO spacecraft are the platform, (telescope), camera, and detectors, all of which are represented by a separate class in PlatoSim. Since we are simulating noise features on an image taken from the sky, we added the Sky class to the concept. All these components are controlled by a Simulation object.</p>
+<div class="figure align-center" id="id1">
+<a class="reference internal image-reference" href="_images/platosim_conceptualDesign.png"><img alt="_images/platosim_conceptualDesign.png" src="_images/platosim_conceptualDesign.png" style="width: 300px;" /></a>
+<p class="caption"><span class="caption-text"><strong>Fig. 1</strong>: Simulation object controlling classes.</span><a class="headerlink" href="#id1" title="Permalink to this image">¶</a></p>
+</div>
+<hr></div>
+<div class="section" id="conceptual-design">
+<h2>Conceptual design<a class="headerlink" href="#conceptual-design" title="Permalink to this headline">¶</a></h2>
+<p>The more detailed design of PlatoSim is depicted in Fig. 2. The <code class="docutils literal notranslate"><span class="pre">Simulation</span></code> class in the center controls the process and knows about all the main components in the system.</p>
+<div class="figure align-center" id="id2">
+<a class="reference internal image-reference" href="_images/platosim_detailedDesign.png"><img alt="_images/platosim_detailedDesign.png" src="_images/platosim_detailedDesign.png" style="width: 900px;" /></a>
+<p class="caption"><span class="caption-text"><strong>Fig. 2</strong>: Detailed conceptual design.</span><a class="headerlink" href="#id2" title="Permalink to this image">¶</a></p>
+</div>
+<p>Each of these main components has its own set of responsibilities:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Platform</span></code> provides information about the pointing and the jitter,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Telescope</span></code> controls the thermo-elastic drift of the cameras,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Camera</span></code> provides information about the Point Spread Function (see <code class="docutils literal notranslate"><span class="pre">PSF</span></code> subclass),</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Detector</span></code> controls all the different (sub)pixel maps.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FEE</span></code> controls the readout procedure and parameters for the electronics,</p></li>
+</ul>
+</div></blockquote>
+<p>The blue file icons attached to several boxes indicate that information about its responsibility is provided in the YAML configuration file, while the green file icons indicate that the component is writing information into the HDF5 output file.</p>
+<hr></div>
+<div class="section" id="control-flow">
+<span id="basic-architecture-control"></span><h2>Control flow<a class="headerlink" href="#control-flow" title="Permalink to this headline">¶</a></h2>
+<p>Each PlatoSim simulation can be divided into two parts that happens sequential in time as shown in Fig. 3. Upon execution, PlatoSim first (a) read the configuration YAML file and initialises the Simulation object with these parameters. It further setup the random red noise generators, if requested by the user. Next (b) the actual computation of the pixel images begins. This happens in a loop over the number of exposures that is requested in the YAML configuration file. The two main steps in the simulation process are the integration of the light on the detector and the readout process.</p>
+<div class="figure align-center" id="id3">
+<a class="reference internal image-reference" href="_images/platosim_controlFlow.png"><img alt="_images/platosim_controlFlow.png" src="_images/platosim_controlFlow.png" style="width: 800px;" /></a>
+<p class="caption"><span class="caption-text"><strong>Fig. 3</strong>: Initialisation and execution of PlatoSim.</span><a class="headerlink" href="#id3" title="Permalink to this image">¶</a></p>
+</div>
+<p>The flux of each star in the subfield is added to the sub-pixel map with the time interval of the pointing jitter and the duration of the exposure time. The background flux is then added and the subpixel map and is convolved with a rebinned PSF. After applying the flatfield, the subpixel map is rebinned to a pixel map, and the (geometric) vignetting is applied.</p>
+<p>During the readout process all the noise features are applied on the pixel map. Many of the features can be switched <strong>on</strong> or <strong>off</strong> in the YAML configuration file, some features need to get a value of <code class="docutils literal notranslate"><span class="pre">yes</span></code> (<code class="docutils literal notranslate"><span class="pre">True</span></code>) or <code class="docutils literal notranslate"><span class="pre">no</span></code> (<code class="docutils literal notranslate"><span class="pre">False</span></code>) in order to be included or ignored, respectively. After processing each exposure, the pixel map is written to the output HDF5 file and the option to write also the subpixel maps can be enabled in the YAML configuration file. Details about detected stars, their positions, and the pointing information is finally written to the output HDF5 file.</p>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="install_overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="basic_acknowledgements.html" class="btn btn-neutral float-left" title="Acknowledgements" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright KU Leuven.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

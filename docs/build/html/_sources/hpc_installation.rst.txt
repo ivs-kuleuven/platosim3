@@ -1,0 +1,218 @@
+Getting started (VSC) 
+=====================
+
+**Installation example for KU Leuven's associated VSC cluster**
+
+*A Quick guide on how to use the KU Leuven's HCP infrastructure*
+
+This is a small guide how to sucessfully install and build PlatoSim3 and PLATOnium on KU Leuven's HPC infrastructure, which is part of the Vlaams Supercomputer Centrum (VSC). As a subplement to this small tutorial, it is highly recommended to read the `VSC documentation <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/index.html>`_, and the concept and methedology behind `HPC at KU Leuven <https://icts.kuleuven.be/sc/english/research/HPC>`_ and at the `VSC webpage <https://www.vscentrum.be/>`_. This tutorial is specifically directed to Linux and Mac users, hence, for Windows please have a look at the VSC documentation for setting up access rights and how to connect to the VSC. Finally, to become an expert sign-up for the `ADS training <https://www.vscentrum.be/training>`_ course *HPC Intro* and *Linux for HPC*. These courses (and several more) are also available for free on `HPC Leuven's Github repository <https://github.com/hpcleuven>`_ in video or readable format. If you are installing PLATOnium on a different cluster than VSC or if you already have a VSC login and are familiar with the HPC infrastructure, you can skip the following section *Introduction to HPC* and jump directly to the section of *HPC for PlatoSim3*.
+
+Independent on which cluster you are using the following steps needs to be taken:
+
+* Create an account
+* Login to cluster node
+* Provide account for credit system (payment)
+* Load cluster modules
+* Install software packages
+
+
+.. _hpc_installation_account:
+
+Create an account
+-----------------
+
+To run simulations on the HPC you will first need an VSC account (and a VSC-user ID), for which you can find a thorough description on the VSC documentation given above. To boil it down, you will need to open a terminal and:
+
+  1. Create a public/private key pair in the following way:
+     - Check that OpenSSH is installed (`ssh -V`) or install it.
+     - Create a new keypair with a unique name in your **.ssh** folder, e.g. `ssh-keygen -t rsa -b 4096 -f .ssh/rsa_vsc`. <br/> You will be prompt to create and verify a password of your choice.
+     - Check that your ssh key are indeed identified by the ssh-agent: `ssh-add -l`.
+ 
+  1. Sign up for a [VSC account](https://www.vscentrum.be/user-portal) by selectting *VSC account page*. Fill in your account details and lastly provide the public part of the keypair that you just created. Since **.ssh** is a hidden folder, you can open your **home** folder GUI and toggle `Crtl + h` to see all your hidden files and folders in any directory. If your Linux distribution do not support uploadsing the public key from a hidden folder, simply copy the public key into your **home** by `cp .ssh/rsa_vsc.pub .` and then upload it (afterwards you can safely remove the dublicate public key you just created).
+
+Next to speed up things, you should already now apply for your free introduction credits. The following links are the formal KU Leuven webpages for requesting credits (consult your project manager for the two latter):
+
+* [Request introduction credits](https://admin.kuleuven.be/icts/onderzoek/hpc/request-introduction-credits)
+* [Request project credits](https://admin.kuleuven.be/icts/onderzoek/hpc/request-project-credits)
+* [Extra project credits to existing project](https://admin.kuleuven.be/icts/onderzoek/hpc/extra-project-credits)
+
+
+
+.. _hpc_installation_login:
+  
+Login-node
+----------
+
+If everything goes well you will, shortly after submission, recieve a confirmation email, and by confirming this, you will be granded access to your VSC user account beloging to a VSC ID. Remember this ID as you will use it everytime you login to the HPC facility; the ID can be written as `vsc<XY>` where `X` (being the first 3 digits) refers to your KU Leuven account group, and `Y` (being the last 2 digits) refers to your registration number within that group. The standard account you just created gives you access to most of the VSC *Tier-2 infrastructure*, which for most PlatoSim3 simulations should be sufficient.
+
+In order to access the Tier-2 infrastructure you will need to use a cluster *login node*, for which the recommended *Genius* login node will be used in this tutorial. There is a number of ways to login through the OpenSSH access, however, here we stick to the use of bash providing the hostname for *Genius*
+
+    ssh -X vsc<XY>@<hostname>
+    ssh -X vsc<XY>@login.hpc.kuleuven.be
+
+Use your VSC ID as parameter and confirm with your newly created password. 
+
+
+Credit system
+-------------
+
+In short all necessary information is stated in the [Credit system basic](https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/credit_system_basics.html?highlight=credit%20system%20) VSC documentation, however, for completeness we simply summeriaze some often used commands as follows
+    
+- `man-balance`: List active projects and available credits
+- `mam-list-chargerates`: List the validity dates of different projects/allocations
+- `mam-list-allocations -a <ProjectCredits>`: List current charge rates for different nodes
+- `mam-list-users -a <AccountName>`: List the members of an account
+- `gquote <jobName>.pbs`: Determine maximum cost of a job
+
+
+
+
+
+.. _hpc_installation_modules:
+
+Load modules
+------------
+
+Before continuing to building PlatoSim3, we here provide a few words on the in-build software/modules of the clusters. You can easily find modules using either `module av/spider <ModuleName>` where the latter (`spider`) is used to find all possible modules and extension of the name search. Notice that if you load a module without specifying a version, the system will simply choose the lastest release. You load modules by `module load/add <ModuleName>` and to see all loaded modules use `module list`. Likewise, you can easily remove a loaded module with `module unload/del <ModuleName>`, or all loaded modules with `module purge`. For further information, have a look at the [Module System](https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/software_stack.html#using-the-module-system) and the usage of the module script itself `module -h`.
+
+Next we need to specify some HPC modules internally in order for the infrastructure to recognize the specefic software versions that build and run PlatoSim3. PlatoSim3 uses the gnu compilers (gcc, g++, OpenMPI, ScaLAPACK, and OpenBLAS) which by this writing is from FOSS 2021a. Thus, the Intel compilers will not work for PlatoSim3, and in general never mix Intel and FOSS compilers. More generally this is shown in the following (compatible versions that builds the software presently are written after each backslash):
+
+.. code-block:: shell
+
+   1) Emacs/26.1-GCCcore-6.4.0 
+   2) intel-compilers/2021.2.0
+   3) UCX/1.10.0-GCCcore-10.3.0
+   4) impi/2021.2.0-intel-compilers-2021.2.0
+   5) iimpi/2021a
+   6) imkl/2021.2.0-iimpi-2021a
+   7) intel/2021a
+   8) expat/2.2.9-GCCcore-10.3.0
+   9) ncurses/6.2-GCCcore-10.3.0
+   10) DB/18.1.40-GCCcore-10.3.0
+   11) OpenSSL/1.1
+   12) Perl/5.32.1-GCCcore-10.3.0
+   13) CUDA/11.4.1
+   14) binutils/2.36.1-GCCcore-10.3.0       
+   15) numactl/2.0.14-GCCcore-10.3.0
+   16) XZ/5.2.5-GCCcore-10.3.0
+   17) libxml2/2.9.10-GCCcore-10.3.0
+   18) libpciaccess/0.16-GCCcore-10.3.0       
+   19) hwloc/2.4.1-GCCcore-10.3.0
+   20) libevent/2.1.12-GCCcore-10.3.0
+   21) libfabric/1.12.1-GCCcore-10.3.0
+   22) PMIx/3.2.3-GCCcore-10.3.0
+   23) FlexiBLAS/3.0.4-GCC-10.3.0
+   24) libpng/1.6.37-GCCcore-10.3.0
+   25) NASM/2.15.05-GCCcore-10.3.0       
+   26) libjpeg-turbo/2.0.6-GCCcore-10.3.0
+   27) gompi/2021a
+   28) OpenMPI/4.1.1-GCC-10.3.0
+   29) FFTW/3.3.9-gompi-2021a
+   30) ScaLAPACK/2.1.0-gompi-2021a-fb
+   31) foss/2021a
+   32) bzip2/1.0.8-GCCcore-10.3.0
+   33) zlib/1.2.11-GCCcore-10.3.0
+   34) libreadline/8.1-GCCcore-10.3.0
+   35) Tcl/8.6.11-GCCcore-10.3.0       
+   36) SQLite/3.35.4-GCCcore-10.3.0
+   37) cURL/7.76.0-GCCcore-10.3.0
+   38) libarchive/3.5.1-GCCcore-10.3.0
+   39) CMake/3.20.1-GCCcore-10.3.0
+   40) GMP/6.2.1-GCCcore-10.3.0   
+   41) GCCcore/10.3.0
+   42) libffi/3.3-GCCcore-10.3.0
+   43) GCC/10.3.0
+   44) GSL/2.7-GCC-10.3.0
+   45) OpenBLAS/0.3.15-GCC-10.3.0       
+   46) worker/1.6.10-intel-2018a
+
+   
+
+.. _hpc_installation_software:
+       
+Install software
+----------------
+
+Assuming that you are a developer and already have the PlatoSim3 Github repository forked to your privat profile (otherwise see the `PlatoSim3 documentation <http://ivs-kuleuven.github.io/PlatoSim3/>`_), login with ssh to *Genius* and follow these steps to clone the software into your **data** folder:
+
+.. code-block:: shell
+		
+   cd $VSC_DATA
+   git clone https://github.com/<YourGitHubUsername>/PlatoSim3.git .
+
+Upon cloning, the **PlatoSim3** repository folder will automatically be created.
+
+   
+Now build the software by running
+
+.. code-block:: shell
+		
+   ./install.sh
+
+Check that the build of PlatoSim3 was sucessful by first running the ``testplatosim`` and hereafter ``platosim`` using the pre-defined ``inpufile.yaml`` (all of this is documented on the PlatoSim3 webpage).
+    
+Now add the environment variables (for PlatoSim3 and your newly created Python library) to your ``~/.bashrc`` file
+
+.. code-block:: shell
+
+   PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
+   export PLATO_PROJECT_HOME
+    
+   PLATO_WORKDIR=$PLATO_PROJECT_HOME
+   export PLATO_WORKDIR
+    
+   PYTHONPATH=$PLATO_PROJECT_HOME/python:$VSC_DATA/python_lib/lib/python3.7/site-packages/
+   export PYTHONPATH
+
+If the build and package installations were sucessful, then save the *enviroment* of modules so they (after a module purge or re-login) can be restored, respectively by
+
+.. code-block:: shell
+		
+   module save <EnvironmentName>
+   module restore <EnvironmentName>
+
+Here ``platosim`` is the environment name choosen for the rest of this tutorial.
+
+
+Follow this `page <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/python_package_management.html>`_. In the following we create a conda environment called ``plato`` where all packages are installed at ``$VSC_DATA/miniconda3`` seen below
+
+.. code-block:: shell
+		
+   wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+   bash Miniconda3-latest-Linux-x86_64.sh -b -p $VSC_DATA/miniconda3
+   export PATH="${VSC_DATA}/miniconda3/bin:${PATH}"
+   which conda
+   conda create -n plato python=3.7
+
+
+.. attention::
+
+   Again we recommend to use Poetry for the package management but use your conda installation to fetch the correct version of Python if your cluster do not provide this directly. Often the available Python versions changes and hence it is generally a good idea to always to conda on a computing cluster to adminstrate your Python installation. If you don't want to use Poetry then simply install all python packages of PLATOnium stated within the ``pyproject.toml`` file.
+
+Some packges may not be available through Anaconda which means that you need to use pip to install packages to your Anaconda Environment:
+
+.. code-block:: shell
+		
+   source activate plato
+   conda install pip
+   miniconda3/envs/plato/bin/pip install <package>
+
+The following packages needs to be installed in through pip:
+
+.. code-block:: shell
+		
+   miniconda3/envs/plato/bin/pip install batman-package
+   miniconda3/envs/plato/bin/pip install PyAstronomy
+
+The following paths needs to be loaded for every node-core
+
+.. code-block:: shell
+		
+   PYTHON_PATH=$VSC_DATA/miniconda3/envs/plato/lib/python3.7/site-packages/
+   export PYTHON_PATH
+    
+   PLATO_OUTDIR=$VSC_DATA/platonium/sims/L1-pipeline/varsource
+   export PLATO_SIMDIR
+    
+   PLATO_SIMDIR=$VSC_DATA/platonium/variability
+   export PLATO_OUTDIR

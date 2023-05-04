@@ -1,0 +1,22 @@
+Troubleshooting
+===============
+     
+
+Library pymt64
+--------------
+
+The package ``pymt64`` can sometimes course porblems. A well known issue for this pacakage is the following error:
+
+.. code-block:: shell
+
+   import pymt64
+   File "pymt64.pyx", line 1, in init pymt64
+   ValueError: numpy.ndarray size changed, may indicate binary incompatibility. Expected 96 from C header, got 88 from PyObject
+
+
+This can be solved by re-installing the library:
+
+.. code-block:: shell
+
+   pip uninstall pymt64
+   pip install --no-cache-dir pymt64

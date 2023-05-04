@@ -1,0 +1,24 @@
+Architecture
+============
+
+The goal of the PlatoSim C++ code is to model a part (referred to as the ``subfield``) of one CCD of a single telescope on the platform. On this page we describe the steps that are executed within a simulation in more detail.
+
+The PlatoSim3 has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.
+
+We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained.
+
+
+
+.. raw:: html
+
+   <hr>
+
+Conceptual Design
+-----------------
+
+The PLATO Simulator design started from the concept pictured below (see Fig. 1). The main hardware components that make up the PLATO spacecraft are the platform, telescope, camera, and detectors, all of which are represented by a separate class in PlatoSim3. Since we are simulating noise features on an image taken from the sky, we added the Sky class to the concept. All these components are controlled by a Simulation object.
+
+.. image:: ../figures/PlatoSimFlowChart.png
+   :align: center
+   :width: 800
+
