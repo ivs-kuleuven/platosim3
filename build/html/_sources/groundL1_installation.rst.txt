@@ -1,0 +1,147 @@
+Installation
+============
+
+Create environment
+------------------
+
+Currently the only way to ensure that both PlatoSim, PLATOnium, and PLATO are installed altogether properly is to use to create a python3 environment. First install the python3-venv package
+
+.. code-block:: shell
+
+   sudo apt install python3-venv
+
+And then the virtual environment and activate it
+
+.. code-block:: shell
+
+   python -m venv $PLATO/lib/python
+   source $PLATO/lib/python/bin/activate
+
+
+   
+Install PlatoSim
+----------------
+
+Install PlatoSim from source.
+
+
+
+Install PLATOnium
+-----------------
+
+Install PLATOnium from source.
+
+Currently PLATOniumTo install PLATOnium from source, you can clone the [PLATOnium GitHub Repository] by:
+
+.. code-block:: shell
+		
+   git clone https://github.com/nicholasjannsen/PLATOnium.git
+   cd PLATOnium
+   python install -m pip install .
+
+
+LESIA L1 pipeline
+-----------------
+
+From source
+...........
+
+
+
+Poetry
+------
+
+If not installed, first install poetry by having a look the the `Poetry's documentation page <https://python-poetry.org/docs/>`_. When installed you can easily add then simply use:
+
+.. code-block:: shell
+
+   poetry add platonium
+
+
+
+.. _l1-download:
+
+Download repository
+...................
+
+The LEISA repository is a SVN (subversion) repository. Hence first install svn (using <sudo apt install subversion>), then create a folder somewhere on your system called **plato-lesia** and cd into it. Now download the repository with 
+
+.. code-block:: shell
+		
+    svn checkout https://version-lesia.obspm.fr/repos/PLATO/algorithms/ --username <username> --password <password>
+
+.. _l1-include:
+    
+Include paths
+.............
+
+Next read the README file; we need to include the following to our `.bashrc` file and change the `/path/to/plato-lesia` to where ever your folder is placed
+
+.. code-block:: shell
+
+   if [ ! $PLATO ]
+   then
+	export PLATO="$HOME/path/to/plato-lesia"
+	source "$PLATO/etc/env.bash"
+   fi
+
+and create the folder `mkdir $PLATO/etc` and then the file `touch $PLATO/etc/env.bash` and include
+
+.. code-block:: shell
+		
+   #!/usr/bin/env bash
+
+   unset MANPATH
+   export MANPATH=$PLATO/man:$(manpath)
+   export PATH=$PLATO/bin:${PATH}
+   export PLATOPY=$PLATO/lib/python
+
+   if [ "$PYTHONPATH" != "" ]; then
+       export PYTHONPATH=${PLATOPY}:${PYTHONPATH}:$HOME/lib/python/
+   else
+       export PYTHONPATH=${PLATOPY}:$HOME/lib/python/
+   fi
+
+
+
+Install software
+................
+
+The software can now be installed by going to `cd $PLATO/algorithms` and run the install script with sudo previlege
+
+.. code-block:: shell
+		
+   sudo ./install.sh
+
+.. note::
+   
+   Eventhough ``install.sh`` will install everything you may encounter that some packages are missing. E.g. the ``lynx`` package has been added above to build successfully. Install these simply with the general ``sudo apt install <package>`` formalism.
+
+.. warning::
+   
+   Some times the ``venv`` do not install the python libraries correctly into environment ``lib/python`` library. If that happens you can always install the package by first asking ``which pip`` with the venv activated, and the use this path to install. E.g. ``</path/to/lib/python/bin/pip> install <package>``.  
+
+
+.. _l1-activate-env:   
+
+Activating environment
+----------------------
+
+Remember to activate your virtual environment every time you use this repo
+
+.. code-block:: shell
+		
+   source $PLATO/lib/python/bin/activate	 
+
+
+.. _l1-update-repo:    
+
+Update repository
+-----------------
+
+Whenever a new change is made to update the repository simply go to ``/plato-leisa/algortihms/`` and
+
+.. code-block:: shell
+
+   svn update
+   sudo make

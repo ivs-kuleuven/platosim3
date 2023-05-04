@@ -1,0 +1,21 @@
+Advanced
+========
+
+In this section we look at how to use some smart HPC tools..
+
+Multi-threading (GPU)
+---------------------
+
+Unfortunately, PlatoSim3 do not support multithreading so this is just extra knowledge. If OpenMPI, use the ``-L task`` value to execute a job on multiple nodes. This can be combined with ``-L lproces`` which allows multithreading (i.e. CPUs per task) ``#PBS -L task=1:lproces=1``. Intel-based toolchains (e.g. intel/2018a, offering Intel compilers and MKL libraries)
+
+
+Workflows with PlatoSim TODO
+----------------------------
+
+`Workflows on an HPC cluster <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/workflows_using_job_dependencies.html>`_
+
+
+Containers with PlatoSim TODO
+-----------------------------
+
+`Containers on the HPC system <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/software/singularity.html>`_

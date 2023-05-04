@@ -1,0 +1,19 @@
+Microscanning & PSF Inversion
+=============================
+
+In flight PLATO will in the interval between each quarter perform microscanning sequence of pre-selected stars. The microscanning sessions are effectively an image time series of controlled spacecraft jitter patterns, where an Arcmedian spiral pattern will be used for the AOCS jitter. Having a sequence of inter-pixel-position shifted images it is possible to estimate a target stars high resolution PSF through the method of PSF inversion.
+
+.. image:: figures/archimedean_spiral.png
+   :align: center
+   :width: 400
+   :alt: Alternative text
+
+Such inversion technique is part of the L1A pipeline and the algorithmic overview consist of
+
+  1. ``microscan.py``: PlatoSim is used to perform the microscanning sequence. This is done bu using the jitter file called ``spiral_8Hz_3d.dat`` comprising 430 images of the Archmedian spiral pattern. The jitter pattern include some pointing tolerance. Note that it is best not to subtract the background in PlatoSim, because the module estimates this and subtract it.
+  2. ``pproc.py``: This is the imagette pre-processing script. 
+  3. ``invert.sh``: This script calculated the inverted PSFs.
+    - It first calls a script called ``extract_contaminats.py`` which providing a <targetID>.txt file that include relative flux and relative positions (x,y) in pixels, will detect and estimates the flux from contaminant stars. Next the executeable ``invert_parabolic_multi`` script is used to find the inverted PSFs using regulazation methods.
+    - Next the script invert_parabolic1_multi is called which is the Positive Regulalised Least Square (PRLS) method used for the inversion. Here we can use -p: is to fix resolution of inversion 20 -> 1/20 pixel resolution -> 10 is faster! -r: sampled a spatial resolution as 1/128 pixels compared to (NEEDS yaml: Write pixel, bias, flatfield, starCat, highresPSF)
+        
+Overall the microscanning take around 40 seconds and inversion last a few minute for a single target star, but considerably longer if contaminants are included as well! Importantly the PSF inversion is stored in *.vec* with B-spline.

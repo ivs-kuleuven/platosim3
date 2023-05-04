@@ -1,0 +1,260 @@
+Installation
+============
+
+.. attention::
+
+   Only Python 3 can be used to install and run PLATOnium! 
+
+.. important::
+
+   The following guide explains how to install PLATOnium in combination with PlatoSim, however, if you're interested in using the L1-pipeline to extract *reduced* on-ground and on-board PLATO light curves you'll need additionally to follow the L1-pipeline :doc:`l1_installation`. We note that PlatoSim/PLATOnium **do allow** fast and generic on-board light curve extraction for the generation of *raw* light curves.
+
+
+.. _repo_install_step:
+   
+Step-by-Step
+------------
+
+Follow the steps below to successfully install and run PLATOnium. The blue colored admonition boxes elaborate further steps to be taken if installing on a computing cluster:
+
+1. **Install PlatoSim3 from source:**
+
+   If not installed, install PlatoSim following `PlatoSim's Main Page <http://ivs-kuleuven.github.io/PlatoSim3/>`_ and follow the **developer** installation by git clone directly from `PlatoSim's GitHub repository <https://github.com/IvS-KULeuven/PlatoSim3>`_.
+
+   .. admonition:: Installing PlatoSim on a cluster
+
+      Computing clusters typically have a high standard of version control for software and hence the user cannot install software directly, but needs to load pre-installed software **modules**. As prerequite several software modules needs to loaded before installing PlatoSim. We give an example :doc:`here <hpc_installation_modules>` of modules needed for KU Leuven's associated cluster, but do check the software on your own cluster as it might be different.
+   
+
+2. **Fetch PLATOnium from source:**
+
+   For now PLATOnium needs to be fetched from source, hence, clone `PLATOnium's GitHub repository <https://github.com/nicholasjannsen/PLATOnium>`_ to a convenient place on your system and move to the base directory:
+
+   .. code-block:: shell
+		
+      git clone https://github.com/nicholasjannsen/PLATOnium.git
+      cd PLATOnium   
+
+   .. admonition:: Install PLATOnium on a cluster
+
+      Again make sure to load all modules needed (for more information check :ref:`here <hpc_installation_modules>`)
+      
+      
+3. **Create a Python environment:**
+
+   Since PLATOnium is a private Python repository it can for now only be installed from source. There is, however, no requirement on the Python environment, which means that any of the following environments are eligible: `poetry <https://python-poetry.org/>`_, `conda <https://docs.conda.io/en/latest/>`_, `venv <https://docs.python.org/3/library/venv.html>`_, etc. (or directly from `pip <https://pip.pypa.io/en/stable/>`_). Since this repository are meant to be integrated on a computing cluster we strongly recomment to use `Poetry <https://python-poetry.org/>`_ for the installation, as it manage your project installation easily over multiple platforms in a deterministic way. In the following we show how to install PLATOnium's python dependencies using poetry.
+
+   If using Poetry for the installation, follow this step. Otherwise have a look below for :ref:`alternatives <repo_install_alternatives>` and return back to step 4 for the setup. If not done so, first install Poetry:
+
+   .. code-block:: shell
+  
+      pip install --user poetry
+
+   Verify that poetry was installed successfully by typing ``poetry --version``.
+		   
+   .. admonition:: Poetry prerequiste on cluster
+
+      Again make sure that the relevant modules are loaded beforehand. We strongly recommend to install Poetry through a `Conda <https://docs.conda.io/en/latest/>`_ environment, since computing clusters typically only have limited amount of Python versions installed by default. While using Conda all Python versions can be installed and thus an exact freeze of the poetry installation can be made. Thus first install Conda (or *Miniconda*) and then create a new environment called e.g. ``py38`` if installing with Python 3.8: 
+
+      .. code-block:: shell
+		
+	 conda create -n py38 python=3.8
+
+      Now activate your new conda environment:
+
+      .. code-block:: shell
+
+	 conda activate py38
+	 
+      Verify that the python location is correct with ``which python``. Note that clusters typically don't support much disk space for ``$HOME``, and hence it is better to install Poetry on your ``$DATA`` disk storage instead. You can parse the installation location of Poetry (``</path/to/poetry>``) with:
+
+      .. code-block:: shell
+
+	 pip install --user poetry | POETRY_HOME=</path/to/poetry> python -
+
+      Verify that poetry was installed successfully by typing ``poetry --version`` and verify the installation location with ``which poetry``. Next change the installation location of the virtual Poetry environment to:
+      
+      .. code-block:: shell
+
+	 poetry config virtualenvs.path </path/to/poetry>/virtualenvs
+
+      In order for Poetry to be available from any compute node, you need to include the following path to your ``~/.bashrc`` file:
+   
+      .. code-block:: shell
+
+	 POETRY=<path/to/poetry>/bin
+	 export POETRY
+
+      Deactivate your conda environment (or any other active Python environment) and install PLATOnium with poetry:
+
+      .. code-block:: shell
+
+	 conda deactivate
+	 poetry install
+
+	 
+
+4. **Finalize setup**
+
+   As PLATOnium is a Python wrapper around PlatoSim it thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. Naturally PLATOnium share the same path environment variable ``PLATO_WORKDIR`` as PlatoSim, which we strongly recommend to use for your working directory of your simulation projects - an elaboration will follow in the section of :ref:`General information <repo_tutorial_general>`. Thus, create a project directory a convenient location:
+
+   .. code-block:: shell
+
+      mkdir </path/to/plato_workdir>
+
+   Now to finalize the setup, in the PLATOnium's base directory launch the script ``setep.sh`` and parse ``</path/to/plato_workdir>`` as input:
+     
+   .. code-block:: shell
+  
+      ./setup.sh </path/to/plato_workdir>
+
+   The script will finalize your setup doing the following:
+   
+   * Adds the PlatoSim's ``$PLATO_WORKDIR`` to your ``.bashrc`` file
+   * Set up the file structure and writes these paths to the ``.bashrc`` (and reloads it)
+   * Adds the PLATOnium scripts to ``$HOME/.local/bin`` thus making them globally executable
+   * Create a ``.platonium_init`` file to register the setup. If you want to change your working directory simply remove this file and run ``setup.sh`` again
+   |
+
+
+5. **Activate Poetry and run simulations**
+
+   Finally, always activate your Poetry environment from the base directory before using any of the scripts in this software package:
+
+   .. code-block:: shell
+
+      poetry shell
+
+   To disable it, from your PLATOnium base directory use:
+
+   .. code-block:: shell
+
+      exit
+
+
+   
+.. _repo_install_alternatives:
+      
+Alternatives
+------------
+
+The alternatives listed here is only for installing the Python libraies. Please follow the :ref:`PLATOnium installation guide <repo_install_platonium>` above.
+
+Conda
+.....
+
+To only maintain one single file for dependencies, we here suggest to use the handy `poetry2conda <https://github.com/dojeda/poetry2conda>`_ converter which translate a Python project declared on a ``pyproject.toml`` to a conda environment. First install this converter with:
+		   
+   .. code-block:: shell
+		   
+      pip install poetry2conda
+
+Now use the following to create your conda environment:
+      
+   .. code-block:: shell
+  
+      poetry2conda pyproject.toml environment.yaml
+
+Create and install all Python libraies into your conda environment with:
+
+   .. code-block:: shell
+
+      conda env create -f environment.yaml
+
+.. admonition:: Activate environment
+   
+   Remember to activate your environment every time before running simulations:
+
+   .. code-block:: shell
+
+      conda activate platonium
+
+   Deactivate your environment with:
+
+   .. code-block:: shell
+
+      conda deactivate
+
+	 
+Venv
+....
+      
+Install the Python libries with **Virtualenv** (a.k.a. venv) if not installed, first install the python3-venv package:
+
+   .. code-block:: shell
+
+      sudo apt install python3-venv
+
+Create the virtual environment:
+
+   .. code-block:: shell
+
+      python -m venv $PLATONIUM/lib/python
+
+   .. caution::
+   
+      Some times the ``venv`` do not install the python libraries correctly into your ``lib/python`` library. If that happens you can always install the package by first asking ``which pip`` (with the venv activated), and then use this path to install the library. E.g. ``$PLATO/lib/python/bin/pip> install <package>``.
+
+
+.. admonition:: Activate/deactivate Virtualenv
+   
+   Remember to activate your environment every time before running simulations:
+
+   .. code-block:: shell
+
+      source $PLATONIUM/lib/python/bin/activate
+
+   Deactivate your environment with:
+
+   .. code-block:: shell
+
+      deactivate
+
+	 
+
+Pip
+...
+      
+We strongly recommend to use a environment mangement system (like Poetry, Conda, Venv, etc.), however, it is possible to simply install all Python libries from **PyPi** using:
+
+   .. code-block:: shell
+  
+      python -m pip install .
+
+
+
+
+	 
+..
+   FUTRUE version when used in PyPi:
+      PLATOnium can be installed with `poetry <https://python-poetry.org/>`_, `conda <https://docs.conda.io/en/latest/>`_, `pip <https://pip.pypa.io/en/stable/>`_ or from source. Since this repository are meant to be integrated on a super computing cluster we strongly recomment to use `Poetry <https://python-poetry.org/>`_ for the installation, as it manage your project installation easily over multiple platforms.
+
+
+      Pip
+      ---
+
+      When using pip, it’s good practice to use a virtual environment. See this guide for details on using virtual environments. Install PLATOnium using pip by:
+
+      .. code-block:: shell
+
+	 pip install platonium
+
+
+      From source
+      -----------
+
+      To install PLATOnium from source, you can clone the [PLATOnium GitHub Repository] by:
+
+      .. code-block:: shell
+
+	 git clone https://github.com/nicholasjannsen/PLATOnium.git
+	 cd PLATOnium
+	 python install -m pip install .
+
+	 ..
+	    4. Verify your installation with the following command:
+
+	    .. code-block:: shell
+
+	    python -c "import platonium; platonium.show_versions()"
+

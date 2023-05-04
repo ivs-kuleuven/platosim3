@@ -1,0 +1,4 @@
+Tutorials
+=========
+
+We here provide a minimal example of how to run PlatoSim. We recommend using PlatoSim through its Python interface for which a full set of Jupyter notebooks are ready for the user to explore here.
