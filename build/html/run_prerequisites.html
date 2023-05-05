@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul class="current">
@@ -194,45 +195,29 @@
 <h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h1>
 <hr><div class="section" id="export-environment-variables">
 <span id="run-prerequisites-export"></span><h2><em>Export Environment Variables</em><a class="headerlink" href="#export-environment-variables" title="Permalink to this headline">¶</a></h2>
-<p>To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:</p>
+<p>To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code>: refer to the directory in which PlatoSim3 was installed</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code>: refer to the working directory <code class="docutils literal notranslate"><span class="pre">&lt;path/to/plato_workdir&gt;</span></code> were you should store your own configuration files and save your simulations (preferably not within <code class="docutils literal notranslate"><span class="pre">PlatoSim3/</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>: refer to the directory in which our Python scripts can be found</p></li>
 </ul>
-<p>For simplicity you can easily export the above environment variables using the <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executeable from the terminal. From the PlatoSim base directory simply run:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>--setup<span class="w"> </span>&lt;path/to/plato_workdir&gt;
-</pre></div>
-</div>
-<p>The script will finalize your setup doing the following:</p>
-<ul class="simple">
-<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code></p></li>
-<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code></p></li>
-<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PYTHONPATH</span></code></p></li>
-<li><p>Making all PLATOnium scripts globally executable</p></li>
-<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file within your <code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code> directory</p></li>
-</ul>
-<p>If you want to change your working directory at a later stage, simply remove the <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file and run above command again. More information on how to use the scripts of PLATOnium can be found the <a class="reference internal" href="platonium_tutorials.html"><span class="doc">Tutorials</span></a>.</p>
-<div class="admonition-troubleshooting admonition">
-<p class="admonition-title">Troubleshooting</p>
-<p>If you experience any problems with the environment variables, you can try to check if the paths are set correctly. A correct export looks like:</p>
+<p>We recommend that you place the following path-exports in a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> script that can be read by your system at all times:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span>&lt;full/path/to/PlatoSim3&gt;
 <span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_WORKDIR</span><span class="o">=</span>&lt;full/path/to/working/directory&gt;
 <span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$PYTHONPATH</span>:<span class="nv">$PLATO_PROJECT_HOME</span>/python
 </pre></div>
 </div>
-<p>In case you’ve installed PlatoSim via Conda, the former environment variable should be exported as:</p>
+<p>In case you’ve installed PlatoSim via Conda, first activate your Conda environment, and export the former environment variable as:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>
 </pre></div>
 </div>
-<p>(the <code class="docutils literal notranslate"><span class="pre">CONDA_PREFIX</span></code> environment variable is automatically known when you activate the appropriate conda environment).</p>
 <p>To check the content of these variables (to see whether they are set to the proper location), type:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>
 <span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
 <span class="nb">echo</span><span class="w"> </span><span class="nv">$PYTHONPATH</span>
 </pre></div>
 </div>
-</div>
+<p>Note that developers can take advantage of the <a class="reference internal" href="platonium_overview.html"><span class="doc">setup script for PLATOnium</span></a>.</p>
 <hr></div>
 <div class="section" id="file-storage">
 <span id="run-prerequisites-storage"></span><h2><em>File storage</em><a class="headerlink" href="#file-storage" title="Permalink to this headline">¶</a></h2>

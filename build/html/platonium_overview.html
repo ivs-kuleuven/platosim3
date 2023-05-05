@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
@@ -188,7 +189,23 @@
             
   <div class="section" id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
-<p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilizing Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speedup the lengthly procedure of generating multi-camera simulations in a highly realistic manner. The PLATOnium toolkit was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
+<p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilizing Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the(often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
+<div class="admonition-setup-script-for-platonium admonition">
+<p class="admonition-title">Setup script for PLATOnium</p>
+<p><strong>For now, PLATOnium is only available for developers.</strong> Before using this toolkit, first make sure that you have installed the <a class="reference internal" href="install_source.html#install-source-python"><span class="std std-ref">required Python packages</span></a>. Next you need to go to the PlatoSim base directory and run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./setup<span class="w"> </span>&lt;path/to/plato_workdir&gt;
+</pre></div>
+</div>
+<p>The script will finalize your setup doing the following:</p>
+<ul class="simple">
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code></p></li>
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code></p></li>
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PYTHONPATH</span></code></p></li>
+<li><p>Make all the PLATOnium scripts globally executable (see <a class="reference internal" href="platonium_tutorials.html"><span class="doc">Tutorials</span></a>)</p></li>
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file within your <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code> directory</p></li>
+</ul>
+<p>If you want to change your working directory at a later stage, simply remove the <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file and run above command again.</p>
+</div>
 <div class="admonition-acronym-fun-fact admonition">
 <p class="admonition-title">Acronym fun fact</p>
 <p><em>Platonium, named after the Ancient Greek philosopher Plato, is a hypothetical element with atomic number of 1030. Like all elements after lead (excluding stable isotopium), Platonium (Pto) has no stable isotopes, but its most stable isotope is supposedly 2576Pto.</em></p>

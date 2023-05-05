@@ -39,7 +39,8 @@ Table of Content
    install_overview
    install_conda
    install_source
-
+   install_migtool
+   
 .. toctree::
    :maxdepth: 1
    :caption: Running PlatoSim
@@ -56,7 +57,8 @@ Table of Content
 
    platonium_overview
    platonium_tutorials
-   platonium_cluster
-   .. platonium_pipeline
+   ..
+      platonium_cluster
+
    
 	     

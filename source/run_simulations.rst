@@ -45,7 +45,7 @@ The output file is a HDF5 file.
 
 `A full suite of Jupyter notebook tutorials are made available <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_. Below we provide a minimal example of how to get started running PlatoSim using our Python interface. If you're planning on creating your own scripts in Python, then besides reading our Jupyter notebooks, we recommend spending a bit of time investigating the different built in `Python classes (and their utilities) <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/python/platosim>`_.
 
-We note that the :ref:`PLATOnium toolkit <platonium_overview>` in the next (and last) section can be used to setup a large scale simulation of imagttes/photometric time series within minutes. This toolkit can be used to generate stellar catalogue from the PIC, generate variable signals, generate instrumental effects, and takes care of the configuration of payload inline with the future observations of PLATO. This toolkit is meant for plug-and-play and in particalar to be used on a computing cluster. Furthermore, PLATOnium can be used in combination with the PLATO pipeline chain (L1 pipeline).
+We note that the :doc:`PLATOnium toolkit <platonium_overview>` can be used to setup a large scale simulation of imagttes/photometric time series within minutes. This toolkit can be used to generate stellar catalogue from the PIC, generate variable signals, generate instrumental effects, and takes care of the configuration of payload inline with the future observations of PLATO. This toolkit is meant for plug-and-play and in particalar to be used on a computing cluster.
 
 .. raw:: html
 
@@ -117,7 +117,7 @@ for individual parameters in the block of the YAML file (e.g. ``sim["Camera/Foca
 		
    sim["<block>/<sub-block>/<parameter>"] = <new value>
 
-for parameters in sub-block in the YAML file (e.g. ``sim["PSF/Gaussian/Sigma"] = 0.50``). Note that the original YAML file is not modified. Only the copy of this fill gets modified. In case you change the configuration file of the Simulation object, the copy ``runName.yaml`` file will be overwritten and all changes to the configuration parameters you have applied, will be lost.
+for parameters in sub-block in the YAML file (e.g. ``sim["Platform/Orientation/Angles/RAPointing"] = 90.0``). Note that the original YAML file is not modified. Only the copy of this fill gets modified. In case you change the configuration file of the Simulation object, the copy ``runName.yaml`` file will be overwritten and all changes to the configuration parameters you have applied, will be lost.
 
 **Run the Simulation**
 

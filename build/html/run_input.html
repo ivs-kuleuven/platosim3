@@ -102,6 +102,7 @@
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul class="current">
@@ -967,6 +968,13 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
   <span class="n">WriteCosmics</span><span class="p">:</span>                    <span class="n">yes</span>
 </pre></div>
 </div>
+<p><strong>GroupByExposure:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
+<p>This entry controls the exact output structure of the groups <code class="docutils literal notranslate"><span class="pre">StarPositions</span></code>, <code class="docutils literal notranslate"><span class="pre">PointLikeGhostPositions</span></code>, <code class="docutils literal notranslate"><span class="pre">ExtendedGhostPositions</span></code>, and <code class="docutils literal notranslate"><span class="pre">Cosmics</span></code>:</p>
+<ul class="simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">yes</span></code>: all information is saved in folders <strong>per exposure</strong></p></li>
+<li><p>if <code class="docutils literal notranslate"><span class="pre">no</span></code> : all information is saved <strong>per star ID</strong>.</p></li>
+</ul>
+<p>For long baseline simulations (more than <span class="math notranslate nohighlight">\(100\,000\)</span> exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each.</p>
 <p><strong>WritePixelImages:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not the pixel maps must be stored in the output file.</p>
 <p><strong>WriteBiasMaps:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>

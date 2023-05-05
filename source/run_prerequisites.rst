@@ -4,70 +4,46 @@ Prerequisites
 .. raw:: html
 
    <hr>
-
-
-
    
 .. _run_prerequisites_export:
    
 *Export Environment Variables*
 ------------------------------
 
-To avoid having to hardcode any path in configuration files, tutorials, etc., you must export three environment variables:
+To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:
 
 * ``PLATO_PROJECT_HOME``: refer to the directory in which PlatoSim3 was installed
 * ``PLATO_WORKDIR``: refer to the working directory ``<path/to/plato_workdir>`` were you should store your own configuration files and save your simulations (preferably not within ``PlatoSim3/``)
 * ``PYTHONPATH``: refer to the directory in which our Python scripts can be found
 
-For simplicity you can easily export the above environment variables using the ``platosim`` executeable from the terminal. From the PlatoSim base directory simply run:
+We recommend that you place the following path-exports in a ``.bash_profile`` script that can be read by your system at all times:
+  
+.. code-block:: shell
+
+   export PLATO_PROJECT_HOME=<full/path/to/PlatoSim3>
+   export PLATO_WORKDIR=<full/path/to/working/directory>
+   export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
+
+In case you've installed PlatoSim via Conda, first activate your Conda environment, and export the former environment variable as:
 
 .. code-block:: shell
 
-   platosim --setup <path/to/plato_workdir>
+   export PLATO_PROJECT_HOME=$CONDA_PREFIX
 
-The script will finalize your setup doing the following:
+To check the content of these variables (to see whether they are set to the proper location), type:
 
-* Export the environment variable ``$PLATO_PROJECT_HOME``
-* Export the environment variable ``$PLATO_WORKDIR``
-* Export the environment variable ``$PYTHONPATH``
-* Making all PLATOnium scripts globally executable
-* Create a ``.bash_profile`` file within your ``$PLATO_WORKDIR`` directory
-  
-If you want to change your working directory at a later stage, simply remove the ``.bash_profile`` file and run above command again. More information on how to use the scripts of PLATOnium can be found the :doc:`Tutorials <platonium_tutorials>`.
+.. code-block:: shell
 
-.. admonition:: Troubleshooting
+   echo $PLATO_PROJECT_HOME
+   echo $PLATO_WORKDIR
+   echo $PYTHONPATH
+ 
+Note that developers can take advantage of the :doc:`setup script for PLATOnium <platonium_overview>`.
 
-    If you experience any problems with the environment variables, you can try to check if the paths are set correctly. A correct export looks like:
-
-    .. code-block:: shell
-
-       export PLATO_PROJECT_HOME=<full/path/to/PlatoSim3>
-       export PLATO_WORKDIR=<full/path/to/working/directory>
-       export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
-
-    In case you've installed PlatoSim via Conda, the former environment variable should be exported as:
-
-    .. code-block:: shell
-
-       export PLATO_PROJECT_HOME=$CONDA_PREFIX
-
-    (the ``CONDA_PREFIX`` environment variable is automatically known when you activate the appropriate conda environment).
-
-    To check the content of these variables (to see whether they are set to the proper location), type:
-
-    .. code-block:: shell
-
-       echo $PLATO_PROJECT_HOME
-       echo $PLATO_WORKDIR
-       echo $PYTHONPATH
-
+   
 .. raw:: html
 
    <hr>
-
-
-
-
    
 .. _run_prerequisites_storage:
    
