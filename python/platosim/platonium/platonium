@@ -382,15 +382,6 @@ class PLATOnium(object):
             self.numExposures = round( (90. - 2.) * 86400. / self.cadence )
             
 
-        # PHYSICAL PARAMETERS
-            
-        # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
-        sim["ObservingParameters/Fluxm0"] = 0.7324478224428527e8
-
-        # Change sampling (not cadence) for quicker simulations
-        # TODO find a way to to this!
-
-
         # PHOTOMETRY ALA MARCHIORI
 
         # The maskUpdate is given in days
