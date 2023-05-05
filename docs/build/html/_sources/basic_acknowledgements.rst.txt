@@ -1,4 +1,0 @@
-Acknowledgements
-================
-
-If you use this code for your work please cite **Jannsen et al. (submitted)**. 

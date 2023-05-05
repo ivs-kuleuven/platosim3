@@ -1,9 +1,0 @@
-Overview
-========
-
-**High Performance Computing (HPC) with PlatoSim3**
-
-*A Quick guide on how to use the KU Leuven's HCP infrastructure*
-
-This is a small guide how to sucessfully install and build the PlatoSim3 software on KU Leuven's HPC infrastructure, which is part of the Vlaams Supercomputer Centrum (VSC). As a subplement to this small tutorial, it is highly recommended to read the `VSC documentation <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/index.html>`_, and the concept and methedology behind `HPC at KU Leuven <https://icts.kuleuven.be/sc/english/research/HPC>`_ and at the `VSC webpage <https://www.vscentrum.be/>`_. This tutorial is specifically directed to Linux and Mac users, hence, for Windows please have a look at the VSC documentation for setting up access rights and how to connect to the VSC. Finally, to become an expert sign-up for the `ADS training <https://www.vscentrum.be/training>`_ course *HPC Intro* and *Linux for HPC*. These courses (and several more) are also available for free on `HPC Leuven's Github repository <https://github.com/hpcleuven>`_ in video or readable format. If you already have a VSC login and are familiar with the HPC infrastructure, you can skip the following section *Introduction to HPC* and jump directly to the section of *HPC for PlatoSim3*.
-
