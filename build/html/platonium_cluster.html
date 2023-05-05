@@ -101,6 +101,7 @@
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
@@ -115,7 +116,7 @@
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Parallel Computing</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#job-script-generator">Job script generator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#slurmsim">slurmsim</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#worker-environment">Worker environment</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#parallelise-varsim">Parallelise varsim</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#parallelise-platonium">Parallelise platonium</a></li>
@@ -199,33 +200,55 @@
 <p class="admonition-title">Attention</p>
 <p>PlatoSim do <strong>not</strong> support GPU parallelisation, only CPU parallelisation.</p>
 </div>
-<hr><div class="section" id="job-script-generator">
-<span id="hpc-tutorial-jobscript"></span><h2>Job script generator<a class="headerlink" href="#job-script-generator" title="Permalink to this headline">¶</a></h2>
-<p>To easily prepare larger simulations that needs to run on a computing cluster, we here developed the script called <code class="docutils literal notranslate"><span class="pre">slurmsim</span></code>. This script will generate the following files:</p>
-<blockquote>
-<div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">run.pbs</span></code>  : Job script to SLURM</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">data.pbs</span></code> : Parameterisation file for array-like jobs</p></li>
-</ul>
-</div></blockquote>
-<p>Seen here, before running the script with input arguments, you’ll need to customize the <em>user defined parameters</em> within the script. Most importantly, the <code class="docutils literal notranslate"><span class="pre">timePerImage</span></code> and <code class="docutils literal notranslate"><span class="pre">memoryPerImage</span></code> needs to be determine accurately (e.g. from a smaller simulation of the eaxct setup) to ensure that the automatic estimation of resources (nodes, cores, memory) are rightfully calculated by the script. The automation ensures that the memory equation (<code class="docutils literal notranslate"><span class="pre">ppn</span> <span class="pre">*</span> <span class="pre">pmem</span> <span class="pre">&lt;</span> <span class="pre">nmax</span> <span class="pre">-</span> <span class="pre">8</span> <span class="pre">GB</span></code>) is satisfied together with an optimized use cores per node(s). However, notice the scheduler might choose otherwise e.g., if 2 nodes x 24 cores are specified, the scheduler will most likely try to fill up the first node completely, meaning for a 36 core-node, all 36 cores will be used on the first node and the remaining 12 cores on the second node. Running <code class="docutils literal notranslate"><span class="pre">makeSimQuarter.py</span></code> (with input arguments) will create a textfile with a line for each of the (groups x telescopes x quarters) observational configurations and a job script to execute these. If the automatic generated job resources given in the <code class="docutils literal notranslate"><span class="pre">simQuarter.pbs</span></code> doesn’t cut it, the job resources can safely be modified after need.</p>
-<p>As a small example of an realistic simulation, assume that we only want to simulate small stellar masks (imagettes) for a sample of stars. The simplest simulation is obviously to select only one group, one telescope, and one quarter: <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">makeSimQuarter.py</span> <span class="pre">1</span> <span class="pre">1</span> <span class="pre">1</span></code>. One quarter corresponds to (60 x 60 x 24 x 88) s / 25 s = 304,128 exposures. If one simulation (meaning one imagette of each star) is 50 kb and takes 1 s, then a quarter simulation is 432 Mb and takes 2h 24min using 36 node-cores. Try play around with different configurations and notice that <code class="docutils literal notranslate"><span class="pre">makeSimQuarter.py</span></code> automatically provides you the calculation just shown - e.g., the simplest simulation just shown and the default simulation prints the following to bash</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>Preparing<span class="w">   </span><span class="m">1</span><span class="w"> </span>simulations<span class="w"> </span>with<span class="w"> </span>resources:<span class="w"> </span><span class="nv">nodes</span><span class="o">=</span><span class="m">1</span>,<span class="w"> </span><span class="nv">cores</span><span class="o">=</span><span class="m">36</span>,<span class="w"> </span><span class="nv">pmem</span><span class="o">=</span>432mb,<span class="w"> </span><span class="nv">walltime</span><span class="o">=</span><span class="m">2</span>:24:00
-Preparing<span class="w"> </span><span class="m">192</span><span class="w"> </span>simulations<span class="w"> </span>with<span class="w"> </span>resources:<span class="w"> </span><span class="nv">nodes</span><span class="o">=</span><span class="m">6</span>,<span class="w"> </span><span class="nv">cores</span><span class="o">=</span><span class="m">32</span>,<span class="w"> </span><span class="nv">pmem</span><span class="o">=</span>81mb,<span class="w">  </span><span class="nv">walltime</span><span class="o">=</span><span class="m">0</span>:27:00
+<hr><div class="section" id="slurmsim">
+<span id="hpc-tutorial-slurmsim"></span><h2>slurmsim<a class="headerlink" href="#slurmsim" title="Permalink to this headline">¶</a></h2>
+<p><strong>Job script generator for platonium</strong></p>
+<p>To easily prepare larger batches of simulations with <code class="docutils literal notranslate"><span class="pre">platonium</span></code> that needs to run on a computing cluster, we here developed the script called <code class="docutils literal notranslate"><span class="pre">slurmsim</span></code>.</p>
+<p><strong>Usage function:</strong> To get an overview of its usage simply type:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">slurmsim</span> <span class="o">-</span><span class="n">h</span>
 </pre></div>
 </div>
+<p>Running <code class="docutils literal notranslate"><span class="pre">slurmsim</span></code> will generate the following files:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">run.slurm</span></code> : Job script to SLURM</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data.txt</span></code>  : Parameterisation file</p></li>
+</ul>
+</div></blockquote>
+<p>We will come to the job script in a moment. The a parameterisation file will have row for each of the (group, camera, quarter) observational configurations that is possible to parse to <code class="docutils literal notranslate"><span class="pre">platonium</span></code>. Don’t worry if this file contains camera (group, camera, quarter) configurations that cannot be simulated, <code class="docutils literal notranslate"><span class="pre">platonium</span></code> will automatically skip stars that are not observable.</p>
+<p><strong>General usage:</strong> It is possible to parse your input project path in the two following ways:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">slurmsim</span> <span class="mi">100</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span>
+<span class="n">slurmsim</span> <span class="mi">100</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="p">[</span><span class="o">--</span><span class="n">nodes</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">cores</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">mem</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span><span class="p">]</span>
+<span class="n">slurmsim</span> <span class="mi">100</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="p">[</span><span class="o">--</span><span class="n">tsim</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">msim</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>See here the a few arguments can be parsed:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--project</span></code>: to parse the project location</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--nodes</span></code>: number of nodes to use (default: 1)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cores</span></code>: number of CPUs per core (default: 36)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--mem</span></code>: RAM memory per CPU (default: 1 GB)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--tsim</span></code>: execution time of a single simulation (default: 600s)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--msim</span></code>: RAM memory of a single simulation (default: 200 Mb)</p></li>
+</ul>
+<p>Using these input parameter, the script will automatically ensure that the RAM memory equation (<code class="docutils literal notranslate"><span class="pre">cores</span> <span class="pre">*</span> <span class="pre">mem</span> <span class="pre">&lt;</span> <span class="pre">nmax</span> <span class="pre">-</span> <span class="pre">8</span> <span class="pre">GB</span></code>) is satisfied, and that the use cores per node(s) is optimised. However, notice the scheduler might choose otherwise e.g., if 2 nodes x 24 cores are specified, the scheduler will most likely try to fill up the first node completely, meaning for a 36 core-node, all 36 cores will be used on the first node and the remaining 12 cores on the second node. Try play around with different configurations and notice that <code class="docutils literal notranslate"><span class="pre">slurmsim</span></code> automatically print the needed resources to bash, e.g.:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>Preparing<span class="w"> </span><span class="m">192</span><span class="w"> </span>simulations<span class="w"> </span>with<span class="w"> </span>resources:<span class="w"> </span><span class="nv">nodes</span><span class="o">=</span><span class="m">6</span>,<span class="w"> </span><span class="nv">cores</span><span class="o">=</span><span class="m">32</span>,<span class="w"> </span><span class="nv">pmem</span><span class="o">=</span>81mb,<span class="w"> </span><span class="nv">walltime</span><span class="o">=</span><span class="m">0</span>:27:00
+</pre></div>
+</div>
+<p>If the automatic generated job resources given in <code class="docutils literal notranslate"><span class="pre">run.slurm</span></code> doesn’t cut it, the job resources can safely be modified after need. It is recommend always to make a test run on your cluster using all CPUs of a single node. In this way you can easily extrapolate the resources needed for your job, since nodes (almost) run independently of each other on a cluster.</p>
 <hr></div>
 <div class="section" id="worker-environment">
 <span id="platonium-hpc-worker"></span><h2>Worker environment<a class="headerlink" href="#worker-environment" title="Permalink to this headline">¶</a></h2>
+<p>To submit the following job scripts we use the popular <a class="reference external" href="https://worker.readthedocs.io/en/latest/">worker</a> framework. The <a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html">worker quick start</a> gives a good introduction to the usage of this framework, but notice similar frameworks can do eaxctly the same, and they might be more useful for your cluster setup.</p>
 <p>Submitting the job script is simply done by:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wsub<span class="w"> </span>-master<span class="w"> </span>-batch<span class="w"> </span>&lt;job_script.pbs&gt;<span class="w"> </span>-data<span class="w"> </span>&lt;data_filename.txt&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wsub<span class="w"> </span>-master<span class="w"> </span>-sbatch<span class="w"> </span>run.slurm<span class="w"> </span>-data<span class="w"> </span>data.txt
 </pre></div>
 </div>
-<p>We here use the flag <code class="docutils literal notranslate"><span class="pre">-master</span></code> to specify that we want all node-cores to run the simulations, otherwise one of them will simply idle and only handle the job scheduling (which might be handy sometimes).</p>
+<p>We here use the flag <code class="docutils literal notranslate"><span class="pre">-master</span></code> to specify that we want all CPUs to run the simulations, otherwise one of them will simply idle and only handle the job scheduling (which might be handy sometimes).</p>
 <hr></div>
 <div class="section" id="parallelise-varsim">
 <span id="hpc-tutorial-varsim"></span><h2>Parallelise varsim<a class="headerlink" href="#parallelise-varsim" title="Permalink to this headline">¶</a></h2>
-<p>We now arrive to the purpose of the file <code class="docutils literal notranslate"><span class="pre">data_hpc_starcat**.txt</span></code> which automatically is generated by <code class="docutils literal notranslate"><span class="pre">picsim</span></code>. This ascii file contains a parameterized list of the bulk paramters of the stellar PIC targets (starID, <span class="math notranslate nohighlight">\(T_{\rm eff}\)</span>, <span class="math notranslate nohighlight">\(M\)</span>, <span class="math notranslate nohighlight">\(R\)</span>) which for the purpose of parallel computing can be given as input to any <em>embarassingly parallel</em> frameworks such as the popular <a class="reference external" href="https://worker.readthedocs.io/en/latest/">worker</a> framework. The <a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html">worker quick start</a> gives a good introduction to the usage of this framework, but notice similar frameworks can do eaxctly the same, and they might be more useful for your cluster setup.</p>
+<p>We now arrive to the purpose of the file <code class="docutils literal notranslate"><span class="pre">data_hpc_starcat**.txt</span></code> which automatically is generated by <code class="docutils literal notranslate"><span class="pre">picsim</span></code>. This ascii file contains a parameterized list of the bulk paramters of the stellar PIC targets (starID, <span class="math notranslate nohighlight">\(T_{\rm eff}\)</span>, <span class="math notranslate nohighlight">\(M\)</span>, <span class="math notranslate nohighlight">\(R\)</span>) which for the purpose of parallel computing can be given as input to any <em>embarassingly parallel</em> frameworks such as <code class="docutils literal notranslate"><span class="pre">worker</span></code>.</p>
 <p>When scheduling a job with worker it will automatically estimate the number of single job items (i.e. the number of rows in your <code class="docutils literal notranslate"><span class="pre">data_hpc_starcat**.txt</span></code>) you have and try to schedule your job(s) in an optimal way. Assuming that you understand the general concept of a job script (as described in <a class="reference internal" href="run_hpc.html#hpc-intro-job"><span class="std std-ref">Job scripts</span></a>) the following shows an example of running <code class="docutils literal notranslate"><span class="pre">varsim</span></code> in parallel:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 

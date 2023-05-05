@@ -15,24 +15,55 @@ PlatoSim3 as it is (in serial) will need to be submitted with the calculations a
 
    <hr>
    
-.. _hpc_tutorial_jobscript:
+.. _hpc_tutorial_slurmsim:
 
-Job script generator
---------------------
+slurmsim
+--------
 
-To easily prepare larger simulations that needs to run on a computing cluster, we here developed the script called ``slurmsim``. This script will generate the following files:
+**Job script generator for platonium**
 
-  - ``run.pbs``  : Job script to SLURM
-  - ``data.pbs`` : Parameterisation file for array-like jobs
+To easily prepare larger batches of simulations with ``platonium`` that needs to run on a computing cluster, we here developed the script called ``slurmsim``.
 
-Seen here, before running the script with input arguments, you'll need to customize the *user defined parameters* within the script. Most importantly, the ``timePerImage`` and ``memoryPerImage`` needs to be determine accurately (e.g. from a smaller simulation of the eaxct setup) to ensure that the automatic estimation of resources (nodes, cores, memory) are rightfully calculated by the script. The automation ensures that the memory equation (``ppn * pmem < nmax - 8 GB``) is satisfied together with an optimized use cores per node(s). However, notice the scheduler might choose otherwise e.g., if 2 nodes x 24 cores are specified, the scheduler will most likely try to fill up the first node completely, meaning for a 36 core-node, all 36 cores will be used on the first node and the remaining 12 cores on the second node. Running ``makeSimQuarter.py`` (with input arguments) will create a textfile with a line for each of the (groups x telescopes x quarters) observational configurations and a job script to execute these. If the automatic generated job resources given in the ``simQuarter.pbs`` doesn't cut it, the job resources can safely be modified after need.
+**Usage function:** To get an overview of its usage simply type:
 
-As a small example of an realistic simulation, assume that we only want to simulate small stellar masks (imagettes) for a sample of stars. The simplest simulation is obviously to select only one group, one telescope, and one quarter: ``python makeSimQuarter.py 1 1 1``. One quarter corresponds to (60 x 60 x 24 x 88) s / 25 s = 304,128 exposures. If one simulation (meaning one imagette of each star) is 50 kb and takes 1 s, then a quarter simulation is 432 Mb and takes 2h 24min using 36 node-cores. Try play around with different configurations and notice that ``makeSimQuarter.py`` automatically provides you the calculation just shown - e.g., the simplest simulation just shown and the default simulation prints the following to bash
+.. code-block::
+
+   slurmsim -h
+
+Running ``slurmsim`` will generate the following files:
+
+  - ``run.slurm`` : Job script to SLURM
+  - ``data.txt``  : Parameterisation file
+
+We will come to the job script in a moment. The a parameterisation file will have row for each of the (group, camera, quarter) observational configurations that is possible to parse to ``platonium``. Don't worry if this file contains camera (group, camera, quarter) configurations that cannot be simulated, ``platonium`` will automatically skip stars that are not observable. 
+   
+**General usage:** It is possible to parse your input project path in the two following ways:
+   
+.. code-block::
+
+   slurmsim 100 --project <project_name>
+   slurmsim 100 --project <project_name> [--nodes <value> --cores <value> --mem <value>]
+   slurmsim 100 --project <project_name> [--tsim <value> --msim <value>]
+    
+See here the a few arguments can be parsed:
+
+* ``--project``: to parse the project location
+* ``--nodes``: number of nodes to use (default: 1)
+* ``--cores``: number of CPUs per core (default: 36)
+* ``--mem``: RAM memory per CPU (default: 1 GB)
+* ``--tsim``: execution time of a single simulation (default: 600s)
+* ``--msim``: RAM memory of a single simulation (default: 200 Mb)
+
+Using these input parameter, the script will automatically ensure that the RAM memory equation (``cores * mem < nmax - 8 GB``) is satisfied, and that the use cores per node(s) is optimised. However, notice the scheduler might choose otherwise e.g., if 2 nodes x 24 cores are specified, the scheduler will most likely try to fill up the first node completely, meaning for a 36 core-node, all 36 cores will be used on the first node and the remaining 12 cores on the second node. Try play around with different configurations and notice that ``slurmsim`` automatically print the needed resources to bash, e.g.:
 
 .. code-block:: shell
 		
-   Preparing   1 simulations with resources: nodes=1, cores=36, pmem=432mb, walltime=2:24:00
-   Preparing 192 simulations with resources: nodes=6, cores=32, pmem=81mb,  walltime=0:27:00
+   Preparing 192 simulations with resources: nodes=6, cores=32, pmem=81mb, walltime=0:27:00
+
+If the automatic generated job resources given in ``run.slurm`` doesn't cut it, the job resources can safely be modified after need. It is recommend always to make a test run on your cluster using all CPUs of a single node. In this way you can easily extrapolate the resources needed for your job, since nodes (almost) run independently of each other on a cluster.
+
+
+
 
 
 
@@ -46,13 +77,15 @@ As a small example of an realistic simulation, assume that we only want to simul
 Worker environment
 ------------------
 
+To submit the following job scripts we use the popular `worker <https://worker.readthedocs.io/en/latest/>`_ framework. The `worker quick start <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html>`_ gives a good introduction to the usage of this framework, but notice similar frameworks can do eaxctly the same, and they might be more useful for your cluster setup.
+
 Submitting the job script is simply done by:
 
 .. code-block:: shell
 		
-   wsub -master -batch <job_script.pbs> -data <data_filename.txt>
+   wsub -master -sbatch run.slurm -data data.txt
 
-We here use the flag ``-master`` to specify that we want all node-cores to run the simulations, otherwise one of them will simply idle and only handle the job scheduling (which might be handy sometimes).
+We here use the flag ``-master`` to specify that we want all CPUs to run the simulations, otherwise one of them will simply idle and only handle the job scheduling (which might be handy sometimes).
 
 
 
@@ -67,7 +100,7 @@ We here use the flag ``-master`` to specify that we want all node-cores to run t
 Parallelise varsim
 ------------------
 
-We now arrive to the purpose of the file ``data_hpc_starcat**.txt`` which automatically is generated by ``picsim``. This ascii file contains a parameterized list of the bulk paramters of the stellar PIC targets (starID, :math:`T_{\rm eff}`, :math:`M`, :math:`R`) which for the purpose of parallel computing can be given as input to any *embarassingly parallel* frameworks such as the popular `worker <https://worker.readthedocs.io/en/latest/>`_ framework. The `worker quick start <https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html>`_ gives a good introduction to the usage of this framework, but notice similar frameworks can do eaxctly the same, and they might be more useful for your cluster setup.
+We now arrive to the purpose of the file ``data_hpc_starcat**.txt`` which automatically is generated by ``picsim``. This ascii file contains a parameterized list of the bulk paramters of the stellar PIC targets (starID, :math:`T_{\rm eff}`, :math:`M`, :math:`R`) which for the purpose of parallel computing can be given as input to any *embarassingly parallel* frameworks such as ``worker``.
 
 When scheduling a job with worker it will automatically estimate the number of single job items (i.e. the number of rows in your ``data_hpc_starcat**.txt``) you have and try to schedule your job(s) in an optimal way. Assuming that you understand the general concept of a job script (as described in :ref:`hpc_intro_job`) the following shows an example of running ``varsim`` in parallel:
 

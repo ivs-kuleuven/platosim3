@@ -1211,6 +1211,15 @@ The **ControlHDF5Content** block of the configuration file contains all the seed
      WriteGhostPositions:             yes             
      WriteCosmics:                    yes             
 
+**GroupByExposure:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+This entry controls the exact output structure of the groups ``StarPositions``, ``PointLikeGhostPositions``, ``ExtendedGhostPositions``, and ``Cosmics``:
+
+* If ``yes``: all information is saved in folders **per exposure**
+* if ``no`` : all information is saved **per star ID**.
+
+For long baseline simulations (more than :math:`100\,000` exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each.
+
 **WritePixelImages:** :guilabel:`Allowed values` ``yes`` and ``no``
 
 Indicates whether or not the pixel maps must be stored in the output file.

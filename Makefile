@@ -20,4 +20,4 @@ help:
 
 github:
 	@make html
-	@cp -a build/html/. .
+	@cp -rf build/html/. .
