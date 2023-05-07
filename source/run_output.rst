@@ -1,4 +1,4 @@
-Output Files
+Output files
 ============
 
 The output files of PlatoSim is so-called `HDF5 format <https://www.hdfgroup.org/solutions/hdf5/>`_, and the following figure shows the output structure: 

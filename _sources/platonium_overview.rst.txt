@@ -1,11 +1,11 @@
 Overview
 ========
 
-Welcome to **PLATOsim's Numerical Imaging testbed Utilizing Multi-disciplinary** (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the(often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.
+Welcome to **PLATOsim's Numerical Imaging testbed Utilizing Multi-disciplinary** (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the (often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.
 
 .. admonition:: Setup script for PLATOnium
   
-   **For now, PLATOnium is only available for developers.** Before using this toolkit, first make sure that you have installed the :ref:`required Python packages <install_source_python>`. Next you need to go to the PlatoSim base directory and run:
+   **For now, PLATOnium is only available for developers.** Before using this toolkit, first make sure that you have installed the :ref:`required Python packages <install_source_python>` (with Poetry this is simply: ``poetry install --with platonium``). Next you need to go to the PlatoSim base directory and run:
 
    .. code-block:: shell
 

@@ -1,4 +1,4 @@
-Run Simulations
+Run simulations
 ===============
 
 To run simulations with PlatoSim, you will have to feed a :ref:`Configuration file <run_input_parameters>` as input to the simulator, possibly together with a few additional :ref:`Supplementary files <run_input_files>`. Launching simulations can be done either from the :ref:`command line <run_command_line>` or in :ref:`Python <run_python>`.
@@ -51,7 +51,7 @@ We note that the :doc:`PLATOnium toolkit <platonium_overview>` can be used to se
 
    <hr>
    
-**Create a Simulation Object**
+**Create a simulation object**
 
 To run PlatoSim from within Python, you have to import the simulation module:
 
@@ -75,7 +75,7 @@ Note that you can use the working directory (i.e. the directory specified in the
    workDir = os.getenv("PLATO_WORKDIR")
 
 
-**Input Configuration File**
+**Input configuration file**
 
 The configurationFile parameter is optional and contains the full path to the configuration file that will be used as a reference. A copy of this file will be stored in the output directory (with the name ``runName.yaml``) and only the copy (and not the original file) will be modified. We will show later how to do this.
 
@@ -88,7 +88,7 @@ If not specified, the ``inputfile.yaml`` configuration file from the ``inputfile
 In that case, all changes to the configuration parameters you may have applied, will be overwritten.
 
 
-**Output Directory**
+**Output directory**
 
 Also the outputDir parameter is optional. This contains the full path to the output directory. This must be specified before you can start the simulation. The output directory can be set can also be set as follows:
 
@@ -103,7 +103,7 @@ In this directory, the following information will be stored when running the sim
   * ``runName.log``: log file (to report any problems).
 
    
-**Modify Configuration Parameters**
+**Modify configuration parameters**
 
 Individual configuration parameters can be modified in the copy of the configuration file (which will be stored with the name runName.yaml in the output directory) as follows:
 
@@ -119,7 +119,7 @@ for individual parameters in the block of the YAML file (e.g. ``sim["Camera/Foca
 
 for parameters in sub-block in the YAML file (e.g. ``sim["Platform/Orientation/Angles/RAPointing"] = 90.0``). Note that the original YAML file is not modified. Only the copy of this fill gets modified. In case you change the configuration file of the Simulation object, the copy ``runName.yaml`` file will be overwritten and all changes to the configuration parameters you have applied, will be lost.
 
-**Run the Simulation**
+**Run the simulation**
 
 The simulation can be executed with the following command:
 

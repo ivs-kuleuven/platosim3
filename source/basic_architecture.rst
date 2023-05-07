@@ -3,7 +3,7 @@ Architecture
 
 The goal of PlatoSim's C++ code is to model a part of one CCD of a single telescope on the platform. We refer to this as the ``subfield``. On this page we describe the steps that are executed within a simulation in more detail.
 
-PlatoSim has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.
+PlatoSim v3 has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.
 
 We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained.
 

@@ -7,7 +7,7 @@ Prerequisites
    
 .. _run_prerequisites_export:
    
-*Export Environment Variables*
+*Export environment variables*
 ------------------------------
 
 To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:

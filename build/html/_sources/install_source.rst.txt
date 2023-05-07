@@ -10,14 +10,14 @@ The scheme below shows an overview of the procedure to download, update, and bui
 .. admonition:: Overview of procedure to download, update, and build PlatoSim
 
    * :ref:`Prerequisites <install_conda_prerequisites>`: needed to download and update PlatoSim.
-   * :ref:`Forking & Cloning the Repository <install_source_forking>`: for first-time installation on your local machine.
+   * :ref:`Forking & cloning the repository <install_source_forking>`: for first-time installation on your local machine.
    * :ref:`Dependencies <install_source_dependencies>`: required for running PlatoSim.
-   * :ref:`Building the Code <install_source_build>`: related to the C++ code.
-   * :ref:`Remote Repositories <install_source_remote>`: to configure your GitHub setup.
-   * :ref:`Update Procedure <install_source_update>`: to get the latest version of the code (from upstream).
-   * :ref:`Contributing to the Code <install_source_contribute>`: by transfering your local changes to the upstream repo.
-   * :ref:`Branching Strategy <install_source_branching>`: which is used in PlatoSim.
-   * :ref:`Python Packages <install_source_python>`: to install if running PlatoSim with Python.
+   * :ref:`Building the code <install_source_build>`: related to the C++ code.
+   * :ref:`Remote repositories <install_source_remote>`: to configure your GitHub setup.
+   * :ref:`Update procedure <install_source_update>`: to get the latest version of the code (from upstream).
+   * :ref:`Contributing to the code <install_source_contribute>`: by transfering your local changes to the upstream repo.
+   * :ref:`Branching strategy <install_source_branching>`: which is used in PlatoSim.
+   * :ref:`Python packages <install_source_python>`: to install if running PlatoSim with Python.
 
 .. raw:: html
 
@@ -52,11 +52,11 @@ If you have not done so already, you can make an `account on GitHub <https://git
    :width: 300
    :alt: Alternative text 
 
-**Operating System**
+**Operating system**
 
 PlatoSim3 has been tested on recent Mac OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support Windows systems at the moment, so we advise Windows users to install a Virtual Machine (VM), and run the PLATO Simulator inside the VM. Alternatively, if you're using Windows 10, you can use `Windows Subsystems for Linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/install>`_ instead.
 
-**Installed Software Packages**
+**Installed software packages**
 
 To be able to install the dependencies and build the code, the following software must be installed on your computer:
 
@@ -90,7 +90,7 @@ To be able to install the dependencies and build the code, the following softwar
 *Forking & Cloning*
 -------------------
 
- The PlatoSim3 repository can be found on the `IvS-KULeuven GitHub pages <https://github.com/IvS-KULeuven/PlatoSim3>`_. This repository is referred to as **upstream**. This section describes the process shown in the diagram below.
+ The PlatoSim repository can be found on the `IvS-KULeuven GitHub pages <https://github.com/IvS-KULeuven/PlatoSim3>`_. This repository is referred to as **upstream**. This section describes the process shown in the diagram below.
 
 .. image:: ../figures/github_forkAndClone.png
    :align: center
@@ -148,7 +148,7 @@ PlatoSim can then be cloned to your local machine using the command:
 *Dependencies*
 --------------
 
-PlatoSim relies on a number software packages, which are all included in the PlatoSim3 distribution for your convenience. Everything concerning the dependencies can be found in the ``/dependencies`` directory. The ``/dependency/Downloads`` sub-directory contains the tarball or zipball file of all required packages. In the ``/installscripts`` sub-directory you can find Python scripts that help you to unzip or untar these files into the ``/dependency/Installs`` directory.
+PlatoSim relies on a number software packages, which are all included in the PlatoSim distribution for your convenience. Everything concerning the dependencies can be found in the ``/dependencies`` directory. The ``/dependency/Downloads`` sub-directory contains the tarball or zipball file of all required packages. In the ``/installscripts`` sub-directory you can find Python scripts that help you to unzip or untar these files into the ``/dependency/Installs`` directory.
 
 You can install all the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded): 
 
@@ -191,10 +191,10 @@ Running this script will create the ``platosim`` executable needed to simulation
    
 .. _install_source_build:
 
-*Building the Code*
+*Building the code*
 -------------------
 
-**Software Changes**
+**Software changes**
 
 In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself) or in case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. From the folder ``/build`` type:
 
@@ -203,14 +203,14 @@ In case of code changes (after retrieving the latest version from GitHub or afte
    cmake ..
    make -j 4
 
-**Updated Dependencies**
+**Updated dependencies**
 
 At some stage, we will want to update (some of) the dependencies. You will be notified by the developer team in case this happens. You will then have to:
 
 * Clear the ``/dependencies/Installs`` directory
 * Run the install script again (see `Denpendencies <install_source_dependencies>`_)
 
-**Switching between Branches**
+**Switching between branches**
 
 As you can read :ref:`here <install_source_branching>`, we don't just use the master branch. If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.
 
@@ -224,7 +224,7 @@ As you can read :ref:`here <install_source_branching>`, we don't just use the ma
 
 .. _install_source_remote:
 
-*Remote Repositories*
+*Remote repositories*
 ---------------------
 
 To be able to *pull* the latest version of the upstream software into your local copy (we'll come back to this), we advise you to add upstream to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):
@@ -265,7 +265,7 @@ In case you pointed upstream to the wrong location (i.e. you used the command fr
    
 .. _install_source_update:
 
-*Update Procedure*
+*Update procedure*
 ------------------
 
 In the course of the development process, the code in the upstream repository will be updated. The ``develop`` branch will always contain the latest version of the code, whereas the ``master`` branch is (supposed to be) stable and well-tested. The workflow is shown schematically in the figure below.
@@ -295,7 +295,7 @@ Please note that you have to re-build the code each time you fetch software chan
 
 .. _install_source_contribute:
 
-*Contribute to the Code*
+*Contribute to the code*
 ------------------------
 
 The workflow to contribute to PlatoSim is shown schematically in the figure below. We assume you already went through the procedure to use the code. Do not forget to bring you local repository in line with the upstream.
@@ -304,7 +304,7 @@ The workflow to contribute to PlatoSim is shown schematically in the figure belo
    :align: center
    :width: 900
 
-**Pushing your Changes**
+**Pushing your changes**
 
 If you have made local changes to some files that are already under version control or you have added new files, and you want to transfer these changes to the ``origin`` repository, you must first *stage* these files and then *commit* them.
 
@@ -341,7 +341,7 @@ You can now transfer the committed changes to the origin repository with the com
 
 To further transfer these changes to the upstream repository, you must open a pull request (see below). Alternatively, you can use a *Graphical Git Clients* to perform the steps described above. An overview of the possibilities can be found `here <https://git-scm.com/downloads/guis>`_. 
 
-**Pull Requests**
+**Pull requests**
 
 Now that you have *pushed* your changes to the ``origin`` repository, you want your changes to be incorporated into the ``upstream`` repository, so other people can benefit from your efforts. To do this, go to the `upstream GitHub page <https://github.com/IvS-KULeuven/PlatoSim3>`_ and just select the ``Pull requests`` tab at the top (encircled in red in the screenshot below).
 
@@ -367,7 +367,7 @@ To confirm you want to open a pull request, press the green ``Create pull reques
    
 .. _install_source_branching:
 
-*Branching Strategy*
+*Branching strategy*
 --------------------
 
 We have adopted the branching strategy of Vincent Driessen, which means that the following two branches will be used permanently:
@@ -392,7 +392,7 @@ To grab all branches and get an overview, use the following commands:
 
 The first command pulls all remote branches (not only the one you are currently working on) and the second command gives you an overview of all branches you have on your system. 
 
-**Release Candidates and Releases**
+**Release candidates and releases**
 
 Release candidates and releases correspond to tagged versions of the master branch. To start using a specific release or release candidate, you have to check out the version of the master branch with a specific tag to a new branch, like this:
 
@@ -406,7 +406,7 @@ We will send around the tag name for new release candidates and releases once th
    
    git tag -l
    
-**Switching between Branches**
+**Switching between branches**
 
 If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described in :ref:`Building the Code <install_source_build>`.
    
@@ -421,7 +421,7 @@ If you switch to another branch and want to run simulations with the current bra
    
 .. _install_source_python:
    
-*Python Packages*
+*Python packages*
 -----------------
    
 To be able to run the PlatoSim and inspect the output using our build-in Python interface, a few Python libraries are needed. We advise you to install `Anaconda <https://docs.continuum.io/anaconda/install/>`_ and use this as your Python environment manger, as this already has most of the required packages installed. It comes with a GUI, called Spyder, from which you can run your Python scripts.
@@ -476,14 +476,13 @@ You should now have all the required Python packages (including the PlatoSim pac
 
 Always remember to activate your Conda environment before using PlatoSim's Python interface.		
 
-**Updating Python Packages**
+**Updating Python packages**
 
 If the Python dependencies has been updated, with your Conda environment activated, use the following command to update these:
 
 .. code-block:: shell
 
    poetry update
-
 
 **Running the validation suite**
 
