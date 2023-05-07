@@ -1,7 +1,7 @@
 Tutorials
 =========
 
-PLATOnium is PlatoSim's user friendly command-line interface to quickly setup a large scale multi-camera and multi-quarter simulation, using the PLATO Input Catalogue (PIC), stellar variability input, and realistic instrumental systematics. Thus, almost all simulations will involve the three following steps provided by the software:
+PLATOnium is PlatoSim's user friendly command-line interface to quickly setup a large scale multi-camera and multi-quarter simulation, using the PLATO Input Catalogue (PIC), stellar variability input, and realistic instrumental systematics. Thus, almost all simulations will involve the four following steps provided by the software:
 
 #. ``picsim``    : Tool to generate a PIC star catalogue
 #. ``varsim``    : Tool to generate noise-less light curves
@@ -10,18 +10,18 @@ PLATOnium is PlatoSim's user friendly command-line interface to quickly setup a 
 
 Both ``picsim``, ``varsim``, ``payload`` creates immediate userable input files to run ``platonium`` in an easy and generic way.
 
-Notice all script share the same architecture for default input- and output argument parsing:
+Notice all the abovescripts share the same architecture for default I/O argument parsing:
 
-#. ``-i`` : Input file/folder 
-#. ``-o`` : Output file/folder
-#. ``-v`` : Verbosity (a.k.a log level)
-#. ``-p`` : Flag for plotting
+* ``-i`` : Input file/folder 
+* ``-o`` : Output file/folder
+* ``-v`` : Verbosity (a.k.a log level)
+* ``-p`` : Flag for plotting
 
-Both ``varsim`` and ``platonium`` have adjustable verbosity levels (i.e. log level), which becomes important when running simulations on a cluster. The verbosity is also identical to PlatoSim usage:
+Furthermore, both ``varsim`` and ``platonium`` have adjustable verbosity levels (i.e. log levels), which particularly becomes important when running simulations on a computing cluster. The verbosity is also identical to PlatoSim usage:
 
-#. ``-v 0`` : Cluster mode: Disabling print and warnings, and no log files are saved
-#. ``-v 1`` : Default mode: Print details to bash but do not save log files (Default)
-#. ``-v 3`` : Debug mode  : Print details to bash and saves all log files
+* ``-v 0`` : Cluster mode: Disabling print and warnings, and no log files are saved
+* ``-v 1`` : Default mode: Print details to bash but do not save log files (Default)
+* ``-v 3`` : Debug mode  : Print details to bash and saves all log files
 
 
    
@@ -36,11 +36,11 @@ Both ``varsim`` and ``platonium`` have adjustable verbosity levels (i.e. log lev
 picsim
 ------
 
-**Create a customized PIC**
+**Create a customised PIC**
 
 To speed up the process of running realistic simulations a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the `asPIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_  created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
 
-Since ``picsim`` relies on the old version of asPIC currently stars can only be drawn from the old North PLATO Field (NPF; :math:`l=65^{\circ}`, :math:`b=+30^{\circ}`) and South PLATO Field (SPF; :math:`l=253^{\circ}`, :math:`b=-30^{\circ}`). A total number of 302,743 PLATO targets compose the PIC samples (P1, P2, P4, and P5), of which 8,587,898 photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below shows all P1 sample stars from both the NPF and SPF colour coded by their magnitude.
+Since ``picsim`` relies on the old version of asPIC, currently stars can only be drawn from the old North PLATO Field (NPF; :math:`l=65^{\circ}`, :math:`b=+30^{\circ}`) and South PLATO Field (SPF; :math:`l=253^{\circ}`, :math:`b=-30^{\circ}`). A total number of :math:`302\,743` PLATO targets compose the PIC samples (P1, P2, P4, and P5), of which :math:`8\,587\,898` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below shows all P1 sample stars from both the NPF and SPF colour coded by their magnitude.
 
 .. image:: ../figures/platonium_P1SampleAllsky.png
    :align: center
@@ -52,7 +52,7 @@ Since ``picsim`` relies on the old version of asPIC currently stars can only be 
 
    picsim -h
       
-**Prelook:** As a simple example, say we want to create a catalogue of 100 P1 stars from the SPF. As a sanity check you can parse the flag ``-t`` which produce a few plots of your *target* star selection. If you also want to see the number statistic for the contaminants simply parse the plotting flag `-p` instead. Hence try to launch the following commands yourself:
+**Prelook:** As a simple example, say we want to create a catalogue of 100 P1 stars from the SPF. As a sanity check you can parse the flag ``-t`` which produce a few plots of your *target* star selection. If you also want to see the number statistic for the contaminants simply parse the plotting flag ``-p`` instead. Hence try to launch the following commands yourself:
    
 .. code-block::
 
@@ -63,19 +63,23 @@ Since ``picsim`` relies on the old version of asPIC currently stars can only be 
   
 .. code-block::
 
-   picsim 100 P1 NPF --camera 24 --project <project_name>
+   picsim 100 P1 NPF --group 1 --camera 24 --project <project_name>
    picsim 100 P5 SPF --spec G --lum V --mag 9.5-12.2 -o </path/to/outdir>
-   picsim all P1 NPF --group 1 --mag_limit 18 --dis_limit 30 -o </path/to/outdir>
+   picsim all P1 NPF --mag_limit 18 --dis_limit 30 -o </path/to/outdir>
    
-In the first example we draw 100 P1 stars from the NPF but only visibible by all N-CAMs in camera-group 1 and stars being observable with all 24 N-CAMs. In the second example we draw 100 P5 stars from the SPF but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2. In the last example we select all P1 stars from the NPF but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star. Notice that all examples shown we parse the argument ``-o`` which is needed in order to save the stellar catalogue to the . To lower the I/O writing between software packges the stellar catalogues are saved to the binary format called *feather* (with file extension ``.ftr``).
+* In the first example we draw 100 P1 stars from the NPF but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs.
+* In the second example we draw 100 P5 stars from the SPF but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.
+* In the last example we select all P1 stars from the NPF but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
+
+Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges the stellar catalogues are saved to the binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``).
 
 **Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` again using the argument ``-i`` as follows:
 
 .. code-block::
 
-   picsim all all SPF -i </path/to/indir>/starcat**.ftr -o </path/to/outdir> -p
+   picsim all all SPF -i </path/to/indir>/starcat**.ftr --project <project_name> -p
 
-Note we here use the asteriks `**` to specify that all files should start with ``starcat`` (which is the default output prefix of ``picsim``) and all files needs to be in feather format ``.ftr``. To make sure that all targets are selected we have here slected ``all`` for the two first mandatory arguments. Currently it is not possible to combine catalogues from different PLATO pointing fields, hence, we imagine that the previous catalogues all drawed stars from the SPF.
+Note we here use the asteriks ``**`` to specify that all files should start with ``starcat`` (which is the default output prefix of ``picsim``) and all files needs to be in feather format ``.ftr``. To make sure that all targets are selected we have here slected ``all`` for the two first mandatory arguments. Currently it is **not** possible to combine catalogues from different PLATO pointing fields.
 
 
 
@@ -92,7 +96,15 @@ varsim
 
 **Generate variable source files**
 
-In order to help the process of generating variable input light curves for PlatoSim, as part of PLATonium the script ``varsim`` is made available. Given a star and a exoplent this script creates a synthetic stellar and exoplanet variability model directly inline with the cadence of your simulated observations. The script is developed around modelling stellar activity modulations, granulation, and stellar convection driven oscillations (p-modes). Exoplanet transits and phase curve variations (due to Doppler beaming and ellisoidal distorsion) can likewise be included. There is a future plan on including a eclipsing binary model as well. The stellar p-modes and transit eclipses are derived from synthetic `PHOENIX <https://phoenix.astro.physik.uni-goettingen.de/>`_ spectra being convolved with the instrumental bandpass. The figure below shows an example of a generated noise-less light curve of a variable star with a Neptune-sized transiting planet. We refer the reader to the technical note `PLATO-PL-KUL-0020 <https://issues.cosmos.esa.int/platowiki/display/PPWS/Simulated+datasets?preview=%2F36548784%2F56427070%2FPLATO-KUL-PL-TN-0020_MultiQuarterCameraSimulation.pdf>`_ for a more detailed description.
+In order to help the process of generating variable input light curves for PlatoSim, as part of PLATonium the script ``varsim`` is made available. Given a star and a exoplent this script creates a synthetic stellar and exoplanet variability model directly inline with the cadence of your simulated observations. The script is developed around modelling:
+
+* Stellar activity modulations
+* Granulation
+* Convection driven oscillations (p-modes)
+* Exoplanet transits
+* Phase curve variations (due to Doppler beaming and ellisoidal distorsion)
+
+The amplitude of each of these variable signals are derived using synthetic `PHOENIX <https://phoenix.astro.physik.uni-goettingen.de/>`_ spectra being convolved with the instrumental bandpass. The figure below shows an example of a generated noise-less light curve of a variable star with a Neptune-sized transiting planet. We refer the reader to the technical note `PLATO-PL-KUL-0020 <https://issues.cosmos.esa.int/platowiki/display/PPWS/Simulated+datasets?preview=%2F36548784%2F56427070%2FPLATO-KUL-PL-TN-0020_MultiQuarterCameraSimulation.pdf>`_ for a more detailed description.
 
 .. image:: ../figures/platonium_varsimExample.png
    :align: center
@@ -124,7 +136,7 @@ Intuitively the the user always needs to parse a star argument: either ``--star`
 This example shows how to include only stellar spot modulation in the final light curve.
 
    
-**Case studies:** To make it easier for the user to quickly fetch a favorit star-planet system, it is possible to respectively save your favorit star and your favorit planet to the file ``source_star.py`` and ``source_plaent.py`` placed in the folder ``$PLATONIUM/platonium/var``. Simply copy one of the existing code block starting with ``source == "<name>"`` and add the star/planet parameters. Note you need to obey the unit convention by `Astropy <https://www.astropy.org/>`_ (i.e. multiplying with ``u.<unit>``). A few systems exists by default, and you can likewise cross-match different systems such as: 
+**Case studies:** To make it easier for the user to quickly fetch a favorit star-planet system, it is possible to respectively save your favorit star and your favorit planet to the file ``source_star.py`` and ``source_plaent.py`` placed in the folder ``$/python/platosim/varsim``. Simply copy one of the existing code block starting with ``source == "<name>"`` and add the star/planet parameters. Note you need to obey the unit convention by `Astropy <https://www.astropy.org/>`_ (i.e. multiplying with ``u.<unit>``). A few systems exists by default, and you can likewise cross-match different systems such as: 
 
 .. code-block::
 

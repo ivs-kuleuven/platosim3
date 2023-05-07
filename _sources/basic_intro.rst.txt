@@ -1,4 +1,4 @@
-Getting Started
+Getting started
 ===============
 
 All information needed to install and update the PlatoSim3 software on your system is described in the sections :doc:`Installation <install_overview>` and :doc:`Running PlatoSim <run_overview>`. Please, follow these instructions carefully before running the simulator. As part of the PlatoSim software package, a suite of tools are made available which we explain in the `Python Tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_. Particular relevant for simulating multi-camera imagette time series or light curves, the PlatoSim toolkit called :doc:`PLATOnium <platonium_overview>` may be of interest. In case of problems see our :doc:`Troubleshooting <basic_troubleshooting>` section. Lastly, for more information about PlatoSim consult the :doc:`PlatoSim3 Paper <basic_acknowledgements>` and the :doc:`Architecture <basic_architecture>`.

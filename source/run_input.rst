@@ -1,4 +1,4 @@
-Input Files
+Input files
 ===========
 
 .. raw:: html
@@ -7,7 +7,7 @@ Input Files
 
 .. _run_input_parameters:
 
-Configuration Parameters
+Configuration parameters
 ------------------------
    
 To configure the PlatoSim, a large set of configuration parameters is required. The input file format used for PlatoSim3 is `YAML <https://learnxinyminutes.com/docs/yaml/>`_. All configuration parameters and files are read from the default YAML file called `inputfile.yaml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/inputfiles/inputfile.yaml>`_ located in the ``inputfiles/`` directory. The different blocks in the configuration files reflect their function in the simulation. We use only a very limited set of the YAML functionality, enough to allow us to provide input files for different parts of the simulator.
@@ -33,7 +33,7 @@ To configure the PlatoSim, a large set of configuration parameters is required. 
      * :ref:`Cameras groups <run_input_parameters_groups>`
      * :ref:`CCD positions <run_input_parameters_ccdpos>`
 
-In the following sections we describe these parameters for the simulations in detail. For more details on the reference frames we are using (for the spacecraft, telescope, focal plane, and CCD), radial dependency of the PSF, and rotation angles for platform jitter and camera drift, please, consult the :doc:`PlatoSim paper <basic_acknowledgements>` and the technical note `PLATO-KUL-PL-TN-0001 <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/technicalnotes>`_. 
+In the following sections we describe these parameters for the simulations in detail. For more details on the reference frames we are using (for the spacecraft, telescope, focal plane, and CCD), radial dependency of the PSF, and rotation angles for platform jitter and camera drift, please, consult the :doc:`PlatoSim paper <basic_acknowledgements>` and the technical note `PLATO-KUL-PL-TN-0001 <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/docs/technicalnotes/KUL-TN-01/PLATO-KUL-PL-TN-0001.pdf>`_. 
 
 
 
@@ -125,9 +125,9 @@ For an exposure of :math:`t_{\rm exp}` seconds, the measured flux :math:`F_{\gam
 
 where the :math:`\lambda` refers to the wavelength range in which the simulation is performed.
 
-**StarCatalogFile:** :guilabel:`Allowed values` Path to _`StarCatalogFile` file
+**StarCatalogFile:** :guilabel:`Allowed values` Path to _`Star Catalog File`
 
-Path to the star catalogue file (absolute path or relative to the :ref:`project location <run_input_parameters_general>`). This file should contain three columns, separated by a space, holding the following information:
+Path to the star catalogue file containing three columns, separated by a space, holding the following information:
 
 * Right ascension of the stars [deg]
 * Declination of the stars [deg]
@@ -180,7 +180,7 @@ The **Sky** block of the configuration file contains all the information that is
 
   In case a positive value is given (:math:`>0`), the sky background, is simply set to the given value over the entire subfield.
 
-  .. figure:: ../figures/skybackground.png
+  .. figure:: ../figures/config_skyBackground.png
      :align: center
      :width: 550
 
@@ -192,12 +192,12 @@ The **Sky** block of the configuration file contains all the information that is
 
 Indicates whether or not stellar variability must be included.
 
-**VariableSourceList:** :guilabel:`Allowed values` Path to _`VariableSourceList` file
+**VariableSourceList:** :guilabel:`Allowed values` Path to _`Variable Source List`
 
 In case you want to include stellar variability for the sources in the star catalogue, you must provide an ascii file with two columns, separated by a space:
 
 * Star identifier (the same as in the star catalogue)
-* Path to the file (absolute path or relative to the :ref:`project location <run_input_parameters_general>`) indicating how the magnitude of this particular source varies over time.
+* Path to the Variable Source File indicating how the magnitude of this particular source varies over time.
 
 The latter files also consist of two columns separated by a space:
 
@@ -275,7 +275,7 @@ The **Platform** block of the configuration file contains all the information th
 
 **Orientation:**
 
-The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (:math:`\alpha`, :math:`\delta`, :math:`\kappa`) or using so-called a quaternion. A unit quaternion to transform from the equatorial to the platfrom reference frame.
+The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (:math:`\alpha`, :math:`\delta`, :math:`\kappa`) or using so-called a `Quaternion <https://en.wikipedia.org/wiki/Quaternion>`_.
      
   Angles/**RApointing:** :guilabel:`Allowed values` :math:`\alpha \in [0, 360]` deg
 
@@ -291,21 +291,23 @@ The orientation of the spacecraft can be configured either through the the sky (
 
   Quaternion/**Components:** :guilabel:`Allowed values` :math:`\in [-1, 1]` for all 4 component. 
 
+  A unit quaternion to transform from the equatorial to the platfrom reference frame.
+  
 **UseJitter:** :guilabel:`Allowed values` ``yes`` and ``no``
 
 Indicates whether pointing variations should be taken into account.
 
 PlatoSim can also account for pointing variations of the spacecraft, so-called jitter. A time series of pointing displacement, expressed in Euler angles (yaw, pitch, roll), either has to be provided as a jitter file or will be generated based on the given jitter parameters (see further). To ensure a realistic modelling of the jitter, the time step of the jitter time series must be smaller than the exposure time.
 
-.. figure:: ../figures/mechanicalPayloadModuleRF.png
+.. figure:: ../figures/config_jitterOfPayload.png
    :align: center
    :width: 400
 
    **Fig. 3**: Platform configuration for AOCS Jitter.
 	   
-The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 3). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis :math:`z_{\rm SC}` points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (``RApointing``, ``DecPointing``, ``solarPanelOrientation``).
+The configuration of the jitter axes is depicted below. The Euler angles that characterise the jitter are defined w.r.t. to the spacecraft coordinate system (see Fig. 3). The origin of this coordinate system is the geometric centre of the interface between the bottom of the optical bench and the service module. The positive roll axis :math:`Z_{\rm PLM}` points towards the operator-given mean payload line-of-sight, given by the equatorial coordinates (``RApointing``, ``DecPointing``, ``solarPanelOrientation``).
 
-The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the :math:`z_{\rm SC}` axis, then a pitch rotation is done around the rotated :math:`y_{\rm SC}` axis, and finally a yaw rotation is done around the twice-rotated :math:`x_{\rm SC}` axis.
+The angles are defined such that they increase with a clockwise rotation, when looking along the positive axes. First a roll rotation is done around the :math:`Z_{\rm PLM}` axis, then a pitch rotation is done around the rotated :math:`Y_{\rm PLM}` axis, and finally a yaw rotation is done around the twice-rotated :math:`X_{\rm SC}` axis.
 
 **JitterSource:** :guilabel:`Allowed values` ``FromRedNoise``, ``FromFile``, and ``FromNetwork``
 
@@ -331,7 +333,7 @@ Standard deviation of the normal distribution (with zero mean) describing the ro
 
 Timescale of the jitter (i.e. time between two subsequent jitter positions). This entry is only applicable if ``JitterSource = FromRedNoise``.
 
-**JitterFileName:** :guilabel:`Allowed values` Path to _`JitterFileName` file
+**JitterFileName:** :guilabel:`Allowed values` Path to _`Jitter File`
 
 If ``JitterSource = FromFile``, a jitter time series must be provided in a file ascii format. This file should contain four columns, separated by a space, holding the following information:
 
@@ -339,8 +341,6 @@ If ``JitterSource = FromFile``, a jitter time series must be provided in a file 
 * Yaw   [arsec]
 * Pitch [arcsec]
 * Roll  [arcsec]
-
-The path to the jitter file can be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`.
 
 .. attention::
 
@@ -393,13 +393,13 @@ The telescope group identifier can be used to select a camera group. As shown in
 
 **TiltAngle:** :guilabel:`Allowed values` :math:`\in` [0, 90] deg
 
-Tilt angle of the telescope. This angle, together with the azimuth angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used when the ``GroupID = Custom``.
+Tilt angle of the telescope. This angle, together with the azimuth angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used if ``GroupID = Custom``.
 
 The tilt angle is the offset between the camera optical axis and the platform pointing, i.e. the angle between the camera line-of-sight (positive :math:`Z_{\rm CAM}` axis and the positive :math:`Z_{\rm PLM}` axis (see Fig. 4).
 
 **AzimuthAngle:** :guilabel:`Allowed values` :math:`\in` [0, 360] deg
 
-Azimuth angle of the telescope, expressed in degrees. This angle, together with the tilt angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used when the ``GroupID = Custom``.
+Azimuth angle of the telescope, expressed in degrees. This angle, together with the tilt angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used if ``GroupID = Custom``.
 
 The azimuth angle is the position angle of the rotation of the telescope around the positive :math:`z_{\rm PLM}` axis (see Figs. 4 and 5).
 
@@ -437,9 +437,10 @@ The Euler angles (yaw, pitch, roll) are defined as the rotation angles around th
    :align: center
    :width: 800
 
-   **Fig. 6**: Reference transformation from platform to camera system.
+   **Fig. 6**: Reference transformation from the platform to the camera reference system.
 
-The optical axis :math:`Z_{\rm FP}` can be obtained from the platform pointing axis :math:`Z_{\rm PLM}` by first rotating the (:math:`X_{\rm PLM}`, :math:`Y_{\rm PLM}`) plane around the pointing axis :math:`Z_{\rm PLM}` over the azimuth angle (left-hand side) and then rotating the resulting :math:`Z'_{\rm PLM}` axis over the tilt angle (right-hand side).
+
+The camera reference frame can be obtained from the payload module reference frame by first rotating the :math:`(X_{\rm PLM} \,,Y_{\rm PLM})` plane around the pointing axis :math:`Z_{\rm PLM}` over an angle :math:`\eta_{\rm CAM}` (left panel), then rotating the resulting :math:`Z'_{\rm PLM}` axis over a tilt angle :math:`\rho_{\rm CAM}` around the :math:`Y'_{\rm PLM}` axis (middle panel), and finally rotating over an angle :math:`2π − \eta_{\rm CAM} = -\eta_{\rm CAM}` around the :math:`Z''_{\rm PLM}` (right panel).
 
 **DriftSource:** :guilabel:`Allowed values` ``FromRedNoise`` and ``FromFile``
 
@@ -450,21 +451,21 @@ Indicates from where to read the drift:
 
 **DriftYawRms:** :guilabel:`Allowed values` :math:`\ge 0` arcsec
 
-Standard deviation of the normal distribution (with zero mean) describing the yaw value from one drift position to the next one. This entry is only applicable if ``DriftSource = FromRedNoise``.
+Standard deviation of the normal distribution (with zero mean) describing the yaw value from one drift position to the next one. This parameter is only used if ``DriftSource = FromRedNoise``.
 
 **DriftPitchRms:** :guilabel:`Allowed values` :math:`\ge 0` arcsec
 
-Standard deviation of the normal distribution (with zero mean) describing the pitch value from one drift position to the next one. This entry is only applicable if ``DriftSource = FromRedNoise``.
+Standard deviation of the normal distribution (with zero mean) describing the pitch value from one drift position to the next one. This parameter is only used if ``DriftSource = FromRedNoise``.
 
 **DriftRollRms:** :guilabel:`Allowed values` :math:`\ge 0` arcsec
 
-Standard deviation of the normal distribution (with zero mean) describing the roll value from one drift position to the next one. This entry is only applicable if ``DriftSource = FromRedNoise``.
+Standard deviation of the normal distribution (with zero mean) describing the roll value from one drift position to the next one. This parameter is only used if ``DriftSource = FromRedNoise``.
 
 **DriftTimeScale:** :guilabel:`Allowed values` :math:`> 0` s
 
-Timescale of the drift (i.e. time between two subsequent drift positions). This entry is only applicable if ``DriftSource = FromRedNoise``.
+Timescale of the drift (i.e. time between two subsequent drift positions). This parameter is only used if ``DriftSource = FromRedNoise``.
 
-**DriftFileName:** :guilabel:`Allowed values` Path to _`DriftFileName` file
+**DriftFileName:** :guilabel:`Allowed values` Path to _`Drift File`
 
 If ``DriftSource = FromFile``, camera drift file must be provided in ascii format. This file should contain four columns, separated by a space, holding the following information:
 
@@ -472,8 +473,6 @@ If ``DriftSource = FromFile``, camera drift file must be provided in ascii forma
 * Yaw   [arsec]
 * Pitch [arcsec]
 * Roll  [arcsec]
-
-The path to the drift file can be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`.
 
 
 
@@ -555,15 +554,13 @@ The optical axis :math:`Z_{\rm FP}` is the blue dot in the middle of the 4 CCDs 
 
   Orientation angle of the focal plane. This entry is only applicable if ``FocalPlaneOrientation/Source = ConstantValue``.
   
-  FocalPlaneOrientation/**FromFile:** :guilabel:`Allowed values` Path to _`FocalPlaneOrientationFile` file
+  FocalPlaneOrientation/**FromFile:** :guilabel:`Allowed values` Path to _`Focal Plane Orientation File`
 
   If ``FocalPlaneOrientation/Source = FromFile``, a focal-plane orientation time series must be provided in an acsii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Focal-plane orientation [deg]
 
-  The path to the focal-length file can be an absolute path or a path relative to the :ref:`project location <run_input_parameters_general>`.
-    
 **FocalLength:**
 
 The focal length can either be kept constant over the simulations or vary, according to the values in a file provided by the user.
@@ -576,14 +573,12 @@ The focal length can either be kept constant over the simulations or vary, accor
 
   Focal length as recovered from the Zemax model. This entry is only applicable if ``FocalLength/Source = ConstantValue``.
   
-  FocalLength/**FromFile:** :guilabel:`Allowed values` Path to _`FocalLengthFile` file
+  FocalLength/**FromFile:** :guilabel:`Allowed values` Path to _`Focal Length File`
 
   If ``FocalLength/Source = FromFile``, a focal-length time series must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Focal length [m]
-
-  The path to the focal-length file can be an absolute path or a path relative to the :ref:`project location <run_input_parameters_general>`.
 
 **ThroughputBandwidth:** :guilabel:`Allowed values` :math:`> 0` nm
 
@@ -605,7 +600,7 @@ The calculation of the aberration correction is based on a elliptic earth orbit 
 
   Indicates whether to apply either differential or absolute aberration correction.
 
-  IncludeAberrationCorrection/**OrbitFile:** :guilabel:`Allowed values` Path to _`OrbitFile` file
+  IncludeAberrationCorrection/**OrbitFile:** :guilabel:`Allowed values` Path to _`Orbit File`
 
   The orbit file needs to be provided in ascii format and consist of four columns, each seperated by a space:
 
@@ -614,8 +609,6 @@ The calculation of the aberration correction is based on a elliptic earth orbit 
   * Velocity of the spacecraft :math:`(v_x, v_y, v_z)` [m/s]
   * Speed of the spacecraft [m/s].
 
-  The path to the orbit file can be an absolute path or a path relative to the :ref:`project location <run_input_parameters_general>`.  
-  
   IncludeAberrationCorrection/**StartTime:** :guilabel:`Allowed values` :math:`> 0`
   
   The time at in the orbit file that coresponds with exposure number 0.
@@ -641,23 +634,19 @@ The field distortion is represented by Distortion model from `Wang et al. (2007)
 
   Inverse coefficients for the Wang model that converts the normalised distorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the (negative) distortion, expressed in normalised pixel coordinates. This entry is only applicable if ``FieldDistortion/Source = ConstantValue``.
   
-  _`FieldDistortion`/**CoefficientsFromFile:** :guilabel:`Allowed values` Path to ascii file
+  FieldDistortion/**CoefficientsFromFile:** :guilabel:`Allowed values` Path to _`Field Distortion` file
 
   If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Field distortion coefficients (all separated by spaces)
 
-  Path to the file can either be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`).
-  
-  FieldDistortion/**InverseCoefficientsFromFile:** :guilabel:`Allowed values` String with filename
+  FieldDistortion/**InverseCoefficientsFromFile:** :guilabel:`Allowed values` Path to Inverse Disotion File
 
   If ``FieldDistortion/Source = FromFile``, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:
 
   * Time [s]
   * Field distortion inverse coefficients (all separated by spaces)
-
-  Path to the file can either be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`).
   
 **Ghosts:**
 
@@ -668,7 +657,7 @@ Sources in the FOV can produces two types of ghosts:
 
 The Telescope Optical Unit (TOU) representative of each cameras is shown in Fig. 8.
   
-.. figure:: ../figures/TOU.png
+.. figure:: ../figures/config_TOU.png
    :align: center
    :width: 550
 
@@ -762,13 +751,13 @@ The PSF is selected from an HDF5 file with pre-computed PSFs, based on the angul
    :align: center
    :width: 700
 	   
-   **Fig. 9**: Zemax PSFs across the focal plane.
+   **Fig. 9**: Zemax PSFs across the focal plane. Credit: C. Paproth.
 	   
 The following parameters are only applicable if ``Model = MappedFromFile``:
 
-  MappedFromFile/**Filename:** :guilabel:`Allowed values` Path to _`MappedZemaxPSFs` HDF5 file
+  MappedFromFile/**Filename:** :guilabel:`Allowed values` Path to _`Mapped PSF File`
 
-  Path to the file, relative to the project location, holding the location independent precomputed Zemax PSFs. The most recent version of the precomputed PSFs can be downloaded from our :ref:`FTP server <run_input_data>`.
+  Path to the mapped PSFs in HDF5 format, holding precomputed Zemax PSFs. The most recent version of the precomputed PSFs can be downloaded from our :ref:`FTP server <run_input_data>`.
   
   MappedFromFile/**NumberOfPixels:** :guilabel:`Allowed values` :math:`> 0` pixel
   
@@ -794,13 +783,13 @@ The PSF is an analytical non-Gaussian model, the parameters of which are stored 
    :align: center
    :width: 700
 
-   **Fig. 10**: Analytic non-Gaussian PSFs across the focal plane.
+   **Fig. 10**: Analytic non-Gaussian PSFs across the focal plane. Credit: C. Paproth.
 
 The following parameters are only applicable if ``Model = AnalyticNonGaussian``:   
 
-  _`AnalyticNonGaussian`/**ParameterFileName:** Path to ascii file
+  AnalyticNonGaussian/**ParameterFileName:** Path to _`Analytic PSF File`
 
-  Path to the file (absolute path or relative to the :ref:`project location <run_input_parameters_general>`) holding the parameters characterising the analytical model. The most recent values for these parameters can be found in the file ``inputfiles/apsf_N6000K_v2.txt``. These model parameters have been derived from a best fit solution to the corresponding Zemax PSFs given by the file ``inputfiles/PSF_Focus_0mu.hdf5``.
+  Path to the PSFs file in ascii format, holding the parameters characterising the analytical model. The most recent values for these parameters can be found in the file ``inputfiles/apsf_N6000K_v2.txt``. These model parameters have been derived from a best fit solution to the corresponding Zemax PSFs given by the file ``inputfiles/PSF_Focus_0mu.hdf5``.
   
   AnalyticNonGaussian/**Sigma:** 
 
@@ -814,15 +803,13 @@ The following parameters are only applicable if ``Model = AnalyticNonGaussian``:
 
     Width of the analytic non-Gaussian PSF, equal to sigma for a Gaussian PSF, in case it must remain the same over the duration of the whole simulation. This entry is only applicable if ``Sigma/Source = ConstantValue``.
 
-    AnalyticNonGaussian/Sigma/**FromFile:** :guilabel:`Allowed values` Path to _`SigmaWidth` file
+    AnalyticNonGaussian/Sigma/**FromFile:** :guilabel:`Allowed values` Path to _`Analytic PSF Width` file
 
     If ``AnalyticNonGaussian/Sigma/Source = FromFile``, a time series for the width of the analytic non-Gaussian PSF must be provided in a ascii file. This file should contain columns, separated by a space, holding the following information:
 
     * Time [s]
     * Width of the PSF [pixels]
       
-    Path to the file can either be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`).
-
 **AnalyticGaussian:**
 
 .. attention::
@@ -891,14 +878,12 @@ Nominal operating temperature of the FEE.
 
 Indicates whether the temperature of the FEE should be fixed at the nominal operating temperature or temperature variations should be read from a file.
 
-**TemperatureFileName** :guilabel:`Allowed values` Path to _`TemperatureFileNameFEE` file
+**TemperatureFileName** :guilabel:`Allowed values` Path to _`FEE Temperature File`
 
 If ``FEE/Temperature = FromFile``, a temperature time series for the FEE must be provided in a ascii file. This file should contain two columns, separated by a space, holding the following information:
 
 * Time [s]
 * Operating temperature of the FEE [K]
-
-Path to the file with the FEE temperature variations can be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`).
 
 **ReadoutNoise:** :guilabel:`Allowed values` :math:`\ge 0 \ \text{e}^- \, \text{pixel}^{-1}` 
 
@@ -983,7 +968,467 @@ Both detector halves are treated independently.
 ......
 
 
+.. code-block::
 
+   CCD:
+
+     Position:                        Custom          
+     OriginOffsetX:                   0               
+     OriginOffsetY:                   0               
+     Orientation:                     0               
+     NumColumns:                      4510            
+     NumRows:                         4510            
+     FirstRowExposed:                 0               
+     TimeShift:                       0.0             
+     PixelSize:                       18              
+     BFE:                                             
+	 CoefficientsFileName:        inputfiles/a_bfe.hdf5
+     Gain:
+	 RefValueLeft:                2.14            
+	 RefValueRight:               2.21            
+	 Stability:                   -0.001          
+	 AllowedDifference:           15.0            
+     QuantumEfficiency:
+	 MeanQuantumEfficiency:       0.6218          
+	 MeanAngleDependency:         1.01            
+     FullWellSaturation:              900000          
+     DigitalSaturation:               65535           
+     ReadoutNoise:                    38.7            
+     SerialTransferTime:              340             
+     ParallelTransferTime:            110             
+     ParallelTransferTimeFast:        90              
+     ReadoutMode:
+	ReadoutMode:                  Nominal         
+	Partial:
+	   FirstRowReadout:           0               
+	   NumRowsReadout:            4510            
+     FlatfieldNoiseRMS:               0.010           
+     RelativeTransmissivity:                          
+	 Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]
+	 RadiusFOV:                   18.8908         
+	 ExpectedValue:               0.920           
+     Polarization:
+	 ExpectedValue:               0.989           
+     Contamination:
+	 ParticulateContaminationEfficiency: 0.972    
+	 MolecularContaminationEfficiency:   0.9573   
+     DarkSignal:
+       DarkCurrent:                   1.2             
+       DSNU:                          15.0            
+       Stability:                     5.0             
+     CTI:
+	 Model:                       Short2013       
+	 Simple:
+	     MeanCTE:                 0.99999         
+	 Short2013:
+	     Beta:                    0.37            
+	     Temperature:             203.            
+	     NumTrapSpecies:          4               
+	     TrapDensity:                             
+		 BOL:                 [0.0, 0.0, 0.0, 0.0]     
+		 EOL:                 [9.8, 3.31, 1.56, 13.24] 
+	     TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]
+	     ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]    
+	 Short2013FromFile:                           
+	     CTIFileName:             inputfiles/ctiInput.hdf5
+     ChargeInjection:                                 
+	 InjectionLevel:              90.0            
+	 RowInterval:                 100             
+	 FirstRow:                    50              
+     NominalOperatingTemperature:     203.15          
+     Temperature:                     Nominal         
+     TemperatureFileName:             inputfiles/ccdTemperature.txt
+     IncludeFlatfield:                yes             
+     IncludeDarkSignal:               yes             
+     IncludeBFE:                      yes             
+     IncludePhotonNoise:              yes             
+     IncludeReadoutNoise:             yes             
+     IncludeCTIeffects:               yes             
+     IncludeChargeInjection:          no              
+     IncludeOpenShutterSmearing:      yes             
+     IncludeQuantumEfficiency:        yes             
+     IncludeRelativeTransmissivity:   yes             
+     IncludePolarization:             yes             
+     IncludeParticulateContamination: yes             
+     IncludeMolecularContamination:   yes             
+     IncludeConvolution:              yes             
+     IncludeFullWellSaturation:       yes             
+     IncludeDigitalSaturation:        yes             
+     IncludeQuantisation:             yes             
+
+     
+**Position:** :guilabel:`Allowed values` ``1``, ``2``, ``3``, ``4``, and ``Custom``
+
+The CCD position can be used to select a specific predefined CCD or a custom one. The predefined CCD positions are shown in the Fig. 11 and 12.
+
+.. figure:: ../figures/config_CCDArrayConfigurationNormalCamera.png
+   :align: center
+   :width: 700
+
+   **Fig. 11**: Layout of the CCDs for the N-CAMs.
+
+.. figure:: ../figures/config_CCDArrayConfigurationFastCamera.png
+   :align: center
+   :width: 700
+
+   **Fig. 12**: Layout of the CCDs for the F-CAMs.
+
+When you specify ``Position=Custom``, the origin offset ``OriginOffsetX`` and ``OriginOffsetY``, the orientation, number of rows, and columns, and the first exposed row of the CCD are read from the configuration parameters in the :ref:`CCD block <run_input_parameters_ccdpos>`. 
+
+**OriginOffsetX:** :guilabel:`Allowed values` Any [mm]
+
+Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction. The origin of the CCD is defined as the point where the readout register is located. See Fig. 7 for more details (:math:`\Delta x_{\rm CCD}`). Parameter used if ``Position = Custom``.
+
+**OriginOffsetY:** :guilabel:`Allowed values` Any [mm]
+
+Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction. The origin of the CCD is defined as the point where the readout register is located. See Fig. 7 for more details (:math:`\Delta y_{\rm CCD}`). Parameter used if ``Position = Custom``.
+
+
+**Orientation:** :guilabel:`Allowed values` :math:`\ge` [0, 360] deg
+
+Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 7 for more details (:math:`\gamma_{\rm CCD}`). Parameter used if ``Position = Custom``
+
+**NumColumns:** :guilabel:`Allowed values` :math:`\ge 0` pixel
+
+Number of pixels of the CCD in the x-direction (i.e. number of columns). Parameter used if ``Position = Custom``.
+
+**NumRows:** :guilabel:`Allowed values` :math:`\ge 0` pixel
+
+Number of pixels of the CCD in the y-direction (i.e. number of rows). Parameter used if ``Position = Custom``.
+
+**FirstRowExposed:** :guilabel:`Allowed values` :math:`\ge 0` pixel
+
+Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0). Parameter used if ``Position = Custom``.
+
+**TimeShift:** :guilabel:`Allowed values` :math:`\ge 0` sec
+
+Time shift between the readout of the CCDs [s]. Parameter used if ``Position = Custom``.
+
+**PixelSize:** :guilabel:`Allowed values` :math:`\ge 0` micron
+
+Nominal pixel size.
+
+**BFE:**
+
+The Brighter-Fatter Effect (BFE) is modelled following the method proposed in `Guyonnet et al. 2015 <https://arxiv.org/abs/1501.01577>`_.
+
+  BFE/**CoefficientsFileName:** Path to _`BFE Coefficients` file
+
+  Path to the HDF5 file comprising the coefficients ``a`` for the BFE.
+
+**Gain:**
+
+The actual gain for the CCD will be different for both detector halves. A reference value is given for both halves, and the difference should not exceed the specified allowed difference ``AllowedDifference`` given below.
+
+  Gain/**RefValueLeft:** :guilabel:`Allowed values` :math:`> 0 \ \mu\text{V}/\text{e}^-`.
+
+  Reference value of the gain of the left- and right-hand side of the CCD at its nominal operating temperature.
+
+  Gain/**RefValueRight:** :guilabel:`Allowed values` :math:`> 0 \ \mu\text{V}/\text{e}^-`.
+
+  Reference value of the gain of ACD2 of the FEE at its nominal operating temperature.
+
+  Gain/**Stability:** :guilabel:`Allowed values` Any [:math:`\mu\text{V}/\text{e}^-/\text{K}`]
+
+  Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature.
+
+  Gain/**AllowedDifference:** :guilabel:`Allowed values` :math:`\text{[0, 100]} \,\, \mu\text{V}/\text{e}^-`.
+
+  Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.
+
+**QuantumEfficiency:**
+
+Quantum efficiency is the ratio of the number of collected electrons to the number of incident photons, considering the passband and the spectral energy distribution of the stars given the ``Fluxm0`` and the magnitude of the stars in the star catalogue.
+
+  QuantumEfficiency/**MeanQuantumEfficiency:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+
+  Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
+
+  QuantumEfficiency/**MeanAngleDependency:** :guilabel:`Allowed values` :math:`\in` [1, 2]
+
+  Reference angle for the throughput efficiency due to the quantum efficiency.
+
+**FullWellSaturation:** :guilabel:`Allowed values` :math:`> 0 \, \text{e}^- \, \text{pixel}^{-1}` 
+     
+Full-well saturation limit of a single CCD pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called *blooming*. The electrons reaching the edge of the CCD will not be detected.
+
+**DigitalSaturation:** :guilabel:`Allowed values` :math:`> 0 \, \text{ADU} \, \text{pixel}^{-1}` 
+<i>Allowed values:</i> > 0
+
+Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is :math:`655\,36` ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.
+
+**ReadoutNoise:** :guilabel:`Allowed values` :math:`\ge 0 \, \text{e}^- \, \text{pixel}^{-1}`
+
+Mean readout noise of the detector. Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the square-root of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).
+
+**SerialTransferTime:** :guilabel:`Allowed values` :math:`\ge 0` ns
+
+Time required to shift the content of the readout register over one pixel, towards the output node.  This is not only relevant for the image area but also for the serial prescan (i.e. bias register map) and the serial over-scan (which has not been implemented).
+
+**ParallelTransferTime:** :guilabel:`Allowed values` :math:`\ge 0 \, \mu\text{s}`
+
+Time required to shift the charges one row down (towards the readout register) in case the readout register will be read out by the FEE. The difference with ``ParallelTransferTimeFast`` is due to two delay parameters recommended by Teledyne e2v for clock settling. Settling times are to ensure one clock has reached its low level before another clock starts to rise. It ensures good charge transfer, as without it you could cause charge to be lost. This is particularly the case when dealing with the (parallel) transfer into the readout register, as the rise and fall times of the image clocks are a lot slower than those of the register clocks.
+
+**ParallelTransferTimeFast:** :guilabel:`Allowed values` :math:`\ge 0 \, \mu\text{s}`
+
+Time required to shift the charges one row down (towards the readout register) in case the readout register will not be read out by the FEE. In that case clock settling is not needed, hence the difference with ``ParallelTransferTime``.
+
+**ReadoutMode:**
+
+This determines how the CCD is read out. The readout mode can either be Nominal or Partial. Nominal readout mode mode will read out all the 4510 rows starting at row 0 for normal cameras, and only 2255 rows starting at row 2255 for the fast cameras (the lower half of the CCD is shielded off). For the Partial readout mode, only certain rows are read out. These rows can be on the upper half of the CCD for the fast cameras and on the entire CCD for the normal cameras. 
+
+  ReadoutMode/**ReadoutMode:** :guilabel:`Allowed values` ``Nominal`` and ``Partial``
+
+  ReadoutMode/**Partial:**
+  
+  Configuration settings for when ``ReadoutMode = Partial``:
+
+    ReadoutMode/Partial/**FirstRowReadout:** :guilabel:`Allowed values` :math:`\ge 0` pixel
+
+    First row that will be read out by the FEE.
+
+    ReadoutMode/Partial/**NumRowsReadout:** :guilabel:`Allowed values` :math:`\ge 0` pixel
+
+    Numbers of rows that will be read out by the FEE.
+
+**FlatfieldNoiseRMS:** :guilabel:`Allowed values` :math:`\ge 0`
+
+Local Pixel Response Non-Uniformity (PRNU), defined as the standard deviation in the signal level (:math:`S_i`), divided by the mean signal (:math:`\overline{S}`):
+
+:math:`\text{PRNU} = \frac{\sqrt{\frac{1}{N} \sum_{i=1}^{N} (S_i - \overline{S})^2}}{\overline{S}}`
+
+**RelativeTransmissivity:**
+
+On top of the (time-dependent) transmission efficiency, the overall relative transmissivity should be taken into account.  This decrease in efficiency with distance to the optical axis, comprises the following contributions:
+
+* Natural vignetting (brightness attenuation towards the edges of the FOV, introduced by the view factor of the entrance pupil)
+* Mechanical vignetting (due to the undersized mask at the entrance pupil), incl. total blockage of all incoming radiation beyond the edge of the FOV
+* Glass absorption + anti-reflective coating
+
+  RelativeTransmissivity/**Coefficients:** :guilabel:`Allowed values` :math:`> \{0, 0, 0\}`
+
+  Coefficients :math:`k_1, \, k_2, \, k_3` for the polynomial that converts the distance from the optical axis, :math:`\theta` (expressed in degrees), to the variation in the overall relative transmissivity (expressed in percentage):
+
+  :math:`P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6`.
+
+  RelativeTransmissivity/**RadiusFOV:** :guilabel:`Allowed values` :math:`> 0` deg
+
+  Radius of the FOV. Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
+
+  RelativeTransmissivity/**ExpectedValue:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+
+  Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
+
+**Polarization:**
+
+Optical elements induce a preferred direction for the propagation of light. This effect is called polarisation.
+
+  Polarization/**ExpectedValue:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+
+  Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector). Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.
+
+**Contamination:**
+
+The contribution to contamination is two-fold:
+
+* Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency
+* Molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).
+
+  Contamination/**ParticulateContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+
+  Throughput efficiency due to particulate contamination.
+
+  Contamination/**MolecularContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+
+  Throughput efficiency due to molecular contamination.
+
+**DarkSignal:**
+
+Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.
+
+  DarkSignal/**DarkCurrent:** :guilabel:`Allowed values` :math:`> 0 \, \text{e}^-`
+
+  Dark current of detector. This is the nominal value of the dark signal.
+
+  DarkSignal/**DSNU:** :guilabel:`Allowed values` :math:`\in` [0, 100] :math:`\%`
+
+  Dark Signal Non-Uniformity (DSNU), expressed as a percentage of the dark current. This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
+
+  DarkSignal/**Stability:** :guilabel:`Allowed values` :math:`\ge \, \text{K}^{-1} \, \text{s}^{-1}`
+
+  Temperature stability of the dark current.
+
+**CTI:**
+
+Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of "charge trails"). This is known as imperfect Charge-Transfer Efficiency (CTE) or alternatively as Charge-Transfer Inefficiency (CTI).
+
+The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.
+  
+  CTI/**Model:** :guilabel:`Allowed values` ``Simple``, ``Short2013``, ``Short2013FromFile``
+
+  PlatoSim offers two implementation of the CTI:
+
+  * The simple implementation (``Simple``) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind.  It will be released by later row transfers.
+  * A more sophisticated implementation (``Short2013``) is based on the paper by `Short et al. (2013) <http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf>`_, in which only parallel readout is taken into account.
+
+    CTI/**Simple:**
+    
+    The simple implementation (``Simple``) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.
+
+      CTI/Simple/**MeanCTE:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+
+      Mean CTE of the detector. The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
+      
+    CTI/**Short2013:**
+      
+    This is the more realistic modelling four hole-pair species:
+
+      CTI/Short2013/**Beta:** :guilabel:`Allowed values` :math:`> 0`
+
+      Exponent :math:`\beta` in Eq. (1) of Short et al. (2013) describing the relationship between the volume of the charge cloud (:math:`V_c`), the number of electrons in a pixel (:math:`N_e`), the full-well capacity in electrons (FWC), and the assumed maximum geometrical volume that electrons can occupy within a pixel (:math:`V_g`):
+
+      :math:`\frac{V_c}{V_g} = \left(\frac{N_e}{FWC}\right)^{\beta}`.
+
+      CTI/Short2013/**Temperature:** :guilabel:`Allowed values` :math:`\ge 0` K
+
+      Temperature :math:`T` that is used to calculated the thermal velocity :math:`v_t` of the electrons:
+
+      :math:`v_t = \frac{3 k T}{m_e^*}`,
+	    
+      where :math:`k` is the Boltzmann constant and :math:`m_e^*` is the effective electron mass in silicon, which we approximate by half the free electron rest mass.
+
+      CTI/Short2013/**NumTrapSpecies:** :guilabel:`Allowed values` :math:`> 0`
+
+      Number of trap species that is used in the CTI model by Short et al. 2013.
+
+      CTI/Short2013/**TrapDensity:**
+
+      We assume the trap density for each of the considered trap densities to increase linearly over time (in absence of charge injection).
+
+        CTI/Short2013/TrapDensity/**BOL:** :guilabel:`Allowed values` :math:`> \{0, 0, 0, 0\} \, \text{traps} \, \text{pixel}^{-1}`
+
+	Array holding the trap density :math:`n_t` at BOL for each of the considered trap species. This is used to calculate the :math:`\gamma` value in Eq. (22) of Short et al. (2013).
+
+	CTI/Short2013/TrapDensity/**EOL:** :guilabel:`Allowed values` :math:`> \{0, 0, 0, 0\} \, \text{traps} \, \text{pixel}^{-1}`
+
+	Array holding the trap density :math:`n_t` at EOL for each of the considered trap species. This is used to calculate the :math:`\gamma` value in Eq. (22) of Short et al. (2013).
+
+      CTI/Short2013/**TrapCaptureCrossSection:** :guilabel:`Allowed values` :math:`> \{0, 0, 0, 0\} \, \text{m}^2`
+
+      Array holding the trap capture cross-section :math:`\sigma` for each of the considered trap species. This is used to calculated the :math:`\alpha` value in Eq. (22) of Short et al. (2013). In this formula, the charge transfer time is used as value for :math:`$t`.
+
+      CTI/Short2013/**ReleaseTime:** :guilabel:`Allowed values` :math:`> \{0, 0, 0, 0\}` s
+
+      Array holding the trap release time constants :math:`\tau_r` for each of the considered trap species.
+
+    CTI/**Short2013FromFile:**
+
+    Allows to specify trap densities that vary spatially over the CCD.
+
+      CTI/Short2013FromFile/**CTIFileName:** :guilabel:`Allowed values` Path to ( _`CTI File`)
+
+      Path to the CTI file holding information about trap densities.
+      
+**ChargeInjection:**
+
+Settings for the charge injection. 
+
+  ChargeInjection/**InjectionLevel:** :guilabel:`Allowed values` :math:`\in [0, 100] \, \%`
+
+  Percentage of the full well to be filled.
+
+  ChargeInjection/**RowInterval:** :guilabel:`Allowed values` :math:`\in` [1, CCD:numRows] pixel
+
+  The interval around which Charge Injection will happen. For a value of :math:`n`, the charge will be injected every :math:`n`-th row of the CCD after the ``FirstRow``:
+
+  ChargeInjection/**FirstRow:** :guilabel:`Allowed values` :math:`> 0` pixel
+
+  The first row that will be injected with charge. 
+
+**NominalOperatingTemperature:** :guilabel:`Allowed values` :math:`> 0` K
+
+Nominal operating temperature of the CCD.
+
+**Temperature:** :guilabel:`Allowed values` ``Nominal`` and ``FromFile``
+
+Indicates whether the temperature of the CCD should be fixed at the nominal operating temperature or temperature variations should be read from a file.
+
+**TemperatureFileName:** :guilabel:`Allowed values` Path to file ( _`CCD Temperature File`)
+
+Path to the file with the temperature variations of the CCD (absolute path or relative to project home).
+
+**IncludeFlatfield:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include the flatfield.
+
+**IncludeDarkSignal:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include dark signal.
+
+**IncludeBFE:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to inlcude the Brighter Fatter Effect
+
+**IncludePhotonNoise:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include photon noise.
+
+**IncludeReadoutNoise:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include readout noise.
+
+**IncludeCTIeffects:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include CTI effects.
+
+**IncludeChargeInjection:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include charge injection
+
+**IncludeOpenShutterSmearing:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include open-shutter smearing effects.
+
+**IncludeQuantumEfficiency:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include loss of throughput efficiency due to quantum efficiency.
+
+**IncludeRelativeTransmissivity:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include the overall relative transmissivity.
+
+**IncludePolarization:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include loss of throughput efficiency due to polarisation.
+
+**IncludeParticulateContamination:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include loss of throughput efficiency due to particulate contamination.
+
+**IncludeMolecularContamination:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to include loss of throughput efficiency due to molecular contamination.
+
+**IncludeConvolution:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not the subpixel map must be convolved with the PSF. This applies only to the Gaussian and the mapped PSF. The analytic non-Gaussian PSF is generated directly in pixel space.
+
+**IncludeFullWellSaturation:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to apply full-well saturation.
+
+**IncludeDigitalSaturation:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to apply digital saturation.
+
+**IncludeQuantisation:** :guilabel:`Allowed values` ``yes`` and ``no``
+
+Indicates whether or not to apply quantisation. This includes:
+
+* Applying gain (FEE and CCD), hence converting from electrons to ADUs
+* Adding electronic offset
+* Forcing the ADU values to be integers
+* Applying digital saturation (can be switched off separately using ``IinclDigitalSaturation``).
 
 
 
@@ -1016,7 +1461,7 @@ The **SubField** block of the configuration file contains all the information ab
 
 Figure 11 shows a schematic representation of the subfield and the parameters required to define it. The CCD focal plane array shows also the metallic shields of the F-CAM (purple colored areas).
      
-.. figure:: ../figures/CCDnew.png
+.. figure:: ../figures/config_subfield.png
    :align: center
    :width: 900
 
@@ -1101,7 +1546,7 @@ Radius around a target within which sources are considered contaminants when cal
 
 Update interval to update the photometry mask.
 
-**TargetFileName:** :guilabel:`Allowed values` Path to _`PhotometryList` file
+**TargetFileName:** :guilabel:`Allowed values` Path to _`Photometry List` file
 
 Path of the file comprising the list of targets identifiers (as listed in the star catalogue in a single column). The path to the photometry list can be an absolute path or relative to the :ref:`project location <run_input_parameters_general>`.
 
@@ -1430,30 +1875,33 @@ For more information, consult our technical note: `PLATO-KUL-PL-TN-0001 <https:/
 
 .. _run_input_files:
 
-Supplementary Files
+Supplementary files
 -------------------
 
 Depending on you configuration, some additional files may be required. We here provide a table to quickly query the one(s) that may be of your interest:
 
 .. admonition:: Overview of Supplementary Files
 
-   * `StarCatalogFile`_: a star catalog file of the region of the sky of interest
-   * `VariableSourceList`_: a star variable list of the sources in the star catalog
-   * `JitterFileName`_: a time series for the jitter angles
-   * `DriftFileName`_: a time series for the drift angles
-   * `FocalPlaneOrientationFile`_: a time series for the focal-plane orientation
-   * `FocalLengthFile`_: a time series for the focal length
-   * `OrbitFile`_: a time series of the spacecraft position and velocity
-   * `FieldDistortion`_: two time series for the field distortion coefficients and their inverse
-   * `MappedZemaxPSFs`_: a file with precomputed Zemax PSFs
-   * `AnalyticNonGaussian`_: a file with parameters of the analytic non-Gaussian PSF
-   * `SigmaWidth`_: a time series for the width of the analytic non-Gaussian PSF
-   * `TemperatureFileNameFEE`_: a time series for the operating temperature of the FEE
-   * `TemperatureFileNameCCD`_: a time series for the operating temperature of the CCD
-   * `PhotometryList`_: a photometry list of the sources from the star catalog
+   * `Star Catalog File`_: a star catalog file of the region of the sky of interest
+   * `Variable Source List`_: a star variable list of the sources in the star catalog
+   * `Jitter File`_: a time series for the jitter angles
+   * `Drift File`_: a time series for the drift angles
+   * `Focal Plane Orientation File`_: a time series for the focal-plane orientation
+   * `Focal Length File`_: a time series for the focal length
+   * `Orbit File`_: a time series of the spacecraft position and velocity
+   * `Field Distortion`_: two time series for the field distortion coefficients and their inverse
+   * `Mapped PSF File`_: a file with precomputed Zemax PSFs
+   * `Analytic PSF File`_: a file with parameters of the analytic non-Gaussian PSF
+   * `Analytic PSF Width`_: a time series for the width of the analytic non-Gaussian PSF
+   * `FEE Temperature File`_: a time series for the operating temperature of the FEE
+   * `BFE Coefficients`_: a file with the coefficients of the BFE model
+   * `CTI File`_: a file with trap dencities that may vary spatially across the CCD
+   * `CCD Temperature File`_: a time series for the operating temperature of the CCD
+   * `Photometry List`_: a photometry list of the sources from the star catalog
 
 A few notes about the provided time series:
 
+* The path to each file above can be given as an absolute path or relative to the :ref:`project location <run_input_parameters_general>`.
 * Always secure that the duration of your time series is greater than the planned simulation.
 * PlatoSim will automatically interpolate the provided time series if time step is larger that the cadence.
 
@@ -1468,7 +1916,7 @@ A few notes about the provided time series:
 
 .. _run_input_data:
 
-PSF Data Packages
+PSF data packages
 -----------------
 
 If you want to use realistic PSF models instead of a Gaussian, you can download these from out FTP server. The default file for most users (in focus PSF at a 6000K stellar effective temperature) can be found here.

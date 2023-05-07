@@ -44,7 +44,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Tutorials" href="platonium_tutorials.html" />
-    <link rel="prev" title="Output Files" href="run_output.html" /> 
+    <link rel="prev" title="Output files" href="run_output.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,7 +91,7 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
@@ -99,23 +99,22 @@
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration Tool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input Files</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run Simulations</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_output.html">Output Files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_cluster.html">Parallel Computing</a></li>
 </ul>
 
             
@@ -189,10 +188,10 @@
             
   <div class="section" id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
-<p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilizing Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the(often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
+<p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilizing Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the (often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
 <div class="admonition-setup-script-for-platonium admonition">
 <p class="admonition-title">Setup script for PLATOnium</p>
-<p><strong>For now, PLATOnium is only available for developers.</strong> Before using this toolkit, first make sure that you have installed the <a class="reference internal" href="install_source.html#install-source-python"><span class="std std-ref">required Python packages</span></a>. Next you need to go to the PlatoSim base directory and run:</p>
+<p><strong>For now, PLATOnium is only available for developers.</strong> Before using this toolkit, first make sure that you have installed the <a class="reference internal" href="install_source.html#install-source-python"><span class="std std-ref">required Python packages</span></a> (with Poetry this is simply: <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span> <span class="pre">--with</span> <span class="pre">platonium</span></code>). Next you need to go to the PlatoSim base directory and run:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./setup<span class="w"> </span>&lt;path/to/plato_workdir&gt;
 </pre></div>
 </div>
@@ -219,7 +218,7 @@
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="platonium_tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="run_output.html" class="btn btn-neutral float-left" title="Output Files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="run_output.html" class="btn btn-neutral float-left" title="Output files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

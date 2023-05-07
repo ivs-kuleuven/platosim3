@@ -3,7 +3,7 @@ Troubleshooting
 
 In case of any problems and questions related to PlatoSim we encourage you to use the `GitHub issue tracking system <https://github.com/IvS-KULeuven/PlatoSim3/issues>`_, rather than sending one of the PlatoSim developers an email. This helps you and us to better keep track of which problems arise and what their status are.
 
-Browse to the PlatoSim3 repository on GitHub and select the Issues tab (see figure below). The issue were are currently working on are listed on this page.
+Browse to the PlatoSim repository on GitHub and select the Issues tab (see figure below). The issue were are currently working on are listed on this page.
 
 .. figure:: ../figures/github_issueTracking.png
    :align: center

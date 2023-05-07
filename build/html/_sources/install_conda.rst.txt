@@ -1,4 +1,4 @@
-For Users (via Conda)
+For users (via Conda)
 =====================
 
 To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we have started using `Jenkins <https://www.jenkins.io/>`_ to automatically build PlatoSim, enabling you to download the latest successfully built version or the :ref:`master or develop branch <install_source_brancing>`, or any specific version(s) of these. The flowchart below summarises the steps you have to take.
@@ -8,9 +8,9 @@ To make life easier on the people who want to use PlatoSim without ever wanting 
    :width: 1000
    :alt: Alternative text 
 
-.. admonItion:: Step-by-Step
+.. admonItion:: Overview of user installation
    
-   To be able to install PlatoSim3 via conda, have a look at the following steps:
+   To be able to install PlatoSim via Conda, have a look at the following steps:
 	 
    * :ref:`Prerequisites <install_conda_prerequisites>`: needed to download and update PlatoSim.
    * :ref:`Installing (and Updating) <install_conda_installing>`: PlatoSim in a dedicated Conda environment.
@@ -30,8 +30,8 @@ To make life easier on the people who want to use PlatoSim without ever wanting 
 Prerequisites
 -------------
 
-*Creating Conda Environments*
-.............................
+*Create a Conda environment*
+............................
 
 To be able to install PlatoSim via conda, you have to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ installed. You have to create an `Conda environments <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_, here called platosim, as follows:
 
@@ -49,8 +49,8 @@ To get an overview of all your conda environments, type:
 
 The active environments will be marked with ``*``.
 
-*Activating and De-activating Conda Environments*
-.................................................
+*Activate and deactivate a Conda environment*
+.............................................
 
 Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows:
 
@@ -75,7 +75,7 @@ To de-activate the environment you are currently on, type
    
 .. _install_conda_installing:
 
-Installing (and Updating)
+Installing (and updating)
 -------------------------
 
 .. attension::
@@ -92,7 +92,7 @@ Before you install PlatoSim via conda, for the first time in this environment, t
 		
    conda config --add channels conda-forge
    
-*Master Branch*
+*Master branch*
 ...............
 
 To install the latest successfully built version of the ``master`` branch, type: 
@@ -103,7 +103,7 @@ To install the latest successfully built version of the ``master`` branch, type:
 
 To install a specific version (only for the master branch), just append ``<version>=`` to this command.
 
-*Developer Branch*
+*Developer branch*
 ..................
 
 For the develop branch, these commands must be replaced by 
@@ -135,7 +135,7 @@ If no pop-up window, asking for the credentials, appears, adapt the conda instal
    
 .. _install_conda_jenkins:
 
-A Word about Jenkins
+A word about Jenkins
 --------------------
 
 We have started using `Jenkins <https://www.jenkins.io/>`_ to automatically build PlatoSim and make pre-built software available for a myriad of operating systems. The figure below summarises how we want to use it.

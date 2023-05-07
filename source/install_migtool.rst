@@ -1,4 +1,4 @@
-Migration Tool
+Migration tool
 ==============
 
 At the moment the comments behind the configuration parameters are unfortunately not conserved. When new versions of PlatoSim are released, there might be some changes in the configuration or input files. New parameters might have been added, or parameters or groups might have been restructured. While using PlatoSim's Python interface such changes are completely transparent if you simply use the default ``inputfile.yaml`` file and simply modify this through your simulation object in your Python scripts.

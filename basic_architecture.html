@@ -91,7 +91,7 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
@@ -106,6 +106,7 @@
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration Tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
@@ -119,7 +120,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_cluster.html">Parallel Computing</a></li>
 </ul>
 
             
@@ -194,7 +194,7 @@
   <div class="section" id="architecture">
 <h1>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h1>
 <p>The goal of PlatoSim’s C++ code is to model a part of one CCD of a single telescope on the platform. We refer to this as the <code class="docutils literal notranslate"><span class="pre">subfield</span></code>. On this page we describe the steps that are executed within a simulation in more detail.</p>
-<p>PlatoSim has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.</p>
+<p>PlatoSim v3 has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.</p>
 <p>We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained.</p>
 <hr><div class="section" id="general-overview">
 <h2>General overview<a class="headerlink" href="#general-overview" title="Permalink to this headline">¶</a></h2>
