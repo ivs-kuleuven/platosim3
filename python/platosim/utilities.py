@@ -192,7 +192,7 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     
     ftp_filename = pathlib.Path(filename)
 
-    if ftp_filename.suffix in ('.zip', '.npy', '.ftr', '.hdf5', '.h5'):
+    if ftp_filename.suffix in ('.txt', '.zip', '.npy', '.ftr', '.hdf5', '.h5'):
         ftp_subpath = pathlib.Path(filename).parents[0]
         permission  = False
     else:
