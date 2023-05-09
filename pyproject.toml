@@ -12,6 +12,7 @@ pyaml = "^21.10.1"
 h5py = "^3.6.0"
 tqdm = "^4.65.0"
 colorama = "^0.4.4"
+argos = "^0.4.4"
 prettytable = "^3.2.0"
 descartes = "^1.1.0"
 Shapely = "^1.8.1"
@@ -37,7 +38,6 @@ renku-sphinx-theme = "^0.2.2"
 [tool.poetry.group.platonium]
 optional = true
 [tool.poetry.group.platonium.dependencies]
-argos = "^0.4.1"
 zipp = "^3.7.0"
 natsort = "^8.2.0"
 numba = "^0.56.4"
