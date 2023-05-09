@@ -1443,9 +1443,75 @@ class SimFile (object):
         return indices
 
 
+
+
     
-                
+    def getCosmicsWithinApertureMask(self, starID):
+
+        """Get the pixel affected by cosmic rays.
+
+        Get the pixel coordinates and flux for those pixels that are affected
+        by a cosmics, for a particular field (e.g. SubField, SmearingMap, etc).
+
+        Parameters
+        ----------
+        field : str
+            String that determines from what field the Cosmics should be returned. 
+            Option: ['SubField', 'BiasMapLeft', 'BiasMapRight', 'SmearingMap'].
+
+        Returns
+        -------
+        Exposure Nr : ndarray
+            Indices for exosure affected by cosmic rays.
+        """
+
+        # Fetch StarPosition keys (i.e. "Exposure000000", etc)
+
+        imgNames = list(self.hdf5file['Images'].keys())
+        N        = len(imgNames)
+    
+        # Check photometry is present for each star
         
+        starIDgroupName = f"starID{starID}"
+        if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
+            print(f"ERROR: simfile.getCosmicsWithinApertureMask(): {starIDgroupName} " +
+                  "not present in HDF5 group: Photometry/Lightcurves")
+        else:
+            updates = self.getMaskUpdateEvents()
+
+        # For the exposures with cosmics fetch the aperture mask(s)
+
+        dex  = []
+        for i in range(N-1):
+
+            # Get info about cosmics for entire image
+            
+            row_cos, col_cos, flux_cos = self.getCosmicsAffectedPixels(i+1, field='SubField')
+            
+            if flux_cos[0] != -1:
+
+                # Get the aperture mask pixels
+                
+                row_mask, col_mask, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
+
+                # Compare mask pixels to cosmics affected pixels element wise
+
+                try: (row_cos == row_mask).all()
+                except: rows = True
+                else: rows = False
+                try: (col_cos == col_mask).all()
+                except: cols = True
+                else: cols = False
+                
+                if rows and cols:
+                    dex.append(i)
+
+        return dex
+                
+
+
+
+    
     #--------------------------------------------------------------#
     #                    PHOTOMETRIC FUNCTIONS                     #
     #--------------------------------------------------------------#

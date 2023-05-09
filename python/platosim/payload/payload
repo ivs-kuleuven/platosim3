@@ -20,6 +20,7 @@ and used when running "platonium".
 # Python standard
 import os
 import math
+import shutil
 import datetime
 import argparse
 from textwrap import dedent
@@ -31,7 +32,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 
 # PlatoSim functions
-import platosim.instrument as it
+import platosim.noise as ns
 from platosim.utilities import errorcode, convertQuarterRange
 
 # Default prefix
@@ -157,7 +158,7 @@ class InstrumentSetup(object):
 
         # Generete PRE file
         errorcode('module', '\nPointing repeatability error (PRE)')
-        it.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
+        ns.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
                   outfile=self.fileNamePRE, show_table=True, plot=True)
         if self.odir: print(f"File saved: {self.fileNamePRE}")
 
@@ -171,7 +172,7 @@ class InstrumentSetup(object):
 
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
-        it.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+        ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
                   outfile=self.fileNameAPE, show_table=True, plot=True)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
@@ -183,7 +184,7 @@ class InstrumentSetup(object):
         
         # Generate TED file
         errorcode('module', '\nThermo-Elastic Distortion (TED)')
-        it.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
+        ns.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
         if self.odir: print(f"File saved: {self.fileNameTED}")
 
 
@@ -419,7 +420,8 @@ class InstrumentSetup(object):
         # Estimate memory per core-node [mb]
         pmemSim = memoryPerImage * self.nimg / (nodes * cores) * 1e-3
         pmem    = int(math.ceil(pmemSim + limitSafe/100 * pmemSim))
-
+        pmem = 50
+        
         # Check if simulation quarter is larger than 5gb per node-core
         if pmemSim > 5000:
             errorcode('warning', 'Memory per node-core exceedes 5 GB!')
@@ -448,51 +450,42 @@ class InstrumentSetup(object):
         """
         #!/bin/bash
 
-        #PBS -A <account>
-        #PBS -N <output_name>
-        #PBS -l nodes=10:ppn=36
-        #PBS -l pmem=5gb
-        #PBS -l walltime=0:00:00
-        #PBS 
+        #SBATCH -A <account>       # Account name of cluster (mandatory)
+        #SBATCH -o <stdout>        # Name of standard output
+        #SBATCH -e <stderr>        # Name of standard errors
+        #SBATCH -M <cluster>       # VSC: cpu, batch_debug, etc.
+        #SBATCH -p <software>      # VSC: genius or wice
+        #SBATCH -N 1               # Number of nodes
+        #SBATCH -n 36              # Number of CPU per node
+        #SBATCH --mem-per-cpu=1G   # Amount of RAM memory per CPU
+        #SBATCH -t 00:15:00        # Totoal execution of slurm job 
 
-        cd $PBS_O_WORKDIR
+        cd $SLURM_SUBMIT_DIR
         module purge
-        module restore plato
+        module restore <name>      # Name of cluster env with modules 
+        
+        # User defined parameters
+        PROJECT=test
 
-        # Define sample
-        PX=<sample>
-        PROJECT=<project>
-        CLUSTER=/scratch/leuven/341/vsc34166/platonium
-        POETRY=$VSC_DATA/poetry/virtualenvs/platonium-KLYW-dHg-py3.8/bin/activate
-
-        # Load paths
-        export $POETRY
+        # Export paths
         export PLATO=$VSC_DATA/plato
         export PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
         export PLATO_WORKDIR=$VSC_DATA/workdir
-        export SIMDIR=$PLATO_PROJECT_HOME/python/platosim/platonium
         export TEMDIR=$VSC_SCRATCH_NODE
-        export OUTDIR=$CLUSTER/$PROJECT
-        PYTHONPATH=$POETRY:$PLATO:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$SIMDIR:$TEMDIR:$OUTDIR
-        
-        # Load python environment
-        source $POETRY
+        export OUTDIR=$VSC_SCRATCH/platosim/$PROJECT
+        export PYTHONPATH=$PLATO:$PLATO_PROJECT_HOME/python
+        export PYTHON=/data/leuven/341/vsc34166/miniconda3/envs/platosim/bin/python
+        export PLATONIUM=$PLATO_PROJECT_HOME/python/platosim/platonium/platonium
 
         # Run PLATOnium
-        starID=$(printf "%09d" $star)
-        python $SIMDIR/platonium $star $group $camera $quarter --project $PROJECT --sample $PX -o $TEMDIR --compress
+        $PYTHON $PLATONIUM $star $group $camera $quarter --project $PROJECT -o $TEMDIR --compress
 
         # Move data from the scrath node to output
+        starID=$(printf "%09d" $star) 
         mkdir -p $OUTDIR/$starID
-        zipfile=$TEMDIR/reduced/$PX/$starID/${starID}_Ncam${group}.${camera}_Q${quarter}.zip
+        zipfile=$TEMDIR/${starID}_Ncam${group}.${camera}_Q${quarter}.zip
         if [ -f $zipfile ]; then
             mv $zipfile $OUTDIR/$starID
-        fi
-
-        # Check if directory is not removed
-        olddir=$TEMDIR/$PX/$starID/Ncam${group}${camera}
-        if [ -d $olddir ]; then
-            rm -rf $$olddir
         fi
         """
 
@@ -530,12 +523,78 @@ class InstrumentSetup(object):
         
 
 
+
+    def create_input_yaml(self):
+
+        """Function to copy and adjust a yaml ready to launch.
+        """
+
+        if self.odir:
             
+            # Get files names of YAML files
+            yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+            yaml_new = self.odir / "inputfile.yaml"
+            
+            # Copy YAML if it doesn't exist already
+            if not yaml_new.is_file():
+
+                print(f"Copying YAML configuration file: {yaml_new}")
+                shutil.copy(yaml_old, yaml_new)
+
+                # Find and replace a few strings:
+                with open(yaml_new, 'r') as file:
+                    filedata = file.read()
+                    filedata = filedata.replace('inputfiles/starcatalog.txt', args.field)
+                    # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
+                    filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+                    filedata = filedata.replace( 'NumColumns:                      100',
+                                                f'NumColumns:                      7  ')
+                    filedata = filedata.replace( 'NumRows:                         100',
+                                                f'NumRows:                         7  ')
+                    filedata = filedata.replace('IncludePhotometry:               no ',
+                                                'IncludePhotometry:               yes')
+                    filedata = filedata.replace('MaskUpdateInterval:              14.0',
+                                                'MaskUpdateInterval:              30.0')
+                    filedata = filedata.replace('GroupByExposure:                 yes',
+                                                'GroupByExposure:                 no ')
+                    filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                                'WriteBiasMaps:                   no ')
+                    filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                                'WriteSmearingMaps:               no ')
+                    filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                                'WriteFlatfieldMap:               no ')
+                    filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                                'WriteThroughputMaps:             no ')
+                    filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                                'WriteTransmissionEfficiency:     no ')
+                    filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                                'WriteBackgroundMap:              no ')
+                    filedata = filedata.replace('WriteCTI:                        yes',
+                                                'WriteCTI:                        no ')
+                    filedata = filedata.replace('WriteACS:                        yes',
+                                                'WriteACS:                        no ')
+                    filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                                'WriteTelescopeACS:               no ')
+                    filedata = filedata.replace('WriteStarCatalog:                yes',
+                                                'WriteStarCatalog:                no ')
+                    filedata = filedata.replace('WriteStarPositions:              yes',
+                                                'WriteStarPositions:              no ')
+                    filedata = filedata.replace('WriteGhostPositions:             yes',
+                                                'WriteGhostPositions:             no ')
+                    filedata = filedata.replace('WriteCosmics:                    yes',
+                                                'WriteCosmics:                    no ')
+                    # Write the file out again
+                    with open(yaml_new, 'w') as file:
+                        file.write(filedata)
+
+
+
+                        
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
 
-software = '\nInstrument file generator'
+software = '\nInstrumental Noise Simulator'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=errorcode('software', software))
@@ -565,4 +624,5 @@ x.createTED()
 x.create_time_gaps()
 x.create_job_script()
 x.create_param_file()
+x.create_input_yaml()
 print('')

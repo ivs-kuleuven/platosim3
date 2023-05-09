@@ -23,6 +23,7 @@ import platosim.referenceFrames as rf
 from platosim.matplotlibrc import latex
 latex()
 
+day2sec = 86400.
 
 #--------------------------------------------------------------#
 #                     RANDOM NOISE SOURCES                     #
