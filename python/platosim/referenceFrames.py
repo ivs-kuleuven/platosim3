@@ -862,7 +862,7 @@ def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlan
         Undistorted normalized y-coordinate in the FP reference frame [unit as focalLength]
     focalLength : float
         Focal length of the camera. Unit: see remarks.
-    focalPlaneAngle : float        
+    focalPlaneAngle : float
         Angle between the Y_CAM axis and the Y_FP axis: gamma_FP [rad]
 
     Return
@@ -871,7 +871,7 @@ def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlan
         X-coordinate in the camera reference frame [arbitrary]
     yCAM : float
         Y-coordinate in the camera reference frame [same unit as xCAM]
-    zCAM : float                     
+    zCAM : float
         Z-coordinate in the camera reference frame [same unit as xCAM]
     """
 
@@ -888,6 +888,46 @@ def undistortedFocalPlaneToTelescopeCoordinates(xFP, yFP, focalLength, focalPlan
     vecCAM /= np.linalg.norm(vecCAM)
 
     return vecCAM[0], vecCAM[1], vecCAM[2]
+
+
+
+
+
+
+def generateDistortionTable(psfFile, focalLength):
+    def angles2coordinates(angle1, angle2):
+        xPsfUndistorted = focalLength*np.tan(np.deg2rad(angle1))
+        yPsfUndistorted = focalLength*np.tan(np.deg2rad(angle2))
+        return xPsfUndistorted, yPsfUndistorted
+
+
+    xDistortedCoordinates = np.array([])
+    yDistortedCoordinates = np.array([])
+
+    xUndistortedCoordinates = np.array([])
+    yUndistortedCoordinates = np.array([])
+
+    for x in psfFile.keys():
+        xDistorted = np.float64(psfFile[x].attrs["centroidCoordinates1"])
+        yDistorted = np.float64(psfFile[x].attrs["centroidCoordinates2"])
+
+        angle1 = psfFile[x].attrs["starPointing1"]
+        angle2 = psfFile[x].attrs["starPointing2"]
+
+        xDistortedCoordinates = np.append(xDistortedCoordinates, xDistorted)
+        yDistortedCoordinates = np.append(yDistortedCoordinates, yDistorted)
+
+        xUndistorted, yUndistorted = angles2coordinates(angle1[0], angle2[0])
+        xUndistortedCoordinates = np.append(xUndistortedCoordinates, xUndistorted)
+        yUndistortedCoordinates = np.append(yUndistortedCoordinates, yUndistorted)
+
+    return { "Undistorted" : { "x" : xUndistortedCoordinates, "y" : yUndistortedCoordinates},
+             "Distorted"   : { "x" : xDistortedCoordinates, "y" : yDistortedCoordinates}}
+
+
+
+
+
 
 
 
@@ -952,7 +992,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
                distortionCoefficients[4] * rFP**2 * focalLength)
 
     # That's it!
-    
+
     return xFPdist, yFPdist
 
 
@@ -960,7 +1000,7 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
 
 
-def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile):
+def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength=None):
 
     """From mapped undistorted to distorted focal plane coordinates.
 
@@ -989,10 +1029,8 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yFPdist : float
         Distorted focal plane y-coordinate [mm]
     """
-
-    # If radial distance is above 85 mm
-    
-    if (xFPmm**2 + yFPmm**2 > 85):
+    # If radial distance is above 80 mm
+    if (xFPmm**2 + yFPmm**2 > 80**2):
         return xFPmm, yFPmm
 
     # Check the path to the PSF file excists
@@ -1008,33 +1046,44 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     psfFile = h5py.File(pathToPsfFile, "r")
     if not "Coordinates map" in psfFile.keys():
-        print("Error: No transformation map given in psf file, mapped distortion is not possible.")
-        return
+        if False:
+            print("Error: No transformation map given in psf file, mapped distortion is not possible.")
+            return
+        else:
+            coordMap = generateDistortionTable(psfFile, focalLength)
     else:
         coordMap = psfFile["Coordinates map"]
 
     # Calculate the distance of the undist coordinates wrt input coordinates
 
     undistorted = coordMap["Undistorted"]
-
     x = undistorted["x"]
-    xUndis = np.zeros(x.shape, x.dtype)
-    x.read_direct(xUndis)
-
     y = undistorted["y"]
-    yUndis = np.zeros(y.shape, y.dtype)
-    y.read_direct(yUndis)
+
+    if not "Coordinates map" in psfFile.keys():
+        xUndis = x
+        yUndis = y
+    else:
+        xUndis = np.zeros(x.shape, x.dtype)
+        yUndis = np.zeros(y.shape, y.dtype)
+        x.read_direct(xUndis)
+        y.read_direct(yUndis)
 
     distorted = coordMap["Distorted"]
 
     x = distorted["x"]
-    xDist = np.zeros(x.shape, x.dtype)
-    x.read_direct(xDist)
-
     y = distorted["y"]
-    yDist = np.zeros(y.shape, y.dtype)
-    y.read_direct(yDist)
-    
+
+
+    if not "Coordinates map" in psfFile.keys():
+        xDist = x
+        yDist = y
+    else:
+        xDist = np.zeros(x.shape, x.dtype)
+        yDist = np.zeros(y.shape, y.dtype)
+        x.read_direct(xDis)
+        y.read_direct(yDis)
+
     distanceFromPointx = np.array([x - xFPmm for x in xUndis])
     distanceFromPointy = np.array([y - yFPmm for y in yUndis])
     aDistanceFromPoint  = np.array([ x**2 + y**2
@@ -1094,7 +1143,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yFPdist = sum([constants[i]*closestYdist[i] for i in np.arange(4)])
 
     # That's it!
-    
+
     return xFPdist, yFPdist
 
 
@@ -1170,7 +1219,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
 
 
 
-def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile):
+def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength=None):
 
     """From mapped distorted to undistorted focal plane coordinates.
 
@@ -1207,7 +1256,7 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
     i  = 0
 
     while((delta > .001) and (i<160)):
-        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0, y0, pathToPsfFile)
+        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0, y0, pathToPsfFile, focalLength)
         length = 3*length / 5
 
         if (xFPdist > xDist):
@@ -2055,7 +2104,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
 
     if includeFieldDistortion:
         if mappedDistortion:
-            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile)
+            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength)
         else:
             xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 

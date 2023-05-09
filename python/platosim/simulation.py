@@ -1109,7 +1109,7 @@ class Simulation(object):
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
         if mappedDistortion:
             for i in range(len(xFPmm)):
-                xFPmm[i], yFPmm[i] = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm[i], yFPmm[i], pathToPsfFile)
+                xFPmm[i], yFPmm[i] = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm[i], yFPmm[i], pathToPsfFile, focalLength)
 
         elif (includeFieldDistortion == "yes" or
               includeFieldDistortion == "1"   or
