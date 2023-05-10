@@ -26,8 +26,8 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure)
+DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, Photometry &photometry, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, photometry, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure)
 {
     // Parse the parameters from the configuration file.
 
@@ -93,6 +93,16 @@ DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
     // The configuration for the HDF5 contents
     
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+
+    // The configuration for the on-the-fly photometry
+
+    includePhotometry = configParam.getBoolean("Photometry/IncludePhotometry");
+
+    if (includePhotometry)
+    {
+      photometry = Photometry(configParam, hdf5file, camera);
+    }
+
  }
 
 
@@ -238,6 +248,14 @@ double DetectorWithAnalyticGaussianPSF::takeExposure(int exposureNr, double star
     Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
     readOut(exposureTime);
 
+    // If photometric extraction was asked, apply it now
+
+    if (includePhotometry)
+    {
+        Log.info("DetectorWithAnalyticGaussianPSF: applying photometric extraction to exposure " + to_string(exposureNr));
+        photometry.applyPhotometry(exposureNr);
+    }
+    
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
     Log.debug("Detector: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
@@ -597,3 +615,24 @@ void DetectorWithAnalyticGaussianPSF::applyFlatfield()
     pixelMap.submat(beginRow, beginCol, endRow, endCol) = pixelMap.submat(beginRow, beginCol, endRow, endCol) % flatfieldMap;
 }
 
+
+
+
+
+
+
+/**
+ *  \brief Before destroying this object, save all info to the HDF5 file
+ * 
+ */ 
+
+void DetectorWithAnalyticGaussianPSF::flushOutput()
+{
+    // Save the photometry info
+
+    if (includePhotometry)
+    {
+        Log.info("Writing photometry to the HDF5 file");
+	photometry.writePhotometry();
+    }
+}

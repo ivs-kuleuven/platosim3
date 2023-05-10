@@ -21,32 +21,15 @@ using namespace std;
 
 
 
-class DetectorWithAnalyticNonGaussianPSF: public Detector 
+class Photometry: public HDF5Writer
 {
  public:
 
-  // Mapped Zemax PSF
+  void Preprocessing(const unsigned int exposureNr);
+  void extractPhotometry(const unsigned int exposureNr);
+  void applyPhotometry(const unsigned int exposureNr);
+  void writePhotometry();
   
-  DetectorWithMappedPSF(ConfigurationParameters &configParam,
-			HDF5File &hdf5file,
-			Camera &camera,
-			TemperatureGenerator &feeTemperatureGenerator,
-			TemperatureGenerator &detectorTemperatureGenerator,
-			double readoutTimeBeforeNextExposure,
-			double readoutTimeDuringNextExposure);
-  ~DetectorWithMappedPSF();
-
-  // Analytic PSF
-  
-  DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam,
-				     HDF5File &hdf5File,
-				     Camera &camera,
-				     TemperatureGenerator &feeTemperatureGenerator,
-				     TemperatureGenerator &detectorTemperatureGenerator,
-				     double readoutTimeBeforeNextExposure,
-				     double readoutTimeDuringNextExposure);
-  ~DetectorWithAnalyticNonGaussianPSF();
-
  protected:
 
 	// Photometry

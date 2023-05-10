@@ -3549,6 +3549,62 @@ void Detector::writeCTIToHDF5()
 
 
 /**
+ * \brief Write the EOL and BOL trap density maps of each species to the HDF5 file.
+ *
+ */
+
+void Detector::writeCTIToHDF5()
+{
+     contaminationRadius = configParam.getInteger("Photometry/ContaminationRadius");         // [pix]
+     maskUpdateInterval  = configParam.getDouble("Photometry/MaskUpdateInterval") * 86400.;  // [s]
+     filename            = configParam.getAbsoluteFilename("Photometry/TargetFileName");
+
+     // Read and store the list of star IDs for which we want a lightcurve
+
+     ifstream inputfile(filename);
+     if (!inputfile) 
+     {
+	 Log.error("DetectorWithAnalyticNonGaussianPSF::configure(): 'TargetFileName' file doesn't exist or is not readable: "  + filename);
+	 throw ConfigurationException("DetectorWithAnalyticNonGaussianPSF: wrong TargetFileName in configuration file");
+     }
+
+     photStarIDs.clear();
+     while (getline(inputfile, line)) 
+     {
+	 if (line == "" || line.find("#") == 0)
+	 {
+	     continue;
+	 }
+	 else
+	 {
+	     int starID = (unsigned int)stoi(line);
+	     photStarIDs.emplace_back(starID);
+	 }
+     }
+
+     // Initialize the maps containing the photometric information
+
+     for (auto starID : photStarIDs)
+     {
+	 inputFluxTarget[starID]        = vector<double>(numExposures);  
+	 estimatedFluxTarget[starID]    = vector<double>(numExposures); 
+	 varFluxTarget[starID]          = vector<double>(numExposures);
+	 maskSizeTarget[starID]         = vector<unsigned int>();  
+	 NSRtarget[starID]              = vector<double>();   
+	 exposureNrOfMaskUpdate[starID] = vector<unsigned int>();
+     }
+
+}
+
+
+
+
+
+
+
+
+
+/**
  * \brief Returns the current temperature of the detector.
  */
 double Detector::getTemperature()

@@ -12,7 +12,9 @@
  * \param sky           Sky object to query which stars we are seeing
  */
 
-Photometry::Photometry(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera)
+Photometry::Photometry(ConfigurationParameters &configParam,
+		       HDF5File &hdf5file,
+		       Camera &camera)
   : HDF5Writer(hdf5file)
 
 
@@ -27,7 +29,7 @@ Photometry::Photometry(ConfigurationParameters &configParam, HDF5File &hdf5file,
  *       - better treatment when there are no contaminants
  */
 
-void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int exposureNr)
+void Photometry::Preprocessing(const unsigned int exposureNr)
 {
     const unsigned int zeroBasedExposureNr = exposureNr - beginExposureNr;
 
@@ -69,21 +71,35 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
     const double skyBackground = camera.getTotalSkyBackground();  // [photons/pixel/exposure]
     image -= throughputMap * skyBackground;                       // [e-/pixel/exposure]
+}
 
 
 
 
-    
 
-    // Loop over all targets for which you need a lightcurve
 
-    const int Ntargets = photStarIDs.size();   // Nr of stars for which we want a lightcurve
+
+/**
+ * \brief Extract the photometric light curve for a specified list of stars
+ *
+ * TODO: - better error catching when the stars for which a lightcurve is requested are (sometimes) not in the subfield
+ *       - better treatment when there are no contaminants
+ */
+
+void Photometry::extractPhotometry(const unsigned int exposureNr)
+{
+
+    // Nr of stars for which we want a lightcurve
+  
+    const int Ntargets = photStarIDs.size();
     if (Ntargets == 0)
     {
-        Log.warning("Detector:applyPhotometry: no stars found for which photometry is requested. Skipping applyPhotometry()."); 
+        Log.warning("Photometry:extractPhotometry: no stars found for which photometry is requested. Skipping extractPhotometry()."); 
         return;
     }
 
+    // Loop over all targets for which you need a lightcurve
+    
     for (int n = 0; n < Ntargets; n++)
     {
         // Collect info on the position and the input flux of the target
@@ -283,3 +299,98 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         }
     } // end loop over all targets for which we want light curves
 } // end applyPhotometry()
+
+
+
+
+
+
+
+
+/**
+ * \brief Apply photometry
+ *
+ */
+
+void Photometry::applyPhotometry(const unsigned int exposureNr)
+{
+
+  // Preprocessing
+
+  preprocessing(exposureNr);
+
+  // Extract photometry
+
+  extractPhotometry(exposureNr);
+    
+}
+
+
+
+
+
+
+
+
+/**
+ * \brief Apply photometry
+ *
+ */
+
+void Photometry::writePhotometry()
+{
+
+    hdf5File.createGroup("/Photometry");
+    hdf5File.createGroup("/Photometry/Masks");
+    hdf5File.createGroup("/Photometry/Lightcurves");
+
+    string groupName = "/Photometry/Masks";
+    string arrayName = "exposureNrOfMaskUpdate";
+    int starID = photStarIDs[0];    // Doesn't matter which one we take the update exposure Nrs are the same for all targets.
+    hdf5File.writeArray(groupName, arrayName, exposureNrOfMaskUpdate[starID].data(), exposureNrOfMaskUpdate[starID].size());
+
+    for (auto starID : photStarIDs)
+    {
+	string starName = to_string(starID);
+	groupName = "/Photometry/Lightcurves/starID" + starName;
+	hdf5File.createGroup(groupName);
+
+	arrayName = "inputFlux";
+	hdf5File.writeArray(groupName, arrayName, inputFluxTarget[starID].data(), inputFluxTarget[starID].size());
+
+	arrayName = "estimatedFlux";
+	hdf5File.writeArray(groupName, arrayName, estimatedFluxTarget[starID].data(), estimatedFluxTarget[starID].size());
+
+	groupName = "/Photometry/Masks/starID" + starName;
+	hdf5File.createGroup(groupName);
+
+	arrayName = "maskSize";
+	hdf5File.writeArray(groupName, arrayName, maskSizeTarget[starID].data(), maskSizeTarget[starID].size());
+
+	arrayName = "maskNSR";
+	hdf5File.writeArray(groupName, arrayName, NSRtarget[starID].data(), NSRtarget[starID].size());
+
+	for(auto iter = rowIndexOfMaskOfTarget[starID].begin(); iter != rowIndexOfMaskOfTarget[starID].end(); ++iter)
+	{
+	    const unsigned int exposureNumber = iter->first;
+
+	    stringstream myStream;
+	    myStream << "Exposure" << setfill('0') << setw(6) << exposureNumber;
+	    groupName = "/Photometry/Masks/starID" + starName + "/" + myStream.str();
+	    hdf5File.createGroup(groupName);
+
+	    arrayName = "maskRowIndices"; 
+	    hdf5File.writeArray(groupName, arrayName, rowIndexOfMaskOfTarget[starID][exposureNumber].data(), rowIndexOfMaskOfTarget[starID][exposureNumber].size());
+
+	    arrayName = "maskColumnIndices";
+	    hdf5File.writeArray(groupName, arrayName, colIndexOfMaskOfTarget[starID][exposureNumber].data(), colIndexOfMaskOfTarget[starID][exposureNumber].size());
+            }
+        }
+}
+
+
+
+
+
+
+

@@ -27,8 +27,23 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, Photometry &photometry, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, photometry, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), sigma(nullptr)
+DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam,
+								       HDF5File &hdf5file,
+								       Camera &camera,
+								       TemperatureGenerator &feeTemperatureGenerator,
+								       TemperatureGenerator &detectorTemperatureGenerator,
+								       Photometry &photometry,
+								       double readoutTimeBeforeNextExposure,
+								       double readoutTimeDuringNextExposure)
+  : Detector(configParam,
+	     hdf5file,
+	     camera,
+	     feeTemperatureGenerator,
+	     detectorTemperatureGenerator,
+	     photometry,
+	     readoutTimeBeforeNextExposure,
+	     readoutTimeDuringNextExposure),
+    sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -137,54 +152,15 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
         Log.info("DetectorWithAnalyticNonGaussianPSF: Reading sigma PSF from " + sigmaPSFInputFile);
     }
 
-
     // The configuration for the on-the-fly photometry
 
     includePhotometry = configParam.getBoolean("Photometry/IncludePhotometry");
 
     if (includePhotometry)
     {
-        contaminationRadius = configParam.getInteger("Photometry/ContaminationRadius");         // [pix]
-        maskUpdateInterval  = configParam.getDouble("Photometry/MaskUpdateInterval") * 86400.;  // [s]                  
-        filename            = configParam.getAbsoluteFilename("Photometry/TargetFileName");
-
-        // Read and store the list of star IDs for which we want a lightcurve
-
-        ifstream inputfile(filename);
-        if (!inputfile) 
-        {
-            Log.error("DetectorWithAnalyticNonGaussianPSF::configure(): 'TargetFileName' file doesn't exist or is not readable: "  + filename);
-            throw ConfigurationException("DetectorWithAnalyticNonGaussianPSF: wrong TargetFileName in configuration file");
-        }
-
-        photStarIDs.clear();
-        while (getline(inputfile, line)) 
-        {
-            if (line == "" || line.find("#") == 0)
-            {
-                continue;
-            }
-            else
-            {
-                int starID = (unsigned int)stoi(line);
-                photStarIDs.emplace_back(starID);
-            }
-        }
-
-        // Initialize the maps containing the photometric information
-
-        for (auto starID : photStarIDs)
-        {
-            inputFluxTarget[starID]        = vector<double>(numExposures);  
-            estimatedFluxTarget[starID]    = vector<double>(numExposures); 
-            varFluxTarget[starID]          = vector<double>(numExposures);
-            maskSizeTarget[starID]         = vector<unsigned int>();  
-            NSRtarget[starID]              = vector<double>();   
-            exposureNrOfMaskUpdate[starID] = vector<unsigned int>();
-        }
+      photometry = Photometry(configParam, hdf5file, camera);
     }
 
-    
     // The configuration for the HDF5 contents
     
     writeFlatfieldMap      = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
@@ -422,7 +398,7 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
     if (includePhotometry)
     {
         Log.info("DetectorWithAnalyticNonGaussianPSF: applying photometric extraction to exposure " + to_string(exposureNr));
-        applyPhotometry(exposureNr);
+        photometry.applyPhotometry(exposureNr);
     }
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
@@ -865,52 +841,7 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
     if (includePhotometry)
     {
         Log.info("Writing photometry to the HDF5 file");
-
-        hdf5File.createGroup("/Photometry");
-        hdf5File.createGroup("/Photometry/Masks");
-        hdf5File.createGroup("/Photometry/Lightcurves");
-
-        string groupName = "/Photometry/Masks";
-        string arrayName = "exposureNrOfMaskUpdate";
-        int starID = photStarIDs[0];    // Doesn't matter which one we take the update exposure Nrs are the same for all targets.
-        hdf5File.writeArray(groupName, arrayName, exposureNrOfMaskUpdate[starID].data(), exposureNrOfMaskUpdate[starID].size());
-
-        for (auto starID : photStarIDs)
-        {
-            string starName = to_string(starID);
-            groupName = "/Photometry/Lightcurves/starID" + starName;
-            hdf5File.createGroup(groupName);
-
-            arrayName = "inputFlux";
-            hdf5File.writeArray(groupName, arrayName, inputFluxTarget[starID].data(), inputFluxTarget[starID].size());
-
-            arrayName = "estimatedFlux";
-            hdf5File.writeArray(groupName, arrayName, estimatedFluxTarget[starID].data(), estimatedFluxTarget[starID].size());
-
-            groupName = "/Photometry/Masks/starID" + starName;
-            hdf5File.createGroup(groupName);
-
-            arrayName = "maskSize";
-            hdf5File.writeArray(groupName, arrayName, maskSizeTarget[starID].data(), maskSizeTarget[starID].size());
-
-            arrayName = "maskNSR";
-            hdf5File.writeArray(groupName, arrayName, NSRtarget[starID].data(), NSRtarget[starID].size());
-
-            for(auto iter = rowIndexOfMaskOfTarget[starID].begin(); iter != rowIndexOfMaskOfTarget[starID].end(); ++iter)
-            {
-                const unsigned int exposureNumber = iter->first;
-                
-                stringstream myStream;
-                myStream << "Exposure" << setfill('0') << setw(6) << exposureNumber;
-                groupName = "/Photometry/Masks/starID" + starName + "/" + myStream.str();
-                hdf5File.createGroup(groupName);
-
-                arrayName = "maskRowIndices"; 
-                hdf5File.writeArray(groupName, arrayName, rowIndexOfMaskOfTarget[starID][exposureNumber].data(), rowIndexOfMaskOfTarget[starID][exposureNumber].size());
-            
-                arrayName = "maskColumnIndices";
-                hdf5File.writeArray(groupName, arrayName, colIndexOfMaskOfTarget[starID][exposureNumber].data(), colIndexOfMaskOfTarget[starID][exposureNumber].size());
-            }
-        }
-    } // end if includePhotometry
-} // end flushOutput()
+	photometry.writePhotometry();
+    }
+    
+}
