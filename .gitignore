@@ -11,6 +11,7 @@ dependencies/Downloads/._*
 .vscode/*
 .idea
 .cache
+.bash_profile
 PlatoSim3.code-workspace
 
 # Ignore some of the auto-generated files (during cmake)
@@ -73,7 +74,7 @@ poetry.lock
 # varsim
 
 PHOENIX_HiResFITS/
-fitting_parameters.h5
+varsim_exomass_fitting_parameters.h5
 WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
 
 # Compiled source 
