@@ -1357,19 +1357,17 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no full well saturation applied.");
     }
 
-
-
     // Brighter-Fatter effect
 
     if (includeBFE)
     {
-        Log.debug("DetectorWithMappedPSF: adding Brighter-Fatter effect");
+        Log.debug("Detector: adding Brighter-Fatter effect");
 
         applyBFE();
     }
     else
     {
-        Log.debug("DetectorWithMappedPSF: no Brighter-Fatter effect added");
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 
     // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
@@ -1399,7 +1397,6 @@ void Detector::readOut(float exposureTime)
     else{
         Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
     }
-
 
     //  Apply quantisation. This consists of:
     //         - applying FEE and CCD gain (converting from electrons to ADU)
