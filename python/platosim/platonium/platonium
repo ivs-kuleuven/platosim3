@@ -552,11 +552,10 @@ class PLATOnium(object):
         if includeFieldDistortion == True or includeFieldDistortion == "yes":
             if mappedDistortion:
                 xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                                    pathToPsfFile)
+                                                                                    pathToPsfFile, focalLength)
             else: 
                 xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                              distortionCoefficients,
-                                                                              focalLength)
+                                                                              distortionCoefficients)
 
                 
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
