@@ -32,7 +32,6 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 								       Camera &camera,
 								       TemperatureGenerator &feeTemperatureGenerator,
 								       TemperatureGenerator &detectorTemperatureGenerator,
-								       Photometry &photometry,
 								       double readoutTimeBeforeNextExposure,
 								       double readoutTimeDuringNextExposure)
   : Detector(configParam,
@@ -40,13 +39,13 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 	     camera,
 	     feeTemperatureGenerator,
 	     detectorTemperatureGenerator,
-	     photometry,
 	     readoutTimeBeforeNextExposure,
 	     readoutTimeDuringNextExposure),
     sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
+    
     configure(configParam);
 
     // Allocate memory for the flatfield map
@@ -59,9 +58,6 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
       
       generateFlatfieldMap();
     }
-
-    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
-    // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 }
 
 

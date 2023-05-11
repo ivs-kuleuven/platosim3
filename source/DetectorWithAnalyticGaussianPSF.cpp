@@ -26,8 +26,20 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, Photometry &photometry, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, photometry, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure)
+DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationParameters &configParam,
+								 HDF5File &hdf5file,
+								 Camera &camera,
+								 TemperatureGenerator &feeTemperatureGenerator,
+								 TemperatureGenerator &detectorTemperatureGenerator,
+								 double readoutTimeBeforeNextExposure,
+								 double readoutTimeDuringNextExposure)
+  : Detector(configParam,
+	     hdf5file,
+	     camera,
+	     feeTemperatureGenerator,
+	     detectorTemperatureGenerator,
+	     readoutTimeBeforeNextExposure,
+	     readoutTimeDuringNextExposure)
 {
     // Parse the parameters from the configuration file.
 
@@ -56,6 +68,7 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
  * Destructor.
  *
  */
+
 DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
 {
     flushOutput();
@@ -632,7 +645,6 @@ void DetectorWithAnalyticGaussianPSF::flushOutput()
 
     if (includePhotometry)
     {
-        Log.info("Writing photometry to the HDF5 file");
 	photometry.writePhotometry();
     }
 }

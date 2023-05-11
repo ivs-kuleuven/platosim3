@@ -27,7 +27,14 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
 {
     public:
 
-        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
+        DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam,
+					   HDF5File &hdf5File,
+					   Camera &camera,
+					   TemperatureGenerator &feeTemperatureGenerator,
+					   TemperatureGenerator &detectorTemperatureGenerator,
+					   Photometry &photometry,
+					   double readoutTimeBeforeNextExposure,
+					   double readoutTimeDuringNextExposure);
         ~DetectorWithAnalyticNonGaussianPSF();
 
         double takeExposure(int exposureNr, double startTime, double exposureTime) override;
@@ -44,11 +51,8 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         void makeHighResolutionPSF(arma::Mat<float> &highResMap, bool includeDiffusion, int Npixels, int Nsubpixels);
         void generateDiffusionKernel(double kernelWidth);
         void applyDiffusionKernelOnPSF(double subpixRow, double subpixColumn, double flux, arma::fmat& psf, int numberOfPsfSubpixelsPerPixel);
-        void flushOutput() override;
-
-        // Photometry
-  
         void applyPhotometry(const unsigned int exposureNr);
+        void flushOutput() override;
 
     protected:
 

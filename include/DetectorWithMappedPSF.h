@@ -20,7 +20,13 @@ class DetectorWithMappedPSF : public Detector
 {
     public:
 
-        DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure);
+        DetectorWithMappedPSF(ConfigurationParameters &configParam,
+			      HDF5File &hdf5file,
+			      Camera &camera,
+			      TemperatureGenerator &feeTemperatureGenerator,
+			      TemperatureGenerator &detectorTemperatureGenerator,
+			      double readoutTimeBeforeNextExposure,
+			      double readoutTimeDuringNextExposure);
         ~DetectorWithMappedPSF();
 
         double takeExposure(int exposureNr, double startTime, double exposureTime) override;
@@ -35,7 +41,7 @@ class DetectorWithMappedPSF : public Detector
         void applyDistortion(double &x, double &y) override;
         void applyInverseDistortion(double &x, double &y) override;
         void generateThroughputMap() override;
-
+  
     protected:
   
         bool areColinear(std::array<std::array<double, 2>, 3>);

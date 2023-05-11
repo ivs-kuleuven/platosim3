@@ -28,8 +28,22 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, Photometry &photometry, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, photometry, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam,
+					     HDF5File &hdf5file,
+					     Camera &camera,
+					     TemperatureGenerator &feeTemperatureGenerator,
+					     TemperatureGenerator &detectorTemperatureGenerator,
+					     double readoutTimeBeforeNextExposure,
+					     double readoutTimeDuringNextExposure)
+  : Detector(configParam,
+	     hdf5file,
+	     camera,
+	     feeTemperatureGenerator,
+	     detectorTemperatureGenerator,
+	     readoutTimeBeforeNextExposure,
+	     readoutTimeDuringNextExposure),
+    includeFlatfield(true),
+    writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -46,10 +60,10 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
+    // Generate the flatfield map
+    
     if (includeFlatfield)
     {
-        // Generate the flatfield map
-
         generateFlatfieldMap();
     }
 
@@ -96,7 +110,6 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
     includeConvolution        = configParam.getBoolean("CCD/IncludeConvolution");
     writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
     numSubPixelsPerPixel      = configParam.getInteger("SubField/SubPixels");
-    
     
     // Treat the specific configurations for a Mapped PSF
 
@@ -1425,7 +1438,6 @@ void DetectorWithMappedPSF::flushOutput()
 
     if (includePhotometry)
     {
-        Log.info("Writing photometry to the HDF5 file");
 	photometry.writePhotometry();
     }
 }

@@ -16,23 +16,24 @@ Photometry::Photometry(ConfigurationParameters &configParam,
 		       HDF5File &hdf5file,
 		       Camera &camera)
   : HDF5Writer(hdf5file)
+{
+    // Parse the parameters from the configuration file.
 
+    configure(configParam);
+}
 
 
 
 
     
 /**
- * \brief Extract the photometric light curve for a specified list of stars
+ * \brief Preprocessing of the subfield before photometric extraction can take place.
  *
- * TODO: - better error catching when the stars for which a lightcurve is requested are (sometimes) not in the subfield
- *       - better treatment when there are no contaminants
  */
 
 void Photometry::Preprocessing(const unsigned int exposureNr)
 {
     const unsigned int zeroBasedExposureNr = exposureNr - beginExposureNr;
-
     const double varianceRON = sqrt(pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2));      // [electrons / pixel]
  
     // Make a (deep) copy of the pixelMap on which we can do some reductions without altering the original pixelMap
@@ -117,7 +118,7 @@ void Photometry::extractPhotometry(const unsigned int exposureNr)
 
         if (fluxTarget == -1.0)
         {
-            Log.warning("Detector:applyPhotometry: no info found for star " + to_string(starID) + " for which photometry is requested");
+            Log.warning("Photometry:extractPhotometry: no info found for star " + to_string(starID) + " for which photometry is requested");
             continue;
         }
 
@@ -134,8 +135,8 @@ void Photometry::extractPhotometry(const unsigned int exposureNr)
 
         if ((exposureNr == beginExposureNr) || (timeSinceLastMaskUpdate > maskUpdateInterval))
         {
-            Log.debug("Detector::applyPhotometry: updating mask of star ID " + to_string(starID) + " for exposure " + to_string(exposureNr));
-            Log.debug("Detector::applyPhotometry: creating single-target and contamination maps");
+            Log.debug("Photometry::extractPhotometry: updating mask of star ID " + to_string(starID) + " for exposure " + to_string(exposureNr));
+            Log.debug("Photometry::extractPhotometry: creating single-target and contamination maps");
 
             arma::Mat<float> singleTargetMap(numRowsPixelMap, numColumnsPixelMap);
             arma::Mat<float> contaminantMap(numRowsPixelMap, numColumnsPixelMap);
@@ -176,8 +177,8 @@ void Photometry::extractPhotometry(const unsigned int exposureNr)
                 numContaminants++;
             }
 
-            Log.debug("Detector::applyPhotometry: Found " + to_string(numContaminants) + " contaminants for star ID " + to_string(starID));
-            Log.debug("Detector::applyPhotometry: selecting which pixels belong to the mask");
+            Log.debug("Photometry::extractPhotometry: Found " + to_string(numContaminants) + " contaminants for star ID " + to_string(starID));
+            Log.debug("Photometry::extractPhotometry: selecting which pixels belong to the mask");
 
             // For the mask of our target will only consider a 7x7 area around the barycenter. Get the boundaries of that area.
 
@@ -186,13 +187,13 @@ void Photometry::extractPhotometry(const unsigned int exposureNr)
             const int minCol = max(0, int(colTarget)-3);
             const int maxCol = min(int(numColumnsPixelMap) - 1, int(colTarget)+3);                      // maxCol inclusive
             
-            Log.debug("Detector::applyPhotometry: determining mask within the area: pixelMap rows: "
+            Log.debug("Photometry::extractPhotometry: determining mask within the area: pixelMap rows: "
                       + to_string(minRow) + " -> " + to_string(maxRow) + ", cols: "
                       + to_string(minCol) + " -> " + to_string(maxCol) + ". End points inclusive");
            
             if ((numRowsPixelMap <= 7) || (numColumnsPixelMap <= 7))
             {
-                Log.warning("Detector::applyPhotometry: size of pixel map is smaller than 8x8");
+                Log.warning("Photometry::extractPhotometry: size of pixel map is smaller than 8x8");
             }
 
             // For the pixels in the designated area around our target, compute the variance and the noise/signal ratio of the signal.
@@ -225,7 +226,9 @@ void Photometry::extractPhotometry(const unsigned int exposureNr)
             vector<unsigned int> colIndex(flatNSRmap.size());
             const int NcolsMask = maxCol-minCol +1; 
 
-            for (int i = 0; i < rowIndex.size(); i++)          // Transform from indices in flatNSRmap to indices in NSRmap
+	    // Transform from indices in flatNSRmap to indices in NSRmap
+	    
+            for (int i = 0; i < rowIndex.size(); i++)
             {
                 rowIndex[i] = minRow + (unsigned int)(indices[i]) / NcolsMask;
                 colIndex[i] = minCol + (unsigned int)(indices[i]) % NcolsMask; 
@@ -308,7 +311,7 @@ void Photometry::extractPhotometry(const unsigned int exposureNr)
 
 
 /**
- * \brief Apply photometry
+ * \brief Apply photometry: first preprocessing and then extract photometry.
  *
  */
 
@@ -340,13 +343,19 @@ void Photometry::applyPhotometry(const unsigned int exposureNr)
 void Photometry::writePhotometry()
 {
 
+    Log.info("Writing photometry to the HDF5 file");
+
+    // Create major HDF5 directories
+    
     hdf5File.createGroup("/Photometry");
     hdf5File.createGroup("/Photometry/Masks");
     hdf5File.createGroup("/Photometry/Lightcurves");
 
+    // Since mask updates are done for all stars we pick the first star ID
+    
     string groupName = "/Photometry/Masks";
     string arrayName = "exposureNrOfMaskUpdate";
-    int starID = photStarIDs[0];    // Doesn't matter which one we take the update exposure Nrs are the same for all targets.
+    int starID = photStarIDs[0];
     hdf5File.writeArray(groupName, arrayName, exposureNrOfMaskUpdate[starID].data(), exposureNrOfMaskUpdate[starID].size());
 
     for (auto starID : photStarIDs)
@@ -387,10 +396,3 @@ void Photometry::writePhotometry()
             }
         }
 }
-
-
-
-
-
-
-

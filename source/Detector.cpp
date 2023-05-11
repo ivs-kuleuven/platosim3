@@ -140,9 +140,17 @@ double IntegralOfAnalyticSignalResponse::operator()(unsigned i, unsigned j, bool
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
+Detector::Detector(ConfigurationParameters &configParam,
+		   HDF5File &hdf5file,
+		   Camera &camera,
+		   TemperatureGenerator &feeTemperatureGenerator,
+		   TemperatureGenerator &detectorTemperatureGenerator,
+		   double readoutTimeBeforeNextExposure,
+		   double readoutTimeDuringNextExposure)
 : HDF5Writer(hdf5file),
-  includeCosmicsInSubField(true), includeCosmicsInSmearingMap(true), includeCosmicsInBiasMap(true),
+  includeCosmicsInSubField(true),
+  includeCosmicsInSmearingMap(true),
+  includeCosmicsInBiasMap(true),
   includeBFE(true),
   includeDarkSignal(true),
   includePhotonNoise(true),
@@ -155,7 +163,8 @@ Detector::Detector(ConfigurationParameters &configParam, HDF5File &hdf5file, Cam
   includeMolecularContamination(true),
   includeFullWellSaturation(true),
   includeDigitalSaturation(true),
-  internalTime(0.0), camera(camera),
+  internalTime(0.0),
+  camera(camera),
   temperatureGenerator(detectorTemperatureGenerator)
 {
     // Parse the parameters from the configuration file.

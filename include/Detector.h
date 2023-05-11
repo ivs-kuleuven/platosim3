@@ -26,6 +26,7 @@
 #include "Logger.h"
 #include "Units.h"
 #include "Parameter.h"
+#include "Photometry.h"
 
 using namespace std;
 
@@ -123,7 +124,7 @@ class Detector: public HDF5Writer
         virtual void addElectronicOffset();
         virtual void applyDigitalSaturation();
         virtual void applyOverAndUnderShoot();
-
+  
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
 
@@ -140,11 +141,12 @@ class Detector: public HDF5Writer
         vector<double> &trailLengths, vector<double> &entryAngles, vector<double> &intensities,
         vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux);
         virtual void writeCTIToHDF5();
-
-        double getRowEdgeFOV(int column);
-
         virtual double getTemperature();
-
+  
+        double getRowEdgeFOV(int column);
+      
+        Photometry photometry;
+	
         vector<unsigned int> rowsOfCosmicsInSubField;
         vector<unsigned int> columnsOfCosmicsInSubField;
         vector<double> fluxOfCosmicsInSubField;
@@ -152,7 +154,6 @@ class Detector: public HDF5Writer
         vector<unsigned int> rowsOfCosmicsInSmearingMap;
         vector<unsigned int> columnsOfCosmicsInSmearingMap;
         vector<double> fluxOfCosmicsInSmearingMap;
-
 
         vector<unsigned int> rowsOfCosmicsInBiasMapLeft;
         vector<unsigned int> columnsOfCosmicsInBiasMapLeft;
@@ -162,7 +163,7 @@ class Detector: public HDF5Writer
         vector<unsigned int> columnsOfCosmicsInBiasMapRight;
         vector<double> fluxOfCosmicsInBiasMapRight;
 
-        int coveredLeft, coveredRight;            // Amount of pixels in the subfield that are blocked off from light because of the metallic schield
+        int coveredLeft, coveredRight;           // Amount of pixels in the subfield that are blocked off from light because of the metallic schield
         int coveredBottom, coveredTop;
 
         arma::Mat<float> pixelMap;               // Pixel map, excl. edge pixels
@@ -311,9 +312,11 @@ class Detector: public HDF5Writer
         int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.
         int finalExposureNr;                     // Sequential number of the very last exposure: beginExposureNr + numExposures
 
+        bool includePhotometry;
+        
         double nominalOperatingTemperature;
         double internalTime;
-
+  
         long darkSignalSeed;
         long readoutNoiseSeed;
         long photonNoiseSeed;
