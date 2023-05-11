@@ -826,20 +826,20 @@ double Detector::takeExposure(int exposureNr, double startTime, double exposureT
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
-    Log.info("Detector: Adding noise effects to exposure " + to_string(exposureNr));
+    Log.info("Detector: adding noise effects to exposure " + to_string(exposureNr));
 
     readOut(exposureTime);
 
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
-    Log.debug("Detector: Writing PixelMap, smearing map, bias map and throughputMap #" + to_string(exposureNr) + " to HDF5 file.");
+    Log.debug("Detector: writing PixelMap, smearing map, bias map and throughputMap #" + to_string(exposureNr) + " to HDF5 file.");
 
 
     writePixelMapsToHDF5(exposureNr);
 
     // Write the cosmic hits to the HDF5 file
 
-    Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
+    Log.debug("Detector: writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
     if (writeCosmics)
     {
@@ -1499,7 +1499,7 @@ void Detector::addPhotonNoise()
 {
     // Add photon noise to the pixel map
 
-    Log.debug("Adding photon noise to pixel map");
+    Log.debug("Detector: adding photon noise to pixel map");
 
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
     {
@@ -1512,7 +1512,7 @@ void Detector::addPhotonNoise()
 
     // Add photon noise to the smearing map
 
-    Log.debug("Adding photon noise to smearing map");
+    Log.debug("Detector: adding photon noise to smearing map");
 
     for (unsigned int row = 0; row < numRowsSmearingMap; row++)
     {
@@ -3421,27 +3421,51 @@ void Detector::writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr)
 
    if (includeCosmicsInSubField && writeCosmics)
    {
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SubField", cosmicEntryRowSubfield, cosmicEntryColSubfield,
-                              cosmicsTrailsSubfield, cosmicsAnglesSubfield, cosmicsIntensitiesSubfield,
-                              rowsOfCosmicsInSubField, columnsOfCosmicsInSubField, fluxOfCosmicsInSubField);
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SubField",
+						    cosmicEntryRowSubfield,
+						    cosmicEntryColSubfield,
+						    cosmicsTrailsSubfield,
+						    cosmicsAnglesSubfield,
+						    cosmicsIntensitiesSubfield,
+						    rowsOfCosmicsInSubField,
+						    columnsOfCosmicsInSubField,
+						    fluxOfCosmicsInSubField);
    }
 
    if (includeCosmicsInSmearingMap && writeCosmics)
    {
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SmearingMap", cosmicEntryRowSmearingMap, cosmicEntryColSmearingMap,
-                              cosmicsTrailsSmearingMap, cosmicsAnglesSmearingMap, cosmicsIntensitiesSmearingMap,
-                              rowsOfCosmicsInSmearingMap, columnsOfCosmicsInSmearingMap, fluxOfCosmicsInSmearingMap);
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "SmearingMap",
+						    cosmicEntryRowSmearingMap,
+						    cosmicEntryColSmearingMap,
+						    cosmicsTrailsSmearingMap,
+						    cosmicsAnglesSmearingMap,
+						    cosmicsIntensitiesSmearingMap,
+						    rowsOfCosmicsInSmearingMap,
+						    columnsOfCosmicsInSmearingMap,
+						    fluxOfCosmicsInSmearingMap);
    }
 
    if (includeCosmicsInBiasMap && writeCosmics)
    {
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapLeft", cosmicEntryRowBiasMapLeft, cosmicEntryColBiasMapLeft,
-                              cosmicsTrailsBiasMapLeft, cosmicsAnglesBiasMapLeft, cosmicsIntensitiesBiasMapLeft,
-                              rowsOfCosmicsInBiasMapLeft, columnsOfCosmicsInBiasMapLeft, fluxOfCosmicsInBiasMapLeft);
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapLeft",
+						    cosmicEntryRowBiasMapLeft,
+						    cosmicEntryColBiasMapLeft,
+						    cosmicsTrailsBiasMapLeft,
+						    cosmicsAnglesBiasMapLeft,
+						    cosmicsIntensitiesBiasMapLeft,
+						    rowsOfCosmicsInBiasMapLeft,
+						    columnsOfCosmicsInBiasMapLeft,
+						    fluxOfCosmicsInBiasMapLeft);
 
-       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapRight", cosmicEntryRowBiasMapRight, cosmicEntryColBiasMapRight,
-                              cosmicsTrailsBiasMapRight, cosmicsAnglesBiasMapRight, cosmicsIntensitiesBiasMapRight,
-                              rowsOfCosmicsInBiasMapRight, columnsOfCosmicsInBiasMapRight, fluxOfCosmicsInBiasMapRight);
+       hdf5File.writeCosmicsWhithoutGroupByExposure(exposureNr, "BiasMapRight",
+						    cosmicEntryRowBiasMapRight,
+						    cosmicEntryColBiasMapRight,
+						    cosmicsTrailsBiasMapRight,
+						    cosmicsAnglesBiasMapRight,
+						    cosmicsIntensitiesBiasMapRight,
+						    rowsOfCosmicsInBiasMapRight,
+						    columnsOfCosmicsInBiasMapRight,
+						    fluxOfCosmicsInBiasMapRight);
    }
 }
 
@@ -3596,7 +3620,7 @@ void Detector::writeCTIToHDF5()
 
         // FIXME: This informational log statement is not visible in the log file (low priority)
 
-        Log.info("Detector: Writing BOL and EOL trap density maps to HDF5 file");
+        Log.info("Detector: writing BOL and EOL trap density maps to HDF5 file");
 
         for (int k = 0; k < numTrapSpecies; k++)
         {
