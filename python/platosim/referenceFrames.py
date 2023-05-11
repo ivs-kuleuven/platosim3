@@ -1081,8 +1081,8 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     else:
         xDist = np.zeros(x.shape, x.dtype)
         yDist = np.zeros(y.shape, y.dtype)
-        x.read_direct(xDis)
-        y.read_direct(yDis)
+        x.read_direct(xDist)
+        y.read_direct(yDist)
 
     distanceFromPointx = np.array([x - xFPmm for x in xUndis])
     distanceFromPointy = np.array([y - yFPmm for y in yUndis])

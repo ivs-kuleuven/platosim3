@@ -53,6 +53,11 @@ docs/technicalNotes/*/.ipynb_checkpoints/*
 
 # Output files from Jupyter notebooks
 
+docs/*/*.txt
+docs/*/*.pdf
+docs/*/*.png
+docs/*/*.yaml
+docs/*/*.hdf5
 docs/*/*/*.ftr
 docs/*/*/*.txt
 docs/*/*/*.pdf

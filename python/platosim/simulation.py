@@ -515,8 +515,6 @@ class Simulation(object):
     def turnOffAllOutput(self):
 
         """Function to write nothing to the HDF5 file.
-
-        TODO Bug: GroupByExposure = True if cosmics should be saved
         """
 
         # Fetch names of ControlHDF5Content attributes
