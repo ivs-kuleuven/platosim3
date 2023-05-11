@@ -534,11 +534,10 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     if includeFieldDistortion:
         if isMapped:
             xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                                pathToPsfFile)
+                                                                                pathToPsfFile, focalLength)
         else:
             xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                          distortionCoefficients,
-                                                                          focalLength)
+                                                                          distortionCoefficients)
 
     #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
     #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)

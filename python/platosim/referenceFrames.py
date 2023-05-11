@@ -1221,7 +1221,8 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
 
 def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength=None):
 
-    """From mapped distorted to undistorted focal plane coordinates.
+    """
+    From mapped distorted to undistorted focal plane coordinates.
 
     Convert from distorted to undistorted normalized focal plane coordinates
     using the mapped distortion model.
@@ -1610,11 +1611,10 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                             pathToPsfFile)
+                                                                             pathToPsfFile, focalLength)
         else:
             xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                       distortionCoefficients,
-                                                                       focalLength)
+                                                                       distortionCoefficients)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
