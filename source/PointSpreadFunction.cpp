@@ -118,7 +118,7 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
     string focalLengthSource = configParam.getString("Camera/FocalLength/Source");
     if (focalLengthSource == "ConstantValue")
     {
-        double focalLength = configParam.getDouble("Camera/FocalLength/ConstantValue") * 1000;     // [m] -> [mm]
+        focalLengthValue = configParam.getDouble("Camera/FocalLength/ConstantValue") * 1000;     // [m] -> [mm]
     }
     else if (focalLengthSource == "FromFile")
     {

@@ -1005,7 +1005,7 @@ void HDF5File::readArrayDatasetAttribute(string groupName, string datasetName, s
 
 
     H5::DataType type = attr.getDataType();
-    attr.read(type, &outputArray);
+    attr.read(type, outputArray);
 }
 
 

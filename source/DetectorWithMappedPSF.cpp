@@ -1103,10 +1103,11 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
     // If the input coordinates are outside the field of view, we don't apply the
     // distortion. This is because coordiantes in the table do not reach that far
     // and linear approximation of that point would fail.
-    if (x*x + y*y > 85)
+    if (x*x + y*y > 80*80)
     {
         return;
     }
+    if (x*x + y*y == 0){return;}
 
     std::array<std::array<double, 2>,4> ClosestUndistortedCoordinates;
     std::array<std::array<double, 2>,4> ClosestDistortedCoordinates;
