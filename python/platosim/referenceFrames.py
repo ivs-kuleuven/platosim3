@@ -1611,10 +1611,12 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                             pathToPsfFile, focalLength)
+                                                                             pathToPsfFile,
+                                                                             focalLength)
         else:
             xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                       distortionCoefficients)
+                                                                       distortionCoefficients,
+                                                                       focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
