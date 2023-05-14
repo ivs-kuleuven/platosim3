@@ -25,18 +25,17 @@ import os
 import sys
 import glob
 import math
-import h5py
 import shutil
 import argparse
 
 # External packages
+import h5py
 import datetime
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
-from zipfile import ZipFile
 from scipy.interpolate import interp1d, CubicSpline
+from pathlib import Path
 
 # PlatoSim
 import platosim.referenceFrames as rf
@@ -172,10 +171,11 @@ class PLATOnium(object):
         # PHYSICAL PARAMETERS
 
         # Check for PLATO pointing field (in Galactic long. (deg) and lat. (deg))
-        self.PF = {'NPF':  [265.08002279,  39.5836954,  +8.5],  # PIC1.1.0: Equivalent to Galactic []
-                   'LOPN': [277.18023,     52.85952,    +8.5],  # PIC2.0.0: Equivalent to Galactic [ 81.6, -24.6, 0.0]
-                   'SPF':  [ 86.79870508, -46.39594703, -8.5],  # PIC1.1.0: Equivalent to Galactic [253.0, -30.0, 0.0]
-                   'LOPS': [ 95.3,        -47.9,        -8.5]}  # PIC2.0.0: Equivalent to Galactic [255.9, -24.0, 0.0]
+        self.PF = {'NPF':   [265.08002279,  39.5836954,  +8.5],  # PIC1.1.0: Equivalent to Galactic []
+                   'LOPN':  [277.18023,     52.85952,    +8.5],  # PIC2.0.0: Equivalent to Galactic [ 81.6, -24.6, 0.0]
+                   'SPF':   [ 86.79870508, -46.39594703, -8.5],  # PIC1.1.0: Equivalent to Galactic [253.0, -30.0, 0.0]
+                   'LOPS':  [ 95.3,        -47.9,        -8.5],  # PIC2.0.0: Equivalent to Galactic [255.9, -24.0, 0.0]
+                   'KUL20': [ 86.79870508, -46.39594703,  0.0]}  # Used for simulations of KUL21
 
         # Inclusion thresholds
         if not self.conDeltaMag:    self.conDeltaMag    = 5     # Limit to include contaminants [delta mag]
