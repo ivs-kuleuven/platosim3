@@ -17,6 +17,7 @@ Solar-like stars (F5-K7 dwarf and subgiants):
 Other types of stars:
   - gamma-Doradus star (analytic model)
   - delta-Scuti star   (analytic model)
+  - Cepheids/RR Lyrae  (from files)
 
 Exoplanet phase curve variations:
   - Transits               (using BATMAN)
@@ -31,12 +32,16 @@ User examples:
   $ varsim --star_params 1 1 5800 4.5 0 --planet_params 1 10 0 90 0 1 1 --quarter 1-8 -o </path/to/varsource.txt>
 """
 
+# Built-in
 import os
 import sys
 import glob
 import random
 import argparse
 import datetime
+
+# External packages
+import natsort
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -52,7 +57,7 @@ from ldtk import LDPSetCreator, TabulatedFilter
 import batman
 
 # PlatoSim
-from platosim.utilities import errorcode
+from platosim.utilities import errorcode, downloadFromFTP
 import platosim.plot as pt
 import platosim.varsim.utilities as ut
 import platosim.varsim.mr_forecast as mr
@@ -876,12 +881,12 @@ class Variability(object):
 
     def delta_scuti(self):
 
-        """Function to generate pulsations of a gamma-Dor star.
+        """Function to generate pulsations of delta scuti stars.
 
         Notes 
         -----
         This function used the "gravity_oscill" utility with a characteristic power
-        of 2.2 for these g-mode pulsators.
+        of 1.0 for these g-mode pulsators.
         """
 
         # Start script
@@ -900,6 +905,68 @@ class Variability(object):
 
 
 
+    def classical_pulsator(self):
+
+        """Function to generate pulsations of Cepheids and RR Lyrae stars.
+
+        This function uses precomputed models of Cepheids and RR Lyrae
+        stars to generate the light curve from their harmonics. For now
+        this function will randomly select a star.
+        """
+
+        # Start script
+        if self.verbose > 0:
+            errorcode('module', '\nClassical pulsator\n')
+
+        # Select a random object from the list and load Fourier data
+        try:
+            filenames = glob.glob(f'{self.datapath}/RRL-CEP/*.fou')
+            starfile = random.choice(filenames)
+        except:
+            zipfile = 'RRL-CEP.zip'
+            errorcode('message', 'Classic, I like your style!')
+            print(f'Downloading {zipfile} files..')
+            downloadFromFTP(filename=zipfile, outputDir=self.datapath, server='plato')
+            os.system(f'unzip {self.datapath}/{zipfile} -d {self.datapath}')
+            os.system(f'rm {self.datapath}/{zipfile}')
+            print('')
+
+        # Load file with harmonics
+        filenames = glob.glob(f'{self.datapath}/RRL-CEP/*.fou')
+        starfile  = random.choice(filenames)
+        fourier   = np.loadtxt(starfile)    
+        if self.verbose > 0:
+            print(f'Using file {starfile} with frequencies:')
+            print(fourier)
+            
+        # Convert units of input parameters
+        time = self.time.value
+        flux = np.zeros_like(time)
+        lc = pd.DataFrame(data = {'time':time, 'flux':flux})
+
+        # Generate the lightcurve in the dataframe
+        components = len(np.array(fourier))
+        for i in range(components):
+            lc.flux = (lc.flux + fourier[i,1] *
+                       np.sin((2*np.pi*fourier[i,0] * time) + fourier[i,2]))
+
+        # Save magnitude to list
+        self.lc['mag'] = - 2.5 * np.log10(lc.flux + 1)
+
+        # plot light curve
+        if args.plot:
+            plt.figure(figsize=(10, 5))
+            plt.plot(time, self.lc.mag*1e3, 'm-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'$\delta m$ [mmag]')
+            plt.xlim(np.min(time), np.max(time))
+            plt.tight_layout()
+            plt.show()
+
+
+
+
+        
     def smbh_binary(self):
 
         """Function to generate a SMBH binary light curve.
@@ -1476,7 +1543,7 @@ class Variability(object):
             errorcode('module', '\nPrologue')
             
         # Compute delta magnitude of signal
-        variable = ('std', 'dSct', 'gDor', 'SMBH')
+        variable = ('std', 'dSct', 'gDor', 'Cep', 'SMBH')
         if args.star in variable:
             dm = self.lc['mag']
         else:
@@ -1688,6 +1755,8 @@ elif args.star == 'gDor':
     v.gamma_doradus()
 elif args.star == 'dSct':
     v.delta_scuti()
+elif args.star == 'Cep':
+    v.classical_pulsator()
 elif args.star == 'EB':
     v.eclipsing_binary()
 elif args.star == 'SMBH':
