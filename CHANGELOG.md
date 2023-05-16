@@ -7,6 +7,19 @@
 
 ### Fixed
 
+### Changed
+
+### Added
+
+
+
+<!-- 3.6.2 -->
+<!-- ***** -->
+
+## 16/05/2023: 3.6.0
+
+### Fixed
+
 * Changed Mapped distortion and  Mapped inverse distortion routines so that they now are each others inverse. Also changed the corresponding python scripts.
 * Fixed that `simfile.showImage()` was not scaling the correct flux in ADU.
 * Fixed log color scaling bug in `simfile.showImage()`.
