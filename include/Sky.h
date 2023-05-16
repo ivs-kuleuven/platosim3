@@ -73,11 +73,11 @@ class Sky
 
     private:
 
-        map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag), 
+        map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag),
                                                                     // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
                                                                     // and starID the star identification number.
         vector<tuple<double, valarray<double>, double>> orbitDB;
-       
+
         vector<unsigned int> selectedStarID;  // IDs of the stars selected with selectStarsWithinRadiusFrom()
         vector<double> selectedRA;            //      Corresponding selected Right Ascension [rad]
         vector<double> selectedDec;           //      Corresponding Declination              [rad]
@@ -100,7 +100,5 @@ class Sky
         void locate(double x, const double *array, int N, int &index);
 
 };
-
-
 
 #endif

@@ -26,7 +26,7 @@ class Short2013CTI(Test):
         # We simulate one exposure at the end of the life of the simulation so that CTI is higher 
         self.sim["ObservingParameters/NumExposures"] = 1
         self.sim["ObservingParameters/BeginExposureNr"] = 8000000
-        self.sim["Sky/SkyBackground"] = 0
+        self.sim["Sky/SkyBackground/BackgroundValue"] = 100
 
         self.numRows    = 4500
         self.numColumns = 100
@@ -59,6 +59,7 @@ class Short2013CTI(Test):
         self.sim["CCD/IncludeCTIeffects"] = "yes"
         output = self.sim.run(removeOutputFile=True)
         figure1 = output.getImage(8000000)
+        figure1 = figure1 - np.min(figure1)
 
         # We take a 20x20 part of the subfield around each simulated star 
         self.starsWithCTI = [ np.array([[ figure1[i][j] for j in np.arange(int(col-10), int(col+10)) ] for i in np.arange(int(row-10), int(row+10))]) for row, col in zip(self.rows, self.columns) ]
