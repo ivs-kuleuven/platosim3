@@ -88,7 +88,7 @@ else
     # Add code to global executeables (-i overwrite old files) TODO
     cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim       $CONDA_PREFIX/bin
     cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim       $CONDA_PREFIX/bin
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/payload/payload     $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/payload   $CONDA_PREFIX/bin
     cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $CONDA_PREFIX/bin
     
     # Reload .bashrc TODO mac

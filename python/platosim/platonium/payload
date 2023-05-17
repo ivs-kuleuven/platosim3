@@ -34,7 +34,7 @@ from pathlib import Path
 
 # PlatoSim functions
 import platosim.noise as ns
-from platosim.utilities import errorcode, convertQuarterRange
+from platosim.utilities import errorcode, convertQuarterRange, getPointingField
 
 # Default prefix
 prefix = 'cluster'
@@ -78,15 +78,12 @@ class InstrumentSetup(object):
         else:
             self.fileNamePRE = self.fileNameAPE = self.fileNameTED = False
 
-
         # Number of images in a quarter
-        self.nimg = (60 * 60 * 24 * 90) / 25
+        self.nimg = (60 * 60 * 24 * 90) / 25.
 
-        # Provisional Long-duration Observation Phases (LOP):
-        PF = {'SPF': [ 86.79870508, -46.39594703, -8.5],  # Galactic [253.0, -30.0]
-              'NPF': [265.08002279,  39.5836954,  +8,5]}  # Galactic [65.0,  +30.0]
         # Select pointng field
-        self.ra, self.dec, self.kappa = PF[args.field]
+        PF = getPointingField(args.field)
+        self.ra, self.dec, self.kappa = PF
         
         # Short-hand definitions 
         N = args.stars

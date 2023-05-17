@@ -40,7 +40,7 @@ from pathlib import Path
 # PlatoSim
 import platosim.referenceFrames as rf
 from platosim.simulation   import Simulation
-from platosim.utilities    import errorcode, pdAddColumn
+from platosim.utilities    import errorcode, pdAddColumn, getPointingField
 from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
 from platosim.matplotlibrc import setup
 setup()
@@ -83,6 +83,7 @@ class PLATOnium(object):
         self.mag          = args.mag
         self.noCon        = args.nocon
         self.reuseJitter  = args.reusejitter
+        self.fullFrame    = args.fullframe
         
         self.sample          = args.sample
         self.conDeltaMag     = args.con_dmag
@@ -93,10 +94,14 @@ class PLATOnium(object):
 
         # Make sure that the input is physical
         if not self.group in [1,2,3,4]:
-            errorcode('error', 'Camera-group can only be either 1, 2, 3, 4!')
+            errorcode('error', 'Camera-group can only be [1, 2, 3, 4]')
         if not self.camera in [1,2,3,4,5,6]:
-            errorcode('error', 'Camera can only be either 1, 2, 3, 4, 5, 6!')
-
+            errorcode('error', 'Camera can only be [1, 2, 3, 4, 5, 6]')
+        if self.fullFrame:
+            self.ccdCode = self.targetNo
+            if not self.ccdCode in [1,2,3,4]:
+                errorcode('error', f'CCD code can only be [1, 2, 3, 4]')
+            
         # VERBOSITY (a.k.a log level) -> Identical to PlatoSim usage
         # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
         # verbose = 1: Default mode: Print details to bash but do not save log files
@@ -160,7 +165,7 @@ class PLATOnium(object):
 
         # Check if the inputfile.yaml exists
         if not self.inputFile.is_file():
-            errorcode('error', f'File {self.inputFile} do not exist!')        
+            errorcode('error', f'File inputfile.yaml do not exist! Alternamtively use "-i" or "--yaml"')        
             
         # L1 pipeline paths
         if self.sample:
@@ -170,15 +175,9 @@ class PLATOnium(object):
             
         # PHYSICAL PARAMETERS
 
-        # Check for PLATO pointing field (in Galactic long. (deg) and lat. (deg))
-        self.PF = {'NPF':   [265.08002279,  39.5836954,  +8.5],  # PIC1.1.0: Equivalent to Galactic []
-                   'LOPN':  [277.18023,     52.85952,    +8.5],  # PIC2.0.0: Equivalent to Galactic [ 81.6, -24.6, 0.0]
-                   'SPF':   [ 86.79870508, -46.39594703, -8.5],  # PIC1.1.0: Equivalent to Galactic [253.0, -30.0, 0.0]
-                   'LOPS':  [ 95.3,        -47.9,        -8.5],  # PIC2.0.0: Equivalent to Galactic [255.9, -24.0, 0.0]
-                   'KUL20': [ 86.79870508, -46.39594703,  0.0]}  # Used for simulations of KUL21
-
-        # Inclusion thresholds
-        if not self.conDeltaMag:    self.conDeltaMag    = 5     # Limit to include contaminants [delta mag]
+        # Inclusion thresholds for contaminants [delta mag]
+        if not self.conDeltaMag: self.conDeltaMag = 5
+        
         # TODO include varsource limit?
         #self.varStarLimit = 50
         
@@ -204,19 +203,31 @@ class PLATOnium(object):
 
         if self.verbose == 3:
             print('Loading stellar catalogue..')
-        
+
+            
+        if self.fullFrame:
+            if self.starcatFile is not None:
+                self.dx = pd.read_feather(self.starcatFile)
+            else:
+                errorcode('error', 'Full-frame CCD images need a parsed star catalogue!')
+            return
+            
         # Fetch stars either from custum catalogue are the default PIC setup
 
         if self.starcatFile is not None:
-            dx = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
-            # Change IDs all to be the target
-            dx.ID = np.ones(len(dx))
-            dx.ID = dx.ID.astype('int')
-            # Define data frames
-            self.df = dx.loc[0]
-            dc = dx.iloc[1:]
             
+            df = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
+
+            # Change IDs all to be the target
+            df.ID = np.ones(len(dx))
+            df.ID = df.ID.astype('int')
+            
+            # Define data frames
+            self.df = df.loc[0]
+            dc = df.iloc[1:]
+
         else:
+
             # Add sample name if pipeline is activated
             if self.sample is not None:
                 extra_str = f'_{self.sample}'
@@ -229,8 +240,8 @@ class PLATOnium(object):
             df = pd.read_feather(picTarFile)
             dc = pd.read_feather(picConFile)
 
-            # Fetch LOP of catalogue
-            self.pointingField = str(Path(picTarFile).name[11:14])
+            # Merge for full frame
+            self.dx = pd.concat([df, dc])
             
             # Correct indicing and allow a specific star to be choosen
             if self.targetNo == 0:
@@ -243,29 +254,32 @@ class PLATOnium(object):
                               f'\n{picTarFile}')
             else:
                 self.targetNo -= 1
-        
+
             # Select target star
             self.df = df.iloc[self.targetNo]
 
-        # If requested select only the target or including contaminants
-        if self.noCon:
-            self.numCon = 0
-            self.dc = dc[dc['ID'] == self.numCon]
-        else:
-            self.dc = dc[dc['ID'] == self.df['ID']]
-            self.numCon = len(self.dc['ID'])
-            # Sort contaminants after their distance
-            self.dc = self.dc.sort_values(by=['dis'])
+        # Additional info for subfield simulations
+            
+        if not self.fullFrame:
+            
+            # If requested select only the target or including contaminants
+            if self.noCon:
+                self.numCon = 0
+                self.dc = dc[dc['ID'] == self.numCon]
+            else:
+                self.dc = dc[dc['ID'] == self.df['ID']]
+                self.numCon = len(self.dc['ID'])
+                # Sort contaminants after their distance
+                self.dc = self.dc.sort_values(by=['dis'])
 
-        # If requested overwrite magnitude of target star
-        if self.mag:
-            self.df.mag = self.mag
-
-
-
+            # If requested overwrite magnitude of target star
+            if self.mag:
+                self.df.mag = self.mag
             
 
 
+
+                
     def configure_output(self):
 
         """Module to create, configure, and select the correct output folders.
@@ -278,11 +292,15 @@ class PLATOnium(object):
         except: pass
 
         # Set general output filename
-        self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
-
+        if self.fullFrame:
+            self.outputFileName = ''
+            self.simSuffix = f'ccd{self.ccdCode}'
+        else:
+            self.outputFileName = f'{self.targetNo + 1}_'.zfill(9)
+            self.simSuffix = ''
+            
         # Select prefix of observation
         self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
-        #self.picPrefix = f"{self.simPrefix}pic{self.df['ID']}_{self.obsPrefix}"
 
         # Add a custom prefix to simulation
         if self.simPrefix is not None:
@@ -294,8 +312,7 @@ class PLATOnium(object):
         if self.sample is None:
             
             # PIC name convention
-            self.outputFileName = f'{self.simPrefix}{self.outputFileName}_{self.obsPrefix}'
-            
+            self.outputFileName = f'{self.simPrefix}{self.outputFileName}{self.obsPrefix}_{self.simSuffix}'
         else:
             # Name convention for pipeline mode
             self.starID = self.outputFileName
@@ -384,8 +401,8 @@ class PLATOnium(object):
 
         # PHOTOMETRY ALA MARCHIORI
 
-        # The maskUpdate is given in days
-        # The mask-update rate is event after number of exposures
+        # The mask-update interval [days]
+        # The mask-update rate [event after N number of exposures]
         if self.maskUpdate:
             sim['Photometry/MaskUpdateInterval'] = self.maskUpdate
             self.maskUpdateRate = round(self.maskUpdate * 86400. / self.cadence)
@@ -395,21 +412,23 @@ class PLATOnium(object):
             
         # CONFIGURE PAYLOAD
 
-        # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.) [deg]
-        sim["Platform/Orientation/Angles/RAPointing"]  = self.PF[self.pointingField][0]
-        sim["Platform/Orientation/Angles/DecPointing"] = self.PF[self.pointingField][1]
+        # Select PLATO pointing field from inputfile
+        self.pointingField = sim['ObservingParameters/StarCatalogFile']
+        PF = getPointingField(self.pointingField)
+        alpha, delta, kappa = PF[0], PF[1], PF[2]
+        sim["Platform/Orientation/Angles/RAPointing"]  = alpha
+        sim["Platform/Orientation/Angles/DecPointing"] = delta
 
         # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-        kappa = self.PF[self.pointingField][2]
         solarPanelOrientationDeg = math.fmod(self.quarter * 90, 360) + kappa
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
-        # Set the Camera-group ID and Camera-group Alt (tilt) and Az [deg]
+        # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
         sim["Telescope/GroupID"]      = self.group        
         sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
         sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]       
 
-        
+
         # POINTING ERRORS
         
         # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
@@ -483,8 +502,23 @@ class PLATOnium(object):
             else:
                 source = 'RedNoise'
             print(f'Applying camera drift        (TED {source})')
-            
 
+            
+        # FULL FRAME CCD
+
+        if self.fullFrame:
+
+            # Set CCD parameters
+            self.subfieldIsOnCCD                = True
+            sim['Photometry/IncludePhotometry'] = False
+            sim["CCD/Position"]                 = str(self.ccdCode)
+            sim["SubField/ZeroPointRow"]        = 0
+            sim["SubField/ZeroPointColumn"]     = 0
+            sim["SubField/NumColumns"]          = 100 #4510
+            sim["SubField/NumRows"]             = 100 #4510
+            return sim
+
+        
         # SELECT SUBFIELD
         
         # Try to set a subfield around the coordinates on one of the 4 CCDs of the telescope.
@@ -555,9 +589,9 @@ class PLATOnium(object):
                                                                                     pathToPsfFile, focalLength)
             else: 
                 xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                              distortionCoefficients)
+                                                                              distortionCoefficients,
+                                                                              focalLength)
 
-                
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
         ccdCode, xCCD, yCCD = rf.getCCDandPixelCoordinates(raTargetRad, decTargetRad,
                                                            raPlatformRad, decPlatformRad,
@@ -569,7 +603,6 @@ class PLATOnium(object):
                                                            distortionCoefficients=distortionCoefficients,
                                                            pathToPsfFile=pathToPsfFile)
         
-
         # Calculate radial distance of coordinate away from OA
         distanceOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength))
         if distanceOA > 19.0:
@@ -665,19 +698,26 @@ class PLATOnium(object):
         # SAVE STELLAR CATALOGS AND TARGET LISTS
 
         # Make a star catalog with all the stars in this subfield
-        idStarCatalog  = np.arange(1, self.numCon+2)
-        raStarCatalog  = np.append(self.df['ra'],  self.dc['ra'])
-        decStarCatalog = np.append(self.df['dec'], self.dc['dec'])
-        magStarCatalog = np.append(self.df['mag'], self.dc['mag'])
+        if self.fullFrame:
+            idStarCatalog  = self.dx.designation.to_numpy()
+            idStarCatalog  = [int(idStarCatalog[i][9:]) for i in range(len(idStarCatalog))]
+            raStarCatalog  = self.dx.ra.to_numpy()
+            decStarCatalog = self.dx.dec.to_numpy()
+            magStarCatalog = self.dx.phot_g_mean_mag.to_numpy()
+
+        else:
+            idStarCatalog  = np.arange(1, self.numCon+2)
+            raStarCatalog  = np.append(self.df['ra'],  self.dc['ra'])
+            decStarCatalog = np.append(self.df['dec'], self.dc['dec'])
+            magStarCatalog = np.append(self.df['mag'], self.dc['mag'])
 
         # Save catalog and load it into the inputfile
-        self.starCatalog = np.transpose([raStarCatalog, decStarCatalog, magStarCatalog, idStarCatalog])
-        self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'
-        sim["ObservingParameters/StarCatalogFile"] = self.starCatalogFile
-        np.savetxt(self.starCatalogFile, self.starCatalog, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
-
+        self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'        
+        sim.createStarCatalogFile(raStarCatalog, decStarCatalog, magStarCatalog, idStarCatalog,
+                                  self.starCatalogFile)
+        
         # Print catalogue
-        if self.verbose:
+        if self.verbose and not self.fullFrame:
             print('\nStar catalog used in simulation')
             df1 = pd.DataFrame({'RA [deg]': raStarCatalog,
                                 'Dec [deg]': decStarCatalog,
@@ -766,22 +806,55 @@ class PLATOnium(object):
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
 
-        simFile = sim.run(removeOutputFile=self.overwrite)
-
+        f = sim.run(removeOutputFile=self.overwrite)
+            
         # Plot star in CCD focal plane
-        fig = plt.figure(figsize=(12,10))
-        drawStarInCCDfocalPlane(fig, sim, self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
-                                self.df0['CCD'][0], self.group,
-                                self.raPlatformDeg, self.decPlatformDeg,
-                                self.tiltTelescopeDeg, self.azimuthTelescopeDeg,
-                                self.solarPanelOrientationDeg)
+        if not self.fullFrame:
+            fig = plt.figure(figsize=(12,10))
+            drawStarInCCDfocalPlane(fig, sim, self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
+                                    self.df0['CCD'][0], self.group,
+                                    self.raPlatformDeg, self.decPlatformDeg,
+                                    self.tiltTelescopeDeg, self.azimuthTelescopeDeg,
+                                    self.solarPanelOrientationDeg)
 
         # Show subfield for first cadence
-        title = f'Imagette of PIC {int(self.df.ID)} ({float(self.df.mag):.2f} mag)'
-        simFile.showImage(self.beginExposureNr, showStarPositions='PIC', clipPercentile=7,
-                          showMaskOfStarID=mask, useTitle=title, colorMap='cubehelix',
-                          colorBar=True, imgScale="auto", showGrid=True, figsize=(6,6))
-
+        if self.fullFrame:
+            figsize = (12,12)
+            showStarPositions = False
+            showMaskOfStarID  = False
+            showGrid          = False
+            title             = False
+            imgScale          = "clip"
+            clipPercentile    = 0.1
+            
+        else:
+            figsize = (6,6)
+            showStarPositions = 'PIC'
+            showMaskOfStarID  = '1'
+            title = f'Imagette of PIC {int(self.df.ID)} ({float(self.df.mag):.2f} mag)'
+            clipPercentile    = None
+            imgScale          = "auto"
+            showGrid          = True
+            
+        # Check that if any stars are detected
+        try:
+            f.getStarCoordinates(self.beginExposureNr)
+        except:
+            errorcode('warning', 'No stars detected within the subfield!')
+            showStarPositions = False
+            
+        # Plot the subfield    
+        f.showImage(self.beginExposureNr,
+                    showStarPositions=showStarPositions,
+                    clipPercentile=clipPercentile,
+                    showMaskOfStarID=mask,
+                    useTitle=title,
+                    colorMap='cubehelix',
+                    colorBar=True,
+                    imgScale=imgScale,
+                    showGrid=showGrid,
+                    figsize=figsize)
+        exit()
         # Remove the output files
         if os.path.isfile(str(self.outputSimName) + '.hdf5'):
             os.system(f'rm {self.outputDir}/{self.outputFileName}*')
@@ -1284,7 +1357,9 @@ class PLATOnium(object):
             print('------------------------------------------------------------')
             print(f'Total execution time             : {datetime.datetime.now() - self.tic0} [hh:mm:ss]\n')
 
-        
+
+
+            
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
@@ -1326,6 +1401,7 @@ sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to 
 sim_group.add_argument('--mag',     metavar='PMAG', type=float, help='Option to change target magnitude (overwrites catalogue magnitude)')
 sim_group.add_argument('--nocon',       action='store_true',    help='Flag ignore all stellar contaminants')
 sim_group.add_argument('--reusejitter', action='store_true',    help='Flag to re-use AOCS jitter file across all quarters')
+sim_group.add_argument('--fullframe',   action='store_true',    help='Flag to simulate full-frame CCD ->CCDcode = starID ')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
 pip_group.add_argument('--sample',   metavar='PIC',     type=str,   help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')

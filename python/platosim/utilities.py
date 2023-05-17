@@ -795,6 +795,39 @@ def convertMagnitudeRange(dm):
 
 
 
+def getPointingField(name):
+
+    """Function to fetch pointing field coordinates.
+
+    Small function that takes a string of numbers (here of magnitudes)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, a selection of 1 mag around
+    the imput int/float is returned as a magnitude range.
+    
+    Used in: PLATOnium/simulator-pic.py
+
+    Parameters
+    ----------
+    name : str
+        Name of the requested pointing field.
+
+    Return
+    ------
+    Dictorionary with sky coordinates (alpha, delta, kappa) [deg]
+    """
+
+    PF = {'NPF':   [265.08002279,  39.5836954,  +8.5],      # PIC1.1.0: Galactic []
+          'SPF':   [ 86.79870508, -46.39594703, -8.5],      # PIC1.1.0: Galactic [253.0, -30.0, 0.0]
+          'LOPN':  [277.18023,     52.85952,    +8.5],      # PIC2.0.0: Galactic [ 81.6, -24.6, 0.0]
+          'LOPS':  [ 93.49134,    -42.93544,    20.52825],  # PIC2.0.0: Galactic [255.9, -24.0, 0.0]
+          'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # Used for simulations of KUL20
+    
+    return PF[name]
+
+
+
+
+
 # def picOfDestiny(distribution, prange):
 #     """
 #     This function randomly picks a value from any gievn distribution and returns it.
