@@ -57,17 +57,19 @@ from ldtk import LDPSetCreator, TabulatedFilter
 import batman
 
 # PlatoSim
+import platosim.plot      as pt
+import platosim.utilities as ut
 from platosim.utilities import errorcode, downloadFromFTP
-import platosim.plot as pt
-import platosim.varsim.utilities as ut
-import platosim.varsim.mr_forecast as mr
-from platosim.varsim.pyspot_PLATO_v2 import simulate_lc
-from platosim.varsim.phoenix import Phoenix
-from platosim.varsim.source_exoplanets import load_exoplanet
-from platosim.varsim.source_stars import load_star
-from platosim.varsim.models import (LimbDarkening, DopplerBeaming, EllipsoidalDistortion,
-                                    StellarActivity, StellarFlares,
-                                    GravityOscillations, solarosc)
+from platosim.phoenix   import Phoenix
+from platosim.varsource import load_star, load_exoplanet
+from platosim.varsource import (LimbDarkening,
+                                DopplerBeaming,
+                                EllipsoidalDistortion,
+                                PlanetMRforecast,
+                                StellarActivity,
+                                StellarFlares,
+                                GravityOscillations,
+                                solarosc)
 
 
 #-------------------------------------------------------#
@@ -129,9 +131,26 @@ class Variability(object):
             plt.rcParams['text.usetex'] = True
         
         # Absolute cwd path
-        self.path     = str(Path(os.getenv("PLATO_PROJECT_HOME"))) + "/python/platosim/varsim"
-        self.datapath = self.path + '/data'
+        self.path     = str(Path(os.getenv("PLATO_PROJECT_HOME"))) + "/inputfiles"
+        self.datapath = self.path + '/data_varsim'
+
         
+        # DOWNLOAD DATA
+        if not Path(self.datapath + '/response_plato.txt').is_file():
+            errorcode('message', 'Inuaguration: Welcome to the Variable Source Simulator!')
+            print(f'Downloading a few prerequisite files..')
+            ut.downloadFromFTP(filename='response_plato.txt',
+                               outputDir=self.datapath, server='plato')
+            ut.downloadFromFTP(filename='response_tess.txt',
+                               outputDir=self.datapath, server='plato')
+            ut.downloadFromFTP(filename='response_kepler.txt',
+                               outputDir=self.datapath, server='plato')
+            ut.downloadFromFTP(filename='meunier_19a_t1.txt',
+                               outputDir=self.datapath, server='plato')
+            ut.downloadFromFTP(filename='Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.txt',
+                               outputDir=self.datapath, server='plato')
+
+            
         # OBSERVATIONAL PARAMETERS
 
         # Cadence/sampling [s -> d]
@@ -186,10 +205,7 @@ class Variability(object):
             print(f'Simulating {self.instrument} bandpass : ' +
                   f'{self.wvl_tele[0]} - {self.wvl_tele[-1]}')
 
-
-
-
-
+            
     #--------------------------------------------------------------#
     #                         MODEL OF STAR                        #
     #--------------------------------------------------------------#
@@ -373,14 +389,16 @@ class Variability(object):
         
         Assumptions
         -----------
-        * Model of spots only.
-        * Model only valid for main-sequence stars.
+        * Model of spots only (missing e.g. faculae)
+        * Model only valid for main-sequence stars
         
         Code courtesy
         -------------
         Suzanne Aigrain : Aigrain et al. (2012)
         """
 
+        from platosim.starspot import simulate_lc
+        
         # Start script
         if self.verbose > 0:
             errorcode('module', '\nStellar activity\n')
@@ -556,7 +574,7 @@ class Variability(object):
         cadence = self.cadence.to('Ms').value
 
         # Solar frequency spectrum: mode line-widths and frequencies
-        data = np.loadtxt(self.datapath + '/Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.dat')
+        data = np.loadtxt(self.datapath + '/Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.txt')
         eta  = np.exp(data[:,6])*np.pi  # From Chaplin et al. (2009) Eq. 1
         freq = data[:,2]                # frequencies of 96 modes
 
@@ -1132,8 +1150,8 @@ class Variability(object):
             # NOTE forecasting only valid between (0.05 < Rp/R_jup < 8.5) 
             if self.verbose > 0: classifier = 'yes'
             else: classifier = 'no'
-            Mp, _, _ = mr.Rstat2M(mean=Rp.to('R_jup').value, std=0.01, unit='Jupiter',
-                                  sample_size=1000, grid_size=1000, classify=classifier)
+            Mp, _, _ = mr_forecast.Rstat2M(mean=Rp.to('R_jup').value, std=0.01, unit='Jupiter',
+                                           sample_size=1000, grid_size=1000, classify=classifier)
             Mp = Mp * u.M_jup
 
             # Select random uniform period

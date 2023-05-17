@@ -272,6 +272,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         print(df1)
 
     # Plot distributions
+    
     if plot:
         t *= 3600
         b *= 3600
@@ -308,8 +309,8 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
     Paramters
     ---------
 
-    Return
-    ------
+    Returns
+    -------
     """
     
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)

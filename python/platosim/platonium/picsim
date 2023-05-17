@@ -50,11 +50,9 @@ from tqdm import tqdm
 # PlatoSim functions
 import platosim.plot       as pt
 import platosim.utilities  as ut
+import platosim.starquery as starQuery
 from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
-
-# VarSim functions
-import platosim.picsim.starquery as starQuery
 
 # Disable warnings
 warnings.simplefilter("ignore")
@@ -155,7 +153,7 @@ fileFormat = '.ftr'
 # Default is to use the latest PIC catalog saved
 # Else several old catalogs can be parsed for replotting
 # E.g. use: -intar starcat**targets.txt --incon starcat**contaminants.txt
-inputDir     = Path(os.getenv("PLATO_PROJECT_HOME")) / 'python/platosim/picsim/data'
+inputDir     = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
 inputFileTar = inputDir / 'PIC110target.npy'
 inputFileCon = inputDir / 'PIC110contaminant.npy'
 
@@ -185,10 +183,13 @@ if outputDir is not None or project is not None:
 
 # Copy an inputfile.yaml file if no file exist
 inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
-inputFileNew  = outputDir / 'inputfile.yaml'
-if not inputFileNew.is_file():
-    shutil.copy(inputFileYAML, inputFileNew)
-        
+try:
+    inputFileNew = outputDir / 'inputfile.yaml'
+except:
+    pass
+else:
+    if not inputFileNew.is_file():
+        shutil.copy(inputFileYAML, inputFileNew)
 
 #-----------------------------------------------------------------
 # TODO implement properly such dmag and dist can be requested too
