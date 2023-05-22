@@ -142,10 +142,11 @@ class InstrumentSetup(object):
 
         # Time column
         t0 = round(90. * (self.Q[0]  - 1) * self.day2sec)
-        t1 = round(90. * (self.Q[-1] - 1) * self.day2sec)
+        t1 = round(90. * (self.Q[-1])     * self.day2sec)
         self.time = np.arange(t0, t1, 25)
 
 
+        
         
     
 
@@ -203,13 +204,8 @@ class InstrumentSetup(object):
         #         "attitude", "ccdanomaly", "argabrightning"]
         df = pd.DataFrame()
 
-        # Start time of simulation
-        t0 = round(90. * (self.Q[0]  - 1) * self.day2sec)
-        t1 = round(90. * (self.Q[-1] - 1) * self.day2sec)
-        time = np.arange(t0, t1, 25)
-
         # Create continous time array
-        df["time"] = time
+        df["time"] = self.time
         
         # QUARTERLY ROLLS
 
@@ -227,7 +223,7 @@ class InstrumentSetup(object):
             roll_gap = roll_duration + np.random.uniform(-roll_anomaly, roll_anomaly) # [d]
             roll_event0[i] = (roll_period * Q - roll_gap/2) * self.day2sec  # [s]
             roll_event1[i] = (roll_period * Q + roll_gap/2) * self.day2sec  # [s]
-            df["roll"] = np.logical_and(time>=roll_event0[i], time<=roll_event1[i])
+            df["roll"] = np.logical_and(self.time>=roll_event0[i], self.time<=roll_event1[i])
 
         # DOWNLINK GAPS
 
@@ -245,7 +241,7 @@ class InstrumentSetup(object):
             link_gap = link_duration + np.random.uniform(-link_anomaly, link_anomaly)
             link_event0[i] = (L - link_gap/2) * self.day2sec
             link_event1[i] = (L + link_gap/2) * self.day2sec
-            df["downlink"] = np.logical_and(time>=link_event0[i], time<=link_event1[i])
+            df["downlink"] = np.logical_and(self.time>=link_event0[i], self.time<=link_event1[i])
 
         # LOSS OF FINE GUIDANCE
 
@@ -269,7 +265,7 @@ class InstrumentSetup(object):
             jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
             jitter_event0[i] = (J - jitter_gap/2) * self.day2sec
             jitter_event1[i] = (J + jitter_gap/2) * self.day2sec
-            df["jitter"] = np.logical_and(time>=jitter_event0[i], time<=jitter_event1[i])
+            df["jitter"] = np.logical_and(self.time>=jitter_event0[i], self.time<=jitter_event1[i])
 
         # SAVE MODE EVENTS
 
@@ -293,7 +289,7 @@ class InstrumentSetup(object):
             safe_gap = safe_duration + np.random.uniform(-safe_anomaly, safe_anomaly)
             safe_event0[i] = (S - safe_gap/2) * self.day2sec
             safe_event1[i] = (S + safe_gap/2) * self.day2sec
-            df["safe"] = np.logical_and(time>=safe_event0[i], time<=safe_event1[i])
+            df["safe"] = np.logical_and(self.time>=safe_event0[i], self.time<=safe_event1[i])
 
         # Create new time array with all gaps
         # df["tsim"] = ~df.roll * ~df.downlink
@@ -308,7 +304,7 @@ class InstrumentSetup(object):
 
         # Show figure
 
-        if n_roll != 1:
+        if n_roll != 0:
             
             fig, ax = plt.subplots(figsize=(10, 3))
 
@@ -316,21 +312,24 @@ class InstrumentSetup(object):
             ax.axhline(y=0, linestyle=':', color='k')
 
             for i in range(n_roll):
-                roll =ax.axvspan(roll_event0[i]/self.day2sec, roll_event1[i]/self.day2sec,
+                roll = ax.axvspan(roll_event0[i]/self.day2sec, roll_event1[i]/self.day2sec,
                                  color='b', alpha=0.5)
-
+                if i == n_roll-1: roll.set_label('Quarter rolls')
+                
             for i in range(n_link):
-                link =ax.axvspan(link_event0[i]/self.day2sec, link_event1[i]/self.day2sec,
+                link = ax.axvspan(link_event0[i]/self.day2sec, link_event1[i]/self.day2sec,
                                  color='m', alpha=0.5)
-
+                if i == n_roll-1: link.set_label('Downlinks')
+                
             for i in range(n_jitter):
-                jitter =ax.axvspan(jitter_event0[i]/self.day2sec, jitter_event1[i]/self.day2sec,
+                jitter = ax.axvspan(jitter_event0[i]/self.day2sec, jitter_event1[i]/self.day2sec,
                                    color='orange', alpha=0.5)
-
+                if i == n_roll-1: jitter.set_label('Loss of FGS')
+                
             for i in range(n_safe):
-                safe =ax.axvspan(safe_event0[i]/self.day2sec, safe_event1[i]/self.day2sec,
+                safe = ax.axvspan(safe_event0[i]/self.day2sec, safe_event1[i]/self.day2sec,
                                  color='r', alpha=0.5)
-
+                if i == n_roll-1: safe.set_label('Safe modes')
 
             # for i, col in zip(range(3), cols):
             #     ax[i].plot(df["time"]/day2sec, df[col], 'k-')
@@ -351,10 +350,6 @@ class InstrumentSetup(object):
             # Labels
             ax.set_xlabel("Time [days]")
             ax.set_ylabel("Arb.")
-            roll.set_label('Quarter rolls')
-            link.set_label('Downlinks')
-            jitter.set_label('Loss of FGS')
-            safe.set_label('Safe modes')
             ax.legend(ncol=4, loc="center", bbox_to_anchor=(0.5, 1.2))
 
             # Layout
