@@ -1784,6 +1784,7 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
     for group in range(4):
         ra, dec = platformToTelescopePointingCoordinates(np.deg2rad(raPlatform),
                                                          np.deg2rad(decPlatform),
+                                                         np.deg2rad(solarPanelOrientation),
                                                          np.deg2rad(azimuthAngles[group]),
                                                          np.deg2rad(tiltAngles[group]))
         raGroups.append(np.rad2deg(ra))
