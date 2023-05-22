@@ -1008,7 +1008,7 @@ class SimFile (object):
                 Xmm    = self.hdf5file[groupName][exposureGroupName]["xFPmm"][:]
                 Ymm    = self.hdf5file[groupName][exposureGroupName]["yFPmm"][:]
                 flux   = self.hdf5file[groupName][exposureGroupName]["flux"][:]
-
+                
                 # Make sure that the point-like ghost star IDs are sorted
 
                 sorted = np.argsort(starID)
@@ -1031,7 +1031,7 @@ class SimFile (object):
             # Or grouped per star which is already sorted
             
             star = list(self.hdf5file[groupName].keys())
-
+            
             # TODO remove this when time column is deleted from StarPositions in HDF5
             #---------------------------------
             if groupName == "StarPositions":
@@ -1985,8 +1985,9 @@ class SimFile (object):
             # Or hightligth all stars the same
             
             else:
-                ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o', c='royalblue',
-                           edgecolor='k', linewidth=lw, zorder=4)
+                ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o',
+                           facecolors='none', edgecolors='royalblue',
+                           linewidth=lw, zorder=4)
             if showStarIDs:
                 for k in range(len(ID)):
                     label = "{0}".format(ID[k])

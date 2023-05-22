@@ -16,17 +16,22 @@ import descartes
 from tqdm import tqdm
 from ipywidgets import interact
 import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.animation as animation
 from matplotlib import patches
 from matplotlib.pyplot import cm
 from matplotlib.path import Path
+import matplotlib.ticker as mticker
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
 from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
+from scipy.signal import periodogram
+
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
@@ -1258,7 +1263,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     # Select field
 
-    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/data'
+    indir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
     if pointingField == 'NPF': PF_gal = [65.0, 30.0]
     if pointingField == 'SPF': PF_gal = [253.0, -30.0]
 
@@ -1585,7 +1590,7 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
     fig = plt.figure(figsize=figsize)
 
     labels = ['Yaw', 'Pitch', 'Roll']
-    colors = ['royalblue', 'lightseagreen', 'limegreen']
+    colors = colors_sea
 
     for plot in range(numData):
 
@@ -1636,8 +1641,9 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
 
 
-def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
-                        labels=False, xmin=False, ylim=False, misreq=False):
+def plotYawPitchRollPSD(time, signals, scale=1e-6, carbox=144, title=False,
+                        labels=False, xmin=False, ylim=[1e-1, 1e7], misreq=False,
+                        figsize=(9,10)):
 
     """Plot Power Spectral Desity of Yaw, Pitch, and Roll angles.
 
@@ -1676,14 +1682,15 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
     # Find time step
 
-    sampling = (time[1]-time[0]) * scale
+    sampling = time[1]-time[0]
 
     # Make plot
 
     labels = ['Yaw', 'Pitch', 'Roll']
-    #colors = ['tomato', 'darkorange', 'gold']
-    colors = ['royalblue', 'lightseagreen', 'limegreen']
+    colors = colors_hot
 
+    fig = plt.figure(figsize=figsize)
+    
     for plot in range(numData):
 
         # Create axes objects
@@ -1692,14 +1699,17 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
         # Find PSD and median filter
 
-        freq, PSD = ns.powerDensityFFT(signals[plot], sampling)
+        freq, PSD = periodogram(signals[plot], 1/sampling, scaling='density')
         PSD_med   = median_filter(PSD, carbox)
         perhour   = int(carbox*sampling/3600.)
-
+        freq *= 1e6  # [muHz]
+        PSD  *= 1e6
+        PSD_med *= 1e6
+        
         # Plot results
 
         axes.plot(freq, PSD,     '-', c=colors[plot], lw=lw, label=labels[plot])
-        axes.plot(freq, PSD_med, 'k-', lw=lw+1, label='Median filter')
+        axes.plot(freq, PSD_med, 'k-', lw=lw+1, label='1h median')
 
         # Plot mission requirements (from the red book)
 
@@ -1717,23 +1727,18 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
         # Latter settings
 
         if plot == 1:
-            axes.set_ylabel(r'Amplitude [arcsec$^2$ Hz$^{-1}$]')
+            axes.set_ylabel(r'Amplitude [arcsec$^2$ $\mu$Hz$^{-1}$]')
 
         # Remove tick labels on x axis except for last plot
 
         if plot < numData-1:
             axes.tick_params(labelbottom=False)
 
-        # Set x-min limit
+        # Set x and y limits
 
-        if xmin is not False:
-            axes.set_xlim(xmin, freq.max())
-
-        # Set y limits
-
-        if ylim is not False:
-            axes.set_ylim(ylim[0], ylim[1])
-
+        axes.set_xlim(1e1, freq.max())
+        axes.set_ylim(ylim[0], ylim[1])
+        
         # Remove tick labels on x axis except for last plot
 
         if plot < numData-1: axes.tick_params(labelbottom=False)
@@ -1744,17 +1749,18 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
         # Set title
 
-        if title is not False and plot == 0: axes.set_title(title, fontsize=fs)
+        if title is not False and plot == 0:
+            axes.set_title(title, fontsize=fs)
 
     # Remaining
 
-    plt.xlabel(r'Frequency [Hz]')
+    plt.xlabel(r'Frequency, $\nu$ [$\mu$Hz]')
     plt.tight_layout()
     plt.subplots_adjust(hspace = .001)
 
     # Finito!
 
-    return axes
+    return fig, axes
 
 
 
@@ -3169,6 +3175,97 @@ def plotTimesPlanetsHZ():
 
 
 
+
+def plotDetectedPlanets():
+
+
+    # Load NASA exoplanet file
+    # https://exoplanetarchive.ipac.caltech.edu/
+
+    filename = os.getcwd() + '/NASA_archive/nasa_exoplanets.csv'
+    planetID = np.loadtxt(filename, delimiter=',', usecols=[0], dtype=str)
+    data     = np.genfromtxt(filename, delimiter=',')
+
+    # Sort out planets that do not contain {P, a, R, i}={2, 6, 10, 22}:
+
+    cols = [2, 6, 10, 22]
+    dex0 = np.ones_like(data[:,0], dtype=bool)
+
+    for row in range(len(data)):
+        for col in cols:
+            dex0[row] *= ~np.isnan(data[row,col])
+
+    # Check if either {a, Mp*sini}={6, 14}
+
+    cols = [6, 14]
+    dex1 = np.zeros_like(data[:,0], dtype=bool)
+    for row in range(len(data)):
+        for col in cols:
+            dex1[row] += ~np.isnan(data[row,col])
+
+    dex = dex0 * dex1
+
+    # Ommit targets tabulated several times
+
+    d = {'ID': planetID[dex],  'P': data[:,2][dex], 'a': data[:,6][dex],
+         'R': data[:,10][dex], 'M': data[:,14][dex],
+         'e': data[:,18][dex], 'i': data[:,22][dex]}
+
+    # Create a data frame for easy handling
+
+    df = pd.DataFrame(d, columns=['ID', 'R', 'M', 'P', 'a', 'i', 'e'])
+
+    # Fetch columns of interest
+
+    df = df.drop_duplicates(subset=['ID'])
+
+    # Convert upper mass limit to actual mass
+
+    df['M'] /= np.sin(np.deg2rad(df['i']))
+
+    # Save data frame into ascii
+
+    #df.to_csv('cat.txt')
+
+    # PLOT DISTRIBUTION OF PLANETS
+
+    fig, ax = plt.subplots(1, 3, figsize=(12,4))
+
+    sc = ax[0].scatter(df['M'], df['R'], c=df['e'], edgecolor='w', cmap='coolwarm')
+    ax[0].set_xscale('log')
+    ax[0].set_title('Radius vs. Mass')
+    ax[0].set_xlabel(r'Mass [$M_{\oplus}$]')
+    ax[0].set_ylabel(r'Radius [$R_{\oplus}$]')
+
+    ax[1].scatter(df['P'], df['R'], c=df['e'], edgecolor='w', cmap='coolwarm')
+    ax[1].set_xscale('log')
+    ax[1].set_yscale('log')
+    ax[1].set_title('Radius vs. Period')
+    ax[1].set_xlabel('Period [days]')
+    ax[1].set_ylabel('Radius [$R_{\oplus}$]')
+
+    ax[2].scatter(df['a'], df['M'], c=df['e'], edgecolor='w', cmap='coolwarm')
+    ax[2].set_xscale('log')
+    ax[2].set_yscale('log')
+    ax[2].set_title('Mass vs. Semimajor axis')
+    ax[2].set_xlabel('Semimajor axis [AU]')
+    ax[2].set_ylabel(r'Mass [$M_{\oplus}$]')
+
+    ax[0].xaxis.set_major_formatter(mticker.ScalarFormatter())
+    ax[1].xaxis.set_major_formatter(mticker.ScalarFormatter())
+    ax[1].yaxis.set_major_formatter(mticker.ScalarFormatter())
+    ax[2].xaxis.set_major_formatter(mticker.ScalarFormatter())
+    ax[2].yaxis.set_major_formatter(mticker.ScalarFormatter())
+
+    plt.tight_layout(h_pad=1.0)
+    cbar_ax = fig.add_axes([0.07, 0.58, 0.015, 0.3])
+    cbar = fig.colorbar(sc, cax=cbar_ax)
+    cbar.set_label('Eccentricity')
+    plt.show()
+
+
+
+    
 
 
 #--------------------------------------------------------------#

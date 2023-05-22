@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+
+"""
+Created on Mon Oct 17 10:33:55 2022
+
+@author: juano
+
+adapted from
+https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access
+"""
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib import colors
+from astropy.coordinates import SkyCoord
+from astropy import units as u
+from tqdm import tqdm
+
+# PlatoSim
+import platosim.utilities       as ut 
+import platosim.referenceFrames as rf
+from platosim.starquery import gaiaRegionQuery
+from platosim.matplotlibrc import latex
+latex()
+
+
+field  = 'LOPS'
+a      = 16.9
+radius = 12
+maglim = 17
+verbose = 1
+plot = False
+
+# Get pointing of platform
+
+platform = ut.getPointingField(field)
+alpha, delta, kappa = platform[0], platform[1], platform[2]
+
+# Make a grid in azimuth and tilt angles and findsky coordinates
+
+c = np.sqrt(2*a**2)
+azim = [-45,   0,  45,
+        -90,   0,  90,
+        225, 180, 135]
+tilt = [c, a, c,
+        a, 0, a,
+        c, a, c]
+N = len(tilt)
+
+# Fetch RA and Dec for each camera group
+
+raGrid  = np.zeros(len(azim))
+decGrid = np.zeros(len(azim))
+for i in range(len(azim)):
+    raGrid[i], decGrid[i] = rf.platformToTelescopePointingCoordinates(np.deg2rad(alpha),
+                                                                      np.deg2rad(delta),
+                                                                      np.deg2rad(kappa),
+                                                                      np.deg2rad(azim[i]),
+                                                                      np.deg2rad(tilt[i]))
+raGrid  = np.rad2deg(raGrid)
+decGrid = np.rad2deg(decGrid)
+
+# Find the camera group pointings
+
+raGroups, decGroups = rf.getCameraGroupCoordinates(alpha, delta, kappa)
+
+# Plot grid used to fetch Gaia DR3 stars
+#---------------------------------
+if plot:
+    
+    # create some circles
+    c = np.sqrt(9.2**2/2)
+    a = 16.9
+    d = 12
+
+    fig, ax = plt.subplots(figsize=(7,7))
+
+    circle11 = plt.Circle(( 0,a), d, color='k', alpha=.2)
+    circle12 = plt.Circle((-a,a), d, color='k', alpha=.2)
+    circle13 = plt.Circle(( a,a), d, color='k', alpha=.2)
+    circle21 = plt.Circle(( 0,0), d, color='k', alpha=.2)
+    circle22 = plt.Circle((-a,0), d, color='k', alpha=.2)
+    circle23 = plt.Circle(( a,0), d, color='k', alpha=.2)
+    circle31 = plt.Circle(( 0,-a), d, color='k', alpha=.2)
+    circle32 = plt.Circle((-a,-a), d, color='k', alpha=.2)
+    circle33 = plt.Circle(( a,-a), d, color='k', alpha=.2)
+    ax.add_artist(circle11); ax.add_artist(circle12); ax.add_artist(circle13)
+    ax.add_artist(circle21); ax.add_artist(circle22); ax.add_artist(circle23)
+    ax.add_artist(circle31); ax.add_artist(circle32); ax.add_artist(circle33)
+    
+    group1 = plt.Circle(( c, c), 19, color='b', alpha=.2)
+    group2 = plt.Circle(( c,-c), 19, color='b', alpha=.2)
+    group3 = plt.Circle((-c,-c), 19, color='b', alpha=.2)
+    group4 = plt.Circle((-c, c), 19, color='b', alpha=.2)
+    ax.add_artist(group1); ax.add_artist(group2); ax.add_artist(group3); ax.add_artist(group4);
+
+    ax.set_xlim(-30, 30)
+    ax.set_ylim(-30, 30)
+    ax.set_aspect('equal')
+    plt.show()
+
+    # Plot the grid points on the sky with the stars
+
+    import ligo.skymap.plot
+    fig = plt.figure(figsize=(7,7))
+
+    colors = ['b', 'limegreen', 'yellow', 'r']
+    platform = SkyCoord(alpha, delta, frame='icrs', unit=u.deg)
+    ax = plt.axes(projection='astro degrees zoom', center=platform,
+                  radius='35 deg', rotate='180 deg')
+
+    # Plot pointing
+    ax.plot(platform.ra.deg, platform.dec.deg, '*', c='k', mfc='magenta', ms=25,
+                transform=ax.get_transform('world'))
+    # Plot each camera group
+    for i, c in zip(range(4), colors):
+        # Plot pointing
+        ax.plot(raGroups[i], decGroups[i], 'o', ms=13, c=c, mec='k',
+                transform=ax.get_transform('world'))
+        # Plot FOV
+        # ax.scatter(raGroups[i], decGroups[i], s=115000, marker='o',
+        #            edgecolor=c, facecolor='none', linewidth=2,
+        #            transform=ax.get_transform('world'), zorder=6)
+    # Plot grid points
+    grid = SkyCoord(raGrid, decGrid, frame='icrs', unit=u.deg)
+    ax.plot(grid.ra.deg, grid.dec.deg, 'o', ms=10, c='k',mec='k',
+            transform=ax.get_transform('world'))      
+
+    ax.scalebar((0.05, 0.05), 10 * u.deg).label()
+    ax.compass(0.95, 0.05, 0.1)
+    ax.grid(color='gray')
+    ax.set_xlabel('RA [deg]')
+    ax.set_ylabel('Dec [deg]')
+
+    plt.show()
+#---------------------------------
+
+    
+# Query stars within each grid point FOV
+
+if verbose > 0:
+    print('Start Gaia DR3 query')
+
+# for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+#         gaiaRegionQuery(raGrid[i], decGrid[i], radius=radius, maglim=maglim,
+#                         ofile=f'starcat_GaiaDR3_{field}_grid{i+1}')
+
+
+if verbose > 0:
+    print('Load and combine all star found from grid search')
+
+dfs = [pd.read_feather(f'starcat_GaiaDR3_{field}_grid{i+1}.ftr') for i in range(N)] 
+df = pd.concat(dfs, axis=0, ignore_index=True)
+
+# Remove duplicates
+
+df = df.drop_duplicates(subset=['designation'])
+
+# Remove distance column
+
+df = df.drop(columns='dist')
+
+# Rename ID column
+
+df = df.rename(columns={'designation': 'gaiaDR3',
+                        'phot_g_mean_mag': 'mag'})
+
+# Keep digit ID only
+
+df.gaiaDR3 = df.gaiaDR3.str[9:]
+
+# Add brightest stars not available in Gaia
+
+if field == 'LOPS':
+    sirius  = {'gaiaDR3': 'Sirius',  'ra': 101.2871667, 'dec': -16.7161167, 'mag': -1.46}
+    canopus = {'gaiaDR3': 'Canopus', 'ra':  95.9879167, 'dec': -52.6956611, 'mag': -0.72}
+    epscma  = {'gaiaDR3': 'epsCMa',  'ra': 104.6564583, 'dec': -28.9720861, 'mag':  1.50}
+    df = df.append([sirius, canopus, epscma], ignore_index=True)
+
+# Keep only stars within the camera group FOV
+
+for i in range(4):
+
+    if verbose > 0:
+        print(f'Creating catalogue for camera group {i+1}')
+        
+    dOA = np.arccos(np.sin(decGroups[i])*np.sin(df.dec) +
+                    np.cos(decGroups[i])*np.cos(df.dec)*np.cos(raGroups[i]-df.ra))
+    df0 = df[dOA < 19]
+
+    # Save new catalogue
+    
+    df0.reset_index(inplace=True)
+    df0.to_feather(f'starcat_GaiaDR3_{field}_group{i+1}.ftr')
+

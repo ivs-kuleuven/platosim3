@@ -4,15 +4,16 @@
 This is a script holding all relevant PHOENIX download and read features.
 """
 
-import pathlib
+
 import zipfile
 import urllib.request
+
+import pathlib
 import numpy as np
 from astropy.io import fits
 
 # PlatoSim
-from platosim.utilities        import errorcode
-from platosim.varsim.utilities import find_nearest
+from platosim.utilities import errorcode, find_nearest
 
 
 #==============================================================#

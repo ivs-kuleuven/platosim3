@@ -78,8 +78,10 @@ pipeline/
 # varsim
 
 PHOENIX_HiResFITS/
-varsim_exomass_fitting_parameters.h5
 WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
+varsim_exomass_fitting_parameters.h5
+RRL-CEP/
+response_*
 
 # Compiled source 
 

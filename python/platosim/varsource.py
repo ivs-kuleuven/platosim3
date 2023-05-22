@@ -9,20 +9,336 @@ a look at the "source_exoplanets.py" module.
 import os
 import math
 import random
-import pathlib
 import zipfile
-import numpy as np
 import urllib.request
+
+import pathlib
+import numpy as np
 from numba import njit
 from astropy.io import fits
 from astropy import units as u
 from astropy import constants as c
 from PyAstronomy import funcFit, pyasl
 from matplotlib import pyplot as plt
+from scipy.stats import norm, truncnorm
 
 # PlatoSim
-from platosim.utilities        import errorcode
-from platosim.varsim.utilities import find_nearest
+from platosim.utilities import errorcode, downloadFromFTP, find_nearest
+
+
+#==============================================================#
+#                       MODELS PARAMETERS                      #
+#==============================================================#
+
+
+def create_star(spectype, spectypes_datafile=None):
+
+
+    if spectype in spectype_names: 
+        spectype_names = list(np.genfromtxt(spectypes_datafile, dtype='str', delimiter='', usecols=(0), unpack=True))
+        teffs, luminosities, radii,masses = np.genfromtxt(spectypes_datafile, delimiter='', usecols=(1,2,3,4), unpack=True)
+
+    else:
+        raise ValueError("SpType {} not one of {}".format(spectype,spectype_names))
+
+    index = sptype_names.index(spectype)
+    #-- then fill in the values
+    star = {}
+    star['teff'] = teffs[index],'K'
+    star['radius'] = radii[index],'Rsol'
+    star['mass'] = masses[index],'Msol'
+
+    return star
+
+
+# Based on tabulated data deduced from the spectral type
+
+# if source == 'K5V':
+#     M = create_star(source, spectypes_datafile='spectypes.dat')['mass']
+#     R = create_star(source, spectypes_datafile='spectypes.dat')['radius']
+#     g = (constants.GG_cgs * M[0] * constants.Msol_cgs / (R[0] * constants.Rsol_cgs)**2, 'cm s-2')
+#     Teff = create_star(source, spectypes_datafile='spectypes.dat')['teff']
+#     L = conversions.derive_luminosity(R, Teff, units='Lsol').as_tuple()  # "bolometric" luminosity
+
+
+
+
+
+def load_star(source):
+    """
+    This module is a placeholder for user defined stars for which the stellar spectrum
+    is created from the stellar parameters. Stars can either be created from a spectral
+    type or by adding a custom star to the list below.
+
+    PARAMETERS
+    ----------
+    Teff : int, float
+        Stellar effective temperature [astropy.units]
+    R : int, float
+        Stellar radius [astropy.units]
+    M : int, float
+        Stellar mass [astropy.units]
+    """
+
+    if source == 'GJ1214':  # M-dwarf
+        M = 0.15  * u.M_sun
+        R = 0.216 * u.R_sun
+        Teff = 3026 * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == 'WASP-43':  # K7 V
+        # http://exoplanet.eu/catalog/wasp-33_b/
+        M = 0.717 * u.M_sun
+        R = 0.667 * u.R_sun
+        Teff = 4520 * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == 'CoRoT-1':  # G0 V
+        # http://exoplanet.eu/catalog/wasp-33_b/
+        M = 0.95 * u.M_sun
+        R = 1.11 * u.R_sun
+        Teff = 6298 * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == "Sun":  # G0 V
+        R = 1. * u.R_sun
+        M = 1. * u.M_sun
+        Teff = 5777. * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == 'HD209458':
+        M = 1.26 * u.M_sun
+        R = 1.20 * u.R_sun
+        Teff = 6071 * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == 'WASP-33':  # A5 V
+        # http://exoplanet.eu/catalog/wasp-33_b/
+        M = 1.59 * u.M_sun
+        R = 1.77 * u.R_sun
+        Teff = 7430 * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == 'Kepler-21':  # F6 IV
+        # http://exoplanet.eu/catalog/wasp-33_b/
+        M = 1.41 * u.M_sun
+        R = 1.90 * u.R_sun
+        Teff = 6305 * u.K
+        logg = 4.5
+        Z    = 0.0
+
+    if source == 'dSct':
+        M = 1.26 * u.M_sun
+        R = 1.20 * u.R_sun
+        Teff = 6071 * u.K
+        logg = 4.0
+        Z    = 0.0
+
+    if source == 'gDor':
+        M = 1.26 * u.M_sun
+        R = 1.20 * u.R_sun
+        Teff = 6071 * u.K
+        logg = 4.0
+        Z    = 0.0
+
+    return M, R, Teff, logg, Z
+
+
+
+
+def load_exoplanet(source):
+
+    """Module containing a few standard exoplanet paramters. 
+
+    NOTE in the following the astropy-units are required, however,
+    the the choice of units (e.g. seconds vs. hours) are optional. 
+    The unit for each parameter is reinforced to match the calculations
+    within the script "simVariability.py". knowing the following 
+    parameter space:
+
+    Parameters
+    ----------
+    t0 : float
+        Time of inferior conjunction (i.e. central time of first transit) [unit required]
+    P : float
+       Orbital period [astropy.units]
+    a : float
+        Semi-major axis [unit required]
+    i : float
+        Orbital inclination (90-0) [astropy.units]
+    e : float
+        Eccentricity (0-1)
+    w : float
+        Longitude of periastron (0-360) [astropy.units]
+    rp : float
+        Planet radius [astropy.units]
+    fp : float
+        Planet-to-star flux ratio
+
+    Optional SPIDERMAN
+    ------------------
+    xi : float
+        Ratio of radiative to advective timescale
+    Tn : float
+        Temperature of nightside [astropy.units]
+    dT : float
+       Day-night temperature contrast [astropy.units]
+    """
+    
+    #-------------------------------------------------------#
+    #                      SOLAR SYSTEM                     #
+    #-------------------------------------------------------#
+        
+    if source == 'Jupiter':
+        # Parameters are drawn from astropy
+        params = {'t0': 10 * u.d,
+                  'P' : 100 * u.d,
+                  'i' : 90 * u.deg,
+                  'e' : 0,
+                  'w' : 90 * u.deg,
+                  'rp': 0.5 * u.R_jup,
+                  'mp': 0.5 * u.M_jup,
+                  'xi': 0.0,
+                  'Tn': 300 * u.K,
+                  'dT': 300 * u.K}
+
+    #-------------------------------------------------------#
+    #                      HOT-JUPITERS                     #
+    #-------------------------------------------------------#
+
+    if source == 'hotJupiter':
+        # Parameters are drawn from astropy
+        params = {'t0': 1 * u.d,
+                  'P' : 2 * u.d,
+                  'i' : 90 * u.deg,
+                  'e' : 0,
+                  'w' : 90 * u.deg,
+                  'rp': 1 * u.R_jup,
+                  'mp': 1 * u.M_jup,
+                  'xi': 0.0,
+                  'Tn': 1128 * u.K,
+                  'dT': 942 * u.K}
+
+    if source == 'CoRoT-1b':
+        # http://exoplanet.eu/catalog/corot-1_b/
+        params = {'t0': 1 * u.d,
+                  'P' : 1.5089557 * u.d,
+                  'e' : 0.0,
+                  'i' : 83.96 * u.deg,
+                  'w' : 90.0 * u.deg,
+                  'rp': 1.49 * u.R_jup,
+                  'mp': 1.03 * u.M_jup,
+                  'xi': 0.1,
+                  'Tn': 1757 * u.K,
+                  'dT': (3144 - 1757) * u.K}
+
+    if source == 'WASP-33b':  # A5 V
+        # http://exoplanet.eu/catalog/wasp-33_b/
+        params = {'t0': 1 * u.d,
+                  'P' : 1.21986967 * u.d,
+                  'e' : 0.0,
+                  'i' : 87.7 * u.deg,
+                  'w' : 130.0 * u.deg,
+                  'rp': 1.603 * u.R_jup,
+                  'mp': 2.8 * u.M_jup,
+                  'xi': 0.1,
+                  'Tn': 1757 * u.K,
+                  'dT': (3144 - 1757) * u.K}
+
+    if source == 'WASP-43b':  # K7 V
+        # http://exoplanet.eu/catalog/wasp-43_b/
+        params = {'t0': 1 * u.d,
+                  'P' : 0.81347753 * u.d,
+                  'e' : 0.0035,
+                  'i' : 82.33 * u.deg,
+                  'w' : 328 * u.deg,
+                  'rp': 1.036 * u.R_jup,
+                  'mp': 2.052 * u.M_jup,
+                  'xi': 0.0,
+                  'Tn': 1000 * u.K,
+                  'dT': 1000 * u.K}
+
+    #-------------------------------------------------------#
+    #                      EARTH ANALOGS                    #
+    #-------------------------------------------------------#
+
+    if source == 'hotMars':
+        # 
+        params = {'t0': 1 * u.d,
+                  'P' : 2 * u.d,
+                  'e' : 0.,
+                  'i' : 88.0 * u.deg,
+                  'w' : 0. * u.deg,
+                  'rp': 0.531 * u.R_earth,
+                  'mp': 0.107 * u.M_earth,
+                  'xi': 0.,
+                  'Tn': 300. * u.K,
+                  'dT': 0. * u.K}
+
+
+    if source == 'hotEarth':
+        # 
+        params = {'t0': 1 * u.d,
+                  'P' : 50 * u.d,
+                  'e' : 0.,
+                  'i' : 90. * u.deg,
+                  'w' : 0. * u.deg,
+                  'rp': 1. * u.R_earth,
+                  'mp': 1. * u.M_earth,
+                  'xi': 0.,
+                  'Tn': 300. * u.K,
+                  'dT': 0. * u.K}
+
+    if source == 'Earth':
+        # 
+        params = {'t0': 10 * u.d,
+                  'P' : 365.25 * u.d,
+                  'e' : 0.0167,
+                  'i' : 90.0 * u.deg,
+                  'w' : 0. * u.deg,
+                  'rp': 1. * u.R_earth,
+                  'mp': 1. * u.M_earth,
+                  'xi': 0.,
+                  'Tn': 300. * u.K,
+                  'dT': 50. * u.K}
+
+    if source == 'Neptune':
+        # 
+        params = {'t0': 10 * u.d,
+                  'P' : 365.25 * u.d,
+                  'e' : 0.0167,
+                  'i' : 90.0 * u.deg,
+                  'w' : 0. * u.deg,
+                  'rp': 3.9 * u.R_earth,
+                  'mp': 17.15 * u.M_earth,
+                  'xi': 0.,
+                  'Tn': 300. * u.K,
+                  'dT': 50. * u.K}
+
+    if source == 'Kepler-21b':  # F6 IV
+        # http://exoplanet.eu/catalog/kepler-21_b/
+        params = {'t0': 1 * u.d,
+                  'P' : 2.78578 * u.d,
+                  'e' : 0.02,
+                  'i' : 83.96 * u.deg,
+                  'w' : -15. * u.deg,
+                  'rp': 1.636 * u.R_earth,
+                  'mp': 5.079 * u.M_earth,
+                  'xi': 0.,
+                  'Tn': 300. * u.K,
+                  'dT': 50. * u.K}
+
+    return params
+
+
+
+
 
 #==============================================================#
 #                          MODELS CLASS                        #
@@ -1164,3 +1480,362 @@ class StarSpots():
 
 
 
+class PlanetMRforecast():
+    """
+    Class to forecast the mass from a planets radius.
+    """
+
+    def __init__(self):
+        
+        # constant
+        mearth2mjup = 317.828
+        mearth2msun = 333060.4
+        rearth2rjup = 11.21
+        rearth2rsun = 109.2
+
+        # Boundary
+        mlower = 3e-4
+        mupper = 3e5
+
+        # Number of different populations
+        n_pop = 4
+
+        # read parameter file
+        filepath = 'inputfiles/data_varsim/varsim_exomass_fitting_parameters.h5' 
+        hyper_file = Path(os.getenv("PLATO_PROJECT_HOME")) / filepath
+
+        # Fetch PIC catalogue from FTP server
+        try:
+            h5 = h5py.File(hyper_file, 'r')
+        except:
+            errorcode('message', 'Inuaguration: Welcome to the PLATO variability simulator!')
+            print(f"Downloading mass-radius parameterisation file...")
+            downloadFromFTP(hyper_file.name, hyper_file.parents[0], server='plato')
+
+        # Open file
+        h5 = h5py.File(hyper_file, 'r')
+        all_hyper = h5['hyper_posterior'][:]
+        h5.close()
+
+
+    def indicate(M, trans, i):
+        '''
+        indicate which M belongs to population i given transition parameter
+        '''
+        ts = np.insert(np.insert(trans, n_pop-1, np.inf), 0, -np.inf)
+        ind = (M>=ts[i]) & (M<ts[i+1])
+        return ind
+
+
+    def split_hyper_linear(hyper):
+        """
+        split hyper and derive c
+        """
+        c0, slope,sigma, trans = \
+        hyper[0], hyper[1:1+n_pop], hyper[1+n_pop:1+2*n_pop], hyper[1+2*n_pop:]
+        
+        c = np.zeros_like(slope)
+        c[0] = c0
+        for i in range(1,n_pop):
+                c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
+
+        return c, slope, sigma, trans
+
+
+    
+    def piece_linear(hyper, M, prob_R):
+        '''
+        model: straight line
+        '''
+        c, slope, sigma, trans = split_hyper_linear(hyper)
+        R = np.zeros_like(M)
+        for i in range(4):
+                ind = indicate(M, trans, i)
+                mu = c[i] + M[ind]*slope[i]
+                R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
+
+        return R
+
+
+    def ProbRGivenM(radii, M, hyper):
+        '''
+        p(radii|M)
+        '''
+        c, slope, sigma, trans = split_hyper_linear(hyper)
+        prob = np.zeros_like(M)
+
+        for i in range(4):
+                ind = indicate(M, trans, i)
+                mu = c[i] + M[ind]*slope[i]
+                sig = sigma[i]
+                prob[ind] = norm.pdf(radii, mu, sig)
+
+        prob = prob/np.sum(prob)
+
+        return prob
+
+
+    def classification( logm, trans ):
+        '''
+        classify as four worlds
+        '''
+        count = np.zeros(4)
+        sample_size = len(logm)
+
+        for iclass in range(4):
+                for isample in range(sample_size):
+                        ind = indicate( logm[isample], trans[isample], iclass)
+                        count[iclass] = count[iclass] + ind
+
+        prob = count / np.sum(count) * 100.
+        print('Terran %(T).1f %%, Neptunian %(N).1f %%, Jovian %(J).1f %%, Star %(S).1f %%' \
+                        % {'T': prob[0], 'N': prob[1], 'J': prob[2], 'S': prob[3]})
+        return None
+
+
+    
+    def Mpost2R(mass, unit='Earth', classify='No'):
+        """
+        Forecast the Radius distribution given the mass distribution.
+
+        Parameters
+        ---------------
+        mass: one dimensional array
+                The mass distribution.
+        unit: string (optional)
+                Unit of the mass. 
+                Options are 'Earth' and 'Jupiter'. Default is 'Earth'.
+        classify: string (optional)
+                If you want the object to be classifed. 
+                Options are 'Yes' and 'No'. Default is 'No'.
+                Result will be printed, not returned.
+
+        Returns
+        ---------------
+        radius: one dimensional array
+                Predicted radius distribution in the input unit.
+        """
+
+        # mass input
+        mass = np.array(mass)
+        assert len(mass.shape) == 1, "Input mass must be 1-D."
+
+        # unit input
+        if unit == 'Earth':
+                pass
+        elif unit == 'Jupiter':
+                mass = mass * mearth2mjup
+        else:
+                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+
+        # mass range
+        if np.min(mass) < 3e-4 or np.max(mass) > 3e5:
+                print('Mass range out of model expectation. Returning None.')
+                return None
+
+        ## convert to radius
+        sample_size = len(mass)
+        logm = np.log10(mass)
+        prob = np.random.random(sample_size)
+        logr = np.ones_like(logm)
+
+        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
+        hyper = all_hyper[hyper_ind,:]
+
+        if classify == 'Yes':
+                classification(logm, hyper[:,-3:])
+
+
+        for i in range(sample_size):
+                logr[i] = piece_linear(hyper[i], logm[i], prob[i])
+
+        radius_sample = 10.** logr
+
+        ## convert to right unit
+        if unit == 'Jupiter':
+                radius = radius_sample / rearth2rjup
+        else:
+                radius = radius_sample 
+
+        return radius
+
+
+
+    def Mstat2R(mean, std, unit='Earth', sample_size=1000, classify = 'No'):	
+        """
+        Forecast the mean and standard deviation of radius given the mena and standard deviation of the mass.
+        Assuming normal distribution with the mean and standard deviation truncated at the mass range limit of the model.
+
+        Parameters
+        ---------------
+        mean: float
+                Mean (average) of mass.
+        std: float
+                Standard deviation of mass.
+        unit: string (optional)
+                Unit of the mass. Options are 'Earth' and 'Jupiter'.
+        sample_size: int (optional)
+                Number of mass samples to draw with the mean and std provided.
+        Returns
+        ---------------
+        mean: float
+                Predicted mean of radius in the input unit.
+        std: float
+                Predicted standard deviation of radius.
+        """
+
+        # unit
+        if unit == 'Earth':
+                pass
+        elif unit == 'Jupiter':
+                mean = mean * mearth2mjup
+                std = std * mearth2mjup
+        else:
+                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+
+        # draw samples
+        mass = truncnorm.rvs( (mlower-mean)/std, (mupper-mean)/std, loc=mean, scale=std, size=sample_size)	
+        if classify == 'Yes':	
+                radius = Mpost2R(mass, unit='Earth', classify='Yes')
+        else:
+                radius = Mpost2R(mass, unit='Earth')
+
+        if unit == 'Jupiter':
+                radius = radius / rearth2rjup
+
+        r_med = np.median(radius)
+        onesigma = 34.1
+        r_up = np.percentile(radius, 50.+onesigma, interpolation='nearest')
+        r_down = np.percentile(radius, 50.-onesigma, interpolation='nearest')
+
+        return r_med, r_up - r_med, r_med - r_down
+
+
+
+    def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
+        """
+        Forecast the mass distribution given the radius distribution.
+
+        Parameters
+        ---------------
+        radius: one dimensional array
+                The radius distribution.
+        unit: string (optional)
+                Unit of the mass. Options are 'Earth' and 'Jupiter'.
+        grid_size: int (optional)
+                Number of grid in the mass axis when sampling mass from radius.
+                The more the better results, but slower process.
+        classify: string (optional)
+                If you want the object to be classifed. 
+                Options are 'Yes' and 'No'. Default is 'No'.
+                Result will be printed, not returned.
+
+        Returns
+        ---------------
+        mass: one dimensional array
+                Predicted mass distribution in the input unit.
+        """
+
+        # unit
+        if unit == 'Earth':
+                pass
+        elif unit == 'Jupiter':
+                radius = radius * rearth2rjup
+        else:
+                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+
+
+        # radius range
+        if np.min(radius) < 1e-1 or np.max(radius) > 1e2:
+                print('Radius range out of model expectation. Returning None.')
+                return None
+
+
+
+        # sample_grid
+        if grid_size < 10:
+                print('The sample grid is too sparse. Using 10 sample grid instead.')
+                grid_size = 10
+
+        ## convert to mass
+        sample_size = len(radius)
+        logr = np.log10(radius)
+        logm = np.ones_like(logr)
+
+        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
+        hyper = all_hyper[hyper_ind,:]
+
+        logm_grid = np.linspace(-3.522, 5.477, 1000)
+
+        for i in range(sample_size):
+                prob = ProbRGivenM(logr[i], logm_grid, hyper[i,:])
+                logm[i] = np.random.choice(logm_grid, size=1, p = prob)
+
+        mass_sample = 10.** logm
+
+        if classify == 'Yes':
+                classification(logm, hyper[:,-3:])
+
+        ## convert to right unit
+        if unit == 'Jupiter':
+                mass = mass_sample / mearth2mjup
+        else:
+                mass = mass_sample
+
+        return mass
+
+
+
+    def Rstat2M(mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify = 'No'):	
+        """
+        Forecast the mean and standard deviation of mass given the mean and standard deviation of the radius.
+
+        Parameters
+        ---------------
+        mean: float
+                Mean (average) of radius.
+        std: float
+                Standard deviation of radius.
+        unit: string (optional)
+                Unit of the radius. Options are 'Earth' and 'Jupiter'.
+        sample_size: int (optional)
+                Number of radius samples to draw with the mean and std provided.
+        grid_size: int (optional)
+                Number of grid in the mass axis when sampling mass from radius.
+                The more the better results, but slower process.
+        Returns
+        ---------------
+        mean: float
+                Predicted mean of mass in the input unit.
+        std: float
+                Predicted standard deviation of mass.
+        """
+        # unit
+        if unit == 'Earth':
+                pass
+        elif unit == 'Jupiter':
+                mean = mean * rearth2rjup
+                std = std * rearth2rjup
+        else:
+                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+
+        # draw samples
+        radius = truncnorm.rvs( (0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)	
+        if classify == 'Yes':
+                mass = Rpost2M(radius, 'Earth', grid_size, classify='Yes')
+        else:
+                mass = Rpost2M(radius, 'Earth', grid_size)
+
+        if mass is None:
+                return None
+
+        if unit=='Jupiter':
+                mass = mass / mearth2mjup
+
+        m_med = np.median(mass)
+        onesigma = 34.1
+        m_up = np.percentile(mass, 50.+onesigma, interpolation='nearest')
+        m_down = np.percentile(mass, 50.-onesigma, interpolation='nearest')
+
+        return m_med, m_up - m_med, m_med - m_down
+        

@@ -7,13 +7,19 @@ Python module to with astro query functions used by "picsim".
 import os
 import sys
 import glob
-import h5py
 import math
+import time
 import inspect
+
+import h5py
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import http.client as httplib
+import urllib.parse as urllib
+from xml.dom.minidom import parseString
 
 from pylab import MaxNLocator
 from colorama import Fore, Style
@@ -26,7 +32,7 @@ from astroquery.simbad import Simbad
 from astroquery.mast import Catalogs
 from astroquery.gaia import Gaia
 
-
+import platosim.utilities as ut
 
 
 def ticQuery(star, radius=2, Vmax=18, outFile=None):
@@ -247,3 +253,90 @@ def starQuery(star, radius=45):
 
     # Return data frame
     return df
+
+
+
+
+
+def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile='starcatGaiaDR3'):
+
+    # Output file
+    outputFileName = f"{ofile}.vot"
+
+    # Configuration variables
+    coord = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
+    #coord  = lops1.copy()
+    
+    # Information about server
+    host = "gea.esac.esa.int"
+    port = 443
+    pathinfo = "/tap-server/tap/async"
+    catalogue = 'gaiadr3.gaia_source'
+
+    # Create job to be parsed
+    params = urllib.urlencode({\
+                               "REQUEST"        : "doQuery",
+                               "LANG"           : "ADQL",
+                               "FORMAT"         : "votable_plain",
+                               "PHASE"          : "RUN",
+                               "JOBNAME"        : "PLATO FGS catalog",
+                               "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
+                               "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}),POINT(ra,dec)) AS dist, designation, ra, dec, phot_g_mean_mag FROM {catalogue} AS cat WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}),CIRCLE(cat.ra,cat.dec,{radius})) AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
+
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept"      : "text/plain"}
+
+    connection = httplib.HTTPSConnection(host, port)
+    connection.request("POST",pathinfo,params,headers)
+
+    # Get status
+    response = connection.getresponse()
+    print ("Status: " +str(response.status), "Reason: " + str(response.reason))
+
+    # Server job location (URL)
+    location = response.getheader("location")
+    print ("Location: " + location)
+
+    # Job ID
+    jobid = location[location.rfind('/')+1:]
+    print ("Job id: " + jobid)
+
+    connection.close()
+
+    # Check job status, wait until finished
+
+    while True:
+            connection = httplib.HTTPSConnection(host, port)
+            connection.request("GET",pathinfo+"/"+jobid)
+            response = connection.getresponse()
+            data = response.read()
+            # XML response: parse it to obtain the current status
+            # (you may use pathinfo/jobid/phase entry point to avoid XML parsing)
+            dom = parseString(data)
+            phaseElement = dom.getElementsByTagName('uws:phase')[0]
+            phaseValueElement = phaseElement.firstChild
+            phase = phaseValueElement.toxml()
+            # Check finished
+            if phase == 'COMPLETED':
+                    print("Status: " + phase)
+                    break
+            # Wait and repeat
+            time.sleep(0.2)
+
+    connection.close()
+
+    # Get results
+    
+    connection = httplib.HTTPSConnection(host, port)
+    connection.request("GET",pathinfo+"/"+jobid+"/results/result")
+    response = connection.getresponse()
+    data = response.read().decode('iso-8859-1')
+    outputFile = open(outputFileName, "w")
+    outputFile.write(data)
+    outputFile.close()
+    connection.close()
+    print("Data saved in: " + outputFileName)	
+
+    # Create a pandas data frame
+    df = ut.votable_to_pandas(outputFileName)
+    df.to_feather(outputFileName.replace('.vot', '.ftr'))
