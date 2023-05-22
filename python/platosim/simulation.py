@@ -25,9 +25,7 @@ import numpy as np
 
 # PlatoSim imports
 import platosim.referenceFrames as rf
-import platosim.noise           as ns
 from platosim.simfile import SimFile
-
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -1273,8 +1271,8 @@ class Simulation(object):
         """
 
         # Create TED file
-
-        ns.getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
+        from platosim.noise import getTED  
+        getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 
@@ -1430,7 +1428,7 @@ class Simulation(object):
 
 
     def getStarsWithinCameraGroup(self, raPF, decPF, kappaPF, ra, dec,
-                                  camGroup=1, quarter=1, sizeSubfield=6):
+                                  camGroup=1, quarter=1, radius=False, sizeSubfield=6):
 
         """Fetch all stars within a camera group.
 
@@ -1464,20 +1462,20 @@ class Simulation(object):
 
         # Telescope config
 
-        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF                                       # [deg]
-        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF                                      # [deg]
+        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF   # [deg]
+        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF  # [deg]
 
-        raPlatformRad  = np.deg2rad(raPlatformDeg)                                                                    # [rad]
-        decPlatformRad = np.deg2rad(decPlatformDeg)                                                                   # [rad]
+        raPlatformRad  = np.deg2rad(raPlatformDeg)                                # [rad]
+        decPlatformRad = np.deg2rad(decPlatformDeg)                               # [rad]
 
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0                                   # [m] -> [mm]
+        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
         solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappaPF, 360.)  # [deg]
-        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))                                              # [rad]
+        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))             # [rad]
 
-        raTargetsRad  = np.deg2rad(ra)                                                                                # [rad]
-        decTargetsRad = np.deg2rad(dec)                                                                               # [rad]
+        raTargetsRad  = np.deg2rad(ra)                                               # [rad]
+        decTargetsRad = np.deg2rad(dec)                                              # [rad]
 
         # Loop over each star for this cam-group
 
@@ -1485,6 +1483,11 @@ class Simulation(object):
         azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][camGroup-1])
         tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][camGroup-1])
 
+        # Select how large the FOV should be
+
+        if not radius:
+            radius = self['CCD/RelativeTransmissivity/RadiusFOV']
+        
         dexGroup   = np.zeros(len(ra), dtype=bool)
         distanceOA = np.zeros(len(ra))
 
@@ -1504,12 +1507,13 @@ class Simulation(object):
                 distanceOA[i] = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFP, yFP,
                                                                                     focalLength))
 
-                if distanceOA[i] < self['CCD/RelativeTransmissivity/RadiusFOV']:
+                if distanceOA[i] < radius:
                     dexGroup[i] = True
                 else:
                     dexGroup[i] = False
 
         # Return parameters
+        
         return dexGroup, distanceOA
 
 

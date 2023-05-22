@@ -16,6 +16,7 @@ import descartes
 from tqdm import tqdm
 from ipywidgets import interact
 import numpy as np
+
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.animation as animation
@@ -25,9 +26,12 @@ from matplotlib.path import Path
 import matplotlib.ticker as mticker
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+
 from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
+from scipy.signal import periodogram
+
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
@@ -1586,7 +1590,7 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
     fig = plt.figure(figsize=figsize)
 
     labels = ['Yaw', 'Pitch', 'Roll']
-    colors = ['royalblue', 'lightseagreen', 'limegreen']
+    colors = colors_sea
 
     for plot in range(numData):
 
@@ -1637,8 +1641,9 @@ def plotYawPitchRollTimeSeries(time, signals, units=["days", "arcsec"],
 
 
 
-def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
-                        labels=False, xmin=False, ylim=False, misreq=False):
+def plotYawPitchRollPSD(time, signals, scale=1e-6, carbox=144, title=False,
+                        labels=False, xmin=False, ylim=[1e-1, 1e7], misreq=False,
+                        figsize=(9,10)):
 
     """Plot Power Spectral Desity of Yaw, Pitch, and Roll angles.
 
@@ -1677,14 +1682,15 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
     # Find time step
 
-    sampling = (time[1]-time[0]) * scale
+    sampling = time[1]-time[0]
 
     # Make plot
 
     labels = ['Yaw', 'Pitch', 'Roll']
-    #colors = ['tomato', 'darkorange', 'gold']
-    colors = ['royalblue', 'lightseagreen', 'limegreen']
+    colors = colors_hot
 
+    fig = plt.figure(figsize=figsize)
+    
     for plot in range(numData):
 
         # Create axes objects
@@ -1693,14 +1699,17 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
         # Find PSD and median filter
 
-        freq, PSD = ns.powerDensityFFT(signals[plot], sampling)
+        freq, PSD = periodogram(signals[plot], 1/sampling, scaling='density')
         PSD_med   = median_filter(PSD, carbox)
         perhour   = int(carbox*sampling/3600.)
-
+        freq *= 1e6  # [muHz]
+        PSD  *= 1e6
+        PSD_med *= 1e6
+        
         # Plot results
 
         axes.plot(freq, PSD,     '-', c=colors[plot], lw=lw, label=labels[plot])
-        axes.plot(freq, PSD_med, 'k-', lw=lw+1, label='Median filter')
+        axes.plot(freq, PSD_med, 'k-', lw=lw+1, label='1h median')
 
         # Plot mission requirements (from the red book)
 
@@ -1718,23 +1727,18 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
         # Latter settings
 
         if plot == 1:
-            axes.set_ylabel(r'Amplitude [arcsec$^2$ Hz$^{-1}$]')
+            axes.set_ylabel(r'Amplitude [arcsec$^2$ $\mu$Hz$^{-1}$]')
 
         # Remove tick labels on x axis except for last plot
 
         if plot < numData-1:
             axes.tick_params(labelbottom=False)
 
-        # Set x-min limit
+        # Set x and y limits
 
-        if xmin is not False:
-            axes.set_xlim(xmin, freq.max())
-
-        # Set y limits
-
-        if ylim is not False:
-            axes.set_ylim(ylim[0], ylim[1])
-
+        axes.set_xlim(1e1, freq.max())
+        axes.set_ylim(ylim[0], ylim[1])
+        
         # Remove tick labels on x axis except for last plot
 
         if plot < numData-1: axes.tick_params(labelbottom=False)
@@ -1745,17 +1749,18 @@ def plotYawPitchRollPSD(fig, time, signals, scale=1e-6, carbox=144, title=False,
 
         # Set title
 
-        if title is not False and plot == 0: axes.set_title(title, fontsize=fs)
+        if title is not False and plot == 0:
+            axes.set_title(title, fontsize=fs)
 
     # Remaining
 
-    plt.xlabel(r'Frequency [Hz]')
+    plt.xlabel(r'Frequency, $\nu$ [$\mu$Hz]')
     plt.tight_layout()
     plt.subplots_adjust(hspace = .001)
 
     # Finito!
 
-    return axes
+    return fig, axes
 
 
 

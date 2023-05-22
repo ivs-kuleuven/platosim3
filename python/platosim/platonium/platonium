@@ -514,8 +514,8 @@ class PLATOnium(object):
             sim["CCD/Position"]                 = str(self.ccdCode)
             sim["SubField/ZeroPointRow"]        = 0
             sim["SubField/ZeroPointColumn"]     = 0
-            sim["SubField/NumColumns"]          = 100 #4510
-            sim["SubField/NumRows"]             = 100 #4510
+            sim["SubField/NumColumns"]          = 4510
+            sim["SubField/NumRows"]             = 4510
             return sim
 
         
@@ -652,29 +652,21 @@ class PLATOnium(object):
         """
 
         # Initialise random number generator after user or clock
+        
         if not self.seed:
-            self.seed = 1234
             rng = np.random.default_rng()
+            self.seed = 123456789
         else:
             rng = np.random.default_rng(self.seed)
         
-        # Random seed equal per quarter/camera but different per target
-        self.seedTarget = self.seed * self.targetNo 
+        # Jitter (only relevant for red noise) only depends on the quarter
+        if sim["Platform/UseJitter"] == 'yes' and sim["Platoform/JitterSource"] == 'RedNoise':
+            sim["RandomSeeds/JitterSeed"] += self.seed * self.quarter
 
-        # Seed different for each quarter, group, and camera
-        self.seedObservation = (self.seed * 8 * self.quarter + 10 * 4 *
-                                self.group + self.camera + 100000)
-
-        # Seed different for each star, quarter, group, and camera
-        self.seedOffset = self.seedTarget + self.seedObservation
-        
-        # Set quarter specific random seed for jitter
-        if sim["Platform/UseJitter"] == 'yes' and sim["Platoform/JitterSource"] != 'FromFile':
-            sim["RandomSeeds/JitterSeed"] += 100 * self.quarter
-
-        # Set camera and quarter specific random seed for TED
-        if sim["Telescope/UseDrift"] and sim["Telescope/DriftSource"] == 'FromFile':
-            sim["RandomSeeds/DriftSeed"] += self.seedOffset
+        # Drift (only relevant for red noise) depends on quarter, group, and camera
+        if sim["Telescope/UseDrift"] and sim["Telescope/DriftSource"] == 'RedNoise':
+            sim["RandomSeeds/DriftSeed"] += (self.seed * self.quarter + 4 * self.group +
+                                             24 * self.camera + 100000)
 
         # Lastly, the remaining seeds needs to differ for all times and for all subfields
         sim["RandomSeeds/ReadOutNoiseSeed"] += rng.integers(1e9, size=1)[0]
@@ -699,18 +691,16 @@ class PLATOnium(object):
 
         # Make a star catalog with all the stars in this subfield
         if self.fullFrame:
-            idStarCatalog  = self.dx.designation.to_numpy()
-            idStarCatalog  = [int(idStarCatalog[i][9:]) for i in range(len(idStarCatalog))]
             raStarCatalog  = self.dx.ra.to_numpy()
             decStarCatalog = self.dx.dec.to_numpy()
-            magStarCatalog = self.dx.phot_g_mean_mag.to_numpy()
-
+            magStarCatalog = self.dx.mag.to_numpy()
+            idStarCatalog  = np.arange(0, len(raStarCatalog)).astype(int)            
         else:
-            idStarCatalog  = np.arange(1, self.numCon+2)
             raStarCatalog  = np.append(self.df['ra'],  self.dc['ra'])
             decStarCatalog = np.append(self.df['dec'], self.dc['dec'])
             magStarCatalog = np.append(self.df['mag'], self.dc['mag'])
-
+            idStarCatalog  = np.arange(1, self.numCon+2)
+            
         # Save catalog and load it into the inputfile
         self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'        
         sim.createStarCatalogFile(raStarCatalog, decStarCatalog, magStarCatalog, idStarCatalog,
@@ -726,7 +716,7 @@ class PLATOnium(object):
                                index=idStarCatalog)
             print(df1)
 
-            
+
         # SAVE LIST OF VARIABLE SOURCES
 
         # Automatically activate varsource (if the user forgets)
@@ -825,7 +815,7 @@ class PLATOnium(object):
             showGrid          = False
             title             = False
             imgScale          = "clip"
-            clipPercentile    = 0.1
+            clipPercentile    = 1
             
         else:
             figsize = (6,6)
@@ -892,14 +882,27 @@ class PLATOnium(object):
                 if os.path.isfile(self.starCatalogFile):
                     os.remove(self.starCatalogFile)
             
+        # Save full-frame catalogue for first exposure
+        if self.fullFrame:
+            f = h5py.File(self.outputSimName + '.hdf5', "r")
+            df = self.dx.iloc[f['StarPositions/Exposure000000/starID'][:]]
+            df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:]
+            df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:]
+            df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
+            df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
+            # Save to file
+            df = df.reset_index()
+            df = df.drop(columns=['level_0', 'index'])
+            df.to_feather(self.outputSimName + '.ftr')
+            
         # Compress files
         if self.compress and os.path.isfile(self.outputSimName + '.hdf5') and not self.sample:
             if self.verbose > 0:
-                errorcode('module', '\nRestructuring data output')
+                errorcode('module', '\nRestructuring data output\n')
                 print('Compressing files')
             os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}*')
             os.remove(self.outputSimName + '.hdf5')
-
+            
         # Make a animation if requested
         if self.animation:
             

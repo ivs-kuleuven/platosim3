@@ -1985,8 +1985,9 @@ class SimFile (object):
             # Or hightligth all stars the same
             
             else:
-                ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o', c='royalblue',
-                           edgecolor='k', linewidth=lw, zorder=4)
+                ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o',
+                           facecolors='none', edgecolors='royalblue',
+                           linewidth=lw, zorder=4)
             if showStarIDs:
                 for k in range(len(ID)):
                     label = "{0}".format(ID[k])

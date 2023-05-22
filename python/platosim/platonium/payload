@@ -74,9 +74,10 @@ class InstrumentSetup(object):
         if self.odir:
             self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
+            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
         else:
-            self.fileNamePRE = self.fileNameAPE = self.fileNameTED = False
+            self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
         # Number of images in a quarter
         self.nimg = (60 * 60 * 24 * 90) / 25.
@@ -407,10 +408,24 @@ class InstrumentSetup(object):
 
 
 
+
+    def createACS(self):
+
+        """Function to create a Attitude and orbit Control System (ACS) jitter file. 
+        """
+        
+        # Generate TED file
+        errorcode('module', '\nAttitude Control System (ACS)')
+        ns.getACS(self.time, outfile=self.fileNameACS, plot=True)
+        if self.odir: print(f"File saved: {self.fileNameACS}")
+
+
+
+
         
     def createTED(self):
 
-        """Function to create a Absolute Pointing Error (APE) file
+        """Function to create a Thermo-Elastic Distortion (TED) file.
         """
         
         # Generate TED file
@@ -419,7 +434,7 @@ class InstrumentSetup(object):
         if self.odir: print(f"File saved: {self.fileNameTED}")
             
 
-
+        
 
         
     def create_job_script(self):
@@ -666,6 +681,7 @@ x = InstrumentSetup(args)
 x.create_time_gaps()
 x.createPRE()
 x.createAPE()
+#x.createACS()
 x.createTED()
 x.create_job_script()
 x.create_param_file()

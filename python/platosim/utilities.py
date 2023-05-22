@@ -26,6 +26,7 @@ from pylab import MaxNLocator
 from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 from scipy.integrate import cumtrapz
+from astropy.io.votable import parse
 
 # PlatoSim
 import platosim.referenceFrames as rf
@@ -826,6 +827,20 @@ def getPointingField(name):
     return PF[name]
 
 
+
+
+
+def votable_to_pandas(votable_file):
+
+    """Function to convert a votable to a pandas data frame.
+
+    From: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
+    """
+
+    votable = parse(votable_file)
+    table = votable.get_first_table().to_table(use_names_over_ids=True)
+
+    return table.to_pandas()
 
 
 
