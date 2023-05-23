@@ -77,6 +77,15 @@ void JitterFromNetwork::configure(ConfigurationParameters &configParams)
     jitterAddress = configParams.getString("ControlTcpConnection/JitterServerAddress");
 
     jitterSocketTimeout = configParams.getInteger("ControlTcpConnection/JitterSocketTimeout");
+    
+    if (jitterSocketTimeout < 0)
+    {
+        jitterSocketTimeout = -1;
+    }
+    else
+    {
+        jitterSocketTimeout *= 1000;
+    }
 
 }
 
