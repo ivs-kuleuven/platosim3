@@ -229,7 +229,7 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     # Fetch all the files
         
     for filename in files:
-
+        
         # Only try to save file if is doesn't exists
         
         local_file = pathlib.Path(outputDir) / filename
@@ -242,11 +242,17 @@ def downloadFromFTP(filename, outputDir, server='plato'):
             # Give read and write rights to this
             if permission: local_file.chmod(777)
 
-    # Close connection
+        # Close connection
     
-    ftp.quit()
+        ftp.quit()
 
-    
+        # Login each time for download due to timeout
+        
+        if server == 'platodata':
+            ftp = ftplib.FTP('ftp.ster.kuleuven.be')
+            ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
+            ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+
 
             
 #--------------------------------------------------------------#
