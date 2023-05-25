@@ -74,7 +74,7 @@ Sky::Sky(ConfigurationParameters &configParams)
     // The path of the file  should have been set in configure().
     if (includeAberrationCorrection)
     {
-        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
         double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
 
         ifstream orbitFile(orbitPlatoFile);
@@ -517,7 +517,7 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
         r /= sqrt((r * r).sum());
 
         //rotation matrix for rotation axis r with angle difference after aberration, this reverses the aberration effect for the pointing direction
-
+        std::cout << oangle - pangle << std::endl;
         double c = cos(oangle - pangle);
         double s = sin(oangle - pangle);
         double x = r[0], y = r[1], z = r[2];
