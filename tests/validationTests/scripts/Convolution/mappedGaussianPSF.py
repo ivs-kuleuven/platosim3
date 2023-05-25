@@ -7,7 +7,7 @@ import pandas as pd
 from test                import Test
 from math                import degrees, pow, sqrt
 from platosim.validation import fitGaussian2D, gaussian2D
-from scipy.ndimage.interpolation import rotate
+from scipy.ndimage       import rotate
 import matplotlib.pyplot as plt
 
 
