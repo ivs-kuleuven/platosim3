@@ -1,6 +1,7 @@
 from starPositionOnCCD                             import StarPositionOnCCD
 from stellarVariability                            import StellarVariability
 from StellarAberration.absoluteAberration          import AbsoluteAberration
+from StellarAberration.differentialAberration      import DifferentialAberration
 from fieldDistortion                               import FieldDistortion
 from ThermoElasticDrift.tedFromFile                import TedFromFile
 from ThermoElasticDrift.tedYawPitchRoll            import TedYawPitchRoll
@@ -92,10 +93,18 @@ print(testMessages[-1])
 
 
 with suppress_stdout():
-    test3   = AbsoluteAberration()
-    out3    = test3.run()
+    test3_1   = AbsoluteAberration()
+    out3_1    = test3_1.run()
 name = "Absolute Aberration"
-testMessages.append("{:<9}  {:^42}:{}".format("Test3:", name, success[out3]))
+testMessages.append("{:<9}  {:^42}:{}".format("Test3.1:", name, success[out3_1]))
+print(testMessages[-1])
+
+
+with suppress_stdout():
+    test3_2  = DifferentialAberration()
+    out3_2   = test3_2.run()
+name = "Differential Aberration"
+testMessages.append("{:<9}  {:^42}:{}".format("Test3.2:", name, success[out3_2]))
 print(testMessages[-1])
 
 
