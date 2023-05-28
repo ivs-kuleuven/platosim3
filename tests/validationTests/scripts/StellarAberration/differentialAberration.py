@@ -3,28 +3,47 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-#from test import eprint
-#from test       import Test
-
 import platosim.referenceFrames as rf
+
 from platosim.simulation import Simulation
-#from platosim.validation import equatorial2galactic, galactic2equatorial, aberration
+from test                import Test
+from skimage.measure     import EllipseModel
+from matplotlib.patches  import Ellipse
 
 
 """
-This test checks the absolute aberration. The test consists out of 3 parts:
+This test checks the differential aberration. The configuration starts with a
+custom CCD whose origin (the optimal axis) alligns with the pointing of the detector.
+We simulate different stars on the CCD with increasing distance from the optimal
+axis. We simulate these stars for an entire year.
 
-1. The first test plots the position of an aberrated star over one
-year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is
-saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar.
+1. For the first test we keep track of the absolute difference between a simulation
+with absolute aberation and without absolute abberation. We show how this evolves
+over the period of one year.
 
-2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity.
-
-3. The last test checks that the aberration is maximal for a star whose position is parallel to the velocity.
+2. The second test shows the path the star makes on the CCD over one year. This path
+can be approximated with an ellipse and we test that the dimmensions of the ellips
+increase with inceasing distance from the optimal axis.
 """
 
 
-class DifferentialAberration():
+class DifferentialAberration(Test):
+
+    def setNr(self):
+        self.nr = "003.2"
+
+    def setAllEffects(self):
+        super().setAllEffects()
+
+        deltaStep = int(5*86400/25)
+        endTime   = int(360*86400/25)
+
+        self.exposures = np.arange(0, endTime, deltaStep)
+        self.positions = np.arange(10,3500,500)
+        DKA = "yes"
+
+
+
 
     def simulate(self, DKA, pos, beginExposureNr, outputName):
 
@@ -37,7 +56,6 @@ class DifferentialAberration():
         mag = np.array([11])
         sid = np.array([1])
         sim.createStarCatalogFileFromPixelCoordinates(row+4, col+4, mag, sid, starFileName)
-
         # Simulate only a small subfield
         sim["SubField/NumRows"]         = 8
         sim["SubField/NumColumns"]      = 8
@@ -47,8 +65,8 @@ class DifferentialAberration():
         # Simulate a single exposure
         sim["ObservingParameters/NumExposures"]    = 1
         sim["ObservingParameters/BeginExposureNr"] = beginExposureNr
-        
-        # Activate kinematic differential aberration 
+
+        # Activate kinematic differential aberration
         sim["Camera/IncludeAberrationCorrection"] = DKA
         sim["Camera/AberrationCorrection/Type"]   = "differential"
 
@@ -62,37 +80,71 @@ class DifferentialAberration():
         # Fetch parameters
         row, col = f.getStarPositions(sid)
 
-        return np.sqrt((4-row)**2 + (4-col)**2)
+        return 4-row, 4-col
 
-        
-        
+
+
     def run(self):
 
-        self.nr = "003.2"
-        self.outputDir = os.environ["PLATO_PROJECT_HOME"] + "/tests/validationTests/ioFiles/test" + self.nr
-        tsep = int(50*86400/25)
-        tend = int(360*86400/25)
-        exp = np.arange(0,tend,tsep)
-        pos = np.arange(10,3500,500)
-        DKA = "yes"
+        npos = len(self.positions)
+        nexp = len(self.exposures)
+        c    = np.zeros((npos,nexp))
 
-        npos = len(pos)
-        nexp = len(exp)
-        c = np.zeros((npos,nexp))
+        dx = np.zeros((npos, nexp))
+        dy = np.zeros((npos, nexp))
+
+        colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink']
 
         for i in range(npos):
             for j in range(nexp):
-                print(i)
-                c[i,j] = self.simulate(DKA, pos[i], exp[j], f"output{self.nr}")
+
+                dx[i,j], dy[i,j] = self.simulate(True, self.positions[i], self.exposures[j], f"output{self.nr}")
+                c[i,j] = np.sqrt((dx[i,j]**2 + dy[i,j]**2))
+
 
         # Plot results
-        plt.figure(figsize=(10,8))
+        fig, ax = plt.subplots()
         for i in range(npos):
-            plt.plot(exp*25/86400, c[i,:], 'o-', label=f'(row,col) = ({pos[i]}, {pos[i]}) pix')
-        plt.xlabel('Time [days]')
-        plt.ylabel('Delta position [pixel]')
+            ax.plot(self.exposures*25/86400, c[i,:], 'o-', label=f'(row,col) = ({self.positions[i]}, {self.positions[i]}) pix', color=colors[i])
+
+
+        ax.set(ylabel='Delta position [pixel]')
+        fig.legend()
+        plt.savefig(self.ioPath + "/test" + self.nr +  "/distanceToNoAberration.png")
+
+        widths  = []
+        heights = []
+
+
+        fig, ax = plt.subplots()
+        for i in range(npos):
+            ell = EllipseModel()
+            points = np.array([ (x, y) for x, y in zip(dx[i,:], dy[i,:])])
+            ell.estimate(points)
+
+            xc, yc, a, b, theta = ell.params
+
+            plt.scatter(dx[i,:], dy[i,:], label=f'(row, col) = ({self.positions[i]}, {self.positions[i]}) pix', color=colors[i])
+
+            ell_path = Ellipse((xc, yc), 2*a, 2*b, angle=theta*180/np.pi, edgecolor=colors[i], facecolor='none')
+
+            widths.append(ell_path.get_width())
+            heights.append(ell_path.get_height())
+            ax.add_patch(ell_path)
+
+        plt.xlabel("dx [pxl]")
+        plt.ylabel("dy [pxl]")
         plt.legend()
-        plt.show()
+        plt.savefig(self.ioPath + "/test" + self.nr +  "/ellipsOnCCD.png")
+
+        return doesIncrease(widths) and doesIncrease(heights)
+
+
+
+def doesIncrease(input_list):
+    inpt = np.array(input_list)
+    return np.all( (inpt[1:] - inpt[:-1]) >= 0)
+
 
 
 if __name__ == "__main__":
