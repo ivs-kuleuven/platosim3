@@ -2971,7 +2971,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
 
     
     
-def plot_final_lc(lc, figsize=(10,8)):
+def plot_final_lc(lc, figsize=(9,8)):
 
     """Plot noise-less light curve from file produced with varsim.
     """
