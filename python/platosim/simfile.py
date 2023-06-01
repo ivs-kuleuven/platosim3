@@ -26,7 +26,6 @@ import ipywidgets as widgets
 from astropy.io import fits
 
 # PlatoSim imports
-import platosim.plot as pt
 from platosim.utilities import imageNorm, normalize
 
 

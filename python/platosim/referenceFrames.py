@@ -1101,20 +1101,32 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     rightDistanceFromPointy = distanceFromPointy[distanceFromPointx >= 0]
 
     left_bottom_idx = idx_left[leftDistanceFromPointy < 0]
-    idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
-    idx_selected[0] = left_bottom_idx[idx_closest_idx]
+    if (len(left_bottom_idx) == 0):
+        return xFPmm, yFPmm
+    else:
+        idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
+        idx_selected[0] = left_bottom_idx[idx_closest_idx]
 
     left_top_idx    = idx_left[leftDistanceFromPointy >=0]
-    idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
-    idx_selected[1] = left_top_idx[idx_closest_idx]
+    if (len(left_top_idx) == 0):
+        return xFPmm, yFPmm
+    else:
+        idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
+        idx_selected[1] = left_top_idx[idx_closest_idx]
 
     right_bottom_idx = idx_right[rightDistanceFromPointy < 0]
-    idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
-    idx_selected[2]  = right_bottom_idx[idx_closest_idx]
+    if (len(right_bottom_idx) == 0):
+        return xFPmm, yFPmm
+    else:
+        idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
+        idx_selected[2]  = right_bottom_idx[idx_closest_idx]
 
     right_top_idx = idx_right[rightDistanceFromPointy >= 0]
-    idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
-    idx_selected[3] = right_top_idx[idx_closest_idx]
+    if (len(right_top_idx) == 0):
+        return xFpmm, yFPmm
+    else:
+        idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
+        idx_selected[3] = right_top_idx[idx_closest_idx]
 
     for i in np.arange(2):
         if (yUndis[idx_selected[2*i]] > yUndis[idx_selected[2*i+1]]):
