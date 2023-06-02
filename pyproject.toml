@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "platosim"
-version = "3.5.4"
+version = "3.6.0"
 description = "PlatoSim: A end-to-end PLATO camera simulator"
 authors = ["KU Leuven and the PlatoSim team <nicholas.jannsen@kuleuven.be>"]
 readme = "README.md"

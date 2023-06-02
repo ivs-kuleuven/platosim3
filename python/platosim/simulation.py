@@ -1235,7 +1235,11 @@ class Simulation(object):
         A file will be saved containing an ascii file with the columns
         time and delta magnitude.
         """
-                
+
+        # Check if only a single target is requested
+        if isinstance(variableSourceFile, str):
+            variableSourceFile = [variableSourceFile]
+
         # Save the sky coordinates to the star catalog file
         
         with open(variableSourceList, 'w') as f:
