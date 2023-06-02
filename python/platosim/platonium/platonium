@@ -38,6 +38,7 @@ from scipy.interpolate import interp1d, CubicSpline
 from pathlib import Path
 
 # PlatoSim
+import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 from platosim.simulation   import Simulation
 from platosim.utilities    import errorcode, pdAddColumn, getPointingField
@@ -195,6 +196,7 @@ class PLATOnium(object):
 
         
 
+
         
     def load_stars(self):
         """
@@ -207,7 +209,16 @@ class PLATOnium(object):
             
         if self.fullFrame:
             if self.starcatFile is not None:
+
                 self.dx = pd.read_feather(self.starcatFile)
+
+                # Save star catalogue
+                self.ds = pd.DataFrame()
+                self.ds['ra']  = self.dx.ra
+                self.ds['dec'] = self.dx.dec
+                self.ds['mag'] = self.dx.mag
+                self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
+
             else:
                 errorcode('error', 'Full-frame CCD images need a parsed star catalogue!')
             return
@@ -258,6 +269,7 @@ class PLATOnium(object):
             # Select target star
             self.df = df.iloc[self.targetNo]
 
+            
         # Additional info for subfield simulations
             
         if not self.fullFrame:
@@ -276,10 +288,17 @@ class PLATOnium(object):
             if self.mag:
                 self.df.mag = self.mag
             
+            # Save star catalogue
+            self.ds = pd.DataFrame()
+            self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
+            self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
+            self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
+            self.ds['ids'] = np.arange(1, self.numCon+2)
 
 
 
-                
+
+            
     def configure_output(self):
 
         """Module to create, configure, and select the correct output folders.
@@ -294,9 +313,9 @@ class PLATOnium(object):
         # Set general output filename
         if self.fullFrame:
             self.outputFileName = ''
-            self.simSuffix = f'ccd{self.ccdCode}'
+            self.simSuffix = f'_ccd{self.ccdCode}'
         else:
-            self.outputFileName = f'{self.targetNo + 1}_'.zfill(9)
+            self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
             self.simSuffix = ''
             
         # Select prefix of observation
@@ -312,7 +331,8 @@ class PLATOnium(object):
         if self.sample is None:
             
             # PIC name convention
-            self.outputFileName = f'{self.simPrefix}{self.outputFileName}{self.obsPrefix}_{self.simSuffix}'
+            self.outputFileName = f'{self.simPrefix}{self.outputFileName}_{self.obsPrefix}{self.simSuffix}'
+            
         else:
             # Name convention for pipeline mode
             self.starID = self.outputFileName
@@ -449,7 +469,7 @@ class PLATOnium(object):
                 sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
 
         # Include Absolute Pointing Error (APE) due to camera misalignments
-        # NOTE: Will only be included if the file "APE.txt" is available in the input folder
+        # NOTE: only be included if "instrumentAPE.txt" is available in the input folder
         inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
         if inputFileAPE.is_file():
             if self.verbose > 0 :
@@ -458,11 +478,32 @@ class PLATOnium(object):
             dex = (self.group - 1) * 6 + self.camera - 1
             sim["Telescope/TiltAngle"]    += APE[dex, 0]
             sim["Telescope/AzimuthAngle"] += APE[dex, 1]
-        
+
+        # Thermo-Elastic Distortion (TED)
+        # NOTE: The camera(s) drift due to the thermal gradient of
+        # the interface between the camera and the optical bench
+        inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
+        if inputFileTED.is_file():
+            sim["Telescope/UseDrift"]      = True
+            sim["Telescope/DriftSource"]   = 'FromFile'
+            sim["Telescope/DriftFileName"] = inputFileTED
+        if sim["Telescope/UseDrift"] and self.verbose > 0:
+            if sim["Telescope/DriftSource"] == 'FromFile':
+                source = 'FromFile'
+            else:
+                source = 'RedNoise'
+            print(f'Applying camera drift        (TED {source})')
+
         # Attitude Orbit Control System (AOCS) jitter
-        # NOTE: Will only be included if file "AOCS_Q<quarterNo>.txt"
-        # is availale in the input folder
-        if self.reuseJitter:
+
+        # First check if file from payload is present
+        inputFileAOCS = self.inputDir.joinpath('instrumentAOCS.txt')
+        if inputFileAOCS.is_file():
+            sim["Platform/UseJitter"]      = True
+            sim["Platform/JitterSource"]   = 'FromFile'
+            sim["Platform/JitterFileName"] = inputFileAOCS
+        # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters
+        elif self.reuseJitter:
             sim["Platform/UseJitter"]    = True
             sim["Platform/JitterSource"] = 'FromFile'
             inputFileAOCS   = self.inputDir.joinpath(sim["Platform/JitterFileName"])
@@ -486,22 +527,12 @@ class PLATOnium(object):
             sim["Platform/JitterFileName"] = inputFileAOCS_Q
         # Print to bash that jitter is included
         if sim["Platform/UseJitter"] and self.verbose > 0:
-            print(f'Applying platform jitter     (ACS {sim["Platform/JitterSource"]})')
-            
-        # Thermo-Elastic Distortion (TED)
-        # NOTE: The camera(s) drift due to the thermal gradient of
-        # the interface between the camera and the optical bench
-        inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
-        if inputFileTED.is_file():
-            sim["Telescope/UseDrift"]      = True
-            sim["Telescope/DriftSource"]   = 'FromFile'
-            sim["Telescope/DriftFileName"] = inputFileTED
-        if sim["Telescope/UseDrift"] and self.verbose > 0:
-            if sim["Telescope/DriftSource"] == 'FromFile':
+            if sim["Platform/JitterSource"] == 'FromFile':
                 source = 'FromFile'
             else:
                 source = 'RedNoise'
-            print(f'Applying camera drift        (TED {source})')
+            print(f'Applying platform jitter     (ACS {source})')
+            
 
             
         # FULL FRAME CCD
@@ -658,10 +689,14 @@ class PLATOnium(object):
             self.seed = 123456789
         else:
             rng = np.random.default_rng(self.seed)
-        
+
+        # Seeds needs to be available for L1 pipeline
+        self.seedJitter = self.seed * self.quarter
+        self.seedTarget = self.seed * self.quarter + 1000 * self.targetNo + self.group * self.camera
+            
         # Jitter (only relevant for red noise) only depends on the quarter
         if sim["Platform/UseJitter"] == 'yes' and sim["Platoform/JitterSource"] == 'RedNoise':
-            sim["RandomSeeds/JitterSeed"] += self.seed * self.quarter
+            sim["RandomSeeds/JitterSeed"] += self.seedJitter
 
         # Drift (only relevant for red noise) depends on quarter, group, and camera
         if sim["Telescope/UseDrift"] and sim["Telescope/DriftSource"] == 'RedNoise':
@@ -688,34 +723,21 @@ class PLATOnium(object):
         """
         
         # SAVE STELLAR CATALOGS AND TARGET LISTS
-
-        # Make a star catalog with all the stars in this subfield
-        if self.fullFrame:
-            raStarCatalog  = self.dx.ra.to_numpy()
-            decStarCatalog = self.dx.dec.to_numpy()
-            magStarCatalog = self.dx.mag.to_numpy()
-            idStarCatalog  = np.arange(0, len(raStarCatalog)).astype(int)            
-        else:
-            raStarCatalog  = np.append(self.df['ra'],  self.dc['ra'])
-            decStarCatalog = np.append(self.df['dec'], self.dc['dec'])
-            magStarCatalog = np.append(self.df['mag'], self.dc['mag'])
-            idStarCatalog  = np.arange(1, self.numCon+2)
-            
+        
         # Save catalog and load it into the inputfile
         self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'        
-        sim.createStarCatalogFile(raStarCatalog, decStarCatalog, magStarCatalog, idStarCatalog,
+        sim.createStarCatalogFile(self.ds.ra, self.ds.dec, self.ds.mag, self.ds.ids,
                                   self.starCatalogFile)
         
         # Print catalogue
         if self.verbose and not self.fullFrame:
             print('\nStar catalog used in simulation')
-            df1 = pd.DataFrame({'RA [deg]': raStarCatalog,
-                                'Dec [deg]': decStarCatalog,
-                                'P [mag]': magStarCatalog,
-                                'Dis [pix]': np.append(0, self.dc['dis'])/15.},
-                               index=idStarCatalog)
+            df1 = pd.DataFrame({'RA [deg]': self.ds.ra,
+                                'Dec [deg]': self.ds.dec,
+                                'P [mag]': self.ds.mag,
+                                'Dis [pix]': np.append(0, self.dc['dis'])/15.})
             print(df1)
-
+        
 
         # SAVE LIST OF VARIABLE SOURCES
 
@@ -744,11 +766,9 @@ class PLATOnium(object):
                 # If varSourceFile is parsed
                 self.varSourceFile = Path(self.varSourceFile).absolute()
                 if self.varSourceFile.is_file():
-                    # Automaticallt save varSourceList to file
+                    # Automaticallt create and save varSourceList to file
                     self.varSourceList = f'{self.outputDir}/{self.outputFileName}.var'
-                    np.savetxt(self.varSourceList, np.array([]),
-                               header='1 '+ str(self.varSourceFile), comments='')
-                    sim["Sky/VariableSourceList"] = self.varSourceList                    
+                    sim.createVariableSourceList('1', str(self.varSourceFile), self.varSourceList)
                 else:
                     errorcode('error', 'VariableSourceFile do not exist, check file path!')
 
@@ -1008,6 +1028,11 @@ class PLATOnium(object):
         spiralFileBase     = f'{self.platosimInputDir}/{spiralFileName}'
         spiralFileQuarterN = f'{self.microscanDirStarID}/{spiralFileName}'
 
+        # Download microscan file if first run of L1 pipeline
+        if not Path(spiralFileBase).is_file():
+            print(f'Downloading miscroscanning file..')
+            ut.downloadFromFTP(filename=spiralFileName, outputDir=self.platosimInputDir, server='plato')
+            
         if self.quarter == 1 and int(self.df0['CCD']) == 1:
             os.system(f'cp {spiralFileBase} {spiralFileQuarterN}')
         else:
@@ -1051,11 +1076,9 @@ class PLATOnium(object):
         # Save catalog and load it into the inputfile
         # NOTE we need to replace the target name for correct handling by the LESIA pipeline
         numStar = self.numCon + 1
-        starIDs = np.arange(self.targetNo, self.targetNo + numStar, 1)
-        starCatalog        = np.copy(self.starCatalog)
-        starCatalog[:, -1] = starIDs
-        starCatalogFile    = f'{self.microscanSimName}.coo'
-        np.savetxt(starCatalogFile, starCatalog, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
+        self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1)
+        starCatalogFile = f'{self.microscanSimName}.coo'
+        np.savetxt(starCatalogFile, self.ds, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
         sim["ObservingParameters/StarCatalogFile"] = starCatalogFile
 
         # MICROSCANNING SIMULATION
@@ -1163,7 +1186,7 @@ class PLATOnium(object):
         if self.verbose > 0:
             errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
         cmd = os.system(f'{self.platoLib}/psffit.py ' +
-                        f'-K 1 -b {self.bsres} --seed {self.seedOffset} ' +
+                        f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
                         f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
                         f'-f {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
                         f'-o {self.starID} {self.starID} {self.devnull}')
@@ -1235,7 +1258,7 @@ class PLATOnium(object):
             cmd = os.system(f'{self.platoLib}/jittercorrection.py ' +
                             f'--add_chromatic_abberation ' +
                             f'-W 128 -r 128 ' +
-                            f'--bsres {self.bsres} --seed {self.seedOffset} ' + 
+                            f'--bsres {self.bsres} --seed {self.seedJitter} ' + 
                             f'-f {self.prnuError} -b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
                             f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
                             f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
