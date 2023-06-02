@@ -70,7 +70,7 @@ else
 
 	# Create folder structure
 	mkdir -p $PLATO_PIPELINE/bin
-	mkdir -p $PLATO_PIPELINE/lib
+	cd al	mkdir -p $PLATO_PIPELINE/lib
 	mkdir -p $PLATO_PIPELINE/man
 	mkdir -p $PLATO_PIPELINE/man/man1
 	mkdir -p $PLATO_PIPELINE/include
