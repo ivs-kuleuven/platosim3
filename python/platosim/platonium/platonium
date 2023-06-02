@@ -185,7 +185,7 @@ class PLATOnium(object):
         # Defualt L1 pipeline parameters
         self.bsres           = 10   # [subpixel]
         self.prnuError       = 0.1  # [%]
-        self.maskUpdateThres = 0.1  # [pixel]
+        self.maskUpdateThres = 0.01 # [pixel] small value to depend on SNR instead!
         if not self.conFluxError:   self.conFluxError   = 10    # Flux error of contaminat stars [%]
         if not self.tarFluxError:   self.tarFluxError   = 1     # Flux error of target star [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # Absolute error of target centroid position [pixel]

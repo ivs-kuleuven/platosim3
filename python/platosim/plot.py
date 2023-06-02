@@ -2993,7 +2993,8 @@ def plot_final_lc(lc, figsize=(9,8)):
     ax[0].plot(time, lc['gran'] + lc['puls'], 'g-', label='Gran + Puls')
     ax[1].plot(time, lc['spot'], 'b-', label='Spots')
     ax[2].plot(time, lc['tran'], 'r-', label='Transits')
-    ax[3].plot(time, lc['comb'], 'm-', label='Combined')
+    try: ax[3].plot(time, lc['comb'], 'm-', label='Combined')
+    except: ax[3].plot(time, lc['sum'], 'm-', label='Combined')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])

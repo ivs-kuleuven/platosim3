@@ -279,7 +279,7 @@ class LightCurve(object):
         
         filename = pathlib.Path(self.filename)
         starID   = filename.stem[:9]
-        path     = filename.parents[1]
+        path     = filename.parents[2]
         filename = f"varsource_{starID}_components.ftr"
         varpath  = path / "varsource" / filename
 
@@ -857,7 +857,7 @@ class LightCurve(object):
 
             # Convert to ppm
             self.df['flux_trend']   = flux_trend
-            self.df['flux_detrend'] = flux - flux_trend
+            self.df['flux_detrend'] = (flux / flux_trend - 1) * 1e6
 
         # WOTAN MODEL
 
@@ -909,13 +909,14 @@ class LightCurve(object):
             rows = 3
             varsource = True
             time_var = lc_var["time"] / c.day
-            flux_var = lc_var["comb"]
+            try: flux_var = lc_var["comb"]
+            except: flux_var = lc_var["sum"]
 
         # Get time series
         time         = df.time / c.day                    # [days]
         flux         = df[column] / 1e3                   # [ke-/s]
         flux_trend   = df.flux_trend /1e3                 # [ke-/s]
-        flux_detrend = df.flux_detrend * 1e3              # [ppt]
+        flux_detrend = df.flux_detrend / 1e3              # [ppt]
         flux_median  = median_filter(flux_detrend, 144)   # [ppt]
         
         # Start plotting
@@ -1298,7 +1299,8 @@ class LightCurve(object):
         # Get varsource light curve
         lc = self.varsource()
         itime = lc["time"] / c.day
-        iflux = lc["comb"]
+        try: iflux = lc["comb"]
+        except: iflux = lc["sum"]
         
         # Sorten simulation
         oflux = self.flux(unit="ppm")
@@ -1340,7 +1342,7 @@ class LightCurve(object):
     def plot_multi(self, time_unit="d", flux_unit="e/s", suffix="ftr",
                    group=False, camera=False, quarter=False,
                    legend=False, median_filter=False, binsize=False,
-                   figsize=(8,3)):
+                   figsize=(9,6)):
 
         """
         FIXME this function do not work currently
@@ -1366,8 +1368,8 @@ class LightCurve(object):
         
         # Create matplotlib object 
 
-        fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(311)
+        fig, ax = plt.subplots(1,1,figsize=figsize)
+        #ax = fig.add_subplot(311)
         
         # Set colors
         cmap      = plt.get_cmap('nipy_spectral')
