@@ -4,11 +4,11 @@
 This is a script holding all relevant PHOENIX download and read features.
 """
 
-
+import os
 import zipfile
 import urllib.request
+from pathlib import Path
 
-import pathlib
 import numpy as np
 from astropy.io import fits
 
@@ -37,8 +37,10 @@ class Phoenix(object):
         """
         # Create data directories if they do not exist
 
-        self.path = pathlib.Path(__file__).parent.resolve()
-        pathlib.Path(self.path.joinpath('data')).mkdir(parents=False, exist_ok=True)
+        path = Path(__file__).parent.resolve()
+        dataDir = os.getenv("PLATO_PROJECT_HOME") + '/inputfiles/data_varsim'
+        self.path = path.joinpath(dataDir)
+        self.path.mkdir(parents=False, exist_ok=True)
 
 
     def parameter_space(self, library):
@@ -131,8 +133,8 @@ class Phoenix(object):
 
         # Create data folder if it do not exist
 
-        dataDir = 'data/PHOENIX_AtmosFITS'
-        pathlib.Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
+        dataDir = self.path / 'PHOENIX_AtmosFITS'
+        Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
 
         # Make sure code do not crash
 
@@ -210,9 +212,9 @@ class Phoenix(object):
         """
 
         # Prepare data structure
-        dataDir = 'data/PHOENIX_HiResFITS'
-        pathlib.Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
-        phoenix_path = self.path.joinpath('data').joinpath('WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
+        dataDir = self.path / 'PHOENIX_HiResFITS'
+        Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
+        phoenix_path = self.path.joinpath(dataDir).joinpath('WAVE_PHOENIX-ACES-AGSS-COND-2011.fits')
 
         # Accept only valid parameter space
         if Teff in self.valid_t and logg in self.valid_g \
@@ -284,8 +286,8 @@ class Phoenix(object):
 
         # Create data folder if it do not exist
 
-        dataDir = 'data/PHOENIX_SpecIntFITS'
-        pathlib.Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
+        dataDir = self.path / 'PHOENIX_SpecIntFITS'
+        Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
 
         # Make sure that all paramters are valid
 
