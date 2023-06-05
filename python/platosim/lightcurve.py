@@ -27,12 +27,13 @@ import astropy.stats as stats
 from scipy import constants as c
 from scipy.ndimage import median_filter
 from tqdm import tqdm
+import wotan
 
 import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.statistics      as st
 import platosim.referenceFrames as rf
-from platosim.simfile import SimFile
+from platosim.simfile   import SimFile
 from platosim.utilities import errorcode
 
 
@@ -84,7 +85,12 @@ class LightCurve(object):
 
                 # No mask updates
                 self.mask_updates = np.array([])
+
+                # Drop some columns
                 
+                try: self.df.drop(columns=['chi2', 'iter', 'lamb'], inplace=True)
+                except: pass
+
             elif self.fileExtention == ".hdf5":
                 
                 # Load HDF5 file
@@ -95,7 +101,6 @@ class LightCurve(object):
 
                 # Add time column if not found
                 if not 'time' in self.df:
-
                     exptime  = simfile.getExposureTime()
                     readtime = simfile.getReadoutTime()
                     
@@ -274,7 +279,7 @@ class LightCurve(object):
         
         filename = pathlib.Path(self.filename)
         starID   = filename.stem[:9]
-        path     = filename.parents[1]
+        path     = filename.parents[2]
         filename = f"varsource_{starID}_components.ftr"
         varpath  = path / "varsource" / filename
 
@@ -722,92 +727,6 @@ class LightCurve(object):
     #                       DATA CORRECTIONS                       #
     #--------------------------------------------------------------#
     
-
-    def clip(self, model="wotan", window=0.5, low=3, high=3, plot=False):
-
-        """Sigma clipping of light curve.
-
-        This function use a moving median filter to reject 3 sigma outliers from
-        the out-of-eclipsed data. This is done to secure that a simple median
-        convolution do not mis-interp sharp and deep transit signatures as outliers.
-        Use a 16 point-width moving median to reject 3 sigma outliers.
-        """
-
-        # If outliers have been removed
-        
-        if 'flux_detrend' in self.df: flux = self.df.flux_detrend
-        else: flux = self.df.flux
-
-        
-        if model == 'wotan':
-            import wotan
-            self.df['flux_clip'] = wotan.slide_clip(self.df.time,
-                                                    flux,
-                                                    window_length=window*c.day,
-                                                    low=low,
-                                                    high=high,
-                                                    method='mad', # mad or std
-                                                    center='median')
-        elif model == 'sigma':
-            self.df['flux_clip'] = stats.sigma_clip(flux,
-                                                    sigma_lower=low,
-                                                    sigma_upper=high)
-        # Remove clipped NaNs
-        
-        self.df = self.df.dropna()
-            
-        # Plot if requested
-        
-        if plot: self.plot_clip(self.df)
-
-        # That's it!
-        
-        return self.df
-
-    
-            
-
-    
-    def plot_clip(self, df, figsize=(9,4)):
-
-        """Plot a clipped light curve for outliers.
-        """
-
-        # Get detrending [time: days, flux: ppm]
-        
-        time = df.time / c.day
-        if 'flux_detrend' in df:
-            flux = df.flux_detrend / 1e3
-            flux_clip = df.flux_clip / 1e3
-        else:
-            flux      = ut.normalize(df.flux, factor=1e3)
-            flux_clip = ut.normalize(df.flux_clip, factor=1e3)
-
-        flux_med = scipy.ndimage.median_filter(flux_clip, 144)
-        
-        # Start plotting
-        
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-
-        # Plot simulation and trend
-        
-        ax.plot(time,  flux,      '.', c='r', ms=2,   alpha=0.5, label='Raw')
-        ax.plot(time,  flux_clip, '.', c='k', ms=2,   alpha=0.2, label='Clipped')
-        ax.plot(time,  flux_med,  '-', c='b', lw=0.5, alpha=1.0, label='Median')
-
-        # Layout
-        
-        ax.set_xlim(time.iloc[0], time.iloc[-1])
-        ax.set_xlabel('Time [days]')
-        ax.set_ylabel('Flux [ppt]')
-        plt.legend()
-        plt.tight_layout()
-        
-        return fig, ax
-
-
-        
-
     
     def stitch(self, column='flux', gapsize=0.1, medpoint=100, plot=False):
 
@@ -861,7 +780,7 @@ class LightCurve(object):
         """Plot a detrended light curve and make a O-C plot.
         """        
         
-        fig, ax = plt.subplots(2, 1, figsize=figsize)
+        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
 
         # Plot simulation and trend
         flux_raw_median = median_filter(df.flux, medfilt)
@@ -880,7 +799,8 @@ class LightCurve(object):
         ax[1].set_ylabel('Flux [as input]')
         ax[1].set_xlabel('Time [days]')
         ax[1].legend(ncol=2, markerscale=5)
-        plt.show()
+
+        plt.tight_layout(h_pad=0.1, w_pad=1)
 
         return fig, ax
 
@@ -937,7 +857,7 @@ class LightCurve(object):
 
             # Convert to ppm
             self.df['flux_trend']   = flux_trend
-            self.df['flux_detrend'] = flux - flux_trend
+            self.df['flux_detrend'] = (flux / flux_trend - 1) * 1e6
 
         # WOTAN MODEL
 
@@ -972,8 +892,10 @@ class LightCurve(object):
 
 
 
+        
+
     
-    def plot_detrend(self, df, column='flux', figsize=(9,7)):
+    def plot_detrend(self, df, column='flux', figsize=(9,8)):
 
         """Plot a detrended light curve and make a O-C plot.
         """
@@ -987,48 +909,141 @@ class LightCurve(object):
             rows = 3
             varsource = True
             time_var = lc_var["time"] / c.day
-            flux_var = lc_var["comb"]
+            try: flux_var = lc_var["comb"]
+            except: flux_var = lc_var["sum"]
 
-        # Get detrending [time: days, flux: arbt.]
-        time         = df.time
-        flux         = df[column]
-        flux_norm    = ut.normalize(flux)
-        flux_trend   = df.flux_trend
-        flux_detrend = df.flux_detrend
-        flux_median  = median_filter(flux_detrend, 144)
+        # Get time series
+        time         = df.time / c.day                    # [days]
+        flux         = df[column] / 1e3                   # [ke-/s]
+        flux_trend   = df.flux_trend /1e3                 # [ke-/s]
+        flux_detrend = df.flux_detrend / 1e3              # [ppt]
+        flux_median  = median_filter(flux_detrend, 144)   # [ppt]
         
         # Start plotting
         
-        fig, ax = plt.subplots(rows, 1, figsize=figsize)
+        fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)
 
         # Plot simulation and trend
         ax[0].plot(time,  flux,       '.', c='k',         ms=1, alpha=0.2, label='Raw data')
         ax[0].plot(time,  flux_trend, '-', c='royalblue', lw=2, alpha=1.0, label='Trend')
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].set_ylabel(r"Flux [as input]")
-        ax[0].set_title('Light curve detrending')
-        ax[0].legend(ncol=2, markerscale=5)
+        ax[0].set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
+        ax[0].legend(ncol=2, markerscale=5, loc='upper right')
         
         # Plot detrend and median
         ax[1].plot(time,  flux_detrend, '.', c='k',      ms=1.0, alpha=0.2, label="Detrended data")
         ax[1].plot(time,  flux_median,  '-', c='orange', lw=0.5, alpha=1.0, label="1h median")
         ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[1].set_ylabel('Flux [as input]')
-        ax[1].legend(ncol=2, markerscale=5)
+        ax[1].set_ylabel('Flux [ppt]')
+        ax[1].legend(ncol=2, markerscale=5, loc='upper right')
         
         # Plot detrend-median,  vs. input
         if varsource:
-            ax[2].plot(time, flux_median, '-', c='orange', lw=0.5, alpha=0.2, label='Detrended data')
-            ax[2].plot(time_var, flux_var, '-', c='red',   lw=1.0, alpha=1.0, label="Input model")
+            ax[2].plot(time,     flux_median*1e3, '-', c='orange', lw=0.5, alpha=1.0)
+            ax[2].plot(time_var, flux_var,        '-', c='m', lw=1.0, alpha=1.0, label="Input model")
             ax[2].set_xlim(time.iloc[0], time.iloc[-1])
-            ax[2].set_ylabel('Flux [as input]')
-
+            ax[2].set_ylabel('Flux [ppm]')
+            ax[2].legend(ncol=1, markerscale=5, loc='upper right')
+            
         # Layout
         ax[rows-1].set_xlabel('Time [days]')
-        plt.tight_layout() #h_pad=0.2, w_pad=0.6)
+        plt.tight_layout(h_pad=0.1, w_pad=1)
         
         return fig, ax
 
+
+
+
+    
+    def clip(self, model="scipy", low=3, high=3, window=0.5, plot=False):
+
+        """Sigma clipping of light curve.
+
+        This function use a moving median filter to reject 3 sigma outliers from
+        the out-of-eclipsed data. This is done to secure that a simple median
+        convolution do not mis-interp sharp and deep transit signatures as outliers.
+        Use a 16 point-width moving median to reject 3 sigma outliers.
+        """
+
+        # If outliers have been removed
+        
+        if 'flux_detrend' in self.df: flux = self.df.flux_detrend
+        else: flux = self.df.flux
+
+        if model == 'scipy':
+            self.df['flux_clip'] = stats.sigma_clip(flux,
+                                                    sigma_lower=low,
+                                                    sigma_upper=high)
+
+        elif model == 'wotan':
+            self.df['flux_clip'] = wotan.slide_clip(self.df.time,
+                                                    flux,
+                                                    window_length=window*c.day,
+                                                    low=low,
+                                                    high=high,
+                                                    method='mad', # mad or std
+                                                    center='median')
+            
+        # Plot if requested
+        
+        if plot: self.plot_clip(self.df)
+
+        # Remove clipped NaNs
+        
+        #self.df = self.df.dropna()
+
+        # That's it!
+        
+        return self.df
+
+    
+            
+
+    
+    def plot_clip(self, df, col='flux_detrend', figsize=(9,4)):
+
+        """Plot a clipped light curve for outliers.
+        """
+
+        # Find outliers
+
+        dex = df.flux_clip.isnull()
+
+        # Remove nans
+
+        df1 = df.dropna()
+        
+        # Get detrending [time: days, flux: ppt]
+        
+        time_bad  = df.time[dex] / c.day
+        time_clip = df1.time / c.day
+
+        if col == 'flux_detrend' and 'flux_detrend' in df:
+            flux_bad  = df.flux_detrend[dex] * 1e3
+            flux_clip = df1.flux_clip * 1e3            
+        else:
+            flux_bad  = ut.normalize(df.flux[dex], factor=1e3)
+            flux_clip = ut.normalize(df1.flux_clip, factor=1e3)
+
+        # Start plotting
+        
+        fig, ax = plt.subplots(1,1,figsize=figsize, sharex=True)
+
+        # Plot simulation and trend
+        
+        ax.plot(time_clip, flux_clip, '.', c='k',      ms=2,   alpha=0.1, label='Clipped data')
+        ax.plot(time_bad,  flux_bad,  '.', c='r',      ms=2,   alpha=0.5, label='Outliers')
+
+        # Layout
+
+        
+        ax.set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
+        ax.set_xlabel('Time [days]')
+        ax.set_ylabel('Flux [ppt]')
+        plt.legend(ncols=2)
+        plt.tight_layout()
+        
+        return fig, ax
 
 
 
@@ -1284,7 +1299,8 @@ class LightCurve(object):
         # Get varsource light curve
         lc = self.varsource()
         itime = lc["time"] / c.day
-        iflux = lc["comb"]
+        try: iflux = lc["comb"]
+        except: iflux = lc["sum"]
         
         # Sorten simulation
         oflux = self.flux(unit="ppm")
@@ -1323,90 +1339,80 @@ class LightCurve(object):
 
 
 
-    # def plot_multi(self, time_unit="d", flux_unit="e/s", fileExtention="ftr",
-    #                group=False, camera=False, quarter=False,
-    #                legend=False, median_filter=False, binsize=False,
-    #                figsize=(8,3)):
+    def plot_multi(self, time_unit="d", flux_unit="e/s", suffix="ftr",
+                   group=False, camera=False, quarter=False,
+                   legend=False, median_filter=False, binsize=False,
+                   figsize=(9,6)):
 
-    #     """
-    #     FIXME this function do not work currently
+        """
+        FIXME this function do not work currently
 
-    #     Parameters
-    #     ----------
-    #     time_unit : str
-    #         Array containing at least a time and flux column (and potential flux_err)
-    #     flux_err: boolen
-    #        Wheather or not a flux_err column is present and should thus be added.
+        Parameters
+        ----------
+        time_unit : str
+            Array containing at least a time and flux column (and potential flux_err)
+        flux_err: boolen
+           Wheather or not a flux_err column is present and should thus be added.
 
-    #     Return
-    #     ------
-    #     fig, ax : matplotlib objects
-    #     """
+        Return
+        ------
+        fig, ax : matplotlib objects
+        """
 
-    #     # Fetch all feather filenames
-    #     filenames = self.files(fileExtention, group=group, camera=camera, quarter=quarter)
-    #     nfiles    = len(filenames)
+        # Fetch all feather filenames
+        filenames = self.files(suffix, group=group, camera=camera, quarter=quarter)
+        nfiles    = len(filenames)
 
-    #     # Find number of quarters set axes limit
-    #     quarters = np.unique([int(pathlib.Path(filenames[i]).stem[19:]) for i in range(nfiles)])
+        # Find number of quarters set axes limit
+        quarters = np.unique([int(pathlib.Path(filenames[i]).stem[19:]) for i in range(nfiles)])
         
-    #     # Create matplotlib object 
+        # Create matplotlib object 
 
-    #     fig = plt.figure(figsize=figsize)
-    #     ax = fig.add_subplot(311)
+        fig, ax = plt.subplots(1,1,figsize=figsize)
+        #ax = fig.add_subplot(311)
         
-    #     # Set colors
-    #     cmap      = plt.get_cmap('nipy_spectral')
-    #     cnorm     = colors.Normalize(vmin=0, vmax=nfiles-1)
-    #     scalarMap = cm.ScalarMappable(norm=cnorm, cmap=cmap)
-    #     ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(nfiles)])
+        # Set colors
+        cmap      = plt.get_cmap('nipy_spectral')
+        cnorm     = colors.Normalize(vmin=0, vmax=nfiles-1)
+        scalarMap = cm.ScalarMappable(norm=cnorm, cmap=cmap)
+        ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(nfiles)])
                 
-    #     # Loop over each observation
+        # Loop over each observation
         
-    #     for f in filenames:
+        for i,f in zip(range(len(filenames)), filenames):
 
-    #         # Load single camera obs
-    #         lc = LightCurve(f)
-
-    #         # Fetch columns and plot            
-    #         time = lc.time(unit=time_unit)
-    #         flux = lc.flux(unit=flux_unit)
-    #         flux_trend = lc.flux(unit='e/s', column='flux_trend')
-    #         ax.plot(time, flux/1e3, ',', alpha=0.2)
-    #         # Special legend
-    #         import matplotlib.patheffects as mpe
-    #         outline=mpe.withStroke(linewidth=3, foreground='k')
-    #         ax.plot(time, flux_trend/1e3, '-', c='w', lw=1, path_effects=[outline])
-    #         if f == filenames[-1]:
-    #             ax.plot(time, flux_trend/1e3, '-', c='w', lw=0.5, label='Wotan trend',
-    #                     path_effects=[outline])
+            # Fetch columns and plot
+            lc = LightCurve(f)
+            time = lc.time(unit=time_unit)
+            flux = lc.flux(unit=flux_unit)
+            ax.plot(time, flux/1e3, ',', alpha=0.2)
             
-    #         # Plot quarter mark
-    #         ax.tick_params(which='both', top=False)
-    #         group, camera, quarter = lc.obs()
-    #         lab = f'Q{quarter}'
-    #         xpos = np.mean(time) - 20
-    #         if quarter > 9: xpos -= 10
-    #         ypos = 103.5 #103.5
-    #         ax.text(xpos, ypos, lab, fontsize=16, zorder=-1)
-    #         if not quarter in (0, nfiles):
-    #             ax.axvline(x=quarter*90-1, c='k', linestyle=':', lw=1, zorder=-1)
+            # Plot quarter mark
+            ax.tick_params(which='both', top=False)
+            group, camera, quarter = lc.obs()
+            lab = f'Q{quarter}'
+            xpos = np.mean(time) - 20
+            if quarter > 9: xpos -= 10
+            ypos = 103.5 #103.5
+            ax.text(xpos, ypos, lab, fontsize=16, zorder=-1)
+            if not quarter in (0, nfiles):
+                ax.axvline(x=quarter*90-1, c='k', linestyle=':', lw=1, zorder=-1)
             
-    #     # Set legend
-    #     if legend:
-    #         pos = ax.get_position()
-    #         ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
-    #         ax.legend(bbox_to_anchor=(1.24, 1.0), prop={'size': 10})
+        # Set legend
+        if legend:
+            pos = ax.get_position()
+            ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+            ax.legend(bbox_to_anchor=(1.24, 1.0), prop={'size': 10})
             
-    #     # Settings
-    #     ax.set_xlim(self.time_limit(quarters))
-    #     ax.set_xlabel(f'Time [days]')
-    #     ax.set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
+        # Settings
+        ax.set_xlim(self.time_limit(quarters))
+        ax.set_xlabel(f'Time [days]')
+        ax.set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
 
-    #     ax.set_xlim(self.time_limit(quarters))
-    #     #plt.tight_layout(pad=0.0)
+        ax.set_xlim(self.time_limit(quarters))
+        #plt.tight_layout(pad=0.0)
 
-    #     return fig, ax
+        return fig, ax
 
     
         
@@ -1531,8 +1537,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def merge(self, quarter=False, detrend=False, clip=False, ofile=False,
-              flux_group_mean=False, suffix="ftr"):
+    def merge(self, quarter=False, flux_group_mean=False, ofile=False, suffix="ftr"):
 
         """Merge light curves from a single star.
 
@@ -1607,7 +1612,7 @@ class LightCurve(object):
                 # Flag for negative fluxes (bad behavior of L1 pipeline)
                 
                 if lc.flux(unit="e/s").mean() < 1: flag = 1
-
+                
                 # Create initial data frame and save to it
 
                 df = lc.data()
@@ -1654,6 +1659,110 @@ class LightCurve(object):
 
 
 
+
+
+    def reduce_star(self, flux_group_mean=False, ofile=False, suffix="ftr",
+                    model_detrend="poly", degree=2, window=0.5, mask=False,
+                    model_clip="scipy", low=3, high=3):
+               
+        """Merge light curves from a single star.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default it uses the Wotan is 
+        used. This package is good for planet transit searches, however, not
+        so much for preserving the stellar signal.
+
+        Parameters
+        ----------
+        quarter : int
+            Mission quarter number.
+        detrend : bool
+
+            Whether or not detrending should be applied before merge.
+        clip : bool
+            Whether or not sigma-clipping should be applied before merge.
+        ofile : str
+            Obsolute path to output file.
+        flux_group_mean : bool
+            Whether or not to mean measurements from the same camera (i.e. identical times).
+        suffix : str
+            Suffix of simulations (either 'hdf5' or 'ftr').
+
+        Return
+        ------
+        <ofile>.ftr : pdarray
+            Output feather file with merged data if requested.
+        lc : class object
+            Instance of the LightCurve class to be used to extract data.
+        ncam : int
+            Number of cameras being merged.
+        flag : int
+            Flag to if flux is normal (0) or abnormal (1) 
+        """
+
+        # Open a pandas data frame and write to it
+        
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+
+        # Fetch all zip files
+        
+        files  = self.files(suffix)
+        nfiles = len(files)
+
+        # Loop over each group and camera
+
+        for i in tqdm(range(nfiles), bar_format=ut.tqdmBar()):
+
+            # Fetch light curve object
+            try: lc = LightCurve(files[i])
+            except: pass
+            else:
+                
+                # Detrend light curve
+
+                lc.detrend(model=model_detrend, window=window, mask=mask)
+
+                # Remove outliers
+
+                lc.clip(model=model_clip, low=low, high=high)
+
+                # Create initial data frame and save to it
+
+                df = lc.data()
+                
+                if i == 0:
+                    df0['time'] = df.time
+                    df0['flux'] = df.flux_clip
+                else:
+                    df1['time'] = df.time
+                    df1['flux'] = df.flux_clip
+
+                    # Contatinate data frames
+
+                    df0 = pd.concat([df0, df1])
+
+        # Sort after logic structure and reset indices
+
+        df0 = df0.sort_values(by=["time"])
+        df0 = df0.reset_index(drop=True)
+
+        # If requested mean fluxes from same group (i.e. same time stamp)
+        
+        if flux_group_mean: df0 = df0.groupby('time').mean().reset_index()
+        
+        # If requested save output file
+        
+        if ofile: df0.to_feather(ofile)
+        
+        # Set a global light curve object
+
+        return LightCurve(df0, mode="multi", ncam=False)
+
+
+
+    
 
 
     def run_NSRvsMag_analysis_perStar(self, outputFile, numStar, quarters=1, suffix="ftr"):

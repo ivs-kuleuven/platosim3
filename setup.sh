@@ -70,7 +70,7 @@ else
 
 	# Create folder structure
 	mkdir -p $PLATO_PIPELINE/bin
-	mkdir -p $PLATO_PIPELINE/lib
+	cd al	mkdir -p $PLATO_PIPELINE/lib
 	mkdir -p $PLATO_PIPELINE/man
 	mkdir -p $PLATO_PIPELINE/man/man1
 	mkdir -p $PLATO_PIPELINE/include
@@ -83,7 +83,7 @@ else
 
     # Lastly, export the python path to bashrc
     echo "export PYTHONPATH=${PYTHONPATH}:$CONDA_PREFIX:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO_PIPELINE:$PLATO_MANPATH:$PLATO_PYLIB" >> $PLATO_SETUP
-    echo "export PATH=${PATH}:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
+    echo "export PATH=${PATH}:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
        
     # Add code to global executeables (-i overwrite old files) TODO
     cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/picsim    $CONDA_PREFIX/bin
@@ -92,20 +92,20 @@ else
     cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $CONDA_PREFIX/bin
     
     # Reload .bashrc TODO mac
-    . $HOME/.bashrc
+    source $HOME/.bashrc
 
-    ## Lastly, try to install L1 pipeline
-    # if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
-    # 	echo "----------------------------"
-    # 	echo " Installing the L1 pipeline "
-    # 	echo "----------------------------"
-    # 	cd $PLATO_PIPELINE/algorithms 
-    # 	make install
-    ## The following is needed (bug?) to locate these two files
-    # cp $PALTO/algorithms/WP/321000/invert/invert_parabolic1_multi $CONDA_PREFIX/bin
-    # cp $PALTO/algorithms/WP/321000/microscan/discretize.py $CONDA_PREFIX/bin/discretize
-    # chmod 755 $CONDA_PREFIX/bin/discretize
-    # fi
+    # Lastly, try to install L1 pipeline
+    if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
+    	echo "----------------------------"
+    	echo " Installing the L1 pipeline "
+    	echo "----------------------------"
+    	cd $PLATO_PIPELINE/algorithms 
+    	#sudo make install
+	# The following is needed (bug?) to locate these two files
+	cp $PLATO_PIPELINE/algorithms/WP/321000/invert/invert_parabolic1_multi $CONDA_PREFIX/bin
+	cp $PLATO_PIPELINE/algorithms/WP/321000/microscan/discretize.py $CONDA_PREFIX/bin/discretize
+	chmod 755 $CONDA_PREFIX/bin/discretize
+    fi
     
     # Fix Jupyter-notebook problem "module not found"
     # pip install ipykernel

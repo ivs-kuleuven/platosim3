@@ -193,15 +193,15 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     # If flase simply download the requested file
     
     ftp_filename = pathlib.Path(filename)
-
+    
     if ftp_filename.suffix in ('.txt', '.zip', '.npy', '.ftr', '.hdf5', '.h5'):
-        ftp_subpath = pathlib.Path(filename).parents[0]
+        ftp_subpath = ftp_filename.parents[0]
         permission  = False
     else:
-        ftp_subpath = pathlib.Path(filename)
+        ftp_subpath = ftp_filename
         permission  = True
         
-    # Also if file on FTP is within a folder, create folder locally
+    # If file on FTP is within a folder, create folder locally
         
     outputDir = outputDir / ftp_subpath
     outputDir.mkdir(parents=True, exist_ok=True)
@@ -221,7 +221,14 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     elif server == 'platodata':
         ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
         ftp.cwd(f'PLATOSIM/{ftp_subpath}')
-        files = ftp.nlst()[2:]
+        # Check if only one files is requested
+        if not permission:
+            if ftp_subpath:        
+                files = [ftp_filename.name] # within a subfolder
+            else:
+                files = [filename]          # in the base folder
+        else:
+            files = ftp.nlst()[2:]          # multiple files
         #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
     else:
         errorcode('error', f'Server name {server} is not valid!')
@@ -229,9 +236,9 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     # Fetch all the files
         
     for filename in files:
-
-        # Only try to save file if is doesn't exists
         
+        # Only try to save file if is doesn't exists
+
         local_file = pathlib.Path(outputDir) / filename
 
         if not local_file.is_file():
@@ -242,11 +249,17 @@ def downloadFromFTP(filename, outputDir, server='plato'):
             # Give read and write rights to this
             if permission: local_file.chmod(777)
 
-    # Close connection
+        # Close connection
     
-    ftp.quit()
+        ftp.quit()
 
-    
+        # Login each time for download due to timeout
+        
+        if server == 'platodata' and not filename == files[0]:
+            ftp = ftplib.FTP('ftp.ster.kuleuven.be')
+            ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
+            ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+
 
             
 #--------------------------------------------------------------#
