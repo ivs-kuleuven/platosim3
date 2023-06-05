@@ -462,7 +462,7 @@ void PointSpreadFunction::generateDistortionMap()
             double yPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing2[0]));
 
             // Once we have these values we add them to the distortionMap
-            const std::array<double, 4> coordinates = { xPsfUndistorted, yPsfUndistorted, xPsf, xPsf };
+            const std::array<double, 4> coordinates = { xPsfUndistorted, yPsfUndistorted, xPsf, yPsf };
             distortionMap.push_back(coordinates);
         }
         else
