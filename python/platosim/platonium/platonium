@@ -207,6 +207,8 @@ class PLATOnium(object):
             print('Loading stellar catalogue..')
 
             
+        # FULL FRAME
+            
         if self.fullFrame:
             if self.starcatFile is not None:
 
@@ -222,7 +224,9 @@ class PLATOnium(object):
             else:
                 errorcode('error', 'Full-frame CCD images need a parsed star catalogue!')
             return
-            
+
+
+        # SUBFIELD
         # Fetch stars either from custum catalogue are the default PIC setup
 
         if self.starcatFile is not None:
@@ -310,31 +314,31 @@ class PLATOnium(object):
         try: os.mkdir(self.outputDir)
         except: pass
 
-        # Set general output filename
-        if self.fullFrame:
-            self.outputFileName = ''
-            self.simSuffix = f'_ccd{self.ccdCode}'
-        else:
-            self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
-            self.simSuffix = ''
-            
-        # Select prefix of observation
-        self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
-
-        # Add a custom prefix to simulation
+        # Custom prefix
         if self.simPrefix is not None:
             self.simPrefix = f'{self.simPrefix}_'
         else:
             self.simPrefix = ''
+        
+        # Set general output filename
+        self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
             
-        # NOTE the structure for the L1 pipeline are different from the default
-        if self.sample is None:
+        # Select suffix of observation
+        self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
+
+        # Combine file name
+        
+        if self.fullFrame:
+            # Full frame mode
+            self.outputFileName = f'{self.obsPrefix}_ccd{self.ccdCode}'
             
-            # PIC name convention
-            self.outputFileName = f'{self.simPrefix}{self.outputFileName}_{self.obsPrefix}{self.simSuffix}'
+        elif self.sample is None:
+            # Standard mode
+            self.outputFileName = f'{self.simPrefix}{self.outputFileName}{self.obsPrefix}{self.simSuffix}'
+            print(self.outputFileName); exit()
             
         else:
-            # Name convention for pipeline mode
+            # Pipline mode
             self.starID = self.outputFileName
             relativeDirStar = f'{self.sample}/Q{self.quarter}/Ncam{self.group}{self.camera}'
 
@@ -362,7 +366,9 @@ class PLATOnium(object):
             self.outputDir = Path(self.outputDirStarIDsim).resolve()
 
             # Path + Prefix of simulations
-            self.microscanSimName = f'{self.microscanDirStarID}/{self.outputFileName}' 
+            self.microscanSimName = f'{self.microscanDirStarID}/{self.outputFileName}'
+
+        # Store final file name
         self.outputSimName = f'{self.outputDir}/{self.outputFileName}'
 
         
@@ -456,6 +462,10 @@ class PLATOnium(object):
         inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
         if inputFilePRE.is_file():
             PRE = np.loadtxt(inputFilePRE)
+            # Catch one dimentional arrays
+            try: PRE.shape[1]
+            except: PRE = np.array([PRE])
+            # Apply pointing errors
             dex = np.where(PRE[:,0] == self.quarter)[0]
             try: dex[0]
             except:
@@ -538,14 +548,19 @@ class PLATOnium(object):
 
         if self.fullFrame:
 
+            # Turn of photometry
+            sim['Photometry/IncludePhotometry'] = False
             # Set CCD parameters
             self.subfieldIsOnCCD                = True
-            sim['Photometry/IncludePhotometry'] = False
             sim["CCD/Position"]                 = str(self.ccdCode)
             sim["SubField/ZeroPointRow"]        = 0
             sim["SubField/ZeroPointColumn"]     = 0
             sim["SubField/NumColumns"]          = 4510
             sim["SubField/NumRows"]             = 4510
+            # Control output requirements
+            sim["ControlHDF5Content/GroupByExposure"]    = True
+            sim["ControlHDF5Content/WritePixelMaps"]     = True
+            sim["ControlHDF5Content/WriteStarPositions"] = True
             return sim
 
         
@@ -903,15 +918,20 @@ class PLATOnium(object):
             
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
-            f = h5py.File(self.outputSimName + '.hdf5', "r")
-            df = self.dx.iloc[f['StarPositions/Exposure000000/starID'][:]]
+            f = h5py.File(f'{self.outputSimName}.hdf5', "r")
+            # Select detected stars
+            ID = f['StarPositions/Exposure000000/starID'][:]
+            df = self.dx.iloc[ID]
+            # Add stellar positions
             df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:]
             df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:]
             df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
             df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
+            # Rename index to starID
+            df = df.rename(columns={'index': 'starID'})
             # Save to file
             df = df.reset_index()
-            df = df.drop(columns=['level_0', 'index'])
+            df = df.drop(columns=['index'])
             df.to_feather(self.outputSimName + '.ftr')
             
         # Compress files
@@ -1184,6 +1204,9 @@ class PLATOnium(object):
         # NOTE PRNU knowledge errorin % (-p)
         if self.verbose > 0:
             errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
+        # Change directory needed to execute scripts
+
+        path = self.path / '../pipeline'
         cmd = os.system(f'{self.platoLib}/psffit.py ' +
                         f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
                         f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
@@ -1453,8 +1476,8 @@ if args.plot:
 elif args.sample == 'P1':
     # Run the entire on-ground L0-L1 pipeline chain
     p.control_hdf5()
-    p.run_sim_normal(sim)
-    p.run_microscan(sim)
+    #p.run_sim_normal(sim)
+    #p.run_microscan(sim)
     p.run_L1_onground()
     p.sort_output()
     
