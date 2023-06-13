@@ -70,7 +70,7 @@ else
 
 	# Create folder structure
 	mkdir -p $PLATO_PIPELINE/bin
-	cd al	mkdir -p $PLATO_PIPELINE/lib
+	mkdir -p $PLATO_PIPELINE/lib
 	mkdir -p $PLATO_PIPELINE/man
 	mkdir -p $PLATO_PIPELINE/man/man1
 	mkdir -p $PLATO_PIPELINE/include
@@ -99,7 +99,7 @@ else
     	echo "----------------------------"
     	echo " Installing the L1 pipeline "
     	echo "----------------------------"
-    	cd $PLATO_PIPELINE/algorithms 
+    	#cd $PLATO_PIPELINE/algorithms 
     	#sudo make install
 	# The following is needed (bug?) to locate these two files
 	cp $PLATO_PIPELINE/algorithms/WP/321000/invert/invert_parabolic1_multi $CONDA_PREFIX/bin

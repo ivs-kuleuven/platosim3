@@ -1341,8 +1341,8 @@ class LightCurve(object):
 
     def plot_multi(self, time_unit="d", flux_unit="e/s", suffix="ftr",
                    group=False, camera=False, quarter=False,
-                   legend=False, median_filter=False, binsize=False,
-                   figsize=(9,6)):
+                   legend=True, median_filter=False, binsize=False,
+                   figsize=(9,5)):
 
         """
         FIXME this function do not work currently
@@ -1378,17 +1378,15 @@ class LightCurve(object):
         ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(nfiles)])
                 
         # Loop over each observation
-        
+
         for i,f in zip(range(len(filenames)), filenames):
 
             # Fetch columns and plot
             lc = LightCurve(f)
             time = lc.time(unit=time_unit)
             flux = lc.flux(unit=flux_unit)
-            ax.plot(time, flux/1e3, ',', alpha=0.2)
-            
+
             # Plot quarter mark
-            ax.tick_params(which='both', top=False)
             group, camera, quarter = lc.obs()
             lab = f'Q{quarter}'
             xpos = np.mean(time) - 20
@@ -1396,13 +1394,19 @@ class LightCurve(object):
             ypos = 103.5 #103.5
             ax.text(xpos, ypos, lab, fontsize=16, zorder=-1)
             if not quarter in (0, nfiles):
-                ax.axvline(x=quarter*90-1, c='k', linestyle=':', lw=1, zorder=-1)
-            
+                ax.axvline(x=quarter*90-1, c='k', linestyle=':', lw=0.5, zorder=-1)
+
+            # Plot the quarter data
+            ax.plot(time, flux/1e3, ',', alpha=0.2, label=f'Q{quarter}, N-CAM {group}.{camera}')
+
         # Set legend
         if legend:
             pos = ax.get_position()
             ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
-            ax.legend(bbox_to_anchor=(1.24, 1.0), prop={'size': 10})
+            ax.legend(bbox_to_anchor=(1.0, 1.0), prop={'size': 10}, ncols=2)
+            #leg = ax.legend(fontsize=10)
+            #leg.legendHandles[0]._legmarker.set_markersize(6)
+            #leg.legendHandles[1]._legmarker.set_markersize(6)
             
         # Settings
         ax.set_xlim(self.time_limit(quarters))

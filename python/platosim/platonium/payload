@@ -83,8 +83,7 @@ class InstrumentSetup(object):
         self.nimg = (60 * 60 * 24 * 90) / 25.
 
         # Select pointng field
-        PF = getPointingField(args.field)
-        self.ra, self.dec, self.kappa = PF
+        self.ra, self.dec, self.kappa = getPointingField(args.field)
         
         # Short-hand definitions 
         N = args.stars

@@ -1664,7 +1664,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
 
 
-def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation, azimuthAngle, tiltAngle):
+def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation,
+                                           azimuthAngle, tiltAngle):
 
     """From platform to camera pointing coordinates.
 
@@ -1768,12 +1769,12 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
     Parameters
     ----------
     raPlatform : float
-        Right ascension of the pointing of the Platform [rad]
+        Right ascension of the pointing of the Platform [deg]
     decPlatform : float 
-        Declination of the pointing of the Platform [rad]
+        Declination of the pointing of the Platform [deg]
     solarPanelOrientation : float
-        Orientation of the solar panel [rad]
-        This corresponds to (0, pi/2, pi, 3pi/2) for quarters (Q1,Q2,Q3,Q4)
+        Orientation of the solar panel [deg]
+        This corresponds to (0, pi/2, pi, 3pi/2) for quarters (Q1, Q2, Q3, mQ4)
 
     Return
     ------

@@ -309,7 +309,7 @@ class Variability(object):
             errorcode('error', 'PHOENIX spectra are not of same size - investigate interpolation!')
 
         # Create SED for star by interpolating nearby absolutely calibrated PHOENIX models
-        wvl     = (wvl1_in + wvl2_in) / 2.
+        wvl  = (wvl1_in + wvl2_in) / 2.
         flux = flux1_in + (Teff-Teff_lower) * (flux2_in-flux1_in) * float(Teff_upper-Teff_lower)**-1
         #bb_flux = bb_flux1_in + (Teff-Teff_lower) * (bb_flux2_in-bb_flux1_in) * (Teff_upper-Teff_lower)**-1
 

@@ -316,6 +316,36 @@ class SimFile (object):
 
 
 
+
+    def getGain(self):
+
+        """Get the gain for both CCD halves.
+        """
+
+        gainCCD_F = self.getInputParameter("CCD/Gain", "RefValueLeft")
+        gainFEE_F = self.getInputParameter("FEE/Gain", "RefValueLeft")
+
+        gainCCD_E = self.getInputParameter("CCD/Gain", "RefValueRight")
+        gainFEE_E = self.getInputParameter("FEE/Gain", "RefValueRight")
+
+        gain_F = 1. / (gainCCD_F * gainFEE_F)
+        gain_E = 1. / (gainCCD_E * gainFEE_E)
+        
+        return gain_F, gain_E
+
+
+    
+
+    def getReadoutNoise(self):
+
+        """Get the total readout noise (RON) of CCD and FEE [e-/exp/pixel].
+        """
+
+        ronCCD = self.getInputParameter("CCD", "ReadoutNoise")
+        ronFEE = self.getInputParameter("FEE", "ReadoutNoise")
+        
+        return np.sqrt(ronCCD**2 + ronFEE**2)
+
     
     #--------------------------------------------------------------#
     #                          IMAGE MAPS                          #
@@ -340,7 +370,6 @@ class SimFile (object):
         data = {"highResPSF":      "highResPSF",
                 "diffusedPSF":     "diffusedPSF",
                 "PRNU":            "PRNU",
-                # "IRNU":            "IRNU",
                 "BackgroundMap":   "skyBackground",
                 "ThroughputMaps": f"throughputMap{imageNr:06d}",
                 "SmearingMaps":   f"smearingMap{imageNr:06d}",
@@ -358,14 +387,14 @@ class SimFile (object):
 
         # Check if the image is in the file
 
-        if datasetName not in self.hdf5file[imageMap].keys():
+        if self.hdf5file[imageMap].keys() is None:
             print(f"ERROR: {datasetName} not in HDF5 file")
             return
 
         # Cases when on or more images are requested
 
         if imageNr is False:
-
+            
             # Fetch images names
 
             imgNames = list(self.hdf5file[imageMap].keys())

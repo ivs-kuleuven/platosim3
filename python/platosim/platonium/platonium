@@ -163,7 +163,7 @@ class PLATOnium(object):
             self.simDir    = self.inputFile.parents[1]
         else:
             errorcode('error', 'Either -i or --project is needed to locate the inputfiles!')
-
+        
         # Check if the inputfile.yaml exists
         if not self.inputFile.is_file():
             errorcode('error', f'File inputfile.yaml do not exist! Alternamtively use "-i" or "--yaml"')        
@@ -207,6 +207,8 @@ class PLATOnium(object):
             print('Loading stellar catalogue..')
 
             
+        # FULL FRAME
+            
         if self.fullFrame:
             if self.starcatFile is not None:
 
@@ -222,7 +224,9 @@ class PLATOnium(object):
             else:
                 errorcode('error', 'Full-frame CCD images need a parsed star catalogue!')
             return
-            
+
+
+        # SUBFIELD
         # Fetch stars either from custum catalogue are the default PIC setup
 
         if self.starcatFile is not None:
@@ -310,31 +314,31 @@ class PLATOnium(object):
         try: os.mkdir(self.outputDir)
         except: pass
 
-        # Set general output filename
-        if self.fullFrame:
-            self.outputFileName = ''
-            self.simSuffix = f'_ccd{self.ccdCode}'
-        else:
-            self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
-            self.simSuffix = ''
-            
-        # Select prefix of observation
-        self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
-
-        # Add a custom prefix to simulation
+        # Custom prefix
         if self.simPrefix is not None:
             self.simPrefix = f'{self.simPrefix}_'
         else:
             self.simPrefix = ''
+        
+        # Set general output filename
+        self.outputFileName = f'{self.targetNo + 1}'.zfill(9)
             
-        # NOTE the structure for the L1 pipeline are different from the default
-        if self.sample is None:
+        # Select suffix of observation
+        self.obsPrefix = f'Ncam{self.group}.{self.camera}_Q{self.quarter}'
+
+        # Combine file name
+        
+        if self.fullFrame:
+            # Full frame mode
+            self.outputFileName = f'{self.obsPrefix}_ccd{self.ccdCode}'
             
-            # PIC name convention
-            self.outputFileName = f'{self.simPrefix}{self.outputFileName}_{self.obsPrefix}{self.simSuffix}'
+        elif self.sample is None:
+            # Standard mode
+            self.outputFileName = f'{self.simPrefix}{self.outputFileName}{self.obsPrefix}{self.simSuffix}'
+            print(self.outputFileName); exit()
             
         else:
-            # Name convention for pipeline mode
+            # Pipline mode
             self.starID = self.outputFileName
             relativeDirStar = f'{self.sample}/Q{self.quarter}/Ncam{self.group}{self.camera}'
 
@@ -362,7 +366,9 @@ class PLATOnium(object):
             self.outputDir = Path(self.outputDirStarIDsim).resolve()
 
             # Path + Prefix of simulations
-            self.microscanSimName = f'{self.microscanDirStarID}/{self.outputFileName}' 
+            self.microscanSimName = f'{self.microscanDirStarID}/{self.outputFileName}'
+
+        # Store final file name
         self.outputSimName = f'{self.outputDir}/{self.outputFileName}'
 
         
@@ -434,8 +440,7 @@ class PLATOnium(object):
 
         # Select PLATO pointing field from inputfile
         self.pointingField = sim['ObservingParameters/StarCatalogFile']
-        PF = getPointingField(self.pointingField)
-        alpha, delta, kappa = PF[0], PF[1], PF[2]
+        alpha, delta, kappa = getPointingField(self.pointingField)
         sim["Platform/Orientation/Angles/RAPointing"]  = alpha
         sim["Platform/Orientation/Angles/DecPointing"] = delta
 
@@ -456,6 +461,10 @@ class PLATOnium(object):
         inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
         if inputFilePRE.is_file():
             PRE = np.loadtxt(inputFilePRE)
+            # Catch one dimentional arrays
+            try: PRE.shape[1]
+            except: PRE = np.array([PRE])
+            # Apply pointing errors
             dex = np.where(PRE[:,0] == self.quarter)[0]
             try: dex[0]
             except:
@@ -468,7 +477,7 @@ class PLATOnium(object):
                 sim["Platform/Orientation/Angles/DecPointing"]           += PRE[dex, 2][0]
                 sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
 
-        # Include Absolute Pointing Error (APE) due to camera misalignments
+        # Absolute Pointing Error (APE) due to camera misalignments
         # NOTE: only be included if "instrumentAPE.txt" is available in the input folder
         inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
         if inputFileAPE.is_file():
@@ -495,7 +504,6 @@ class PLATOnium(object):
             print(f'Applying camera drift        (TED {source})')
 
         # Attitude Orbit Control System (AOCS) jitter
-
         # First check if file from payload is present
         inputFileAOCS = self.inputDir.joinpath('instrumentAOCS.txt')
         if inputFileAOCS.is_file():
@@ -539,14 +547,19 @@ class PLATOnium(object):
 
         if self.fullFrame:
 
+            # Turn of photometry
+            sim['Photometry/IncludePhotometry'] = False
             # Set CCD parameters
             self.subfieldIsOnCCD                = True
-            sim['Photometry/IncludePhotometry'] = False
             sim["CCD/Position"]                 = str(self.ccdCode)
             sim["SubField/ZeroPointRow"]        = 0
             sim["SubField/ZeroPointColumn"]     = 0
             sim["SubField/NumColumns"]          = 4510
             sim["SubField/NumRows"]             = 4510
+            # Control output requirements
+            sim["ControlHDF5Content/GroupByExposure"]    = True
+            sim["ControlHDF5Content/WritePixelMaps"]     = True
+            sim["ControlHDF5Content/WriteStarPositions"] = True
             return sim
 
         
@@ -904,15 +917,20 @@ class PLATOnium(object):
             
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
-            f = h5py.File(self.outputSimName + '.hdf5', "r")
-            df = self.dx.iloc[f['StarPositions/Exposure000000/starID'][:]]
+            f = h5py.File(f'{self.outputSimName}.hdf5', "r")
+            # Select detected stars
+            ID = f['StarPositions/Exposure000000/starID'][:]
+            df = self.dx.iloc[ID]
+            # Add stellar positions
             df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:]
             df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:]
             df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
             df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
+            # Rename index to starID
+            df = df.rename(columns={'index': 'starID'})
             # Save to file
             df = df.reset_index()
-            df = df.drop(columns=['level_0', 'index'])
+            df = df.drop(columns=['index'])
             df.to_feather(self.outputSimName + '.ftr')
             
         # Compress files
@@ -1076,7 +1094,7 @@ class PLATOnium(object):
         # Save catalog and load it into the inputfile
         # NOTE we need to replace the target name for correct handling by the LESIA pipeline
         numStar = self.numCon + 1
-        self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1)
+        self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
         starCatalogFile = f'{self.microscanSimName}.coo'
         np.savetxt(starCatalogFile, self.ds, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
         sim["ObservingParameters/StarCatalogFile"] = starCatalogFile
@@ -1185,6 +1203,9 @@ class PLATOnium(object):
         # NOTE PRNU knowledge errorin % (-p)
         if self.verbose > 0:
             errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
+        # Change directory needed to execute scripts
+
+        path = self.path / '../pipeline'
         cmd = os.system(f'{self.platoLib}/psffit.py ' +
                         f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
                         f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
@@ -1400,7 +1421,7 @@ parser.add_argument('-a', '--animation', action='store_true',   help='Flag to ge
 parser.add_argument('-v', '--verbose', metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
-man_group.add_argument('starID',        type=int, help='ID in target list (Use -1 for full frame)')
+man_group.add_argument('starID',        type=int, help='ID in target list (or for --fullframe CCD in [1,2,3,4])')
 man_group.add_argument('cameraGroupNr', type=int, help='Either: 1, 2, 3, 4')
 man_group.add_argument('cameraNr',      type=int, help='Either: 1, 2, 3, 4, 5, 6')
 man_group.add_argument('quarterNr',     type=int, help='Either: 1, 2, 3, 4, 5, 6, 7, 8, ..')
@@ -1454,8 +1475,8 @@ if args.plot:
 elif args.sample == 'P1':
     # Run the entire on-ground L0-L1 pipeline chain
     p.control_hdf5()
-    p.run_sim_normal(sim)
-    p.run_microscan(sim)
+    #p.run_sim_normal(sim)
+    #p.run_microscan(sim)
     p.run_L1_onground()
     p.sort_output()
     
