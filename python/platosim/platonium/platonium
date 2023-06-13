@@ -440,8 +440,7 @@ class PLATOnium(object):
 
         # Select PLATO pointing field from inputfile
         self.pointingField = sim['ObservingParameters/StarCatalogFile']
-        PF = getPointingField(self.pointingField)
-        alpha, delta, kappa = PF[0], PF[1], PF[2]
+        alpha, delta, kappa = getPointingField(self.pointingField)
         sim["Platform/Orientation/Angles/RAPointing"]  = alpha
         sim["Platform/Orientation/Angles/DecPointing"] = delta
 
@@ -1095,7 +1094,7 @@ class PLATOnium(object):
         # Save catalog and load it into the inputfile
         # NOTE we need to replace the target name for correct handling by the LESIA pipeline
         numStar = self.numCon + 1
-        self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1)
+        self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
         starCatalogFile = f'{self.microscanSimName}.coo'
         np.savetxt(starCatalogFile, self.ds, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
         sim["ObservingParameters/StarCatalogFile"] = starCatalogFile

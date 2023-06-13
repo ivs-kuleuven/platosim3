@@ -828,16 +828,19 @@ def getPointingField(name):
 
     Return
     ------
-    Dictorionary with sky coordinates (alpha, delta, kappa) [deg]
+    Sky coordinates (alpha, delta, kappa) [deg]
     """
 
     PF = {'NPF':   [265.08002279,  39.5836954,  +8.5],      # PIC1.1.0: Galactic []
           'SPF':   [ 86.79870508, -46.39594703, -8.5],      # PIC1.1.0: Galactic [253.0, -30.0, 0.0]
           'LOPN':  [277.18023,     52.85952,    +8.5],      # PIC2.0.0: Galactic [ 81.6, -24.6, 0.0]
           'LOPS':  [ 93.49134,    -42.93544,    20.52825],  # PIC2.0.0: Galactic [255.9, -24.0, 0.0]
+          'LOPS2': [ 95.31043,    -47.88693,    20.52825],  # PIC2.0.0
           'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # Used for simulations of KUL20
+
+    p = PF[name]
     
-    return PF[name]
+    return p[0], p[1], p[2] 
 
 
 

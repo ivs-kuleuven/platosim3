@@ -1228,8 +1228,11 @@ def compass(ax, x, y, size):
 
 
 
+
+            
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
+                 showGroups=False, ncamStars=True, title=None,
+                 fov=30, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1248,9 +1251,20 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     magStars : float
         Magnitudes of stars [PLATO passband]
     system : str
-        Sky reference system as used by Astropy: 'icrs' or 'galactic' 
-    Return
-    ------
+        Sky reference system as used by Astropy: 'icrs' or 'galactic'
+    showGroups : bool
+        Flag to show pointing of each camera group (default: False)
+    ncamStars : bool
+        Flag to show N-CAM visibility of PIC stars (default: True)
+    title : str
+        Title for plot if requested
+    fov : int, float
+        Radius of the plotted FOV [deg] 
+    fs : int
+        Fontsize of the labels in the plot
+
+    Returns
+    -------
     fig : object
         Axes matplotlib.pyplot handle object to be modified by the user
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
@@ -1263,12 +1277,9 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     # Select field
 
-    indir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-    if pointingField == 'NPF': PF_gal = [65.0, 30.0]
-    if pointingField == 'SPF': PF_gal = [253.0, -30.0]
-
-    PF_gal  = SkyCoord(PF_gal[0], PF_gal[1], frame='galactic', unit='deg')  # [deg]
-    PF_icrs = PF_gal.icrs  # [deg]
+    PF_platform = ut.getPointingField(pointingField) 
+    PF_icrs = SkyCoord(PF_platform[0], PF_platform[1], frame='icrs', unit='deg')  # [deg]
+    #PF_gal  = PF_icrs.gal                                                        # [deg]
 
     if system == 'icrs':
         PF = PF_icrs
@@ -1276,41 +1287,45 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     elif system == 'galactic':
         PF = PF_gal
         view = system
-        
-    # Load PIC stars for each N-CAM visibility
 
-    PF06 = np.load(f'{indir}/{pointingField}-NCAM06.npy')
-    PF12 = np.load(f'{indir}/{pointingField}-NCAM12.npy')
-    PF18 = np.load(f'{indir}/{pointingField}-NCAM18.npy')
-    PF24 = np.load(f'{indir}/{pointingField}-NCAM24.npy')
-
-    starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
-    starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
-    starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
-    starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
-
-    if system == "icrs":
-        x06, y06 = starPF06.ra.deg, starPF06.dec.deg
-        x12, y12 = starPF12.ra.deg, starPF12.dec.deg
-        x18, y18 = starPF18.ra.deg, starPF18.dec.deg
-        x24, y24 = starPF24.ra.deg, starPF24.dec.deg
-    elif system == "galactic":
-        x06, y06 = starPF06.l.deg, starPF06.b.deg
-        x12, y12 = starPF12.l.deg, starPF12.b.deg
-        x18, y18 = starPF18.l.deg, starPF18.b.deg
-        x24, y24 = starPF24.l.deg, starPF24.b.deg
-    
     # START PLOT
     
     fig = plt.figure(figsize=figsize)
-    ax = plt.axes(projection=f'{view} degrees zoom', center=PF, radius='30 deg', rotate='180 deg')
+    ax = plt.axes(projection=f'{view} degrees zoom', center=PF,
+                  radius=f'{fov} deg', rotate='180 deg')
+        
+    # Load PIC stars for each N-CAM visibility
 
-    # Plot PIC1.1.0 stars after N-CAM visibility
+    if ncamStars:
 
-    ax.plot(x06, y06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-    ax.plot(x12, y12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-    ax.plot(x18, y18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-    ax.plot(x24, y24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
+        idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
+        PF06 = np.load(f'{idir}/{pointingField}-NCAM06.npy')
+        PF12 = np.load(f'{idir}/{pointingField}-NCAM12.npy')
+        PF18 = np.load(f'{idir}/{pointingField}-NCAM18.npy')
+        PF24 = np.load(f'{idir}/{pointingField}-NCAM24.npy')
+
+        starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
+        starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
+        starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
+        starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
+
+        if system == "icrs":
+            x06, y06 = starPF06.ra.deg, starPF06.dec.deg
+            x12, y12 = starPF12.ra.deg, starPF12.dec.deg
+            x18, y18 = starPF18.ra.deg, starPF18.dec.deg
+            x24, y24 = starPF24.ra.deg, starPF24.dec.deg
+        elif system == "galactic":
+            x06, y06 = starPF06.l.deg, starPF06.b.deg
+            x12, y12 = starPF12.l.deg, starPF12.b.deg
+            x18, y18 = starPF18.l.deg, starPF18.b.deg
+            x24, y24 = starPF24.l.deg, starPF24.b.deg
+    
+        # Plot PIC1.1.0 stars after N-CAM visibility
+
+        ax.plot(x06, y06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
     
     # Plot stars and add legend scaled to the stellar magnitudes
     
@@ -1338,18 +1353,22 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     if showGroups:
 
         # Show N-CAM groups
-        
-        raGroups, decGroups = rf.getCameraGroupCoordinates(PF_icrs.ra.deg, PF_icrs.dec.deg, -8.5)
+
+        raGroups, decGroups = rf.getCameraGroupCoordinates(PF_platform[0],
+                                                           PF_platform[1],
+                                                           PF_platform[2])
         camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
             ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
-                    mec='k', transform=ax.get_transform('world'), zorder=6)
+                    mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
 
-        # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
+        # Plot pointing F-CAM group (i.e. platform pointing)
         
         ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25,
                 transform=ax.get_transform('world'), zorder=6)
+
         # Plot F-CAM FOV as cicle
+        
         # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
         #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
         #         transform=ax.get_transform(system), zorder=6)
@@ -1362,6 +1381,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         # circle = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 18, fc='none', lw=2,
         #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
         #ax.add_patch()
+        
 
     # Add-on's
     
@@ -1377,6 +1397,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
+    plt.legend()
     ax.tick_params(axis='both', labelsize=fs)
     
     # Return figure
