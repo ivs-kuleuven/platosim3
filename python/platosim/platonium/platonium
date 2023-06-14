@@ -334,8 +334,7 @@ class PLATOnium(object):
             
         elif self.sample is None:
             # Standard mode
-            self.outputFileName = f'{self.simPrefix}{self.outputFileName}{self.obsPrefix}{self.simSuffix}'
-            print(self.outputFileName); exit()
+            self.outputFileName = f'{self.simPrefix}{self.outputFileName}_{self.obsPrefix}'
             
         else:
             # Pipline mode
