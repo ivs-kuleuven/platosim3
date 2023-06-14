@@ -466,7 +466,7 @@ class LightCurve(object):
         NOTE: flux_cor is only available for on-board photometry.
         """
         
-        if   unit == "e/s": flux = self.df[column] / 4.026526  # TODO change!
+        if   unit == "e/s": flux = self.df[column] #/ 4.026526  # TODO change!
         elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
         elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
         elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
@@ -630,9 +630,17 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     
 
-    def flux_med(self, carbox=144, unit="e/s", addColumn=False):
+    def flux_med(self, carbox=144, unit="e/s", inplace=False):
 
         """Normalize the input flux and change time units to days. 
+
+        Parameters
+        ----------
+        cabox : int
+           
+        inplace : bool
+           If False, return a copy. Otherwise, do operation inplace and return None.
+
         """
 
         # Flux unit
@@ -645,9 +653,10 @@ class LightCurve(object):
 
         # Add column to data frame if requested
         
-        if addColumn: self.df["flux_med"] = flux_med
-
-        return flux_med
+        if inplace:
+            self.df["flux_med"] = flux_med
+        else:
+            return flux_med
 
 
     
