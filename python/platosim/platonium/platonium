@@ -101,7 +101,7 @@ class PLATOnium(object):
         if self.fullFrame:
             self.ccdCode = self.targetNo
             if not self.ccdCode in [1,2,3,4]:
-                errorcode('error', f'CCD code can only be [1, 2, 3, 4]')
+                errorcode('error', 'CCD code can only be [1, 2, 3, 4]')
             
         # VERBOSITY (a.k.a log level) -> Identical to PlatoSim usage
         # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
