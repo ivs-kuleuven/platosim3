@@ -185,7 +185,7 @@ class PLATOnium(object):
         # Defualt L1 pipeline parameters
         self.bsres           = 10   # [subpixel]
         self.prnuError       = 0.1  # [%]
-        self.maskUpdateThres = 0.01 # [pixel] small value to depend on SNR instead!
+        self.maskUpdateThres = 0.0  # [pixel]
         if not self.conFluxError:   self.conFluxError   = 10    # Flux error of contaminat stars [%]
         if not self.tarFluxError:   self.tarFluxError   = 1     # Flux error of target star [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # Absolute error of target centroid position [pixel]
@@ -433,7 +433,7 @@ class PLATOnium(object):
             self.maskUpdateRate = round(self.maskUpdate * 86400. / self.cadence)
         else:
             self.maskUpdateRate = round(sim['Photometry/MaskUpdateInterval'] * 86400./self.cadence)
-            
+
             
         # CONFIGURE PAYLOAD
 
@@ -716,11 +716,18 @@ class PLATOnium(object):
                                              24 * self.camera + 100000)
 
         # Lastly, the remaining seeds needs to differ for all times and for all subfields
-        sim["RandomSeeds/ReadOutNoiseSeed"] += rng.integers(1e9, size=1)[0]
-        sim["RandomSeeds/PhotonNoiseSeed"]  += rng.integers(1e9, size=1)[0]
-        sim["RandomSeeds/DarkSignalSeed"]   += rng.integers(1e9, size=1)[0]
-        sim["RandomSeeds/FlatFieldSeed"]    += rng.integers(1e9, size=1)[0]
-        sim["RandomSeeds/CosmicSeed"]       += rng.integers(1e9, size=1)[0]
+        if self.seed:
+            sim["RandomSeeds/ReadOutNoiseSeed"] += self.seedTarget
+            sim["RandomSeeds/PhotonNoiseSeed"]  += self.seedTarget
+            sim["RandomSeeds/DarkSignalSeed"]   += self.seedTarget
+            sim["RandomSeeds/FlatFieldSeed"]    += self.seedTarget
+            sim["RandomSeeds/CosmicSeed"]       += self.seedTarget
+        else:
+            sim["RandomSeeds/ReadOutNoiseSeed"] += rng.integers(1e9, size=1)[0]
+            sim["RandomSeeds/PhotonNoiseSeed"]  += rng.integers(1e9, size=1)[0]
+            sim["RandomSeeds/DarkSignalSeed"]   += rng.integers(1e9, size=1)[0]
+            sim["RandomSeeds/FlatFieldSeed"]    += rng.integers(1e9, size=1)[0]
+            sim["RandomSeeds/CosmicSeed"]       += rng.integers(1e9, size=1)[0]
 
 
 
@@ -987,7 +994,7 @@ class PLATOnium(object):
         """
 
         # Exclude photometry
-        sim["Photometry/IncludePhotometry"] = 'no'
+        #sim["Photometry/IncludePhotometry"] = 'no'
 
         # Include HDF5 content
         sim["ControlHDF5Content/WritePixelMaps"]              = True
