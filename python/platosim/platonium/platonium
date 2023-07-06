@@ -444,7 +444,7 @@ class PLATOnium(object):
         sim["Platform/Orientation/Angles/DecPointing"] = delta
 
         # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-        solarPanelOrientationDeg = math.fmod(self.quarter * 90, 360) + kappa
+        solarPanelOrientationDeg = math.fmod(self.quarter * 90, 360) - 90 + kappa
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
@@ -883,7 +883,7 @@ class PLATOnium(object):
                     imgScale=imgScale,
                     showGrid=showGrid,
                     figsize=figsize)
-        exit()
+
         # Remove the output files
         if os.path.isfile(str(self.outputSimName) + '.hdf5'):
             os.system(f'rm {self.outputDir}/{self.outputFileName}*')
@@ -904,7 +904,12 @@ class PLATOnium(object):
 
         # Select the number of exposures
         sim["ObservingParameters/NumExposures"] = self.numExposures
-        
+
+        # Save images if animation is requested
+        if self.animation:
+            sim["ControlHDF5Content/WritePixelMaps"]     = True
+            sim["ControlHDF5Content/WriteStarPositions"] = True
+            
         # Run simulation
         sim.outputDir = self.outputDir
         simFile = sim.run(removeOutputFile=self.overwrite, logLevel=self.verbose_platosim)
