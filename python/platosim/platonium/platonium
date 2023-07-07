@@ -66,6 +66,7 @@ class PLATOnium(object):
 
         self.inputFile     = args.infile
         self.outputDir     = args.outdir
+        self.hpcDir        = args.hpcdir
         self.project       = args.project
         self.inputFileName = args.yaml
         self.simPrefix     = args.prefix
@@ -308,12 +309,15 @@ class PLATOnium(object):
         """Module to create, configure, and select the correct output folders.
         """
 
+        # Final destination on the cluster
+        self.hpcDir = Path(self.hpcDir).resolve()
+
         # Default output path
         if self.outputDir is None: self.outputDir = self.simDir.joinpath('output')
         else: self.outputDir = Path(self.outputDir).resolve()
         try: os.mkdir(self.outputDir)
         except: pass
-
+        
         # Custom prefix
         if self.simPrefix is not None:
             self.simPrefix = f'{self.simPrefix}_'
@@ -959,7 +963,11 @@ class PLATOnium(object):
             os.remove(self.outputSimName + '.hdf5')
             if self.fullFrame:
                 os.remove(self.outputSimName + '.ftr')
-        
+
+        # If requested move file to final output directory (for cluster)
+        if self.hpcDir:
+            os.system(f'mv {self.outputSimName}.* {self.hpcDir}')
+                
         # Make a animation if requested
         if self.animation:
             
@@ -1448,6 +1456,7 @@ man_group.add_argument('quarterNr',     type=int, help='Either: 1, 2, 3, 4, 5, 6
 out_group = parser.add_argument_group('I/O PARAMETERS')
 out_group.add_argument('-i', '--infile', metavar='FILE', type=str, help='Path to YAML input file')
 out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory')
+out_group.add_argument('-d', '--hpcdir', metavar='PATH', type=str, help='Final output directory for storage on cluster')
 out_group.add_argument('--project',      metavar='NAME', type=str, help='Name project folder within $PLATO_WORKDIR')
 out_group.add_argument('--yaml',         metavar='NAME', type=str, help='Name of yaml file within $PLATO_WORKDIR/input')
 out_group.add_argument('--prefix',       metavar='NAME', type=str, help='Prefix filename extention')
