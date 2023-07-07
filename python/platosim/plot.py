@@ -3370,7 +3370,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     ims = []
     fig, ax = plt.subplots(1,1,figsize=figsize)
 
-    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=tqdmBar()), imgNames):
+    for imgNumber, imgName in zip(tqdm(imgNumbers, bar_format=ut.tqdmBar()), imgNames):
 
         # Fetch each pixel image
         
@@ -3406,20 +3406,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         if showStarPositions:
 
             # Extract the arays from HDF5 file
-            
-            exposureGroupName = exposureGroupNames[imgNumber-imgNumbers[0]]
-            dataset = f["StarPositions"][exposureGroupName]["starID"]
-            ID = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(ID)
-            dataset = f["StarPositions"][exposureGroupName]["rowPix"]
-            row = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(row)
-            dataset = f["StarPositions"][exposureGroupName]["colPix"]
-            col = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(col)
-            dataset = f["StarPositions"][exposureGroupName]["flux"]
-            flux = np.zeros(dataset.shape, dataset.dtype)
-            dataset.read_direct(flux)
+
+            ID, row, col, Xmm, Ymm, flux = simfile.getStarCoordinates(imgNumber-imgNumbers[0])
 
             # Allow differentiating between a (PIC) target and its contaminants
             
@@ -3494,8 +3482,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
 
         # Add x and y axis labels
         
-        plt.xlabel('Column [pixel]', fontsize=15)
-        plt.ylabel('Row [pixel]',    fontsize=15)
+        plt.xlabel(r'Pixel column, $i$', fontsize=15)
+        plt.ylabel(r'Pixel row, $j$',    fontsize=15)
             
         # Append images to list
 
