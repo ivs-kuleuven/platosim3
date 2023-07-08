@@ -111,7 +111,10 @@ Make sure that the ``$PLATO`` environment is loaded. If added to your ``.bashrc`
 aswsim3
 .......
 
-This library ``aswsim3`` sometimes cause errors and since we do not need to PLATOnium we can simply skip this library. However, ``aswsim3`` depends on the library ``platosimlib`` hence simply replace ``aswsim3`` with ``platosimlib`` in the section ``install: all`` listed within in ``Makefile``.
+This library ``aswsim3`` sometimes cause errors and since we do not need to PLATOnium we can simply skip this library. However, ``aswsim3`` depends on the library ``platosimlib`` hence simply replace ``aswsim3`` with ``platosimlib`` in the section ``install: all`` listed within in ``Makefile``. Note the problem is typically that GLS packages cannot be found here, like:
+
+../src/test_gsl.c:2:24: fatal error: gsl_matrix.h: No such file or directory
+#include <gsl_matrix.h>
 
 OpenBLAS vs. BLAS/LAPACK
 ........................
@@ -122,9 +125,15 @@ If using OpenBLAS as a BLAS (and LAPACK) implementation the ``-lblas`` and ``-ll
 
 .. code-block:: shell
 
-   libraries=["m","blas","lapack"],  # Unix-[like specific
-   
+   libraries=["m","blas","lapack"],  # Unix-like specific
 
+   to
+
+   libraries=["m","openblas"],  # Unix-like specific
+   
+For the rest of the libraries you need to look into the ``Makefile`` of each package.
+
+   
 2. Within the main installation Makefile (``$PLATO/algorithms/Makefile``) the inversion modules named ``WP/32100/voxel/..`` link to the openblas libray. If you get a message that ``-llapack not found`` then a potential solution is to remove this flag completely since it is already included within openblas. Hence remove ``-llapack`` from the following line in each file you encounter this error:
 
 .. code-block:: shell
