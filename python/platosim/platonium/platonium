@@ -310,7 +310,8 @@ class PLATOnium(object):
         """
 
         # Final destination on the cluster
-        self.hpcDir = Path(self.hpcDir).resolve()
+        if self.hpcDir:
+            self.hpcDir = Path(self.hpcDir).resolve()
 
         # Default output path
         if self.outputDir is None: self.outputDir = self.simDir.joinpath('output')
