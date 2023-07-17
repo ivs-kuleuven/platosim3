@@ -25,10 +25,10 @@ class Photometry: public HDF5Writer
 {
  public:
 
-  void Preprocessing(const unsigned int exposureNr);
-  void extractPhotometry(const unsigned int exposureNr);
-  void applyPhotometry(const unsigned int exposureNr);
-  void writePhotometry();
+    void Preprocessing(const unsigned int exposureNr);
+    void extractPhotometry(const unsigned int exposureNr);
+    void applyPhotometry(const unsigned int exposureNr);
+    void writePhotometry();
   
  protected:
 

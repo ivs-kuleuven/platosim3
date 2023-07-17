@@ -1,17 +1,17 @@
 /**
  * \class HDF5File
- * 
+ *
  * \brief      Provides an application level interface to the HDF5 C++ API
- * 
+ *
  * \details
- * 
- * This class provides a convenient application level interface to the HDF5 C++ wrapper to 
+ *
+ * This class provides a convenient application level interface to the HDF5 C++ wrapper to
  * the HDF C library that is developed by the HDFGroup.
- * 
+ *
  * Use this class to access (read/write) HDF5 files from your code. Do not use the HDF5 C++
  * wrapper.
  */
- 
+
 #include "HDF5File.h"
 
 
@@ -19,7 +19,7 @@
 /**
  * \brief      Default Constructor
  */
- 
+
 HDF5File::HDF5File()
 : file(NULL), fileIsOpen(false)
 {
@@ -75,8 +75,8 @@ HDF5File::~HDF5File()
 
 /**
  * \brief Open an HDF5 File. If it doesn't already exist, create it.
- * 
- * 
+ *
+ *
  * \param filename   Absolute path of the file.
  * \param readonly   True if an existing file should only be read and not written.
  *                   False otherwise. Ignored if the file does not exist yet.
@@ -109,10 +109,10 @@ void HDF5File::open(string filename, bool readonly)
         else
         {
             // Open an existing HDF5 file to both read and write
-    
+
             file = new H5::H5File(filename.c_str(), H5F_ACC_RDWR);
 
-            Log.info("HDF5File: opened existing HDF5 file " + filename + " to read/write");            
+            Log.info("HDF5File: opened existing HDF5 file " + filename + " to read/write");
         }
     }
     else
@@ -193,7 +193,7 @@ bool HDF5File::hasGroup(string groupName)
  * \param[in]  datasetName  the name of the dataset
  *
  * \return     true if the dataset exists in this group, false otherwise
- * 
+ *
  * \exception  H5GroupException thrown when the group is unknown to the HDF5 file
  */
 bool HDF5File::hasDataset(string groupName, string datasetName)
@@ -226,13 +226,13 @@ bool HDF5File::hasDataset(string groupName, string datasetName)
 
 /**
  * \brief Create a group in an HDF5 file.
- * 
+ *
  * \param groupName: Full path of the group. Should always start with "/".
- * 
+ *
  * \example createGroup("/my/path/to/subgroup1") will create "subgroup1"
- *          in the parent group "/my/path/to". 
- *          Note that the parent group is assumed to already exist. 
- *          If not, an error will be given. So, to create "/my/path/to/subgroup1" 
+ *          in the parent group "/my/path/to".
+ *          Note that the parent group is assumed to already exist.
+ *          If not, an error will be given. So, to create "/my/path/to/subgroup1"
  *          from scratch, you should call:
  *             createGroup("/my");
  *             createGroup("/my/path");
@@ -248,15 +248,15 @@ void HDF5File::createGroup(string groupName)
         groupName.insert(0, "/");
     }
 
-    // Find the parent group. 
-    // E.g. if the groupName is "/my/path/to/group1" then the parent group is 
+    // Find the parent group.
+    // E.g. if the groupName is "/my/path/to/group1" then the parent group is
     //      "/my/path/to" and the subgroup is "group1".
 
     auto position = groupName.find_last_of("/");
     string parentGroupName = groupName.substr(0, position);
     string subGroupName = groupName.substr(position+1);
 
-    // If the parent group name is empty, it means that the group should be 
+    // If the parent group name is empty, it means that the group should be
     // placed in the root group. In that case, make sure that the parentGroupName
     // is "/".
 
@@ -286,9 +286,9 @@ void HDF5File::createGroup(string groupName)
 
 
  /**
- * \brief Add a string attribute to the HDF5 file.  The attribute is stored in 
+ * \brief Add a string attribute to the HDF5 file.  The attribute is stored in
  *        "<GroupName>/<attributeName>".
- *          
+ *
  * \param groupName: String containing the full path of an existing group. Starts with "/".
  * \param attributeName: String containing the name of the attribute
  * \param attributeValue: String containing the attribute value
@@ -298,7 +298,7 @@ void HDF5File::createGroup(string groupName)
 void HDF5File::writeAttribute(string groupName, string attributeName, string attributeValue)
 {
    // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
@@ -314,8 +314,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -348,7 +348,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 
     attribute.close();
     group.close();
-    
+
     return;
 }
 
@@ -366,7 +366,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 //
 // PURPOSE: add an integer attribute to the HDF5 file.
 //          The attribute is stored in "<GroupName>/<attributeName>".
-//          
+//
 // INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
 //        attributeName:  string containing the name of the attribute
 //        attributeValue: integer containing the attribute value
@@ -378,13 +378,13 @@ void HDF5File::writeAttribute(string groupName, string attributeName, string att
 void HDF5File::writeAttribute(string groupName, string attributeName, int attributeValue)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
 
- 
+
     // Open the proper group where the input parameter belongs
 
     H5::Group group = file->openGroup(groupName.c_str());
@@ -395,8 +395,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -448,7 +448,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
 //
 // PURPOSE: add a long integer attribute to the HDF5 file.
 //          The attribute is stored in "<GroupName>/<attributeName>".
-//          
+//
 // INPUT: groupName:      string containing the full path of an existing group. Starts with "/".
 //        attributeName:  string containing the name of the attribute
 //        attributeValue: long integer containing the attribute value
@@ -461,7 +461,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, int attrib
 void HDF5File::writeAttribute(string groupName, string attributeName, long attributeValue)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File::writeAttribute(): file " + file-> getFileName() + " is not open.");
@@ -478,8 +478,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -529,17 +529,17 @@ void HDF5File::writeAttribute(string groupName, string attributeName, long attri
 /**
  * \brief  Add a double-valued attribute to the HDF5 file.
  *         The attribute is stored in "<GroupName>/<attributeName>".
- *          
+ *
  * \param groupName: String containing the full path of an existing group. Starts with "/".
  * \param attributeName: String containing the name of the attribute
  * \param attributeValue: Double containing the attribute value
- * 
+ *
  * \example writeAttribute("/InputParameters/JitterParameters", "JitterYawRms", 0.01)
 */
 void HDF5File::writeAttribute(string groupName, string attributeName, double attributeValue)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
@@ -555,8 +555,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -602,22 +602,22 @@ void HDF5File::writeAttribute(string groupName, string attributeName, double att
 
 
 /**
- * \brief Add a boolean attribute to the HDF5 file. 
+ * \brief Add a boolean attribute to the HDF5 file.
  *        The attribute is stored in "<GroupName>/<attributeName>".
- *        
+ *
  * \param groupName: String containing the full path of an existing group. Starts with "/".
  * \param attributeName: String containing the name of the attribute
  * \param attributeValue: Integer containing the attribute value
- * 
- * \example  writeAttribute("/InputParameters/Platform", "UseJitter", true) 
- * 
+ *
+ * \example  writeAttribute("/InputParameters/Platform", "UseJitter", true)
+ *
  * \exception  H5FileException: If the HDF5 file has not been opened
  * \exception  H5FileException: If the attribute already existed in the HDF5 file
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, bool attributeValue)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         string errorMessage = "HDF5File::writeAttribute(): file is not open.";
@@ -625,7 +625,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, bool attri
         throw H5FileException(errorMessage);
     }
 
- 
+
     // Open the proper group where the input parameter belongs
 
     H5::Group group = file->openGroup(groupName.c_str());
@@ -636,8 +636,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, bool attri
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -701,23 +701,23 @@ void HDF5File::writeAttribute(string groupName, string attributeName, bool attri
 /**
  * \brief Add an attribute of type vector <double> to the HDF5 file.
  *        The attribute is stored in "<GroupName>/<attributeName>".
- *          
+ *
  * \param groupName: String containing the full path of an existing group. Starts with "/".
  * \param attributeName: String containing the name of the attribute
  * \param attributeValue: Vector <double> containing the attribute values
- * 
+ *
  * \example writeAttribute("/InputParameters/Camera/FieldDistortion", "Coefficients", values)
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, vector<double> attributeValue)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
 
- 
+
     // Open the proper group where the input parameter belongs
 
     H5::Group group = file->openGroup(groupName.c_str());
@@ -728,8 +728,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<dou
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -750,8 +750,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<dou
 
 
     // Create and write the attribute to the group. The attribute is a vector <double> so we need
-    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
-    // their elements contiguously, we can just pass the pointer to the first element when writing 
+    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store
+    // their elements contiguously, we can just pass the pointer to the first element when writing
     // the attribute.
 
     try
@@ -793,23 +793,23 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<dou
 /**
  * \brief Add an attribute of type vector <int> to the HDF5 file.
  *        The attribute is stored in "<GroupName>/<attributeName>".
- *          
+ *
  * \param groupName: String containing the full path of an existing group. Starts with "/".
  * \param attributeName: String containing the name of the attribute
  * \param attributeValue: Vector <int> containing the attribute values
- * 
+ *
  * \example writeAttribute("/InputParameters/CCDPositions/", "NumRows", values)
  */
 void HDF5File::writeAttribute(string groupName, string attributeName, vector<int> attributeValue)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File::writeAttribute(): file " + file->getFileName() + " is not open.");
     }
 
- 
+
     // Open the proper group where the input parameter belongs
 
     H5::Group group = file->openGroup(groupName.c_str());
@@ -820,8 +820,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<int
 
     bool attributeIsAlreadyInGroup = true;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -842,8 +842,8 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<int
 
 
     // Create and write the attribute to the group. The attribute is a vector <int> so we need
-    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store 
-    // their elements contiguously, we can just pass the pointer to the first element when writing 
+    // to specify the rank and the dimension of the vector. Since a vector is guaranteed to store
+    // their elements contiguously, we can just pass the pointer to the first element when writing
     // the attribute.
 
     try
@@ -889,7 +889,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<int
  * \param[in]  attributeName  string containing the name of the attribute
  *
  * \return     the value of the attribute
- * 
+ *
  * \exception  H5FileException      if the HDF5 file has not been opened
  * \exception  H5GroupException     if the group is unknown to the HDF5 file
  * \exception  H5AttributeException if there is no attribute with the given name
@@ -897,7 +897,7 @@ void HDF5File::writeAttribute(string groupName, string attributeName, vector<int
 double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
@@ -910,7 +910,7 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
     {
         group = file->openGroup(groupName.c_str());
     }
-    else 
+    else
     {
         throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
@@ -920,8 +920,8 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
 
     H5::Attribute attr;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -938,11 +938,75 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
     double value = 0.0;
 
     H5::DataType type = attr.getDataType();
-    attr.read(type, &value);    
+    attr.read(type, &value);
 
     return value;
 }
 
+
+
+
+
+
+
+
+
+
+void HDF5File::readArrayDatasetAttribute(string groupName, string datasetName, string attributeName, double *outputArray)
+{
+    // Complain if the file was not first opened
+
+    if (!fileIsOpen)
+    {
+        throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
+    }
+
+    // Open the proper group where the attribute is associated
+
+    H5::Group group;
+    if (hasGroup(groupName))
+    {
+        group = file->openGroup(groupName.c_str());
+    }
+    else
+    {
+        throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    H5::DataSet dataset;
+    if (hasDataset(groupName, datasetName))
+    {
+        dataset = group.openDataSet(datasetName);
+    }
+    else
+    {
+        throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
+    }
+
+    // Check whether the attribute is in the group by trying to read it.
+    // If not, raise an exception.
+
+    H5::Attribute attr;
+
+    try
+    {
+        // Turn off the auto-printing when an exception is raised
+
+        H5::Exception::dontPrint();
+
+        // Try to open the attribute
+
+        attr = dataset.openAttribute(attributeName.c_str());
+    }
+    catch (H5::AttributeIException error)
+    {
+        throw H5AttributeException("HDF5File: Unknown Attribute (" + attributeName + ") in the group " + groupName + " for HDF5 file " + file->getFileName());
+    }
+
+
+    H5::DataType type = attr.getDataType();
+    attr.read(type, outputArray);
+}
 
 
 
@@ -961,7 +1025,7 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
  * \param[in]  attributeName  string containing the name of the attribute
  *
  * \return     the value of the attribute
- * 
+ *
  * \exception  H5FileException      if the HDF5 file has not been opened
  * \exception  H5GroupException     if the group is unknown to the HDF5 file
  * \exception  H5AttributeException if there is no attribute with the given name
@@ -970,7 +1034,7 @@ double HDF5File::readDoubleGroupAttribute(string groupName, string attributeName
 int HDF5File::readIntegerGroupAttribute(string groupName, string attributeName)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
@@ -983,7 +1047,7 @@ int HDF5File::readIntegerGroupAttribute(string groupName, string attributeName)
     {
         group = file->openGroup(groupName.c_str());
     }
-    else 
+    else
     {
         throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
@@ -993,8 +1057,8 @@ int HDF5File::readIntegerGroupAttribute(string groupName, string attributeName)
 
     H5::Attribute attr;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1011,7 +1075,7 @@ int HDF5File::readIntegerGroupAttribute(string groupName, string attributeName)
     int value = 0.0;
 
     H5::DataType type = attr.getDataType();
-    attr.read(type, &value);    
+    attr.read(type, &value);
 
     return value;
 }
@@ -1037,7 +1101,7 @@ int HDF5File::readIntegerGroupAttribute(string groupName, string attributeName)
  * \param[in]  attributeName  string containing the name of the attribute
  *
  * \return     the value of the attribute
- * 
+ *
  * \exception  H5FileException      if the HDF5 file has not been opened
  * \exception  H5GroupException     if the group is unknown to the HDF5 file
  * \exception  H5DatasetException   if the dataset is not known to the group
@@ -1047,7 +1111,7 @@ int HDF5File::readIntegerGroupAttribute(string groupName, string attributeName)
 double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName, string attributeName)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
@@ -1060,7 +1124,7 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
     {
         group = file->openGroup(groupName.c_str());
     }
-    else 
+    else
     {
         throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
@@ -1070,7 +1134,7 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
     {
         dataset = group.openDataSet(datasetName);
     }
-    else 
+    else
     {
         throw H5DatasetException("HDF5File: Unknown dataset (" + datasetName + ") in group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
@@ -1080,8 +1144,8 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
 
     H5::Attribute attr;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1122,7 +1186,7 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
  * \param[in]  attributeName  string containing the name of the attribute
  *
  * \return     the value of the attribute
- * 
+ *
  * \exception  H5FileException      if the HDF5 file has not been opened
  * \exception  H5GroupException     if the group is unknown to the HDF5 file
  * \exception  H5DatasetException   if the dataset is not known to the group
@@ -1132,7 +1196,7 @@ double HDF5File::readDoubleDatasetAttribute(string groupName, string datasetName
 string HDF5File::readStringDatasetAttribute(string groupName, string datasetName, string attributeName)
 {
     // Complain if the file was not first opened
-    
+
     if (!fileIsOpen)
     {
         throw H5FileException("HDF5File: The file (" + file->getFileName() + ") has not been opened.");
@@ -1145,7 +1209,7 @@ string HDF5File::readStringDatasetAttribute(string groupName, string datasetName
     {
         group = file->openGroup(groupName.c_str());
     }
-    else 
+    else
     {
         throw H5GroupException("HDF5File: Unknown group (" + groupName + ") in HDF5 file " + file->getFileName());
     }
@@ -1757,8 +1821,8 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
 
     H5::DataSet dataset;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1826,7 +1890,7 @@ void HDF5File::readArray(string groupName, string arrayName, arma::Mat<float>& A
  * \param groupName  Name of an existing HDF5 Group in the file. Starts with "/".
  * \param arrayName  Unique name of the array in the group, e.g. "skyBackground"
  * \param vec        C++ vector<double>. Previous contents will be lost.
- * 
+ *
  */
 
 void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec)
@@ -1839,8 +1903,8 @@ void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec
 
     H5::DataSet dataset;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1896,11 +1960,11 @@ void HDF5File::readArray(string groupName, string arrayName, vector<double> &vec
 
 /**
  * \brief  Read a 1D (unsigned int) array from a specified group in the HDF5 file into a vector<unsigned int>
- * 
+ *
  * \param groupName  Name of an existing HDF5 Group in the file. Starts with "/".
  * \param arrayName  Unique name of the array in the group, e.g. "skyBackground"
  * \param vec        C++ vector<double>. Previous contents will be lost.
- * 
+ *
  */
 
 void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int> &vec)
@@ -1913,8 +1977,8 @@ void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int
 
     H5::DataSet dataset;
 
-    try 
-    {  
+    try
+    {
         // Turn off the auto-printing when an exception is raised
 
         H5::Exception::dontPrint();
@@ -1968,6 +2032,860 @@ void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int
 
 
 
+/**
+ * \brief: include version of the simulator in the HDF5 file,.
+ */
+
+void HDF5File::writeVersionInformation()
+{
+    Log.info("HDF5File: writing version information to HDF5");
+
+    // Make the parent group
+
+    string parentGroup = "/Version";
+    createGroup(parentGroup);
+
+    writeAttribute(parentGroup, "Application", string("PlatoSim3"));
+    writeAttribute(parentGroup, "GitVersion", string(GIT_DESCRIBE));
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: include the tranmsissionEfficiency values to the HDF5 file.
+ *
+ */
+void HDF5File::writeTransmissionEfficiencyValues(double* array, int size)
+{
+    writeArray("TransmissionEfficiency/", "transmissionEfficiency", array, size);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: include the throughput map to the HDF5 file.
+ *
+ */
+void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
+{
+    // Clear the string stream and compose the throughput map name
+    stringstream myStream;
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
+    string throughputMapName = myStream.str();
+
+    // Add the throughput map to the "ThroughputMaps" group
+    writeArray("/ThroughputMaps", throughputMapName, throughputMap);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: includes the TelescopeACS to the HDF5 file.
+ *
+ */
+void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vector<double>& dec,
+				 vector<double>& yaw, vector<double>& pitch, vector<double>& roll)
+{
+    writeArray("/Telescope/", "Time",           time.data(),    time.size());
+    writeArray("/Telescope/", "TelescopeRA",    RA.data(),      RA.size());         // [deg]
+    writeArray("/Telescope/", "TelescopeDec",   dec.data(),     dec.size());        // [deg]
+    writeArray("/Telescope/", "TelescopeYaw",   yaw.data(),     yaw.size());        // [arcsec]
+    writeArray("/Telescope/", "TelescopePitch", pitch.data(),   pitch.size());      // [arcsec]
+    writeArray("/Telescope/", "TelescopeRoll",  roll.data(),    roll.size());       // [arcsec]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the star positions to the HDF5 file.
+ * /Note: This is the old way of doing things!
+ *
+ */
+void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, int beginExposureNr)
+{
+
+    Log.info("HDF5File: writing star positions to HDF5 file");
+
+    vector<double> time;
+    for(auto keyValuePair: detectedStarInfo)
+    {
+      time.push_back(keyValuePair.first);
+    }
+    if (!time.empty())
+    {
+      writeArray("StarPositions/", "Time", time.data(), time.size());
+    }
+    else
+    {
+      Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    }
+
+    // For each of the exposures, make a subgroup and write the position and flux of all detected stars.
+    // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
+    // the written arrays may not be equally long for each exposure.
+
+    for (int n = 0; n < time.size(); n++)
+    {
+      // Make the sub-group
+
+      stringstream myStream;
+      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+      const string exposureGroupName = "/StarPositions/" + myStream.str();
+      createGroup(exposureGroupName);
+
+      // Collect the different time series. For the positions, we only compute the sum, so we still need
+      // to divide by N to compute the average, where N is the number of times the star was detected to be
+      // in the subfield during an exposure.
+
+      vector<unsigned int> starIDs;
+      vector<double> xFPmm;
+      vector<double> yFPmm;
+      vector<double> rowPix;
+      vector<double> colPix;
+      vector<double> flux;
+
+      for(auto keyValuePair: detectedStarInfo[time[n]])
+      {
+	const unsigned int starID = keyValuePair.first;
+	starIDs.push_back(starID);                       // list of starIDs for this exposure only
+	xFPmm.push_back(detectedStarInfo[time[n]][starID][0] / detectedStarInfo[time[n]][starID][5]);
+	yFPmm.push_back(detectedStarInfo[time[n]][starID][1] / detectedStarInfo[time[n]][starID][5]);
+	rowPix.push_back(detectedStarInfo[time[n]][starID][2] / detectedStarInfo[time[n]][starID][5]);
+	colPix.push_back(detectedStarInfo[time[n]][starID][3] / detectedStarInfo[time[n]][starID][5]);
+	flux.push_back(detectedStarInfo[time[n]][starID][4]);
+      }
+
+      // Write the time series to HDF5
+
+      if(!starIDs.empty())
+      {
+	writeArray(exposureGroupName, "starID", starIDs.data(), starIDs.size());
+	writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+	writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+	writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
+	writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
+	writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
+      }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the star positions to the HDF5 file.
+ * /Note: This is the new way of doing things!
+ *
+ */
+void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, vector<unsigned int> starIDs)
+{
+    Log.info("HDF5File: writing star positions to HDF5 file");
+    map<unsigned int, map<double, array<double, 6>>> transformedDetectedStarInfo;
+    vector<double> time;
+    for(auto keyValuePair: detectedStarInfo)
+    {
+      time.push_back(keyValuePair.first);
+    }
+    if (!time.empty())
+    {
+      writeArray("StarPositions/", "Time", time.data(), time.size());
+    }
+    else
+    {
+      Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    }
+
+    // For each starID, make a subgroup and write the position and flux of all detected stars.
+    // Because some stars at the edge may jitter in and out of the subfield from one exposure to the other,
+    // the written arrays may not be equally long for each exposure.
+
+    for (int n = 0; n < time.size(); n++)
+    {
+      for(auto keyValuePair: detectedStarInfo[time[n]])
+      {
+	const unsigned int starID = keyValuePair.first;
+	transformedDetectedStarInfo[starID][time[n]] = detectedStarInfo[time[n]][starID];
+      }
+    }
+
+
+    for (int n = 0; n < starIDs.size(); n++)
+    {
+
+      // Collect the different time series. For the positions, we only compute the sum, so we still need
+      // to divide by N to compute the average, where N is the number of times the star was detected to be
+      // in the subfield during an exposure.
+
+      vector<unsigned int> times;
+      vector<double> xFPmm;
+      vector<double> yFPmm;
+      vector<double> rowPix;
+      vector<double> colPix;
+      vector<double> flux;
+
+      for(auto keyValuePair: transformedDetectedStarInfo[starIDs[n]])
+      {
+	const double time = keyValuePair.first;
+	times.push_back(time);
+	xFPmm.push_back(transformedDetectedStarInfo[starIDs[n]][time][0] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	yFPmm.push_back(transformedDetectedStarInfo[starIDs[n]][time][1] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	rowPix.push_back(transformedDetectedStarInfo[starIDs[n]][time][2] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	colPix.push_back(transformedDetectedStarInfo[starIDs[n]][time][3] / transformedDetectedStarInfo[starIDs[n]][time][5]);
+	flux.push_back(transformedDetectedStarInfo[starIDs[n]][time][4]);
+      }
+
+      // Write the time series to HDF5
+
+      if(!times.empty())
+      {
+        // Make the sub-group
+        stringstream myStream;
+        myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
+        const string exposureGroupName = "/StarPositions/" + myStream.str();
+        createGroup(exposureGroupName);
+        writeArray(exposureGroupName, "time", times.data(), times.size());
+        writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+        writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+        writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
+        writeArray(exposureGroupName, "colPix", colPix.data(),  colPix.size());
+        writeArray(exposureGroupName, "flux",   flux.data(),    flux.size());
+      }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: Write smearing map into the HDF5 file.
+ *
+ */
+void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuantisation, int exposureNr)
+{
+    // Clear the string stream and compose the smearing map name
+    stringstream myStream;
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
+    string smearingMapName = myStream.str();
+
+    // Add the smearing map to the "SmearingMaps" group
+
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
+        writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    }
+    else
+    {
+        if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
+        {
+            throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
+        writeArray("/SmearingMaps", smearingMapName, uintMap);
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the pointlike ghosts to the HDF5 file.
+ * /Note: This will group the ghost by exposure.
+ *
+ */
+void HDF5File::writePointlikeGhostByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedPointLikeGhostInfo, int beginExposureNr)
+{
+
+    Log.info("HDF5File: writing pointlike ghost positions to HDF5 file");
+    createGroup("/PointLikeGhostPositions");
+    vector<double> time;
+    for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
+    if (!time.empty())
+    {
+        writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+    }
+    else
+    {
+        Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
+    }
+
+    for (int n = 0; n < time.size(); n++)
+    {
+      stringstream myStream;
+      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+
+
+      vector<unsigned int> starIDs;
+      vector<double> xFPmm;
+      vector<double> yFPmm;
+      vector<double> rowPix;
+      vector<double> colPix;
+      vector<double> flux;
+      vector<double> ghostRadius;
+
+      for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
+      {
+          const unsigned int starID = keyValuePair.first;
+          starIDs.push_back(starID);                       // list of starIDs for this exposure only
+          xFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][0] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+          yFPmm.push_back(detectedPointLikeGhostInfo[time[n]][starID][1] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+          rowPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][2] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+          colPix.push_back(detectedPointLikeGhostInfo[time[n]][starID][3] / detectedPointLikeGhostInfo[time[n]][starID][5]);
+          flux.push_back(detectedPointLikeGhostInfo[time[n]][starID][4]);
+      }
+
+      const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
+      createGroup(pointLikeGhostGroupName);
+
+      // Write the info for the point-like ghost star positions to HDF5
+      if(!starIDs.empty())
+      {
+          writeArray(pointLikeGhostGroupName, "starID", starIDs.data(), starIDs.size());
+          writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+          writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+          writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+          writeArray(pointLikeGhostGroupName, "colPix", colPix.data(),  colPix.size());
+          writeArray(pointLikeGhostGroupName, "flux",   flux.data(),    flux.size());
+      }
+
+      // Write the info for the point like ghost star positions to HDF5
+
+      Log.info("HDF5File: writing point like ghost positions to HDF5 file");
+
+      starIDs.clear();
+      xFPmm.clear();
+      yFPmm.clear();
+      rowPix.clear();
+      colPix.clear();
+      flux.clear();
+      ghostRadius.clear();
+    }
+    time.clear();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the pointlike ghosts to the HDF5 file.
+ * /Note: This will group the ghost by star id.
+ *
+ */
+void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<double, 6>>>& detectedPointLikeGhostInfo)
+{
+
+    Log.info("HDF5File: writing pointlike ghost positions to HDF5 file");
+    createGroup("/PointLikeGhostPositions");
+    map<unsigned int, map<double, array<double, 6>>> transformedDetectedPointLikeGhostInfo;
+    vector<unsigned int> starIDs;
+    vector<double> time;
+    for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
+    if (!time.empty())
+    {
+        writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+    }
+    else
+    {
+        Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
+    }
+
+    // For each starID, make a subgroup and write the position and flux of all detected pointlike ghosts.
+    // Because some ghosts at the edge may jitter in and out of the subfield from one exposure to the other,
+    // the written arrays may not be equally long for each exposure.
+
+    for (int n = 0; n < time.size(); n++)
+    {
+      for(auto keyValuePair: detectedPointLikeGhostInfo[time[n]])
+      {
+        const unsigned int starID = keyValuePair.first;
+        if ( find(starIDs.begin(), starIDs.end(), starID) == starIDs.end())
+        {
+            starIDs.push_back(starID);
+        }
+        transformedDetectedPointLikeGhostInfo[starID][time[n]] = detectedPointLikeGhostInfo[time[n]][starID];
+      }
+    }
+
+
+    for (int n = 0; n < starIDs.size(); n++)
+    {
+
+      // Write the info for the point-like ghost star positions to HDF5
+
+      vector<unsigned int> times;
+      vector<double> xFPmm;
+      vector<double> yFPmm;
+      vector<double> rowPix;
+      vector<double> colPix;
+      vector<double> flux;
+      vector<double> ghostRadius;
+
+      for(auto keyValuePair: transformedDetectedPointLikeGhostInfo[starIDs[n]])
+      {
+          const unsigned int time = keyValuePair.first;
+
+          times.push_back(time);                       // list of times for this starID only
+          xFPmm.push_back(transformedDetectedPointLikeGhostInfo[starIDs[n]][time][0] / transformedDetectedPointLikeGhostInfo[starIDs[n]][time][5]);
+          yFPmm.push_back(transformedDetectedPointLikeGhostInfo[starIDs[n]][time][1] / transformedDetectedPointLikeGhostInfo[starIDs[n]][time][5]);
+          rowPix.push_back(transformedDetectedPointLikeGhostInfo[starIDs[n]][time][2] / transformedDetectedPointLikeGhostInfo[starIDs[n]][time][5]);
+          colPix.push_back(transformedDetectedPointLikeGhostInfo[starIDs[n]][time][3] / transformedDetectedPointLikeGhostInfo[starIDs[n]][time][5]);
+          flux.push_back(transformedDetectedPointLikeGhostInfo[starIDs[n]][time][4]);
+      }
+
+      // Write the info for the point like ghost star positions to HDF5
+
+      if(!times.empty())
+      {
+          // Make the subgroup
+          stringstream myStream;
+          myStream << "StarID" << setfill('0') << setw(6) << 0 + starIDs[n];
+          const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
+          createGroup(pointLikeGhostGroupName);
+          writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());
+          writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+          writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+          writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+          writeArray(pointLikeGhostGroupName, "colPix", colPix.data(),  colPix.size());
+          writeArray(pointLikeGhostGroupName, "flux",   flux.data(),    flux.size());
+      }
+
+      Log.info("HDF5File: writing point like ghost positions to HDF5 file");
+
+      times.clear();
+      xFPmm.clear();
+      yFPmm.clear();
+      rowPix.clear();
+      colPix.clear();
+      flux.clear();
+      ghostRadius.clear();
+    }
+    starIDs.clear();
+
+}
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the extended ghosts to the HDF5 file.
+ * /Note: This will group the extended ghosts by exposure.
+ *
+ */
+void HDF5File::writeExtendedGhostByExposure(map<double, map<unsigned int, array<double, 7>>>& detectedExtendedGhostInfo, int beginExposureNr)
+{
+  Log.info("HDF5File: writing extended ghost positions to HDF5 file");
+  createGroup("/ExtendedGhostPositions");
+  vector<double> time;
+  for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
+  if (!time.empty())
+  {
+    writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+  }
+  else
+  {
+    Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
+  }
+
+  for (int n = 0; n < time.size(); n++)
+  {
+    stringstream myStream;
+    myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+
+    // Write the info for the extended ghost star positions to HDF5
+
+    vector<unsigned int> starIDs;
+    vector<double> xFPmm;
+    vector<double> yFPmm;
+    vector<double> rowPix;
+    vector<double> colPix;
+    vector<double> flux;
+    vector<double> ghostRadius;
+
+
+    for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
+    {
+      const unsigned int starID = keyValuePair.first;
+      starIDs.push_back(starID);                       // list of starIDs for this exposure only
+      xFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][0] / detectedExtendedGhostInfo[time[n]][starID][5]);
+      yFPmm.push_back(detectedExtendedGhostInfo[time[n]][starID][1] / detectedExtendedGhostInfo[time[n]][starID][5]);
+      rowPix.push_back(detectedExtendedGhostInfo[time[n]][starID][2] / detectedExtendedGhostInfo[time[n]][starID][5]);
+      colPix.push_back(detectedExtendedGhostInfo[time[n]][starID][3] / detectedExtendedGhostInfo[time[n]][starID][5]);
+      flux.push_back(detectedExtendedGhostInfo[time[n]][starID][4]);
+      ghostRadius.push_back(detectedExtendedGhostInfo[time[n]][starID][6] / detectedExtendedGhostInfo[time[n]][starID][5]);
+    }
+
+    const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
+    createGroup(extendedGhostGroupName);
+
+    if(!starIDs.empty())
+    {
+      writeArray(extendedGhostGroupName, "starID", starIDs.data(), starIDs.size());
+      writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
+      writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
+      writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
+      writeArray(extendedGhostGroupName, "colPix", colPix.data(),  colPix.size());
+      writeArray(extendedGhostGroupName, "flux",   flux.data(),    flux.size());
+      writeArray(extendedGhostGroupName, "radius", ghostRadius.data(), ghostRadius.size());
+    }
+
+    Log.info("HDF5File: writing extended ghosts positions to HDF5 file");
+
+    starIDs.clear();
+    xFPmm.clear();
+    yFPmm.clear();
+    rowPix.clear();
+    colPix.clear();
+    flux.clear();
+    ghostRadius.clear();
+  }
+  time.clear();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the extended ghosts to the HDF5 file.
+ * /Note: This will group the extended ghosts by star id.
+ *
+ */
+void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<double, 7>>>& detectedExtendedGhostInfo)
+{
+  Log.info("HDF5File: writing extended ghost positions to HDF5 file");
+  createGroup("/ExtendedGhostPositions");
+  map<unsigned int, map<double, array<double, 7>>> transformedDetectedExtendedGhostInfo;
+  vector<unsigned int> starIDs;
+  vector<double> time;
+  for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
+  if (!time.empty())
+  {
+    writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+  }
+  else
+  {
+    Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
+  }
+
+  // For each starID, make a subgroup and write the position and flux of all detected extended ghosts.
+  // Because some ghosts at the edge may jitter in and out of the subfield from one exposure to the other,
+  // the written arrays may not be equally long for each exposure.
+
+  for (int n = 0; n < time.size(); n++)
+  {
+      for(auto keyValuePair: detectedExtendedGhostInfo[time[n]])
+      {
+          const unsigned int starID = keyValuePair.first;
+          if ( find(starIDs.begin(), starIDs.end(), starID) == starIDs.end())
+          {
+              starIDs.push_back(starID);
+          }
+          transformedDetectedExtendedGhostInfo[starID][time[n]] = detectedExtendedGhostInfo[time[n]][starID];
+      }
+  }
+
+  for (int n = 0; n < starIDs.size(); n++)
+  {
+
+    // Write the info for the extended ghost star positions to HDF5
+
+    vector<unsigned int> times;
+    vector<double> xFPmm;
+    vector<double> yFPmm;
+    vector<double> rowPix;
+    vector<double> colPix;
+    vector<double> flux;
+    vector<double> ghostRadius;
+    for(auto keyValuePair: transformedDetectedExtendedGhostInfo[starIDs[n]])
+    {
+      const unsigned int time = keyValuePair.first;
+
+      times.push_back(time);                       // list of times for this starID only
+      xFPmm.push_back(detectedExtendedGhostInfo[starIDs[n]][time][0] / detectedExtendedGhostInfo[starIDs[n]][time][5]);
+      yFPmm.push_back(detectedExtendedGhostInfo[starIDs[n]][time][1] / detectedExtendedGhostInfo[starIDs[n]][time][5]);
+      rowPix.push_back(detectedExtendedGhostInfo[starIDs[n]][time][2] / detectedExtendedGhostInfo[starIDs[n]][time][5]);
+      colPix.push_back(detectedExtendedGhostInfo[starIDs[n]][time][3] / detectedExtendedGhostInfo[starIDs[n]][time][5]);
+      flux.push_back(detectedExtendedGhostInfo[starIDs[n]][time][4]);
+      ghostRadius.push_back(detectedExtendedGhostInfo[starIDs[n]][time][6] / detectedExtendedGhostInfo[starIDs[n]][time][5]);
+    }
+
+    // Write the info for the point like ghost star positions to HDF5
+
+    if(!starIDs.empty())
+    {
+      // Make the subgroup
+      stringstream myStream;
+      myStream << "Exposure" << setfill('0') << setw(6) << 0 + starIDs[n];
+      const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
+      createGroup(extendedGhostGroupName);
+      writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());
+      writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),       xFPmm.size());
+      writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),       yFPmm.size());
+      writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),      rowPix.size());
+      writeArray(extendedGhostGroupName, "colPix", colPix.data(),      colPix.size());
+      writeArray(extendedGhostGroupName, "flux",   flux.data(),        flux.size());
+      writeArray(extendedGhostGroupName, "radius", ghostRadius.data(), ghostRadius.size());
+    }
+
+    Log.info("HDF5File: writing extended ghost positions to HDF5 file");
+
+    times.clear();
+    xFPmm.clear();
+    yFPmm.clear();
+    rowPix.clear();
+    colPix.clear();
+    flux.clear();
+    ghostRadius.clear();
+  }
+  starIDs.clear();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the cosmics to the HDF5 file.
+ * /note: This functin gets called when groupByExposure is true.
+ *
+ */
+void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
+                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+{
+    string imageName;
+
+    // Define the name of sub group for every exposure.
+
+    stringstream myStream;
+    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
+    imageName = "/Cosmics/" + field + myStream.str();
+
+    // add the columns vector
+
+    createGroup(imageName);
+    if (rows.empty() && cols.empty())
+    {
+        vector<unsigned int> noHitsUnsignedInt{0};
+        vector<double> noHitsDouble{-1.0};
+        writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
+        writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
+        writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
+        writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+    }
+    else
+    {
+        writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
+        writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
+        writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
+        writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
+        writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
+        writeArray(imageName, "Rows",         rows.data(), rows.size());
+        writeArray(imageName, "Columns",      cols.data(), cols.size());
+        writeArray(imageName, "Flux",         flux.data(), flux.size());
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * /brief: save the cosmics to the HDF5 file.
+ * /note: This functin gets called when groupByExposure is false.
+ *
+ */
+void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field, vector<unsigned int> &entryRows,
+                          vector<unsigned int> &entryColumns, vector<double> &trailLengths, vector<double> &entryAngles,
+                          vector<double> &intensities, vector<unsigned int> &rows, vector<unsigned int> &cols, vector<double> &flux)
+{
+    string imageGroup;
+    string imageName;
+
+    // Create sub group so that there are no more then 1000 exposures in one sub group
+    
+    stringstream subgroupStream;
+    subgroupStream << "/Exposure" << setfill('0') << setw(3) << exposureNr / 1000;
+
+    // Define the name of sub group for every exposure.
+
+    stringstream myStream;
+    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
+    imageGroup = "/Cosmics/" + field + subgroupStream.str();
+    imageName  = imageGroup + myStream.str();
+    
+    // add the columns vector
+
+    createGroup(imageGroup);
+    createGroup(imageName);
+    
+    if (rows.empty() && cols.empty())
+    {
+        vector<unsigned int> noHitsUnsignedInt{0};
+        vector<double> noHitsDouble{-1.0};
+        writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
+        writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
+        writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
+        writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+    }
+    else
+    {
+        writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
+        writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
+        writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
+        writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
+        writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
+        writeArray(imageName, "Rows",         rows.data(), rows.size());
+        writeArray(imageName, "Columns",      cols.data(), cols.size());
+        writeArray(imageName, "Flux",         flux.data(), flux.size());
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 // fileExists()
@@ -1981,16 +2899,16 @@ void HDF5File::readArray(string groupName, string arrayName, vector<unsigned int
 
 bool fileExists(string filename)
 {
-    ifstream myFile(filename.c_str()); 
- 
+    ifstream myFile(filename.c_str());
+
     if (myFile.good())
     {
         myFile.close();
         return true;
-    } 
-    else 
+    }
+    else
     {
         myFile.close();
         return false;
-    }   
+    }
 }

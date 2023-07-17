@@ -1,4 +1,3 @@
-
 #ifndef HDF5WRITER_H
 #define HDF5WRITER_H
 

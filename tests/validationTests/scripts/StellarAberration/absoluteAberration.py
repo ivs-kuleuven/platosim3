@@ -5,13 +5,17 @@ from math       import radians
 from platosim.validation import equatorial2galactic, galactic2equatorial, aberration
 import math
 import matplotlib.pyplot as plt
+from test import eprint
 
 
 """
-This test checks the absolute aberration. The test consists out of 3 parts: 
-1. The first test plots the position of an aberrated star over one year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar. 
+This test checks the absolute aberration. The test consists out of 3 parts:
 
-2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity. 
+1. The first test plots the position of an aberrated star over one
+year and a theoretical predicted path (where we assume a circular orbit with a constant velocity for the spacecraft) over one year. This figure is
+saved into the ioFiles directory, it is possible to visually confirm that the two paths are similar.
+
+2. The second test checks that the aberration is zero for a star whose position wrt the spacecraft is orthogonal to the spacecrafts velocity.
 
 3. The last test checks that the aberration is maximal for a star whose position is parallel to the velocity.
 """
@@ -53,9 +57,9 @@ class AbsoluteAberration(Test):
     def runForYear(self):
         # We run the simulation multiple times over one year with 5 days
         #between two consecutive exposures.
-        raPlatform            = radians(self.sim["ObservingParameters/RApointing"])
-        decPlatform           = radians(self.sim["ObservingParameters/DecPointing"])
-        solarPanelOrientation = radians(self.sim["Platform/SolarPanelOrientation"])
+        raPlatform            = radians(self.sim["Platform/Orientation/Angles/RAPointing"])
+        decPlatform           = radians(self.sim["Platform/Orientation/Angles/DecPointing"])
+        solarPanelOrientation = radians(self.sim["Platform/Orientation/Angles/SolarPanelOrientation"])
         tiltAngle             = radians(self.sim["Telescope/TiltAngle"])
         azimuthAngle          = radians(self.sim["Telescope/AzimuthAngle"])
         focalPlaneAngle       = radians(self.sim["Camera/FocalPlaneOrientation/ConstantValue"])
@@ -66,14 +70,14 @@ class AbsoluteAberration(Test):
         outputRa  = []
         outputDec = []
         startTime0 = self.startTime
-        
-        for exp in range(0, numExposures + 1, deltaNumExposures):
-            self.sim["ObservingParameters/BeginExposureNr"] = exp
-            self.sim["Camera/AberrationCorrection/StartTime"] = startTime0 + exp*25
+
+        for exposureNr in range(0, numExposures + 1, deltaNumExposures):
+            self.sim["ObservingParameters/BeginExposureNr"] = exposureNr
+            self.sim["Camera/AberrationCorrection/StartTime"] = startTime0 + exposureNr*25
             self.simFile = self.sim.run(removeOutputFile=True)
-            ([x], [y])   = self.simFile.getStarCoordinates(exp)[3:5]
-            ra, dec      = rf.focalPlaneToSkyCoordinates(x, y, raPlatform,
-                decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
+            ([x], [y])   = self.simFile.getStarCoordinates(exposureNr)[3:5]
+            ra, dec      = rf.focalPlaneToSkyCoordinates(x, y, raPlatform, decPlatform, solarPanelOrientation,   \
+                                                         tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
             outputRa.append(ra)
             outputDec.append(dec)
 
@@ -91,15 +95,23 @@ class AbsoluteAberration(Test):
         beta = np.arcsin(self.velocity[2])
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
 
-        self.sim["ObservingParameters/RApointing"] = ra
-        self.sim["ObservingParameters/DecPointing"] = dec
-        self.sim["CCD/Position"] = "1"
+        self.sim["Platform/Orientation/Source"] = "Angles"
+        self.sim["Platform/Orientation/Angles/RAPointing"] = ra
+        self.sim["Platform/Orientation/Angles/DecPointing"] = dec
+
+        dec = np.deg2rad(dec)
+        ra  = np.deg2rad(ra)
+
+        self.sim["SubField/NumRows"]         = 510
+        self.sim["SubField/NumColumns"]      = 510
+
+        self.sim.setSubfieldAroundSkyCoordinates(ra, dec, 510, 510)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
         myFile = open(starFileName, "w")
         myFile.write("# RA DEC Vmag starID\n")
-        myFile.write("{0}  {1}  {2}  {3}\n".format(ra, dec, 16.5, 1))
+        myFile.write("{0}  {1}  {2}  {3}\n".format(np.rad2deg(ra), np.rad2deg(dec), 16.5, 1))
         myFile.close()
 
         # Run the simulation with aberration
@@ -119,27 +131,33 @@ class AbsoluteAberration(Test):
 
     def runForThirdTest(self):
 
-        # Rest begin exposure numbers
-        self.sim["ObservingParameters/BeginExposureNr"] = 0
-        
+        # Calculate the orthogonal velocity
         orthogonalVelocity = [(self.velocity[1] - self.velocity[2]), self.velocity[2] - self.velocity[0], self.velocity[0] - self.velocity[1]]
         orthogonalNorm     = np.sqrt(orthogonalVelocity[0]**2 + orthogonalVelocity[1]**2 + orthogonalVelocity[2]**2)
         orthogonalVelocity = [ x / orthogonalNorm for x in orthogonalVelocity]
 
+
         lamb = np.arctan2(orthogonalVelocity[1], orthogonalVelocity[0])
         beta = np.arcsin(orthogonalVelocity[2])
-
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
-        
-        self.sim["ObservingParameters/RApointing"] = ra
-        self.sim["ObservingParameters/DecPointing"] = dec
-        self.sim["CCD/Position"] = "1"
+
+        self.sim["Platform/Orientation/Source"] = "Angles"
+        self.sim["Platform/Orientation/Angles/RAPointing"] = ra
+        self.sim["Platform/Orientation/Angles/DecPointing"] = dec
+
+        dec = np.deg2rad(dec)
+        ra  = np.deg2rad(ra)
+
+        self.sim["SubField/NumRows"]    = 510
+        self.sim["SubField/NumColumns"] = 510
+
+        self.sim.setSubfieldAroundSkyCoordinates(ra, dec, 510, 510)
 
         # Set the star catalog
         starFileName = self.outputDir + "/starCatalog" + self.nr + ".txt"
         myFile = open(starFileName, "w")
         myFile.write("# RA DEC Vmag starID\n")
-        myFile.write("{0}  {1}  {2}  {3}\n".format(ra, dec, 16.5, 1))
+        myFile.write("{0}  {1}  {2}  {3}\n".format(np.rad2deg(ra), np.rad2deg(dec), 16.5, 1))
         myFile.close()
 
         # Run the simulation with aberration
@@ -225,3 +243,4 @@ class AbsoluteAberration(Test):
 if __name__ == "__main__":
     t = AbsoluteAberration()
     print(t.run())
+

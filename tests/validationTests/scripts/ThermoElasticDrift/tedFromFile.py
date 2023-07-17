@@ -33,7 +33,7 @@ class TedFromFile(Test):
         readoutTime                                       = self.sim.getReadoutTime()[0]
         self.sim["ObservingParameters/NumExposures"]      = self.numExposures
         self.sim["Telescope/UseDrift"]                    = "yes"
-        self.sim["Telescope/UseDriftFromFile"]            = "yes"
+        self.sim["Telescope/DriftSource"]                 = "FromFile"
         self.sim["ControlHDF5Content/WriteStarPositions"] = "yes"
         self.sim["SubField/NumRows"]                      = 1000
         self.sim["SubField/NumColumns"]                   = 1000

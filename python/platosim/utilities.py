@@ -2,29 +2,39 @@
 
 """
 This python module contains all general utilities that are commonly used
-by the different codes within the PlatoSim and the PLATOnium repository.
+by the different codes within PlatoSim and PLATOnium.
+
+NOTE: these utilities needs the Poetry install!
 """
 
+# Standard
 import os
 import sys
-import h5py
+import glob
 import math
+import ftplib
+import inspect
+import fnmatch
+
+# Extra
+import h5py
+import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import astropy.units as u
-from astropy.coordinates import SkyCoord
 from pylab import MaxNLocator
-from colorama import Fore, Style
+from prettytable import PrettyTable
 from scipy.ndimage import median_filter
-from numba import njit
+from scipy.integrate import cumtrapz
+from astropy.io.votable import parse
 
 # PlatoSim
 import platosim.referenceFrames as rf
 
-#==============================================================#
-#                           FUNCTIONS                          #
-#==============================================================#
+
+#--------------------------------------------------------------#
+#                        BASH FUNCTIONS                        #
+#--------------------------------------------------------------#
 
 
 def errorcode(API, message):
@@ -42,6 +52,7 @@ def errorcode(API, message):
     ------
     Error message written to bash
     """
+    from colorama import Fore, Style
     
     if API == 'software':
         print(Style.BRIGHT + Fore.BLUE + message + Style.RESET_ALL)
@@ -53,24 +64,82 @@ def errorcode(API, message):
         print(Style.BRIGHT + Fore.YELLOW + '[Warning]: ' + message + Style.RESET_ALL)
     if API == 'error':
         print(Style.BRIGHT + Fore.RED + '[Error]: ' + message + Style.RESET_ALL)
-        exit()
+        sys.exit()
 
 
 
 
 
-def tqdm_bar_format():
+def fileMatch(fileList, stringList):
+    """
+    fileMatch(fileList, stringList)
+    
+    returns the list of files from fileList in which all strings from stringList 
+    can be found, in any order Case sensitive.
+    """
 
-    """Code snippet to set default
+    while (len(stringList)>1):
+        fileList = fileMatch(fileList,[stringList.pop()])
+    return [file for file in fileList if fnmatch.fnmatch(file,'*'+stringList[0]+"*")]
+
+
+
+
+
+def fileSelect(stringList, location="./", listOrder=0):
+
+    """fileSelect(stringList, location="./", listOrder=0)
+
+    Returns a list of all files in 'location' with name matching every string in the list
+    If listOrder is True, the ordering is forced to be identical to the one in stringList
+    """
+    
+    allfiles = os.listdir(location)
+    if listOrder:
+        pattern = "*"
+        i = 0
+        while i < len(stringList): 
+            pattern += stringList[i] + "*"
+            i += 1
+        return [file for file in allfiles if fnmatch.fnmatch(file,pattern)]
+    else:
+        return fileMatch(allfiles, stringList)
+
+
+
+
+    
+def getFunctions(script):
+
+    """Fetch names of class functions.
+    """
+    names = inspect.getmembers(script, inspect.isfunction)
+    funcs = [item[0] for item in names]
+    t = PrettyTable()
+    t.add_column(f"{script.__name__} functions", funcs)
+    return t
+    
+
+
+
+
+def tqdmBar():
+
+    """Add-on function to be used in a for statement with tqdm library.
+
+    Example:
+    >>> from tqdm import tqdm
+    >>> for i in tqdm(range(<number of loops>), bar_format=ut.tqdmBar()):
+            <loop over something>
     """
 
     bar_format = "{l_bar}{bar:50}{r_bar}{bar:-50b}"
     return bar_format
 
-        
 
 
-        
+
+
 def compilation(i, i_max, text=''):
 
     """Custum function to print out a compilation-time-bar in the terminal.
@@ -101,7 +170,7 @@ def compilation(i, i_max, text=''):
 
     # We here divide by 2 as the length of the bar is only 50 characters:
 
-    bar = "[" + "-" * int(percent/2) + '>' + " " * (50-int(percent/2))+"] {}% {}"\
+    bar = "[" + "-" * int(percent / 2) + '>' + " " * (50 - int(percent / 2)) + "] {}% {}" \
         .format(int(percent), text)
 
     # Print and clean-up
@@ -110,33 +179,151 @@ def compilation(i, i_max, text=''):
     sys.stdout.flush()
 
 
+    
+
+
+def downloadFromFTP(filename, outputDir, server='plato'):
+
+    """Function to download file from KUL FTP.
+    https://stackoverflow.com/questions/67300881/how-do-i-keep-a-ftp-connection-alive
+    """
+
+    # Assume that no suffix means a folder of data
+    # If true then download folder and it entire content
+    # If flase simply download the requested file
+    
+    ftp_filename = pathlib.Path(filename)
+    
+    if ftp_filename.suffix in ('.txt', '.csv', '.zip', '.npy', '.ftr', '.hdf5', '.h5'):
+        ftp_subpath = ftp_filename.parents[0]
+        permission  = False
+    else:
+        ftp_subpath = ftp_filename
+        permission  = True
+        
+    # If file on FTP is within a folder, create folder locally
+        
+    outputDir = outputDir / ftp_subpath
+    outputDir.mkdir(parents=True, exist_ok=True)
+        
+    # Login to server
+    # For plato: Download a single file
+    # For platodata: Download all files in a folder
+
+    ftp = ftplib.FTP('ftp.ster.kuleuven.be')
+    
+    if server == 'plato':
+        # Single file download
+        ftp.login(user=server, passwd='miSotalP')
+        ftp.cwd(f'{ftp_subpath}')
+        files = [filename]
+        #ftp = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be'
+    elif server == 'platodata':
+        ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
+        ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+        # Check if only one files is requested
+        if not permission:
+            if ftp_subpath:        
+                files = [ftp_filename.name] # within a subfolder
+            else:
+                files = [filename]          # in the base folder
+        else:
+            files = ftp.nlst()[2:]          # multiple files
+        #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
+    else:
+        errorcode('error', f'Server name {server} is not valid!')
+            
+    # Fetch all the files
+        
+    for filename in files:
+        
+        # Only try to save file if is doesn't exists
+
+        local_file = pathlib.Path(outputDir) / filename
+
+        if not local_file.is_file():
+            ftp_file   = open(local_file, 'wb')
+            ftp.retrbinary(f'RETR {filename}', ftp_file.write)
+            ftp_file.close()
+            
+            # Give read and write rights to this
+            if permission: local_file.chmod(777)
+
+        # Close connection
+    
+        ftp.quit()
+
+        # Login each time for download due to timeout
+        
+        if server == 'platodata' and not filename == files[0]:
+            ftp = ftplib.FTP('ftp.ster.kuleuven.be')
+            ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
+            ftp.cwd(f'PLATOSIM/{ftp_subpath}')
+
+
+            
+#--------------------------------------------------------------#
+#                      PANDAS OPERATIONS                       #
+#--------------------------------------------------------------#
+
+
+def pdAddColumn(df, newCol, name):
+
+    """Add a column to an exisiting pandas data frame as first entry.
+    """
+
+    df[name] = newCol
+    cols = df.columns.tolist()
+    cols = cols[-1:] + cols[:-1]
+    return df[cols]
+
+
+
+
+
+#--------------------------------------------------------------#
+#                       NUMPY OPERATIONS                       #
+#--------------------------------------------------------------#
+
+    
+def findNearestIndex(array, value):
+
+    """Find the nearest value within an numpy array.
+    """
+
+    return (np.abs(np.asarray(array) - value)).argmin()
+
 
 
 
 
 def medianAbsoluteDeviation(array):
+
+    """Calculate the Median Abosolute Deviation (MAD) of an array.
     """
-    Calculate the Median Abosolute Deviation (MAD) of an array.
-    """
-    return np.sum( np.abs(array - np.median(array)) ) / len(np.ravel(array))
+    
+    return np.sum(np.abs(array - np.median(array))) / len(np.ravel(array))
+
+
 
 
 
 def rootMeanSquare(array):
-    """
-    Calculate the Root Mean Square (RMS) of an array.
-    """
-    return np.sqrt( np.mean(array**2) )
 
-
+    """Calculate the Root Mean Square (RMS) of an array.
+    """
     
+    return np.sqrt(np.mean(array ** 2))
+
+
+
 
 
 def normalize(signal, factor=1e6, length=-1):
-    """
-    This function normalize a signal with the option to factorize it.
 
-    PARAMETERS
+    """Normalize a signal with the option to factorize it.
+
+    Parameters
     ----------
     signal : narray
         Signal array that needs to be turned into relative signal.
@@ -146,13 +333,13 @@ def normalize(signal, factor=1e6, length=-1):
         Option to normalize signal using only a smaller initial signal segment.
         Default is to use the entire signal sequence.
 
-    RETURN
+    Return
     ------
     relative_signal : narray
         Normalized relative signal is returned. Default unit in [ppm].
     """
 
-    relative_signal = (signal / np.mean(signal[:int(length)]) - 1) * factor
+    relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
     return relative_signal
 
@@ -160,75 +347,159 @@ def normalize(signal, factor=1e6, length=-1):
 
 
 
+def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
 
-@njit
-def filter(signal, filt='median', carbox=144):
-    """
-    This utility makes the proper filter solution to a signal dataset.
-
-    Notice: the carbox size here is twice what is default by numpy.
+    """Performs custom scaling of the input numpy array.
 
     Parameters
     ----------
-    filtType : string
-        Filter is either: median or mean
-    signalIn : ndarray
-       Signal needed for processing
-    numBox : int
-        Integer used as car-box size of 1 hour: 3600s/25s = 144.
+    inputArray : ndarray
+        Input image array to normalize.
+    norm : str
+        Normalization method. 
+        Options: ['linear', 'log', 'sqrt', 'asinh'] 
+    sigma : float
+        Scaling factor corresponding to the std of the image.
+    scale_min : float
+        Minimum data value.
+    scale_max : float
+        Maximum data value.
+    
+    Return
+    ------
+    image : ndarray
+        Normalized image array.
+    """
+    
+    # Input image array
+
+    image = np.array(inputArray, copy=True)
+
+    # Default scaling is 2 sigma
+
+    if scale_min is None:
+        scale_min = image.mean() - sigma * image.std()
+    if scale_max is None:
+        scale_max = image.mean() + sigma * image.std()
+
+    # Clip data
+
+    image = image.clip(min=scale_min, max=scale_max)
+
+    # Select normalization method
+
+    if norm == "linear":
+        image = (image - scale_min) / (scale_max - scale_min)
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        indices = np.where(image > 1)
+        image[indices] = 1.0
+
+    elif norm == "log":
+        factor = np.log10(scale_max - scale_min)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.log10(image[indices1]) / factor
+
+    elif norm == "sqrt":
+        image = image - scale_min
+        indices = np.where(image < 0)
+        image[indices] = 0.0
+        image = np.sqrt(image)
+        image = image / math.sqrt(scale_max - scale_min)
+        image = np.sqrt(image)
+        image = image / np.sqrt(scale_max - scale_min)
+
+    elif norm == "asinh":
+        non_linear = 2.0
+        factor = np.arcsinh((scale_max - scale_min) / non_linear)
+        indices0 = np.where(image < scale_min)
+        indices1 = np.where((image >= scale_min) & (image <= scale_max))
+        indices2 = np.where(image > scale_max)
+        image[indices0] = 0.0
+        image[indices2] = 1.0
+        image[indices1] = np.arcsinh((image[indices1] - scale_min) / non_linear) / factor
+
+    # That's it!
+
+    return image
+
+
+
+
+#--------------------------------------------------------------#
+#                        PLATO SPECIFIC                        #
+#--------------------------------------------------------------#
+
+
+def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
+                throughputBandwidth=400, transmissionEfficiency=0.76,
+                lightCollectingArea=0.01131, quantumEfficiency=0.87):
+
+    """Compute the stellar flux given the instrumental characteristics.
+
+    Parameters
+    ----------
+    Vmag : float
+        Johnson-Cousin V magnitude
+    exposureTime : float
+        Exposure time (without the readout) [s]
+    fluxm0 : float
+        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
+    throughputBandwidth : float 
+        Throughput FWHM value in the passband [nm]
+    transmissionEfficiency : 
+        Transmission efficiency in the passband [0, 1]
+    lightCollectingArea : float
+        The aperture of the cameras [m^2]
+    quantumEfficiency : float
+        Quantum efficiency of the detector [0, 1]
 
     Return
     ------
-    signalOut : ndarray
-        Filtered signal array
+    flux : float
+        Instrumental stellar flux [e-/exposure]
     """
 
-    # Constants
+    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
+                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
+    electronFlux = photonFlux * quantumEfficiency
 
-    n     = carbox
-    S     = signal.copy()     # Avoid overwritting the input signal
-    S_new = np.zeros(len(S))  # Prepare forloop
-    nzero = np.zeros(2*n+1)   # Optimization constant
+    return electronFlux
 
-    for i in range(len(S)-2*n):
 
-        # Interval: d[n, 1+n, ... , N-1, N-n]
 
-        if filt == 'median': S_new[n+i] = np.median(S[np.arange((n+i)-n, (n+i)+n+1)])
-        if filt == 'mean':   S_new[n+i] = np.mean(S[np.arange((n+i)-n, (n+i)+n+1)])
-        if filt == 'std':    S_new[n+i] = np.std(S[np.arange((n+i)-n, (n+i)+n+1)])
 
-    for i in range(n):
 
-        # Interval: d[-n, -(n-1), ... , n-1, n] - Low end of data
+def fromMagToRelativeFlux(mag, norm=1e6):
 
-        low = nzero
-        low[np.arange(n-i)] = S[0]*np.ones(n-i)
-        low[-(n+1+i):] = S[np.arange(0, n+1+i)]
+    """Convert magnitude to relative flux
 
-        if filt == 'median': S_new[i] = np.median(low)
-        if filt == 'mean':   S_new[i] = np.mean(low)
-        if filt == 'std':    S_new[i] = np.std(low)
+    Parameters
+    ----------
+    mag : float
+        Input magnitude
+    norm : float
+        Normalisation contant for relative flux
 
-        # Interval: d[N-n, N-(n-1), ... , N+(n-1), N+n] - High end of data
-
-        high = nzero
-        high[np.arange(n+1+i)] = S[np.arange(len(S)-(n+i+1), len(S))]
-        high[-(n-i):]      = S[-1]*np.ones(n-i)
-
-        if filt == 'median': S_new[len(S)-1-i] = np.median(high)
-        if filt == 'mean':   S_new[len(S)-1-i] = np.mean(high)
-        if filt == 'std':    S_new[len(S)-1-i] = np.std(high)
-
-    return S_new
+    Return
+    ------
+    flux : ndarray
+        Relative flux scaled after the normalisation constant.
+    """
+    flux = 10**(-0.4*mag)
+    return (flux / np.nanmedian(flux) - 1) * norm
 
 
 
 
 
 
-def passbandConversionV2P(V, Teff):
-    
+def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
+
     """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
     
     This filtersion is from Marchiori et al. (2019), Eq. 5 and 6, and is
@@ -248,28 +519,87 @@ def passbandConversionV2P(V, Teff):
         The PLATO passband magnitude of star(s).
     """
 
-    # The actual filtersion equation
+    # Bolometric scaling relation
 
-    c = [1.184e-12, 4.526e-8, 5.805e-4, 2.449]     # Machiori et al. (2019)
-    #c = [2.366e-12, 8.126e-08, -0.0009279, 3.499] # Fabio Fialho et al. in prep
-    P  = c[0]*Teff**3 - c[1]*Teff**2 + c[2]*Teff - c[3] + V
+    if method == 'fialho':
+        # Fialho et al. (in prep.)
+        c   = [-2.366e-12, 8.126e-8, -9.279e-4, 3.499]
+    elif method == 'marchiori':
+        # Machiori et al. (2019)
+        c = [-1.184e-12, 4.526e-8, -5.805e-4, 2.449]
 
-    return P
+    bol = c[0]*Teff**3 + c[1]*Teff**2 + c[2]*Teff + c[3]
+
+    # From V to P (or P to V if inverse it True)
+
+    if inverse:
+        return mag + bol
+    else:
+        return mag - bol
 
 
 
 
 
+def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal'):
+
+    """NSR estimate of the jitter noise component.
+
+    Parameters
+    ----------
+    jitterASD : float
+        Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)] :
+        If level = 'camera'     : At the cycle frequency of the cameras
+        If level = 'instrument' : Over the duration of all exposures
+    tdur : float, narray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
+
+    Return
+    ------
+    NSR : float
+        NSR only valid for the photon noise limit.
+    """
+
+    # Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)]
+    
+    jitterASD = rms / np.sqrt(1e-6)
+
+    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
+
+    if camType == 'normal':
+        tcyc = 25.
+    elif camType == 'fast':
+        tcyc = 2.5
+
+    # Number of images to average over
+
+    nimg = int(tdur/tcyc)
+
+    # Calculate the jitter noise
+
+    if level == 'camera':
+        jitterNoise = jitterASD * np.sqrt(1 / tcyc)
+    elif level == 'instrument':
+        jitterNoise = jitterASD * np.sqrt(1 / (tcyc*nimg) ) 
+    else:
+        errorcode('error', 'No such "level" entry!')
+        
+    # Return
+
+    return jitterNoise
 
 
-def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
-    """NSR estimate in the photon noise limit of bright stars. 
+
+        
+def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, tdur=3600):
+
+    """NSR estimate in the photon noise limit of bright stars.
 
     The stellar flux are calculated from the PLATO passband found by 
     Marchiori et al. (2019).
-    
-    NOTE: only valid for very bright stars (P < 11).
 
     Parameters
     ----------
@@ -290,33 +620,45 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
         NSR only valid for the photon noise limit.
     """
 
-    # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
+    # Choose cycle and exposure time [s] for either the normal or fast cameras
 
-    if camType == 'N':
+    if camType == 'normal':
         texp = 21.
         tcyc = 25.
-    elif camType == 'F':
+        gain = 0.0222 * 2.14   # [ADU/e-]
+    else:
         texp = 2.1
         tcyc = 2.5
-
-    # The P passband zero-point
-
-    zp = 20.62
+        gain = 0.05   # TODO: update gain values for F-CAMs
 
     # Flux of stars [e-/s]
+    
+    if passband == "V":
+        f0 = 1.00179e8
+        f = 10**(-0.4 * mag) * f0
+        
+    elif passband == 'P':
+        # The P passband zero-point
+        if camType == 'normal':
+            zp   = 20.77
+        if camType == 'fastblue':
+            zp = 20.18
+        if camType == 'fastred':
+            zp = 19.81
+        # Calculate flux
+        f0 = 0.7324478224428527e8
+        f = 10**(-0.4 * (mag - zp)) * f0
+    else:
+        errorcode('error', f'Wrong {camType} name!')
 
-    f = 10**(-0.4*(P-zp))
+    # Observed total flux [ADU/exp]
 
-    # Observed total flux per exposure in ADU counts
-
-    g = 900000/65535.  # [e-/ADU] Gain
-    F = f * texp / g   # [ADU]
+    F = f * tcyc * gain
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-
-    SNR = np.sqrt(F * Ncam * Ntra * tdur/tcyc)
-    NSR = 1/SNR * 1e6
+    
+    NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
     return NSR
 
@@ -324,26 +666,206 @@ def getPhotonNoiseLimitNSR(P, Ncam=1, Ntra=1, tdur=3600, camType='N'):
 
 
 
+def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
 
-def pdAddColumn(df, newCol, name):
+    """NSR estimate in the photon noise limit of bright stars.
 
-    """Function to add a column to an exisiting pandas data frame.
+    The stellar flux are calculated from the PLATO passband found by 
+    Marchiori et al. (2019).
+
+    Parameters
+    ----------
+    P : float, narray
+        The PLATO passband magnitude.
+    Ncam : float, narray
+        Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
+    Ntra : float, narray
+        Number of transits that can be co-added by phase-folding.
+    tdur : float, narray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
+
+    Return
+    ------
+    NSR : float, narray
+        NSR only valid for the photon noise limit.
     """
+
+    # Choose cycle and exposure time [s] for either the normal or fast cameras
+
+    if camType == 'normal':
+        gain = 1/(0.0222 * 2.14)   # [ADU/e-/pixel]
+    else:
+        gain = 0.05   # TODO: update gain values for F-CAMs
+
+    if passband == "V":
+        f0 = 1.00179e8
+    elif passband == 'P':
+        f0 = 0.7324478224428527e8
+    else:
+        errorcode('error', f'Wrong {camType} name!')
+        
+    # Calculate noise and signal
+    gain = 25
+    bg   = 60  # [e-/s/pixel]
+    mask = 20  # [pixel]
+    throughput   = 0.8134999994206865
+    transmission = 0.4822896122932434
     
-    df[name] = newCol
-    cols = df.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
-    return df[cols]
+    noise  = gain * bg * tdur * mask * throughput #* transmission
+    signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
+    return noise / signal
 
 
 
-
+#--------------------------------------------------------------#
+#                       PLATOnium FUNCTIONS                    #
+#--------------------------------------------------------------#
 
 
 def convertQuarterRange(dQ):
 
     """Function to sort a quarter ranges.
     
+    Small function that takes a string of numbers (here quarters)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, an quarter integer is 
+    returned.
+    """
+    
+    quarters = []
+    for part in dQ.split(','):
+
+        if '-' in part:
+
+            # If a range in mag is provided
+
+            q1, q2 = part.split('-')
+            q1, q2 = int(q1), int(q2)
+            quarters.append(q1)
+            quarters.append(q2)
+            
+        else:
+
+            # If only one mag-value is given select 1 mag around it
+
+            q1 = int(part)
+            quarters.append(q1)
+
+    # That's it!
+            
+    return quarters
+
+
+
+
+
+def convertMagnitudeRange(dm):
+
+    """Function to sort magnitudes ranges.
+
+    Small function that takes a string of numbers (here of magnitudes)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, a selection of 1 mag around
+    the imput int/float is returned as a magnitude range.
+    
+    Used in: PLATOnium/simulator-pic.py
+
+    Parameters
+    ----------
+    dm : str
+        Magnitude value or range (e.g. '10.5' or '10.0-11.5')
+
+    Return
+    ------
+    magRange : range()
+        Corresponding magnitude range using the range() object.
+    """
+    
+    magRange = []
+    for part in dm.split(','):
+        
+        if '-' in part:
+
+            # If a range in mag is provided
+
+            m1, m2 = part.split('-')
+            m1, m2 = float(m1), float(m2)
+            
+        else:
+            
+            # If only one mag-value is given select 1 mag around it
+            
+            m1 = float(part) - 0.5
+            m2 = float(part) + 0.5
+            
+        magRange.append(m1)
+        magRange.append(m2)
+
+    # That's it!
+        
+    return magRange        
+
+
+
+
+def getPointingField(name):
+
+    """Function to fetch pointing field coordinates.
+
+    Small function that takes a string of numbers (here of magnitudes)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, a selection of 1 mag around
+    the imput int/float is returned as a magnitude range.
+    
+    Used in: PLATOnium/simulator-pic.py
+
+    Parameters
+    ----------
+    name : str
+        Name of the requested pointing field.
+
+    Return
+    ------
+    Sky coordinates (alpha, delta, kappa) [deg]
+    """
+
+    PF = {'NPF':   [265.08002279,  39.5836954,  +8.5],      # PIC1.1.0: Galactic []
+          'SPF':   [ 86.79870508, -46.39594703, -8.5],      # PIC1.1.0: Galactic [253.0, -30.0, 0.0]
+          'LOPN':  [277.18023,     52.85952,    +8.5],      # PIC2.0.0: Galactic [ 81.6, -24.6, 0.0]
+          'LOPS2': [ 95.31043,    -47.88693,    13.9947+180],   # PIC2.0.0
+          'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # Used for simulations of KUL20
+
+    p = PF[name]
+    
+    return p[0], p[1], p[2] 
+
+
+
+
+
+def votable_to_pandas(votable_file):
+
+    """Function to convert a votable to a pandas data frame.
+
+    From: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
+    """
+
+    votable = parse(votable_file)
+    table = votable.get_first_table().to_table(use_names_over_ids=True)
+
+    return table.to_pandas()
+
+
+
+#--------------------------------------------------------------#
+#                        VARSIM SPECIFIC                       #
+#--------------------------------------------------------------#
+
+
+def convertQuarterRange(dQ):
+    """
     Small function that takes a string of numbers (here quarters)
     and split it up into readable float values used as real number
     ranges. If a single number is given, an quarter integer is 
@@ -363,221 +885,41 @@ def convertQuarterRange(dQ):
             quarters.append(q1)
     return quarters
 
-
-
-
-
-
-
-def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
-                throughputBandwidth=400, transmissionEfficiency=0.76, 
-                lightCollectingArea=0.01131, quantumEfficiency=0.87):
-
-    """
-    PURPOSE: compute the stellar flux (electrons / exposure) given the instrumental characteristics
-
-    INPUT: Vmag:                   Johnson V magnitude
-           exposureTime:           Exposure time (without the readout) [s]
-           fluxm0:                 Photon flux of a V=0 star (default SpT=G2V) [phot/s/m^2/nm]
-           throughputBandwidth:    FWHM [nm]
-           transmissionEfficiency: In [0,1]
-           lightCollectingArea:    Of the telescope [m^2]
-           quantumEfficiency:      In [0,1]
-
-    OUTPUT: flux: [e-/exposure]
-    """
-
-    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
-                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-    electronFlux = photonFlux * quantumEfficiency
-
-    return electronFlux
-
-
-
-
-
-
-
-def convertMagnitudeRange(dm):
-
-    """Function to sort magnitudes ranges.
-
-    Small function that takes a string of numbers (here of magnitudes)
-    and split it up into readable float values used as real number
-    ranges. If a single number is given, a selection of 1 mag around
-    the imput int/float is returned as a magnitude range.
-    Used in: PLATOnium/simulator-pic.py
-    """
-    magRange = []
-    for part in dm.split(','):
-        if '-' in part:
-            # If a range in mag is provided
-            m1, m2 = part.split('-')
-            m1, m2 = float(m1), float(m2)
-        else:
-            # If only one mag-value is given select 1 mag around it
-            m1 = float(part)-0.5
-            m2 = float(part)+0.5
-        magRange.append(m1)
-        magRange.append(m2)
-    return magRange
-
-
-
-
-
-
-
-
-def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
-    """
-    Performs custom scaling of the input numpy array.
-
-    @type inputArray: np array
-    @param inputArray: image data array
-    @type scale_min: float
-    @param scale_min: minimum data value
-    @type scale_max: float
-    @param scale_max: maximum data value
-    @rtype: np array
-    @return: image data array
-    """
-    # Input image array
-    
-    image = np.array(inputArray, copy=True)
-
-    # Default scaling is 2 sigma
-
-    if scale_min is None:
-        scale_min = image.mean() - sigma*image.std()
-    if scale_max is None:
-        scale_max = image.mean() + sigma*image.std()
-
-    # Clip data
-    
-    image = image.clip(min=scale_min, max=scale_max)
-    
-    # Select normalization method
-    
-    if norm == "linear":
-        image   = (image - scale_min) / (scale_max - scale_min)
-        indices = np.where(image < 0)
-        image[indices] = 0.0
-        indices = np.where(image > 1)
-        image[indices] = 1.0
-
-    elif norm == "log":
-        factor = np.log10(scale_max - scale_min)
-        indices0 = np.where(image < scale_min)
-        indices1 = np.where((image >= scale_min) & (image <= scale_max))
-        indices2 = np.where(image > scale_max)
-        image[indices0] = 0.0
-        image[indices2] = 1.0
-        image[indices1] = np.log10(image[indices1]) / factor
         
-    elif norm == "sqrt":
-        image = image - scale_min
-        indices = np.where(image < 0)
-        image[indices] = 0.0
-        image = np.sqrt(image)
-        image = image / math.sqrt(scale_max - scale_min)
-        image = np.sqrt(image)
-        image = image / np.sqrt(scale_max - scale_min)
-
-    elif norm == "asinh":
-        non_linear = 2.0
-        factor = np.arcsinh((scale_max - scale_min) / non_linear)
-        indices0 = np.where(image < scale_min)
-        indices1 = np.where((image >= scale_min) & (image <= scale_max))
-        indices2 = np.where(image > scale_max)
-        image[indices0] = 0.0
-        image[indices2] = 1.0
-        image[indices1] = np.arcsinh( (image[indices1] - scale_min) / non_linear) / factor
-
-    #else:
-    #    errorcode("error", "Not valid normalization method!")
-
-    # Finito!
-        
-    return image
+def find_nearest(array, value):
+    a = (np.abs(array - value))
+    index = np.argmin(a)
+    return index
 
 
+def diff(new, old):
+    result = (new - old) / old
+    return result
 
 
+def superLorentzian(nu, b, sigma):
+    xi = 2. * np.sqrt(2) / np.pi
+    return (xi * sigma**2. / b) / (1+(nu/b)**4.)
 
 
-
-
-
-def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
-
-    """Move scientific notation exponent from top to the side.
-    
-    Additionally, one can set the number of digits after the comma
-    for the y-ticks, hence if it should state 1, 1.0, 1.00 and so forth.
-
-    Parameters
-    ----------
-    offs : float, optional; <0>
-        Horizontal movement additional to default.
-    dig : int, optional; <0>
-        Number of decimals after the comma.
-    side : string, optional; {<'left'>, 'right'}
-        To choose the side of the y-axis notation.
-    omit_last : bool, optional; <False>
-        If True, the top y-axis-label is omitted.
-
-    Returns
-    -------
-    locs : list
-        List of y-tick locations.
-
-    Note
-    ----
-    This is kind of a non-satisfying hack, which should be handled more
-    properly. But it works. Functions to look at for a better implementation:
-    ax.ticklabel_format
-    ax.yaxis.major.formatter.set_offset_string
-    """
-
-    # Get the ticks
-    locs, _ = plt.yticks()
-
-    # Put the last entry into a string, ensuring it is in scientific notation
-    # E.g: 123456789 => '1.235e+08'
-    llocs = '%.3e' % locs[-1]
-
-    # Get the magnitude, hence the number after the 'e'
-    # E.g: '1.235e+08' => 8
-    yoff = int(str(llocs).split('e')[1])
-
-    # If omit_last, remove last entry
-    if omit_last:
-        slocs = locs[:-1]
+def rebin3(x, xp, fp):
+    if np.diff(xp).min() < np.diff(x).min():
+        # Binning
+        x_cum = xp[1:]
+        c =  cumtrapz(fp,xp)
+        x_diff =  np.diff(x)
+        b = x[:-1] + x_diff/2.
+        # Deal with edge points - estimate x diff in the outer directions
+        b = np.hstack((x[0] - x_diff[0]/2. , b, x[-1] + x_diff[-1]/2. ))
+        c_new = np.interp(b, x_cum, c)
+        d = 0.5*(x_diff[:-1] + x_diff[1:])
+        # Deal with edge points - estimate x diff in the outer directions
+        d = np.hstack((x_diff[0] , d, x_diff[-1]))
+        new_f = (c_new[1:] - c_new[:-1] ) / d
     else:
-        slocs = locs
-
-    # Set ticks to the requested precision
-    form = r'$%.'+str(dig)+'f$'
-    plt.yticks(locs, list(map(lambda x: form % x, slocs/(10**yoff))))
-
-    # Define offset depending on the side
-    if side == 'left':
-        x_offs = -.18 - x_offs # Default left: -0.18
-    elif side == 'right':
-        x_offs = 1 + x_offs    # Default right: 1.0
-        
-    # Plot the exponent
-    plt.text(x_offs, y_offs, r'$\times10^{%i}$' % yoff, transform =
-            plt.gca().transAxes, verticalalignment='top')
-
-    # Return the locs
-    return locs
-
-
-
-
+        # Interpolate!
+        new_f = np.interp(x, xp, fp, left=0.0, right=0.0)
+    return x, new_f
 
 
 
@@ -599,6 +941,4 @@ def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False
 #         return pick
 #     else:
 #         return distribution_pick(distribution, range)
-
-
 

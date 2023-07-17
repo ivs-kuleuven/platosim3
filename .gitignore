@@ -21,9 +21,7 @@ generated/version.h
 # Un-ignore some of the default input files in the inputfiles/ folder
 
 !inputfiles/inputfile.yaml
-!inputfiles/inputfileFast.yaml
-!inputfiles/photometryTargets.txt
-!starField_RA180Dec-70.txt
+!inputfiles/inputfile_FCAM_required.yaml
 !aps_N6000K_v2.txt
 !orbit.txt
 !inputfiles/cl2bCcds.txt
@@ -56,26 +54,34 @@ docs/technicalNotes/*/.ipynb_checkpoints/*
 
 # Output files from Jupyter notebooks
 
+docs/*/*.txt
+docs/*/*.pdf
+docs/*/*.png
+docs/*/*.yaml
+docs/*/*.hdf5
 docs/*/*/*.ftr
 docs/*/*/*.txt
 docs/*/*/*.pdf
 docs/*/*/*.png
 docs/*/*/*.yaml
 docs/*/*/*.hdf5
+simulations_PlatoSimPaper2023/
 
 # Poetry
 
 poetry.lock
 
-# PLATOnium
+# Setup script
 
-.platonium_init
+.bash_profile
 
 # varsim
 
 PHOENIX_HiResFITS/
-varsim_exomass_fitting_parameters.h5
 WAVE_PHOENIX-ACES-AGSS-COND-2011.fits
+varsim_exomass_fitting_parameters.h5
+RRL-CEP/
+response_*
 
 # Compiled source 
 

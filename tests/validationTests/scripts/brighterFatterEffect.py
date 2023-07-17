@@ -71,16 +71,11 @@ class BrighterFatterEffect(Test):
         self.sim["CCD/IncludeBFE"]         = "yes"
 
         # No star in the subfield.
-        self.sim["ObservingParameters/DecPointing"] = - self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = - self.sim["Platform/Orientation/Angles/DecPointing"]
 
-            
-        
-
-        
 
 
     def runSimulation(self):
-
         # Run the first test
         self.runFirstTest()
 
@@ -88,7 +83,6 @@ class BrighterFatterEffect(Test):
         self.setEffectsForSecondTest()
         self.runSecondTest()
 
-        
 
 
 
@@ -136,7 +130,7 @@ class BrighterFatterEffect(Test):
 
         for background in backgrounds:
 
-            self.sim["Sky/SkyBackground"] = background
+            self.sim["Sky/SkyBackground/BackgroundValue"] = background
             simFile = self.sim.run(removeOutputFile = True)
             image = simFile.getImage(0)
             stds  = np.append(stds, np.std(image)**2)

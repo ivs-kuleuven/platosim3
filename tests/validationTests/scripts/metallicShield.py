@@ -7,10 +7,10 @@ from math import radians, degrees
 
 
 
-""" 
-This test is developed to check the behavious of the metallic shield for F-cams. We simulate a 600x600 pixel subfield with on it 9(=3x3) 
-evenly spaces stars. We change the edges of the metallic shield during every run so that the amount of stars that are exposed changes for 
-every run. The test checks that the correct amount of stars are simulated for the different runs. 
+"""
+This test is developed to check the behavious of the metallic shield for F-cams. We simulate a 600x600 pixel subfield with on it 9(=3x3)
+evenly spaces stars. We change the edges of the metallic shield during every run so that the amount of stars that are exposed changes for
+every run. The test checks that the correct amount of stars are simulated for the different runs.
 
 This test is repeated for the different PSF types in PlatoSim (MappedFromFile, AnalyticGaussian and AnalyticNonGaussian)
 """
@@ -30,7 +30,7 @@ class MetallicShield(Test):
         super().setAllEffects()
         self.sim["ObservingParameters/NumExposures"] = 1
 
-        # Set a 500x500 subfield at the center of the CCD 
+        # Set a 500x500 subfield at the center of the CCD
         self.sim["SubField/ZeroPointRow"]    = 1955
         self.sim["SubField/ZeroPointColumn"] = 1955
 
@@ -39,22 +39,23 @@ class MetallicShield(Test):
 
         # Set the simulation to have fastcam + shielding
         self.sim["Telescope/GroupID"] = "Fast"
-        self.sim["CCDPositions/MetallicShield/IncludeMetallicShield"] = "yes"
+        #self.sim["CCDPositions/MetallicShield/IncludeMetallicShield"] = "yes"
 
         self.createStarCatalog()
 
 
 
 
-        
+
     def createStarCatalog(self):
         # Create a SkyMap with 9 stars evenly spaces over the subfield
-        self.position = [50, 300, 550]
+        self.position = [100, 300, 500]
         subFieldPositions = [ (i, j) for i in self.position for j in self.position]
 
         starCatalogFilename = self.outputDir + "/starCatalog"+ self.nr + ".txt"
+
         myFile = open(starCatalogFilename, "w")
-        myFile.write("# RA DEC Vmag starID\n")        
+        myFile.write("# RA DEC Vmag starID\n")
 
         n=1
         for (row, col) in subFieldPositions:
@@ -73,9 +74,8 @@ class MetallicShield(Test):
 
     def runSimulation(self):
 
-
         self.sim["PSF/Model"] = "MappedFromFile"
-        self.createStarCatalog()        
+        self.createStarCatalog()
         test1 = self.testForCamera()
 
         self.sim["PSF/Model"] = "AnalyticGaussian"
@@ -88,10 +88,10 @@ class MetallicShield(Test):
 
         self.results = (test1 and  test2 and test3)
 
-        
+
 
     def testForCamera(self):
-        positions = [1980, 2080, 2280, 2480]
+        positions = [1955, 2155, 2355, 2555]
         stars = []
 
         for miRow in positions:
@@ -102,7 +102,6 @@ class MetallicShield(Test):
                             self.sim["CCDPositions/MetallicShield/ShieldColumnCoordinates"] = [miCol, maCol]
                             self.sim["CCDPositions/MetallicShield/ShieldRowCoordinates"]    = [miRow, maRow]
                             simFile = self.sim.run(removeOutputFile=True)
-                            
                             stars.append(self.compareForRun([miCol, maCol, miRow, maRow], simFile.getStarCatalog()))
 
         return all(stars)
@@ -119,7 +118,7 @@ class MetallicShield(Test):
         maCol = maCol - 1955
         miRow = miRow - 1955
         maRow = maRow - 1955
-        
+
         for star in starPositions:
             if miCol > star:
                 l += 1
@@ -131,7 +130,7 @@ class MetallicShield(Test):
                 t += 1
 
         NStars = NStars - 3*(l+r) - (t+b)*(NStars - 3*(l+r))/3
-        
+
         if NStars < 0:
             NStars = 0
 
@@ -140,7 +139,7 @@ class MetallicShield(Test):
     def compareForRun(self, borders, stars):
 
         miCol, maCol, miRow, maRow = borders
-        
+
         if all([x is None for x in stars]):
             return self.amountOfStars(miCol, maCol, miRow, maRow) == 0
         else:
@@ -150,13 +149,10 @@ class MetallicShield(Test):
     def compare(self):
         return self.results
 
-                        
-                            
 
 
-    
+
 
 if __name__ == "__main__":
     t = MetallicShield()
     print(t.run())
-    

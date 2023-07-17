@@ -1,8 +1,17 @@
 #!/usr/bin/env bash
 
+# Stop script if an error is encountered
+set -e
+
 # Set parsed arguments
 PLATO_WORKDIR=$1
-PLATO_LESIA=$2
+PLATO_PIPELINE=$2
+
+# Set global parameters
+POETRY=$HOME/.local/bin/poetry   # TODO check install location
+PLATO_SETUP=$PWD/.bash_profile
+PLATO_PROJECT_HOME=$PWD
+PLATO_MANPATH=$PWD/pipeline/man
 
 # If no arguments are given write usage message
 if [ -z "$PLATO_WORKDIR" ] || [ "$1" = "-h" ]; then    
@@ -11,105 +20,113 @@ if [ -z "$PLATO_WORKDIR" ] || [ "$1" = "-h" ]; then
     echo ""
     echo "ARGUMENTS:"
     echo "</path/to/plato_workdir>  : Location to PlatoSim working directory"
-    echo "</path/to/plato_lesia>    : Location to PLATO LESIA SVN repo (optional)"
+    echo "</path/to/plato_pipeline> : Location to PLATO LESIA SVN repo (optional)"
     echo ""
     echo "DESCRIPTION:"
-    echo "Script to setup the PLATOnium software on your local machine or cluster."
-    echo "Note that clusters typically don't support much disk space for HOME, and"
-    echo "hence it is better to install Poetry on your DATA disk storage."
+    echo "PLATOnium is a PlatoSim toolkit that allows the user to run multi-camera"
+    echo "simulations and while also using the L1 pipeline in extention to extract"
+    echo "on-ground or on-board data products in accordance to the mission strategy."
+    echo "Given the PLATO_WORDIR and PLATO_PIPELINE (optional) as input arguments"
+    echo "this script sets up all your path environment so they are globally defined"
+    echo "on your system. If the latter argument for the pipeline is provided the"
+    echo "script further sets up and installs the L1 pipeline."
     echo ""
     exit 1
     
 else
 
     # Footprint of project setup
-    if [ -f "$PWD/.platonium_init" ]; then
-	echo "--------------------------------"
-	echo "Project has already been set up!"
-	echo "--------------------------------"
+    if [ -f "$PLATO_SETUP" ]; then
+	echo "------------------------------------------"
+	echo ":   PlatoSim has already been set up!    :"
+	echo "------------------------------------------"
 	echo "To redo the setup, simply remove the file:"
-	echo "$PWD/.platonium_init"
-	echo "and run this setup.py script again."
+	echo "$PLATO_SETUP"
+	echo "and run this setup.sh script again."
 	exit 1
-    else
-	touch $PWD/.platonium_init
     fi
 
-    # Add and export paths to $HOME/.bashrc
-    if [[ ! -z "echo $PLATONIUM" ]]; then
+    # Write a bash_profile that will be loaded
+    echo "# >>> -- Export all PlatoSim paths -- <<<" >> $HOME/.bashrc
+    echo "source $PLATO_SETUP"                       >> $HOME/.bashrc
+    echo "# >>> ------------------------------- <<<" >> $HOME/.bashrc
 
-	echo "" >> $HOME/.bashrc
-	echo "# >>> Add and export PLATOnium paths <<<" >> $HOME/.bashrc
-	echo "" >> $HOME/.bashrc
+    # Create setup file
+    touch $PLATO_SETUP
 
-	# Export PLATO_WORKDIR
-	echo "PLATO_WORKDIR=${PLATO_WORKDIR}" >> $HOME/.bashrc
-	echo "export PLATO_WORKDIR" >> $HOME/.bashrc
-	echo "" >> $HOME/.bashrc
+    # Export paths
+    echo "#!/usr/bin/env bash" >> $PLATO_SETUP
+    echo "" >> $HOME/.bashrc
+    echo "export POETRY=$HOME/.local/bin/poetry" >> $PLATO_SETUP
+    echo "export PLATO_PROJECT_HOME=$PWD"        >> $PLATO_SETUP 
+    echo "export PLATO_WORKDIR=$PLATO_WORKDIR"   >> $PLATO_SETUP
+    
+    # Add and export paths to $HOME/.bashrc    
+    if [ $# -eq 2 ]; then
 
-	# Poetry environment
-	if [[ -z "echo $POETRY" ]]; then
-    	    echo "POETRY=$HOME/.local/bin/poetry" >> $HOME/.bashrc
-    	    echo "export POETRY" >> $HOME/.bashrc
-	    echo "" >> $HOME/.bashrc
-	fi
+	# Define path of pipeline
+	# NOTE: PLATO cannot be changed
+	echo "export PLATO=$PLATO_PIPELINE" >> $PLATO_SETUP
 
-	# For PLATO-LESIA
-	if [[ -z "$PLATO" ]]; then
-
-	    # Export PLATO path
-	    echo "export PLATO=</path/to/plato>" >> $HOME/.bashrc
-	    echo "source $PLATO/etc/env.bash" >> $HOME/.bashrc
-	    echo "" >> $HOME/.bashrc
-
-	    # Create PLATO_LESIA/etc/env.bash file and write to it
-	    echo "#!/usr/bin/env bash" >> $PLATO/etc/env.bash
-	    echo "" >> $PLATO/etc/env.bash
-	    echo "unset MANPATH" >> $PLATO/etc/env.bash
-	    echo "export MANPATH=$PLATO/man:$(manpath)" >> $PLATO/etc/env.bash
-	    echo "export PATH=$PLATO/bin:${PATH}" >> $PLATO/etc/env.bash
-	    echo "export PLATOPY=$PLATO/lib/python" >> $PLATO/etc/env.bash
-	    echo "if [ "$PYTHONPATH" != "" ]; then" >> $PLATO/etc/env.bash
-	    echo "    export PYTHONPATH=${PLATOPY}:${PYTHONPATH}:$HOME/lib/python/" >> $PLATO/etc/env.bash
-	    echo "else" >> $PLATO/etc/env.bash
-	    echo "    export PYTHONPATH=${PLATOPY}:$HOME/lib/python/" >> $PLATO/etc/env.bash
-	    echo "fi" >> $PLATO/etc/env.bash
-	fi
-
-	# Export Python and Path
-	echo "export PYTHONPATH=$PYTHONPATH:$POETRY:$PLATONIUM" >> $HOME/.bashrc
-	echo "" >> $HOME/.bashrc
-	echo "export PATH=$PATH:$POETRY:$PLATONIUM" >> $HOME/.bashrc
-	echo "" >> $HOME/.bashrc
-	echo "# >>> ----------------------------- <<<" >> $HOME/.bashrc
-	echo "" >> $HOME/.bashrc
+	# Create folder structure
+	mkdir -p $PLATO_PIPELINE/bin
+	mkdir -p $PLATO_PIPELINE/lib
+	mkdir -p $PLATO_PIPELINE/man
+	mkdir -p $PLATO_PIPELINE/man/man1
+	mkdir -p $PLATO_PIPELINE/include
+	
+	# Create env.bash file and write to it
+	echo "unset MANPATH"                                  >> $PLATO_SETUP
+	echo "export PLATO_MANPATH=$(manpath):$PLATO_MANPATH" >> $PLATO_SETUP
+	echo "export PLATO_PYLIB=$PLATO_PIPELINE/lib/python"  >> $PLATO_SETUP
     fi
 
-    # Reload .bashrc
-    . $HOME/.bashrc
+    # Lastly, export the python path to bashrc
+    echo "export PYTHONPATH=${PYTHONPATH}:$CONDA_PREFIX:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO_PIPELINE:$PLATO_MANPATH:$PLATO_PYLIB" >> $PLATO_SETUP
+    echo "export PATH=${PATH}:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
+       
+    # Add code to global executeables (-i overwrite old files) TODO
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/picsim    $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/varsim    $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/payload   $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $CONDA_PREFIX/bin
+    
+    # Reload .bashrc TODO mac
+    source $HOME/.bashrc
 
-    # Add code to global executeables (-i overwrite old files)
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/picsim/picsim $HOME/.local/bin/
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/varsim/varsim $HOME/.local/bin/
-    #cp -u $PLATONIUM/quicktools.py $HOME/.local/bin/
-
+    # Lastly, try to install L1 pipeline
+    if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
+    	echo "----------------------------"
+    	echo " Installing the L1 pipeline "
+    	echo "----------------------------"
+    	#cd $PLATO_PIPELINE/algorithms 
+    	#sudo make install
+	# The following is needed (bug?) to locate these two files
+	cp $PLATO_PIPELINE/algorithms/WP/321000/invert/invert_parabolic1_multi $CONDA_PREFIX/bin
+	cp $PLATO_PIPELINE/algorithms/WP/321000/microscan/discretize.py $CONDA_PREFIX/bin/discretize
+	chmod 755 $CONDA_PREFIX/bin/discretize
+    fi
+    
     # Fix Jupyter-notebook problem "module not found"
     # pip install ipykernel
     # python -m ipykernel install --user
-    
-    
+
     # Finish with prolog message
-    echo "----------------------------"
-    echo " PLATOnium has been set up! "
-    echo "----------------------------"
-    if [ -z "$PLATO" ]; then
-	echo "L1 pipeline has been set up!"
-	echo "----------------------------"
-    fi
+    echo "---------------------------"
+    echo " PLATOnium has been set up!"
+    echo "---------------------------"
     echo "From bash checkout:"
-    echo ">> platonium -h"
     echo ">> picsim -h"
     echo ">> varsim -h"
-    
+    echo ">> payload -h"
+    echo ">> platonium -h"
+    if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
+	echo "---------------------------"
+	echo " Pipeline has been set up !"
+	echo "--------------------------"
+	echo ">> pproc.py -h"
+	echo ">> psffit.py -h"
+	echo ">> photometry.py -h"
+	echo ">> jittercorrection.py -h"
+    fi
 fi
