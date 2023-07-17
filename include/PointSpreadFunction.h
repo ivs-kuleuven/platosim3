@@ -11,6 +11,7 @@
 #include "Parameter.h"
 #include "HDF5File.h"
 #include "HDF5Writer.h"
+#include "MappedDistortion.h"
 
 
 using namespace std;
@@ -37,6 +38,13 @@ class PointSpreadFunction : public HDF5Writer
         vector<std::array<double, 4>> getDistortionMap();
         bool writeHighResolutionPSF;
         vector<std::array<double, 4>> distortionMap;
+        vector<double> estimateDistortionCoefficients(double focalLength);
+        vector<double> estimateInverseDistortionCoefficients(double focalLength);
+
+       vector<double> xFP;
+       vector<double> yFP;
+       vector<double> xFPdist;
+       vector<double> yFPdist;
 
     protected:
 

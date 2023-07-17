@@ -999,10 +999,61 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
 
 
+def getCoefficientsFromTable(x1, y1, x2, y2, focalLength):
+    """
+    We estimate the (inverse) coefficients that described the analytic distortion
+    that most closely maps the coordinates (x1, y1) -> (x2, y2).
 
-def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength=None):
+    If the vectors x1 and y1 are undistorted coordinates and x2, y2 the distorted
+    coordinates this function will estimate the distortion coefficients.
 
-    """From mapped undistorted to distorted focal plane coordinates.
+    If x1, y1 are distorted and x2, y2 are undistorted this function estimates the
+    inverse distortion coefficients.
+    """
+    r = np.array([ np.sqrt(x**2+y**2) / focalLength
+                   for (x, y) in zip(x1, y1) ])
+    cos = np.array([ x/( r1*focalLength) if r1 != 0 else 0
+                     for (x, r1) in zip(x1, r)])
+    sin = np.array([ y/( r1*focalLength) if r1 != 0 else 1
+                     for (y, r1) in zip(y1, r)])
+    deltaX = np.array([xa - xb for xa, xb in zip(x2, x1)])
+    deltaY = np.array([ya - yb for ya, yb in zip(y2, y1)])
+
+    A = np.array([
+        np.array(
+            [[ r1**6,  r1**8,  r1**10, c*r1**5, s*r1**5, c*r1**5, s*r1**5],
+             [ r1**8,  r1**10, r1**12, c*r1**7, s*r1**7, c*r1**7, s*r1**7],
+             [ r1**10, r1**12, r1**14, c*r1**9, s*r1**9, c*r1**9, s*r1**9],
+             [ c*r1**5, c*r1**7, c*r1**9, r1**4, 0, (c*c)*(r1**4), c*s*(r1**4)],
+             [ s*r1**5, s*r1**7, s*r1**9, 0, r1**4, (c*s)*(r1**4), s*s*(r1**4)],
+             [ c*r1**5, c*r1**7, c*r1**9, c*c*r1**4, c*s*r1**4, c*c*r1**4, c*s*r1**4],
+             [ s*r1**5, s*r1**7, s*r1**9, s*c*r1**4, s*s*r1**4, s*c*r1**4, s*s*r1**4]])
+        for (r1, c, s) in zip(r, cos, sin) ])
+
+    A = np.sum(A, axis=0)
+
+    B =  [ np.array([(dx*c + dy*s)*r1**3 / focalLength,
+            (dx*c + dy*s)*r1**5 / focalLength,
+            (dx*c + dy*s)*r1**7 / focalLength,
+            dx*r1**2 / focalLength,
+            dy*r1**2 / focalLength,
+            (dx*c + dy*s)*c*r1**2 / focalLength,
+                     (dx*c + dy*s)*s*r1**2 / focalLength])
+           for dx, dy, r1, c, s in zip(deltaX, deltaY, r, cos, sin)]
+    B = np.sum(B, axis=0)
+    Ainv = np.linalg.inv(A)
+
+    coefficients = np.dot(Ainv, B)
+    return coefficients
+
+
+
+
+
+def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength):
+
+    """
+    From mapped undistorted to distorted focal plane coordinates.
 
     Convert from undistorted to distorted normalized focal plane
     coordinates using a mapped distortion model.
@@ -1029,10 +1080,6 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     yFPdist : float
         Distorted focal plane y-coordinate [mm]
     """
-    # If radial distance is above 80 mm
-    if (xFPmm**2 + yFPmm**2 > 80**2):
-        return xFPmm, yFPmm
-
     # Check the path to the PSF file excists
 
     if not os.path.exists(pathToPsfFile):
@@ -1084,79 +1131,11 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         x.read_direct(xDist)
         y.read_direct(yDist)
 
-    distanceFromPointx = np.array([x - xFPmm for x in xUndis])
-    distanceFromPointy = np.array([y - yFPmm for y in yUndis])
-    aDistanceFromPoint  = np.array([ x**2 + y**2
-        for x, y in zip(distanceFromPointx, distanceFromPointy)])
+    coefficients = getCoefficientsFromTable(xUndis, yUndis, xDist, yDist, focalLength)
 
-    # We should select the closest four undistorted points to the input point
+    return undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, coefficients, focalLength)
 
-    idx = np.arange(len(distanceFromPointx))
-    idx_selected = np.empty(4, dtype=np.int16)
 
-    idx_left = idx[distanceFromPointx < 0]
-    idx_right = idx[distanceFromPointx >= 0]
-
-    leftDistanceFromPointy  = distanceFromPointy[distanceFromPointx < 0]
-    rightDistanceFromPointy = distanceFromPointy[distanceFromPointx >= 0]
-
-    left_bottom_idx = idx_left[leftDistanceFromPointy < 0]
-    if (len(left_bottom_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
-        idx_selected[0] = left_bottom_idx[idx_closest_idx]
-
-    left_top_idx    = idx_left[leftDistanceFromPointy >=0]
-    if (len(left_top_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
-        idx_selected[1] = left_top_idx[idx_closest_idx]
-
-    right_bottom_idx = idx_right[rightDistanceFromPointy < 0]
-    if (len(right_bottom_idx) == 0):
-        return xFPmm, yFPmm
-    else:
-        idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
-        idx_selected[2]  = right_bottom_idx[idx_closest_idx]
-
-    right_top_idx = idx_right[rightDistanceFromPointy >= 0]
-    if (len(right_top_idx) == 0):
-        return xFpmm, yFPmm
-    else:
-        idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
-        idx_selected[3] = right_top_idx[idx_closest_idx]
-
-    for i in np.arange(2):
-        if (yUndis[idx_selected[2*i]] > yUndis[idx_selected[2*i+1]]):
-            dummy = idx_selected[2*i]
-            idx_selected[2*i] = idx_selected[2*i+1]
-            idx_selected[2*i+1] = dummy
-
-    closestX = np.array([ xUndis[i] for i in idx_selected])
-    closestY = np.array([ yUndis[i] for i in idx_selected])
-
-    # We can write the points (xFPmm, yFPmm) as a linear combination of the
-    # four closests points around this point.
-
-    oPointIdx = [3, 2, 1, 0]
-
-    constants = [abs( (closestX[oPointIdx[i]] - xFPmm) *
-                      (closestY[oPointIdx[i]] - yFPmm))
-                 for i in np.arange(4)]
-
-    constants = [ constant / sum(constants) for constant in constants]
-
-    closestXdist = np.array([ xDist[i] for i in idx_selected])
-    closestYdist = np.array([ yDist[i] for i in idx_selected])
-
-    xFPdist = sum([constants[i]*closestXdist[i] for i in np.arange(4)])
-    yFPdist = sum([constants[i]*closestYdist[i] for i in np.arange(4)])
-
-    # That's it!
-
-    return xFPdist, yFPdist
 
 
 
@@ -1174,9 +1153,9 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
     Notes
     -----
     - This is not the prefered method for detectors with mapped PSF, since
-      these use a mapped distortion model. For such models use the function: 
+      these use a mapped distortion model. For such models use the function:
       mappedDistortedToUndistortedFocalPlaneCoordinates.
-    - Example of inverse distortion coefficients: 
+    - Example of inverse distortion coefficients:
       [-0.323487, 0.268344, -0.435473, -0.00019304, -0.000176961, -0.000321713, -0.000827654]
 
     Parameters
@@ -1231,7 +1210,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
 
 
 
-def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength=None):
+def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength):
 
     """
     From mapped distorted to undistorted focal plane coordinates.
@@ -1262,44 +1241,64 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
         Distorted y-coordinate in the FP reference frame [mm]
     """
 
-    delta  = 100.
-    length = 80.
-    x0 = 0
-    y0 = 0
-    i  = 0
+    # Check the path to the PSF file excists
 
-    while((delta > .001) and (i<160)):
-        xDist, yDist = mappedUndistortedToDistortedFocalPlaneCoordinates(x0, y0, pathToPsfFile, focalLength)
-        length = 3*length / 5
+    if not os.path.exists(pathToPsfFile):
+        if os.path.exists(os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile):
+            pathToPsfFile = os.environ["PLATO_PROJECT_HOME"] + "/" + pathToPsfFile
+        else:
+            print(f"Error: {pathToPsfFile} is not a valid path name for mapped PSF")
 
-        if (xFPdist > xDist):
-            if ((x0 + length) > 85):
-                x0 = 85
-            else:
-                x0 = x0 + length
-        elif (xFPdist < xDist):
-            if ((x0 - length) < -85):
-                x0 = -85
-            else:
-                x0 = x0 - length
+    # We open the psf file where the coordinate transformation matrix should be in.
+    # If the matrix isn't in the file, we raise an error.
 
-        if (yFPdist > yDist):
-            if ((y0 + length) > 85):
-                y0 = 85
-            else:
-                y0 = y0 + length
-        elif (yFPdist < yDist):
-            if ((y0 - length) < -85):
-                y0 = -85
-            else:
-                y0 = y0 - length
+    psfFile = h5py.File(pathToPsfFile, "r")
+    if not "Coordinates map" in psfFile.keys():
+        if False:
+            print("Error: No transformation map given in psf file, mapped distortion is not possible.")
+            return
+        else:
+            coordMap = generateDistortionTable(psfFile, focalLength)
+    else:
+        coordMap = psfFile["Coordinates map"]
+
+    # Calculate the distance of the undist coordinates wrt input coordinates
+
+    undistorted = coordMap["Undistorted"]
+    x = undistorted["x"]
+    y = undistorted["y"]
+
+    if not "Coordinates map" in psfFile.keys():
+        xUndis = x
+        yUndis = y
+    else:
+        xUndis = np.zeros(x.shape, x.dtype)
+        yUndis = np.zeros(y.shape, y.dtype)
+        x.read_direct(xUndis)
+        y.read_direct(yUndis)
+
+    distorted = coordMap["Distorted"]
+
+    x = distorted["x"]
+    y = distorted["y"]
 
 
-        delta = abs(xFPdist - xDist) + abs(yFPdist - yDist)
+    if not "Coordinates map" in psfFile.keys():
+        xDist = x
+        yDist = y
+    else:
+        xDist = np.zeros(x.shape, x.dtype)
+        yDist = np.zeros(y.shape, y.dtype)
+        x.read_direct(xDist)
+        y.read_direct(yDist)
 
-        i += 1
+    coefficients = getCoefficientsFromTable(xDist, yDist, xUndis, yUndis, focalLength)
+    return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, coefficients, focalLength)
 
-    return x0, y0
+
+
+
+
 
 
 

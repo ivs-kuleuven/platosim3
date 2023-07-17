@@ -66,6 +66,8 @@ PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, H
     }
 
     Log.info("PointSpreadFunction: Opened the HDF5 file " + absolutePath + " containing the PSFs");
+
+    initializeDistortionMap();
 }
 
 
@@ -233,8 +235,6 @@ void PointSpreadFunction::select(double xFP, double yFP)
     hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from dataset " + datasetName + ".");
 
     isSelected = true;
-
-    initializeDistortionMap();
 }
 
 
@@ -385,12 +385,37 @@ void PointSpreadFunction::initializeDistortionMap()
     // First we check if a Coordinates Map is defined in the hdf5 file
 
     if (psfFile.hasGroup("/Coordinates map"))
+    {
         readDistortionmapFromFile();
+    }
     else
     {
         // If no map is defined we will generate such a map.
         generateDistortionMap();
     }
+}
+
+
+
+
+
+
+vector<double> PointSpreadFunction::estimateDistortionCoefficients(double focalLength)
+{
+    MappedDistortion distortion = MappedDistortion(xFP, yFP, xFPdist, yFPdist, focalLength);
+    std::vector<double> coefficients = distortion.getParameters();
+
+    return coefficients;
+}
+
+
+
+vector<double> PointSpreadFunction::estimateInverseDistortionCoefficients(double focalLength)
+{
+    MappedDistortion distortion = MappedDistortion(xFPdist, yFPdist, xFP, yFP, focalLength);
+    std::vector<double> coefficients = distortion.getParameters();
+
+    return coefficients;
 }
 
 
@@ -404,24 +429,12 @@ void PointSpreadFunction::initializeDistortionMap()
 void PointSpreadFunction::readDistortionmapFromFile()
 {
     // We read in the table that converts the undistorted coordinates to distorted coordinates from the psf HDF5 file.
-    vector<double> xUndistorted;
-    vector<double> yUndistorted;
 
-    vector<double> xDistorted;
-    vector<double> yDistorted;
+    psfFile.readArray("/Coordinates map/Undistorted", "x", xFP);
+    psfFile.readArray("/Coordinates map/Undistorted", "y", yFP);
+    psfFile.readArray("/Coordinates map/Distorted", "x", xFPdist);
+    psfFile.readArray("/Coordinates map/Distorted", "y", yFPdist);
 
-    psfFile.readArray("/Coordinates map/Undistorted", "x", xUndistorted);
-    psfFile.readArray("/Coordinates map/Undistorted", "y", yUndistorted);
-    psfFile.readArray("/Coordinates map/Distorted", "x", xDistorted);
-    psfFile.readArray("/Coordinates map/Distorted", "y", yDistorted);
-
-
-
-    for (unsigned int i=0; i < xDistorted.size(); i++)
-    {
-        const std::array<double, 4> coordinates = { xUndistorted.at(i), yUndistorted.at(i), xDistorted.at(i), yDistorted.at(i) };
-        distortionMap.push_back(coordinates);
-    }
 }
 
 
