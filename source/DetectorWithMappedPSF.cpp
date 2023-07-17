@@ -28,8 +28,8 @@
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
 
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure, PointSpreadFunction &psf)
+    : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), psf(&psf), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -63,8 +63,6 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 
     // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
     // Then select the proper PSF for the given subfield. Should only be done after calling configure().
-
-    psf = new PointSpreadFunction(configParam, hdf5file);
     setPsfForSubfield();
 }
 
@@ -77,7 +75,6 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
 DetectorWithMappedPSF::~DetectorWithMappedPSF()
 {
     flushOutput();
-    delete psf;
 }
 
 
@@ -151,7 +148,6 @@ void DetectorWithMappedPSF::setPsfForSubfield()
     tie(xFPmm, yFPmm) = getFocalPlaneCoordinatesOfSubfieldCenter();
 
     psf->select(xFPmm, yFPmm);
-    distortionMap = psf->getDistortionMap();
 
     if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
     {
@@ -365,7 +361,6 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     internalTime = startTime;
 
     // Clear all arrays
-
     Log.debug("Detector: resetting subfield array for new exposure.");
     reset();
 
@@ -1092,208 +1087,6 @@ bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> poi
 
 
 
-/*
- * /brief: applies the field distortion on the inputparameters from the distortion map
- * /input: FP coordinates [mm]
- */
-
-void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
-{
-
-    // If the input coordinates are outside the field of view, we don't apply the
-    // distortion. This is because coordiantes in the table do not reach that far
-    // and linear approximation of that point would fail.
-    if (x*x + y*y > 80*80)
-    {
-        return;
-    }
-    if (x*x + y*y == 0){return;}
-
-    std::array<std::array<double, 2>,4> ClosestUndistortedCoordinates;
-    std::array<std::array<double, 2>,4> ClosestDistortedCoordinates;
-
-    std::array<double,4> minDistance_x;
-    std::array<double,4> minDistance_y;
-
-    minDistance_x[0] = -1*std::numeric_limits<double>::max();
-    minDistance_x[1] = -1*std::numeric_limits<double>::max();
-    minDistance_x[2] = std::numeric_limits<double>::max();
-    minDistance_x[3] = std::numeric_limits<double>::max();
-
-    minDistance_y[0] = -1*std::numeric_limits<double>::max();
-    minDistance_y[1] = std::numeric_limits<double>::max();
-    minDistance_y[2] = -1*std::numeric_limits<double>::max();
-    minDistance_y[3] = std::numeric_limits<double>::max();
-
-
-    // We try to find the four closest points around the input point.
-    for (auto& coordinates : distortionMap)
-   {
-        double distance_x = (coordinates[0] - x);
-        double distance_y = (coordinates[1] - y);
-
-        // the points left from the input point.
-        if (distance_x < 0)
-        {
-            // the points below the input point.
-            if (distance_y < 0)
-            {
-                // We try to have on the 0th index, the closest point left/under the input point.
-                if ((minDistance_x[0] <= distance_x) && (minDistance_y[0] <= distance_y))
-                {
-                    minDistance_x[0] = distance_x;
-                    minDistance_y[0] = distance_y;
-
-                    ClosestUndistortedCoordinates[0] = {coordinates[0], coordinates[1]};
-                    ClosestDistortedCoordinates[0]   = {coordinates[2], coordinates[3]};
-                }
-            }
-            else
-            {
-                // We try to have on the 1th index, the closest point left/above the input point.
-                if ((minDistance_x[1] <= distance_x) && (minDistance_y[1] >= distance_y))
-                {
-                    minDistance_x[1] = distance_x;
-                    minDistance_y[1] = distance_y;
-
-                    ClosestUndistortedCoordinates[1] = {coordinates[0], coordinates[1]};
-                    ClosestDistortedCoordinates[1] = {coordinates[2], coordinates[3]};
-                }
-            }
-        }
-        else
-        {
-            if (distance_y < 0)
-            {
-                // We try to have on the 2th idx, the closest point right/below the input point.
-                if ((minDistance_x[2] >= distance_x) && (minDistance_y[2] <= distance_y))
-                {
-                    minDistance_x[2] = distance_x;
-                    minDistance_y[2] = distance_y;
-
-                    ClosestUndistortedCoordinates[2] = {coordinates[0], coordinates[1]};
-                    ClosestDistortedCoordinates[2] = {coordinates[2], coordinates[3]};
-                }
-            }
-            else
-            {
-                // We try to have on the 3th idx, the closest point right/above the input point.
-                if ((minDistance_x[3] >= distance_x) && (minDistance_y[3] >= distance_y))
-                {
-                    minDistance_x[3] = distance_x;
-                    minDistance_y[3] = distance_y;
-
-                    ClosestUndistortedCoordinates[3] = {coordinates[0], coordinates[1]};
-                    ClosestDistortedCoordinates[3] = {coordinates[2], coordinates[3]};
-                }
-            }
-
-        }
-    }
-
-  // We approximate the distorted coordinates using a linear combination of the 4 distorted coordinates corresponding
-  // with the 4 points around the input point.
-
-  std::array<double, 4> constants;
-  std::array<int, 4> oppositeIdx = {3, 2, 1, 0};
-
-  // We define the constants of the linear combination
-  double area = (ClosestUndistortedCoordinates[0][0] - ClosestUndistortedCoordinates[3][0]) * (ClosestUndistortedCoordinates[0][1] - ClosestUndistortedCoordinates[3][1]);
-  for (int i=0; i<4; i++)
-  {
-      std::array<double, 2> oppositePoint = ClosestUndistortedCoordinates[oppositeIdx[i]];
-      constants[i] = abs( (oppositePoint[0]-x)*(oppositePoint[1]-y) ) / area;
-  }
-
-
-  x = constants[0] * ClosestDistortedCoordinates[0][0] + constants[1] * ClosestDistortedCoordinates[1][0] + constants[2] * ClosestDistortedCoordinates[2][0] + constants[3] * ClosestDistortedCoordinates[3][0];
-  y = constants[0] * ClosestDistortedCoordinates[0][1] + constants[1] * ClosestDistortedCoordinates[1][1] + constants[2] * ClosestDistortedCoordinates[2][1] + constants[3] * ClosestDistortedCoordinates[3][1];
-}
-
-
-
-
-
-
-
-
-/*
- * /brief: applies the inverse of the field distortion on the input coordinates
- * /input: FP coordinates [mm]
- */
-
-void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
-{
-    // This is a brute force method to find the inverse distortion of the input point.
-    // We estimate this point as the central point of a square of the CCD, and by
-    // distorting this point we can estimate on which quadrant of the square the actual
-    // point would lie. We then improve our guess by taking the central of this quadrant.
-    // This process is repeated until we find a point that is close enough
-    // to the undistorted point of (x, y).
-
-
-    // Initialze the values
-    double delta = 100;
-    // length of the square we consider
-    double length = 80;
-
-    // our first guess is the center of the CCD
-    double x0 = 0;
-    double y0 = 0;
-
-    double xDist =x0;
-    double yDist = y0;
-    int i = 0;
-
-    // delta detamines how close the distorted point and the distorted "estimated point"
-    // lie. If they only differ by delta < 0.0001 we have found our point.
-    // If we are not able to reach this, then we finish the loop after 160 itaration to avoid
-    // an infinite loop.
-    while ((delta > 0.0001) && (i < 160))
-    {
-
-        applyDistortion(xDist, yDist);
-
-        // For our next guess we shift our point with a value 3*length / 5. This is more then lenght/2,
-        // so that we are still able to converge to a point that would lie close to the edge of our square.
-        length = 3*length / 5;
-
-        // Dependent on which quadrant of the square the input point falles, we change the middle of our square.
-        switch (x > xDist)
-        {
-        case true:
-            if (x0 + length > 85.) {x0 = 85.;}
-            else {x0 = x0 + length;}
-            break;
-        case false:
-            if (x0 - length < -85.) {x0 = -85.;}
-            else {x0 = x0 - length;}
-            break;
-        }
-
-        switch (y > yDist)
-        {
-        case true:
-            if (y0 + length > 85.) {y0 = 85;}
-            else {y0 = y0 + length;}
-            break;
-        case false:
-            if (y0 - length < -85.) {y0 = -85;}
-            else {y0 = y0 - length;}
-            break;
-        }
-
-        delta = std::abs(x-xDist) + std::abs(y-yDist);
-        xDist = x0;
-        yDist = y0;
-        i = i + 1;
-    }
-    x = xDist;
-    y = yDist;
-}
-
-
-
 
 
 
@@ -1492,10 +1285,11 @@ void DetectorWithMappedPSF::fillBackgroundMap(Camera &camera, double startTime, 
         {
             // Convert the pixel coordinates to focal plane coordinates
             double xFPmm, yFPmm;
-            tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
+            double xFPd, yFPd;
+            tie(xFPd, yFPd) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
 
             // Apply the inverse distortion
-            applyInverseDistortion(xFPmm, yFPmm);
+            tie(xFPmm, yFPmm) = camera.distortedToUndistortedFocalPlaneCoordinates(xFPd, yFPd);
             unDistortedX(row, col) = xFPmm;
             unDistortedY(row, col) = yFPmm;
 

@@ -12,6 +12,7 @@
 #include "NominalTemperature.h"
 
 #include "Camera.h"
+#include "PointSpreadFunction.h"
 #include "Telescope.h"
 #include "Platform.h"
 #include "Sky.h"
@@ -85,6 +86,7 @@ class Simulation
         Telescope *telescope;
         Sky *sky;
         Camera *camera;
+        PointSpreadFunction *psf;
         Detector *detector;
 
         HDF5File *hdf5File;

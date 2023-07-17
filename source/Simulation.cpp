@@ -64,7 +64,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     else
     {
         detectorFactory = new DetectorFactory;
-
         hdf5File = new HDF5File();
     }
 
@@ -171,21 +170,24 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     platform   = new Platform(configParams, *hdf5File, *jitterGenerator);
     telescope  = new Telescope(configParams, *hdf5File, *platform, *driftGenerator);
     sky        = new Sky(configParams);
-    camera     = new Camera(configParams, *hdf5File, *platform, *telescope, *sky);
 
 
     // Depending on how the PSF is computed (analytically or pre-mapped) the Detector object is different.
 
     if (psfModel == "MappedFromFile")
     {
-        detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
+        psf        = new PointSpreadFunction(configParams, *hdf5File);
+        camera     = new Camera(configParams, *hdf5File, *platform, *telescope, *sky, *psf);
+        detector = detectorFactory->createDetectorWithAsymmetricalMappedPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure, *psf);
     }
     else if (psfModel == "AnalyticGaussian")
     {
+        camera     = new Camera(configParams, *hdf5File, *platform, *telescope, *sky);
         detector = detectorFactory->createDetectorWithAnalyticGaussianPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else if (psfModel == "AnalyticNonGaussian")
     {
+        camera     = new Camera(configParams, *hdf5File, *platform, *telescope, *sky);
         detector = detectorFactory->createDetectorWithAnalyticNonGaussianPsfInstance(configParams, *hdf5File, *camera, *feeTemperatureGenerator, *detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure);
     }
     else
@@ -196,7 +198,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     }
 
     // Write the input parameters to the output HDF5 file
-
     writeInputParametersToHDF5(configParams);
 
 }
@@ -216,6 +217,10 @@ Simulation::~Simulation()
 
     delete detector;
     delete camera;
+    if (psfModel == "MappedFromFile")
+    {
+        delete psf;
+    }
     delete telescope;
     delete sky;
     delete platform;
@@ -225,7 +230,6 @@ Simulation::~Simulation()
     // Close the output hdf5 file
 
     hdf5File->close();
-
     delete hdf5File;
 }
 
@@ -479,7 +483,6 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 void Simulation::run()
 {
     // Update the internal clock
-
     currentTime = beginExposureNr * (exposureTime + readoutTimeBeforeNextExposure) + timeShift;
 
     Log.info("Simulation: running exposures " + to_string(beginExposureNr) + " to " + to_string(beginExposureNr+numExposures-1));
@@ -504,9 +507,7 @@ void Simulation::run()
         else
         {
             Log.info("Simulation: Starting exposure " + to_string(n) + " at time " + to_string(currentTime));
-
             currentTime = detector->takeExposure(n, currentTime, exposureTime);
-
             endOfSimulation = jitterGenerator->getSimulationState();
 
             n++;
@@ -581,16 +582,9 @@ void Simulation::writeStarCatalogToHDF5()
             RA[k]  *= Angle::degrees;    // [rad] -> [deg]
             dec[k] *= Angle::degrees;    // [rad] -> [deg]
 
-            if (includeFieldDistortion)
+            if (includeFieldDistortion || psfModel == "MappedFromFile")
             {
-              if(psfModel == "MappedFromFile")
-              {
-                detector->applyDistortion(xFPmm[k], yFPmm[k]);
-              }
-              else
-              {
                 tie(xFPmm[k], yFPmm[k]) = camera->undistortedToDistortedFocalPlaneCoordinates(xFPmm[k], yFPmm[k]);
-              }
             }
 
             tie(rowPix[k], colPix[k]) = detector->focalPlaneToPixelCoordinates(xFPmm[k], yFPmm[k]);

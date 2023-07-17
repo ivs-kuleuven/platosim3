@@ -13,6 +13,7 @@
 
 #include "ArrayOperations.h"
 #include "ConfigurationParameters.h"
+#include "PointSpreadFunction.h"
 #include "Constants.h"
 #include "Detector.h"
 #include "HDF5File.h"
@@ -42,6 +43,7 @@ class Camera : public HDF5Writer
     public:
 
         Camera(ConfigurationParameters &configParam, HDF5File &hdf5File, Platform &platform, Telescope &telescope, Sky &sky);
+        Camera(ConfigurationParameters &configParam, HDF5File &hdf5file, Platform &platform, Telescope &telescope, Sky &sky, PointSpreadFunction &psf);
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
@@ -129,9 +131,11 @@ class Camera : public HDF5Writer
         double fluxRatioExtendedGhosts;                             // Flux ratio between the extended ghost and the originating source [%]
         Parameter<double, 3> *extendedGhostRadiusCoefficients;      // Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source
 
+        PointSpreadFunction* psf;
+
     private:
 
-        
+
 };
 
 

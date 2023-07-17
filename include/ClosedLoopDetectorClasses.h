@@ -16,8 +16,8 @@ class ClosedLoopDetectorWithAsymmetricalMappedPSF: public DetectorWithMappedPSF,
 
     public:
 
-        ClosedLoopDetectorWithAsymmetricalMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)       
-        : DetectorWithMappedPSF{configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure}
+    ClosedLoopDetectorWithAsymmetricalMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure, PointSpreadFunction &psf)
+        : DetectorWithMappedPSF{configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure, psf}
         , ClosedLoopUtility{configParam}
         {}
 

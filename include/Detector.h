@@ -91,8 +91,6 @@ class Detector: public HDF5Writer
         bool constantSkyBackground;
 
         double getReadoutTimeBeforeNextExposure();
-        virtual void applyDistortion(double &, double &){};
-        virtual void applyInverseDistortion(double &, double &){};
         void addBackgroundMapToPixelMap(Camera &camera, double startTime);
 
     protected:

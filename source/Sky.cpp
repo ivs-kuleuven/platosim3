@@ -517,7 +517,7 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
         r /= sqrt((r * r).sum());
 
         //rotation matrix for rotation axis r with angle difference after aberration, this reverses the aberration effect for the pointing direction
-        std::cout << oangle - pangle << std::endl;
+
         double c = cos(oangle - pangle);
         double s = sin(oangle - pangle);
         double x = r[0], y = r[1], z = r[2];
@@ -575,7 +575,7 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 
         if (n == 0)
         {
-            Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(raStarAberrated, false, 8) + ", " + dtos(decStarAberrated, false, 8));
+            Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(rad2deg(raStarAberrated), false, 8) + ", " + dtos(rad2deg(decStarAberrated), false, 8));
         }
     }
 }
