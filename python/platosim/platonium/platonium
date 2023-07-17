@@ -211,19 +211,20 @@ class PLATOnium(object):
         # FULL FRAME
             
         if self.fullFrame:
-            if self.starcatFile is not None:
 
-                self.dx = pd.read_feather(self.starcatFile)
+            # Load stellar catalogue
+            starcat = Path(glob.glob(f'{str(self.inputDir)}/starcat**group{self.group}.ftr')[0])
+            if not starcat.is_file():
+                errorcode('error', 'No star catalogue found in the project "input/" directory!')
+            self.dx = pd.read_feather(starcat)
+            
+            # Save star catalogue
+            self.ds = pd.DataFrame()
+            self.ds['ra']  = self.dx.ra
+            self.ds['dec'] = self.dx.dec
+            self.ds['mag'] = self.dx.mag
+            self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
 
-                # Save star catalogue
-                self.ds = pd.DataFrame()
-                self.ds['ra']  = self.dx.ra
-                self.ds['dec'] = self.dx.dec
-                self.ds['mag'] = self.dx.mag
-                self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
-
-            else:
-                errorcode('error', 'Full-frame CCD images need a parsed star catalogue!')
             return
 
 
@@ -232,10 +233,10 @@ class PLATOnium(object):
 
         if self.starcatFile is not None:
             
-            df = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
-
+            df = pd.read_csv(self.starcatFile) #, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
+            
             # Change IDs all to be the target
-            df.ID = np.ones(len(dx))
+            df.ID = np.ones(len(df))
             df.ID = df.ID.astype('int')
             
             # Define data frames
@@ -551,7 +552,7 @@ class PLATOnium(object):
 
         if self.fullFrame:
 
-            # Turn of photometry
+            # Turn off photometry
             sim['Photometry/IncludePhotometry'] = False
             # Set CCD parameters
             self.subfieldIsOnCCD                = True
