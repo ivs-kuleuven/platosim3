@@ -338,12 +338,14 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
     """
     
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
+    # The mission reuquirements are 4.5 arcmin in X and Y, and 9 arcmin rotation.
+    # This gives a RMS value of 1.5 arcsec (6 pixel)
     t = 4.5/60  # [deg]
     b = 9.0/60  # [deg]
 
     # Find distribution within 3 sigma of req.
     tt = np.array([np.random.normal(0, t/sigma) for i in range(24)])
-    bb = np.array([np.random.normal(0, b/sigma) for i in range(24)])
+    bb = np.array([np.random.normal(0, t/sigma) for i in range(24)])
 
     # Corresponding yaw, pitch, roll
     dy = tt
@@ -357,35 +359,37 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
     # Plot histogram and data
     if show_table:
         # Print generate values
-        print('\nCamera alignment errors for all 24 N-CAMs [arcmin]')
-        APE0 = np.transpose([tt, bb, dx, dy, dz]) * 60
+        print('\nCamera alignment errors for all 24 N-CAMs [pixel]')
+        APE0 = np.transpose([tt, bb, dx, dy, dz]) * 3600 / 15
         df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
         print(df0)
         
     # Plot distribution
     if plot:
-        t *= 3600
-        b *= 3600
-        y = t/sigma
-        z = 3 * y
-        x = np.abs(b/sigma - z)
-        xx = np.linspace(-10*x, 10*x, 1000)
+        t *= 3600 / ( 15 * sigma * (sigma-1))
+        b *= 3600 / ( 15 * sigma * (sigma-1))
+        
+        print(t, b)
+        # y = t/sigma
+        # z = 3 * y
+        # x = np.abs(b/sigma - z)
+        xx = np.linspace(-10*t, 10*t, 1000)
 
         fig, ax = plt.subplots(1, 2, figsize=(9,4))
 
         
-        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
-        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Transverse')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rotation')
         ax[0].set_title(f'APE distributions at {sigma}$\sigma$')
         ax[0].set_xlabel('Camera misalignment in FPA [pixel]')
         ax[0].set_ylabel('Probability (PDF) [\%]')
         ax[0].set_xlim(xx[0], xx[-1])
         ax[0].legend()
 
-        ax[1].plot(df.azimuth, df.tilt, 'o', alpha=0.5)
+        ax[1].plot(df.azimuth*3600/15, df.tilt*3600/15, 'o', alpha=0.5)
         ax[1].set_title('Relative offset')
-        ax[1].set_xlabel('Azimuth [deg]')
-        ax[1].set_ylabel('Tilt [deg]')
+        ax[1].set_xlabel('Azimuth [pixel]')
+        ax[1].set_ylabel('Tilt [pixel]')
         ax[1].set_aspect('equal', adjustable='box')
         ax[1].grid()
 
