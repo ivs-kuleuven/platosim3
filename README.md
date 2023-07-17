@@ -33,7 +33,7 @@ In order to provide a smooth start of your PlatoSim journey, we suggest that you
 
 ## Reference
 
-Please cite *Jannsen et al. (in prep.)* if use PlatoSim in your research. The ADS BibTex entry for this paper will be available soon.
+Please cite *Jannsen et al. (subm.)* if use PlatoSim in your research. The ADS BibTex entry for this paper will be available soon.
 
 <!-- The BibTeX entry for the paper is: -->
 

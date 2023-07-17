@@ -251,8 +251,8 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
     # Corresponding yaw, pitch, roll
     
     y = tt
-    z = 3 * y
-    x = bb - z
+    z = bb - y  #3 * y
+    x = tt  # bb - z
 
     # ICRS pointing angles
     
@@ -294,15 +294,25 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         z = 3 * y
         x = np.abs(b/sigma - z)
         xx = np.linspace(-10*x, 10*x, 1000)
-        fig = plt.figure(figsize=(7,5))
-        plt.title(f'PRE distributions at {sigma}$\sigma$')        
-        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
-        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
-        plt.xlabel('Platform pointing errors in FPA [pixel]')
-        plt.ylabel('Probability (PDF) [\%]')
-        plt.xlim(xx[0], xx[-1])
+
+        fig, ax = plt.subplots(1, 2, figsize=(9,4))
+        
+        ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
+        ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
+        ax[0].set_ylabel('Probability (PDF) [\%]')
+        ax[0].set_xlim(xx[0], xx[-1])
+        ax[0].legend()
+
+        ax[1].plot(df1.RA, df1.Dec, 'o', alpha=0.2)
+        ax[1].set_title('Distribution on Sky')
+        ax[1].set_xlabel('RA [deg]')
+        ax[1].set_ylabel('Dec [deg]')
+        ax[1].set_aspect('equal', adjustable='box')
+        ax[1].grid()
+        
         plt.tight_layout()
-        plt.legend()
         plt.show()
         
     # Save file with relative pointing errors [deg]
@@ -360,15 +370,26 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
         z = 3 * y
         x = np.abs(b/sigma - z)
         xx = np.linspace(-10*x, 10*x, 1000)
-        fig = plt.figure(figsize=(7,5))
-        plt.title(f'APE distributions at {sigma}$\sigma$')        
-        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
-        plt.plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
-        plt.xlabel('Camera misalignment in FPA [pixel]')
-        plt.ylabel('Probability (PDF) [\%]')
-        plt.xlim(xx[0], xx[-1])
+
+        fig, ax = plt.subplots(1, 2, figsize=(9,4))
+
+        
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
+        ax[0].set_title(f'APE distributions at {sigma}$\sigma$')
+        ax[0].set_xlabel('Camera misalignment in FPA [pixel]')
+        ax[0].set_ylabel('Probability (PDF) [\%]')
+        ax[0].set_xlim(xx[0], xx[-1])
+        ax[0].legend()
+
+        ax[1].plot(df.azimuth, df.tilt, 'o', alpha=0.5)
+        ax[1].set_title('Relative offset')
+        ax[1].set_xlabel('Azimuth [deg]')
+        ax[1].set_ylabel('Tilt [deg]')
+        ax[1].set_aspect('equal', adjustable='box')
+        ax[1].grid()
+
         plt.tight_layout()
-        plt.legend()
         plt.show()
 
     # Save APE camera misalignments

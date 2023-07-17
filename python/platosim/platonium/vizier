@@ -25,19 +25,18 @@ from platosim.matplotlibrc import latex
 latex()
 
 
-field  = 'LOPS'
+field  = 'LOPS2'
 a      = 16.9
 radius = 12
 maglim = 17
 verbose = 1
-plot = False
+plot = True
 
 # Get pointing of platform
 
-platform = ut.getPointingField(field)
-alpha, delta, kappa = platform[0], platform[1], platform[2]
+alpha, delta, kappa = ut.getPointingField(field)
 
-# Make a grid in azimuth and tilt angles and findsky coordinates
+# Make a grid in azimuth and tilt angles and find the sky coordinates
 
 c = np.sqrt(2*a**2)
 azim = [-45,   0,  45,
@@ -134,6 +133,7 @@ if plot:
     ax.set_ylabel('Dec [deg]')
 
     plt.show()
+
 #---------------------------------
 
     
@@ -142,10 +142,11 @@ if plot:
 if verbose > 0:
     print('Start Gaia DR3 query')
 
-# for i in tqdm(range(N), bar_format=ut.tqdmBar()):
-#         gaiaRegionQuery(raGrid[i], decGrid[i], radius=radius, maglim=maglim,
-#                         ofile=f'starcat_GaiaDR3_{field}_grid{i+1}')
+for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+        gaiaRegionQuery(raGrid[i], decGrid[i], radius=radius, maglim=maglim,
+                        ofile=f'starcat_GaiaDR3_{field}_grid{i+1}')
 
+# Combine all the data sets
 
 if verbose > 0:
     print('Load and combine all star found from grid search')
