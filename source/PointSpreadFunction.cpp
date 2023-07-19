@@ -357,14 +357,7 @@ arma::fmat PointSpreadFunction::getOriginalPSF()
 }
 
 
-/*
- * This function gets the distortion map
- */
 
-vector<std::array<double, 4>> PointSpreadFunction::getDistortionMap()
-{
-  return distortionMap;
-}
 
 
 
@@ -474,9 +467,12 @@ void PointSpreadFunction::generateDistortionMap()
             double xPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing1[0]));
             double yPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing2[0]));
 
-            // Once we have these values we add them to the distortionMap
+            // Once we have these values we add them to their corresponding vectors
             const std::array<double, 4> coordinates = { xPsfUndistorted, yPsfUndistorted, xPsf, yPsf };
-            distortionMap.push_back(coordinates);
+            xFP.push_back(xPsfUndistorted);
+            yFP.push_back(yPsfUndistorted);
+            xFPdist.push_back(xPsf);
+            yFPdist.push_back(yPsf);
         }
         else
         {
