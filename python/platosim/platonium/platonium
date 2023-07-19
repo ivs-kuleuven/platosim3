@@ -27,6 +27,7 @@ import glob
 import math
 import shutil
 import argparse
+import tracemalloc
 
 # External packages
 import h5py
@@ -233,7 +234,7 @@ class PLATOnium(object):
 
         if self.starcatFile is not None:
             
-            df = pd.read_csv(self.starcatFile) #, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
+            df = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
             
             # Change IDs all to be the target
             df.ID = np.ones(len(df))
@@ -905,9 +906,10 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 0:
+            tracemalloc.start()
             errorcode('message', f'\n[PlatoSim]: Simulating N-CAM {self.group}.{self.camera} ' +
                       f'Q{self.quarter} for {self.numExposures} exposures')
-
+            
         # Select the number of exposures
         sim["ObservingParameters/NumExposures"] = self.numExposures
 
@@ -931,10 +933,13 @@ class PLATOnium(object):
                     os.remove(str(self.outputSimName) + '.yaml')
                 if os.path.isfile(self.starCatalogFile):
                     os.remove(self.starCatalogFile)
-            
+
+        # Define output file name
+        outputFile = f'{self.outputSimName}.hdf5'
+        
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
-            f = h5py.File(f'{self.outputSimName}.hdf5', "r")
+            f = h5py.File(outputFile, "r")
             # Select detected stars
             ID = f['StarPositions/Exposure000000/starID'][:]
             df = self.dx.iloc[ID]
@@ -960,7 +965,7 @@ class PLATOnium(object):
                 fps, nskip = 25, 500
             elif self.cadence == 600.0:
                 fps, nskip = 25, 50
-            plotSubfieldAnimation(str(self.outputSimName) + '.hdf5',
+            plotSubfieldAnimation(outputFile,
                                   outputFileName=str(self.outputSimName),
                                   cadence=self.cadence,
                                   frameRate=fps,
@@ -974,15 +979,16 @@ class PLATOnium(object):
                                   showGrid=True,
                                   figsize=(6,6))
             
-        # Execution time of module
+        # Resources
         if self.verbose > 0:
+            # Execution time of module
             self.tocPlatoSim = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
-            # TODO add storage memory to overview
-            #self.byte2MB = 1024 * 1024 #* 1024
-            #self.memPlatoSim = os.path.getsize(self.outputDir) / self.byte2MB
-            #self.memPlatoSim = shutil.disk_usage(self.outputDir)
-
+            # Max RAM memory [Mb]
+            self.memRamPlatoSim = round(tracemalloc.get_traced_memory()[1]/1e3)
+            tracemalloc.stop()
+            # Storage memory of HDF5 file [Mb]
+            self.memDiskPlatoSim = round(Path(outputFile).stat().st_size/1e3)
 
         
 
@@ -1440,7 +1446,8 @@ class PLATOnium(object):
         """
         if not args.plot:
             errorcode('message', '\nSimulation statistics')
-            #print(f'Storage memory for PlatoSim      : {self.memPlatoSim} MB')
+            print(f'Max RAM memory for PlatoSim      : {self.memRamPlatoSim} MB')
+            print(f'Storage memory for PlatoSim      : {self.memDiskPlatoSim} MB')
             print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [hh:mm:ss]')
             if self.sample:
                 print(f'Execution time for Microscanning : {self.tocMicroscan} [hh:mm:ss]')
