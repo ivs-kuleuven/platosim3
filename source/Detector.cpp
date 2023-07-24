@@ -3284,7 +3284,7 @@ void Detector::initHDF5Groups()
     hdf5File.createGroup("/Flatfield");
     hdf5File.createGroup("/ThroughputMaps");
 
-    if (writeCTI)
+    if (writeCTI && (CTImodel == "Short2013"))
     {
         hdf5File.createGroup("/CTI");
     }
@@ -3601,7 +3601,7 @@ void Detector::writeCTIToHDF5()
 {
     stringstream myStream;
 
-    if (writeCTI)
+    if (writeCTI && (CTImodel == "Short2013"))
     {
 
         // FIXME: This informational log statement is not visible in the log file (low priority)
