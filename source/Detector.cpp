@@ -534,7 +534,7 @@ void Detector::updateParameters(double time)
 
     if(includeRelativeTransmissivity)
     {
-        // expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");
+        // expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");    # FIXME remove?
         relTransmissivityCoefVector = configParam.getDoubleVector("CCD/RelativeTransmissivity/Coefficients");
 
         if (relTransmissivityCoefVector.size() != 3)
@@ -1310,9 +1310,7 @@ void Detector::addDarkSignal(float exposureTime)
 void Detector::readOut(float exposureTime)
 {
 
-    // Add cosmic hits
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
+    // Add cosmic hits [electrons -> electrons]
 
     if(includeCosmicsInSubField | includeCosmicsInBiasMap | includeCosmicsInSmearingMap)
     {
@@ -1324,40 +1322,7 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no cosmic hits included.");
     }
 
-    // Simulate the effects of the Charge Transfer Inefficiency (CTI). When the
-    // CCD is read out, row after row, a part of the charge is always left behind
-    // which then dribbles into the trailing pixels. This causes each star to have
-    // a small "tail". Only visible when the CTI = 1 - CTE is poor.
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includeCTIeffects)
-    {
-        Log.debug("Detector: applying charge transfer inefficiency.");
-        applyCTI();
-    }
-    else
-    {
-        Log.debug("Detector: no charge transfer inefficiency applied.");
-    }
-
-    // Apply full-well saturation. A pixel has a maximum capacity of electrons (the full well capacity).
-    // If photons free more electrons, the pixel saturates, and the electrons flow in the pixels above and below in
-    // the same column (potential barriers are smallest in that direction).
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
-
-    if (includeFullWellSaturation)
-    {
-        Log.debug("Detector: applying full well saturation.");
-        applyFullWellSaturation();
-    }
-    else
-    {
-        Log.debug("Detector: no full well saturation applied.");
-    }
-
-    // Brighter-Fatter effect
+    // Brighter-Fatter effect [electrons -> electrons]
 
     if (includeBFE)
     {
@@ -1370,10 +1335,31 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no Brighter-Fatter effect added");
     }
 
-    // Each time the amplifier reads out a pixel, a tiny bit of noise is added.
-    // Add the readout noise.
-    // Pixel units before: [electrons]
-    // Pixel units after: [electrons]
+    // Apply full-well saturation (blooming) [electrons -> electrons]
+
+    if (includeFullWellSaturation)
+    {
+        Log.debug("Detector: applying full well saturation.");
+        applyFullWellSaturation();
+    }
+    else
+    {
+        Log.debug("Detector: no full well saturation applied.");
+    }
+
+    // Apply Charge Transfer Inefficiency (CTI) [electrons -> electrons]
+
+    if (includeCTIeffects)
+    {
+        Log.debug("Detector: applying charge transfer inefficiency.");
+        applyCTI();
+    }
+    else
+    {
+        Log.debug("Detector: no charge transfer inefficiency applied.");
+    }
+
+    // Add the readout noise [electrons -> electrons]
 
     if (includeReadoutNoise)
     {
@@ -1385,9 +1371,7 @@ void Detector::readOut(float exposureTime)
         Log.debug("Detector: no readout noise added.");
     }
 
-    // Apply the F-FEE over-/undershoot to the pixel map.
-    // Pixel units before of pixel, smearing and bias maps: [ADU]
-    // Pixel units after of  pixel, smearing and bias maps: [ADU]
+    // Apply the F-FEE over-/undershoot [electrons -> electrons] 
 
     if(isFastCamera && frontEndElectronics->getIncludeOverAndUnderShoot())
     {
@@ -1397,13 +1381,13 @@ void Detector::readOut(float exposureTime)
     else{
         Log.debug("Detector: (F-)FEE over-/undershoot not applied: " + to_string(isFastCamera) + " " + to_string(frontEndElectronics->getIncludeOverAndUnderShoot()));
     }
-
-    //  Apply quantisation. This consists of:
-    //         - applying FEE and CCD gain (converting from electrons to ADU)
-    //         - adding the electronic offset
-    //         - applying digital saturation
-    // Pixel units before: [electrons]
-    // Pixel units after: [ADU]
+    
+    // Apply quantisation [electrons -> ADU]
+    // This consists of:
+    // - TODO applying CCD non-linearity
+    // - applying FEE and CCD gain (converting from electrons to ADU)
+    // - adding the electronic offset
+    // - applying digital saturation
 
     if(includeQuantisation)
     {
@@ -1861,10 +1845,10 @@ void Detector::addCosmics(float exposureTime, arma::Mat<float> &map, vector<unsi
 
 
 /**
- * \brief: Apply the effect of full-well saturation (i.e. blooming) to the
- *         pixel map.  If a pixel receives more electrons than the full-well saturation
- *         limit (expressed in [electrons / pixel]), the additional electrons flow evenly
- *         distributed in positive and negative charge-transfer direction.  Electrons
+ * \brief: Apply the effect of full-well saturation (i.e. blooming) to the pixel map.
+ *         If a pixel receives more electrons than the full-well saturation limit 
+ *         (expressed in [electrons / pixel]), the additional electrons flow evenly
+ *         distributed in positive and negative charge-transfer direction. Electrons
  *         reaching the edge of the CCD will not be detected.
  *
  * \pre Pixel unit in the pixel map: [electrons].
@@ -1995,9 +1979,11 @@ void Detector::applyFullWellSaturation()
 
 
 /**
- * \brief Apply the effect of the charge-transfer inefficiency to the
- *        pixel map. The exact model used depends on the configuration
- *        in the input file.
+ * \brief Apply the effect of the charge-transfer inefficiency to the pixel map. 
+ *        A CCD is read out, row after row, a part of the charge is always left 
+ *        behind which then dribbles into the trailing pixels. This causes each
+ *        star to have a small "tail". Only visible when the CTI = 1 - CTE is poor.
+ *        The exact model used depends on the configuration in the input file. 
  *
  *  \note The pixel map should be expressed in [e-] and not [ADU]
  *
@@ -2583,8 +2569,8 @@ double Detector::getRowEdgeFOV(int column)
 
 
 /**
- * \brief Apply the readout noise to the pixel map, bias map, and smearing map.  The readout
- *        noise is contributed to by the detector and by the FEE.
+ * \brief Apply the readout noise to the pixel map, bias map, and smearing map.  
+ *        The readout noise is contributed to by the detector and by the FEE.
  *
  * \details Readout noise occurs due to the imperfect nature of the CCD amplifiers.
  *          When the electrons are transferred to the amplifier, the induced voltage
