@@ -849,9 +849,7 @@ class PLATOnium(object):
             fig = plt.figure(figsize=(12,10))
             drawStarInCCDfocalPlane(fig, sim, self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
                                     self.df0['CCD'][0], self.group,
-                                    self.raPlatformDeg, self.decPlatformDeg,
-                                    self.tiltTelescopeDeg, self.azimuthTelescopeDeg,
-                                    self.solarPanelOrientationDeg)
+                                    self.raPlatformDeg, self.decPlatformDeg, self.solarPanelOrientationDeg)
 
         # Show subfield for first cadence
         if self.fullFrame:

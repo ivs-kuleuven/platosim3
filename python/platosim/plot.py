@@ -613,8 +613,7 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
 
 
 def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
-                            raPlatform, decPlatform, tiltAngle, azimuthAngle,
-                            solarPanelOrientation):
+                            raPlatform, decPlatform, solarPanelOrientation):
 
     """Draw a star given by the CCD pixel coordinates in the CCD focal plane.
 
@@ -645,12 +644,12 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
         Right Ascension of platform pointing [deg]
     decPlatform : float
         Declination of platform pointing [deg]
+    solarPanelOrientation : float
+        Orientation of solar panel [deg]
     titlAngle : float
         Tilt angle of camera [deg]
     azimuthAngle : float
         Azimuth angle of camera [deg] 
-    solarPanelOrientation : float
-        Orientation of solar panel [deg]
         
     Return
     ------
@@ -662,11 +661,11 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     numGroups     = 4
     numCorners    = 4
     offset        = 4
-    colors        = ['b', 'r', 'g', 'orange']
+    colors        = ['b', 'g', 'orange', 'r']
     ccdCodes      = ["1", "2", "3", "4"]
     tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
     azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
-    fovDegrees    = sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
+    fovDegrees    = 19.6 #sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
     focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
     pixelSize     = sim['CCD/PixelSize']                                # [micron]
     plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]

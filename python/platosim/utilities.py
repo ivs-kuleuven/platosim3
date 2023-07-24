@@ -810,7 +810,7 @@ def convertMagnitudeRange(dm):
 
 
 
-def getPointingField(name):
+def getPointingField(name, unit='deg'):
 
     """Function to fetch pointing field coordinates.
 
@@ -831,15 +831,20 @@ def getPointingField(name):
     Sky coordinates (alpha, delta, kappa) [deg]
     """
 
-    PF = {'NPF':   [265.08002279,  39.5836954,  +8.5],      # PIC1.1.0: Galactic []
-          'SPF':   [ 86.79870508, -46.39594703, -8.5],      # PIC1.1.0: Galactic [253.0, -30.0, 0.0]
-          'LOPN':  [277.18023,     52.85952,    +8.5],      # PIC2.0.0: Galactic [ 81.6, -24.6, 0.0]
-          'LOPS2': [ 95.31043,    -47.88693,    13.9947+180],   # PIC2.0.0
+    PF = {'NPF':   [265.08002279,  39.5836954,   8.5],         # PIC1.1.0: Galactic []
+          'SPF':   [ 86.79870508, -46.39594703,  8.8],     # PIC1.1.0: Galactic [253.0, -30.0, 0.0]
+          'LOPN':  [277.18023,     52.85952,     8.5],         # PIC2.0.0: Galactic [ 81.6, -24.6, 0.0]
+          'LOPS2': [ 95.31043,    -47.88693,    13.9947+180],  # PIC2.0.0
           'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # Used for simulations of KUL20
 
     p = PF[name]
-    
-    return p[0], p[1], p[2] 
+
+    if unit == 'deg':
+        return p[0], p[1], p[2]
+    elif unit == 'rad':
+        return np.deg2rad(p[0]), np.deg2rad(p[1]), np.deg2rad(p[2])
+    else:
+        errorcode('error', 'Unit do not exist! Use either "deg" or "rad"')
 
 
 
