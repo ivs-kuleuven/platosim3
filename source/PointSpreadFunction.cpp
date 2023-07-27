@@ -345,7 +345,7 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 
 
 
-/*
+/**
  * This function gets the selected psf
  */
 
@@ -357,14 +357,6 @@ arma::fmat PointSpreadFunction::getOriginalPSF()
 }
 
 
-/*
- * This function gets the distortion map
- */
-
-vector<std::array<double, 4>> PointSpreadFunction::getDistortionMap()
-{
-  return distortionMap;
-}
 
 
 
@@ -374,7 +366,8 @@ vector<std::array<double, 4>> PointSpreadFunction::getDistortionMap()
 
 
 
-/*
+
+/**
  * Initialize the distortion map. This can be done either by copying it from
  * the HDF5 file or generated if the starPointing angles are given.
  */
@@ -400,16 +393,39 @@ void PointSpreadFunction::initializeDistortionMap()
 
 
 
+
+
+/**
+ * \brief Return a vector containing the coordinates for the best fitting
+ *        Wang distortion model.
+ *
+ * \param[in] focalLength: The focalLength that we use.
+ *
+ * \return vector<double> with the 6 coefficient to descibe the Wang model.
+ */
 vector<double> PointSpreadFunction::estimateDistortionCoefficients(double focalLength)
 {
     MappedDistortion distortion = MappedDistortion(xFP, yFP, xFPdist, yFPdist, focalLength);
-    std::vector<double> coefficients = distortion.getParameters();
+    vector<double> coefficients = distortion.getParameters();
 
     return coefficients;
 }
 
 
 
+
+
+
+
+/**
+ * \brief Return a vector containing the coordinates for the best fitting
+ *        Wang inverse distortion model.
+ *
+ * \param[in] focalLength: The focalLength that we use.
+ *
+ * \return vector<double> with the 6 coefficient to descibe the Wang model for
+ *         the inverse distortion.
+ */
 vector<double> PointSpreadFunction::estimateInverseDistortionCoefficients(double focalLength)
 {
     MappedDistortion distortion = MappedDistortion(xFPdist, yFPdist, xFP, yFP, focalLength);
@@ -423,7 +439,63 @@ vector<double> PointSpreadFunction::estimateInverseDistortionCoefficients(double
 
 
 
-/*
+
+
+
+
+
+/**
+ * \brief Return a vector containing the coordinates for the best fitting
+ *        5th order 2D polynomial distortion.
+ *
+ * \return vector<vector<double>> containing two vectors, each containing the
+ *         36 coordinates to describe the distortion model.
+ */
+vector<vector<double>> PointSpreadFunction::estimatePolynomialCoefficients()
+{
+
+    MappedDistortion distortion = MappedDistortion(xFP, yFP, xFPdist, yFPdist);
+
+    vector<double> coefficientsX = distortion.getParametersX();
+    vector<double> coefficientsY = distortion.getParametersY();
+
+    vector<vector<double>> coefficients = {coefficientsX, coefficientsY};
+    return coefficients;
+}
+
+
+
+
+
+/**
+ * \brief Return a vector containing the coordinates for the best fitting
+ *        5th order 2D polynomial inverse distortion.
+ *
+ * \return vector<vector<double>> containing two vectors, each containing the
+ *         36 coordinates to describe the inverse distortion model.
+ */
+vector<vector<double>> PointSpreadFunction::estimateInversePolynomialCoefficients()
+{
+
+    MappedDistortion distortion = MappedDistortion(xFPdist, yFPdist, xFP, yFP);
+
+    vector<double> coefficientsX = distortion.getParametersX();
+    vector<double> coefficientsY = distortion.getParametersY();
+
+    vector<vector<double>> coefficients = {coefficientsX, coefficientsY};
+    return coefficients;
+}
+
+
+
+
+
+
+
+
+
+
+/**
  * Reads the distortion map from the HDf5 and copies its content in distortionMap.
  */
 void PointSpreadFunction::readDistortionmapFromFile()
@@ -442,7 +514,7 @@ void PointSpreadFunction::readDistortionmapFromFile()
 
 
 
-/*
+/**
  * Generates a distortion map if no map is given in the HDf5 file.
  */
 void PointSpreadFunction::generateDistortionMap()
@@ -474,9 +546,12 @@ void PointSpreadFunction::generateDistortionMap()
             double xPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing1[0]));
             double yPsfUndistorted = focalLengthValue*tan(deg2rad(starPointing2[0]));
 
-            // Once we have these values we add them to the distortionMap
+            // Once we have these values we add them to their corresponding vectors
             const std::array<double, 4> coordinates = { xPsfUndistorted, yPsfUndistorted, xPsf, yPsf };
-            distortionMap.push_back(coordinates);
+            xFP.push_back(xPsfUndistorted);
+            yFP.push_back(yPsfUndistorted);
+            xFPdist.push_back(xPsf);
+            yFPdist.push_back(yPsf);
         }
         else
         {

@@ -1,4 +1,3 @@
-
 #include "Camera.h"
 
 
@@ -396,6 +395,14 @@ void Camera::configure(ConfigurationParameters &configParam)
 
     includeFieldDistortion = configParam.getBoolean("Camera/IncludeFieldDistortion");
     isMapped               = configParam.getString("PSF/Model") == "MappedFromFile";
+    if (isMapped)
+    {
+        isWangDistortionModel = configParam.getString("PSF/MappedFromFile/DistortionModel") == "Wang";
+    }
+    else
+    {
+        isWangDistortionModel = includeFieldDistortion;
+    }
     string psfFilePath     = configParam.getAbsoluteFilename("PSF/MappedFromFile/Filename");
 
     // Remark that if the PSF is mapped, no coefficients are read from the input
@@ -414,6 +421,29 @@ void Camera::configure(ConfigurationParameters &configParam)
             Log.info("Camera: Reading distortion coefficients from " + distortionInputFile);
             Log.info("Camera: Reading inverse distortion coefficients from " + invDistortionInputFile);
         }
+        else if (isMapped && !isWangDistortionModel)
+        {
+            vector<vector<double>> distortionPolynomialVector;
+            vector<vector<double>> inverseDistortionPolynomialVector;
+
+            distortionPolynomialVector        = psf->estimatePolynomialCoefficients();
+            inverseDistortionPolynomialVector = psf->estimateInversePolynomialCoefficients();
+
+            if ((distortionPolynomialVector[0].size() != 36) || (distortionPolynomialVector[1].size() != 36)  || (inverseDistortionPolynomialVector[0].size() != 36) || (inverseDistortionPolynomialVector[1].size() != 36))
+            {
+                string msg = "Camera::configure(): number of (inverse) distortion coefficients in input yaml file != 36.";
+                throw ConfigurationException(msg);
+            }
+            else
+            {
+                copy(distortionPolynomialVector[0].begin(), distortionPolynomialVector[0].end(), distortionPolynomialXCoef.begin());
+                copy(distortionPolynomialVector[1].begin(), distortionPolynomialVector[1].end(), distortionPolynomialYCoef.begin());
+
+
+                copy(inverseDistortionPolynomialVector[0].begin(), inverseDistortionPolynomialVector[0].end(), inverseDistortionPolynomialXCoef.begin());
+                copy(inverseDistortionPolynomialVector[1].begin(), inverseDistortionPolynomialVector[1].end(), inverseDistortionPolynomialYCoef.begin());
+            }
+        }
         else
         {
             vector<double> distortionCoefVector;
@@ -429,7 +459,7 @@ void Camera::configure(ConfigurationParameters &configParam)
                 Log.info("Camera: Reading constant distortion coefficients from the yaml input file");
 
                 // Read the distortion coefficients from the yaml input file. Currently vector<>s are
-                // being read while Parameter<> expects array<>s. So we'll have to do some overhead
+                // being read while Parameter<> expects arrays<>. So we'll have to do some overhead
                 // to convert one to the other.
 
                 distortionCoefVector        = configParam.getDoubleVector("Camera/FieldDistortion/ConstantCoefficients");
@@ -550,7 +580,7 @@ void Camera::updateParameters(double time)
     focalLength->updateValue(time);
     focalPlaneAngle->updateValue(time);
 
-    if (includeFieldDistortion)
+    if (includeFieldDistortion && isWangDistortionModel)
     {
         distortionCoef->updateValue(time);
         inverseDistortionCoef->updateValue(time);
@@ -1307,7 +1337,7 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
 
 
 /**
- * @brief      Convert from undistorted to distorted focal plane coordinates for analytic PSF
+ * @brief      Convert from undistorted to distorted focal plane coordinates
  *
  * @param[in]  xFPmm  Undistorted focal plane x-coordinate [mm]
  * @param[in]  yFPmm  Undistorted focal plane y-coordinate [mm]
@@ -1315,6 +1345,56 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
  * @return     (xFPdist, yFPdist) distorted x and y focal plane coordinates [mm]
  */
 pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
+{
+    double xFPdist, yFPdist;
+    if (isWangDistortionModel)
+        tie(xFPdist, yFPdist) = applyWangDistortion(xFPmm, yFPmm);
+    else
+        tie(xFPdist, yFPdist) = applyPolynomialDistortion(xFPmm, yFPmm);
+    return make_pair(xFPdist, yFPdist);
+}
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Convert from distorted to undistorted focal plane coordinates
+ *
+ * @param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
+ * @param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
+ *
+ * @return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+ */
+pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
+{
+    double xFPmm, yFPmm;
+    if (isWangDistortionModel)
+        tie(xFPmm, yFPmm) = applyWangInverseDistortion(xFPdist, yFPdist);
+    else
+        tie(xFPmm, yFPmm) = applyPolynomialInverseDistortion(xFPdist, yFPdist);
+    return make_pair(xFPmm, yFPmm);
+}
+
+
+
+
+
+
+
+/**
+ * @brief      Apply the Wang distortion to undistorted focal plane coordinates
+ *
+ * @param[in]  xFPmm  Undistorted focal plane x-coordinate [mm]
+ * @param[in]  yFPmm  Undistorted focal plane y-coordinate [mm]
+ *
+ * @return     (xFPdist, yFPdist) Wang distorted x and y coordinates [mm]
+ */
+pair<double, double> Camera::applyWangDistortion(double xFPmm, double yFPmm)
 {
     const array<double, 7> coefficients = (*distortionCoef)();
 
@@ -1338,14 +1418,14 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
 
 
 /**
- * @brief      Convert from distorted to undistorted focal plane coordinates for the analytic PSF
+ * @brief      Apply the inverse Wang undistorted to distorted focal plane coordinates
  *
  * @param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
- * @param[in]  yFPdist  DIstorted focal plane y-coordinate [mm]
+ * @param[in]  yFPdist  Distorted focal plane y-coordinate [mm]
  *
- * @return     (xFPmm, yFPmm) distorted x and y coordinates [mm]
+ * @return     (xFPmm, yFPmm) Wang undistorted distorted x and y coordinates [mm]
  */
-pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
+pair<double, double> Camera::applyWangInverseDistortion(double xFPdist, double yFPdist)
 {
     const array<double, 7> inverseCoefficients = (*inverseDistortionCoef)();
 
@@ -1359,6 +1439,86 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
     double yFPmm = yFPdist + sin(alpha) * (radialDistortion + tangentialDistortion) + inverseCoefficients[4] * pow(rFP,2) * (*focalLength)();
     return make_pair(xFPmm, yFPmm);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Apply the polynomial distortion to undistorted focal plane coordinates
+ *
+ * @param[in]  xFPmm  Undistorted focal plane x-coordinate [mm]
+ * @param[in]  yFPmm  Undistorted focal plane y-coordinate [mm]
+ *
+ * @return     (xFPdist, yFPdist) polynomial distorted x and y coordinates [mm]
+ */
+pair<double, double> Camera::applyPolynomialDistortion(double xFPmm, double yFPmm)
+{
+    double xFPdist = 0;
+    double yFPdist = 0;
+
+    for (int i=0; i<6; i++)
+    {
+        for (int j=0; j<6; j++)
+        {
+            xFPdist += distortionPolynomialXCoef[i+6*j]*std::pow(xFPmm, i)*std::pow(yFPmm, j);
+            yFPdist += distortionPolynomialYCoef[i+6*j]*std::pow(xFPmm, i)*std::pow(yFPmm, j);
+        }
+    }
+    return make_pair(xFPdist, yFPdist);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief      Apply the inverse polynomial undistorted to distorted focal plane coordinates
+ *
+ * @param[in]  xFPdist  Distorted focal plane x-coordinate [mm]
+ * @param[in]  yFPdist  Distorted focal plane y-coordinate [mm]
+ *
+ * @return     (xFPmm, yFPmm) Polynomial undistorted distorted x and y coordinates [mm]
+ */
+pair<double, double> Camera::applyPolynomialInverseDistortion(double xFPdist, double yFPdist)
+{
+    double xFPmm = 0;
+    double yFPmm = 0;
+
+    for (int i=0; i<6; i++)
+    {
+        for (int j=0; j<6; j++)
+        {
+            xFPmm += distortionPolynomialXCoef[i+6*j]*std::pow(xFPdist, i)*std::pow(yFPdist, j);
+            yFPmm += distortionPolynomialYCoef[i+6*j]*std::pow(xFPdist, i)*std::pow(yFPdist, j);
+        }
+    }
+    return make_pair(xFPmm, yFPmm);
+}
+
+
+
+
+
+
+
+
+
+
 
 
 

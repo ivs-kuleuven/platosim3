@@ -116,6 +116,7 @@ PSF:
         ChargeDiffusionStrength:     0.2                      # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
         IncludeChargeDiffusion:      no                       # Include charge diffusion [yes or no]
         IncludeJitterSmoothing:      no                       # Include jitter smoothing [yes or no]
+        DistortionModel:             "Wang"                   # Distortion model we approximate: Wang or Polynomial
     AnalyticGaussian:                                         # Generate the PSF analytically from a non-spherical Gaussian
         Sigma00:                     1.0                      # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
         SigmaX18:                    5.0                      # Stdev of Gaussian PSF in x-direction at 18 deg from the optical axis [pix]

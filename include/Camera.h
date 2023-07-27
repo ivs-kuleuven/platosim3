@@ -60,6 +60,12 @@ class Camera : public HDF5Writer
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
+        pair<double, double> applyPolynomialDistortion(double xFPmm, double yFPmm);
+        pair<double, double> applyPolynomialInverseDistortion(double xFPdist, double yFPdist);
+
+        pair<double, double> applyWangDistortion(double xFPmm, double yFPmm);
+        pair<double, double> applyWangInverseDistortion(double xFPdist, double yFPdist);
+
         double getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP);
         void addSkybackgroundAndTransmissionEfficiency(double skyBackground, double transmissionEfficiency);
         set<unsigned int> getAllStarIDs();
@@ -84,8 +90,14 @@ class Camera : public HDF5Writer
 
         Parameter<double> *focalLength;       // [mm]
         Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad]
-        Parameter<double, 7> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
-        Parameter<double, 7> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
+        Parameter<double, 7> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates for a Wang distortion model.
+        Parameter<double, 7> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates for a Wang distortion model.
+
+        array<double, 36> distortionPolynomialXCoef; // distortion coefficient to map undistorted to distrorted coordinates for a polynomial distortion model in the x-direction.
+        array<double, 36> distortionPolynomialYCoef; // distortion coefficient to map undistorted to distrorted coordinates for a polynomial distortion model in the y-direction.
+
+        array<double, 36> inverseDistortionPolynomialXCoef; // inverse distortion coefficient to map distrorted to undistorted coordinates for a polynomial distortion model in the x-direction.
+        array<double, 36> inverseDistortionPolynomialYCoef; // inverse distortion coefficient to map distrorted to undistorted coordinates for a polynomial distortion model in the y-direction.
 
         string distortionModel;               // The model used to compute the distortion
         double plateScale;                    // [arcsec/micron]
@@ -99,6 +111,7 @@ class Camera : public HDF5Writer
 
         bool isMapped;                    // Whether or not the PSF is mapped from a file or not
         bool includeFieldDistortion;      // Whether or not field distortion should be included
+        bool isWangDistortionModel;
 
         bool useConstantSkyBackground;
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]

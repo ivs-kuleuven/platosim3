@@ -974,11 +974,11 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
     distortionPolynomial = np.polynomial.Polynomial(radialCoefficients)
 
     # Position angle on the focal plane [radians]
-    
+
     angle = np.arctan2(yFPmm, xFPmm)
 
     # Undistorted radial distance [normalised pixels]
-    
+
     rFP = np.sqrt(xFPmm**2 + yFPmm**2) / focalLength
     radialDistortion = distortionPolynomial(rFP) * focalLength
     tangentialDistortion = rFP**2 * (distortionCoefficients[5] * np.cos(angle) +
@@ -999,9 +999,51 @@ def undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoeffici
 
 
 
-def getCoefficientsFromTable(x1, y1, x2, y2, focalLength):
+
+
+
+
+
+
+
+
+def getPolynomialCoefficientsFromTable(xUndis, yUndis, xDist, yDist):
     """
-    We estimate the (inverse) coefficients that described the analytic distortion
+    We estimate the (inverse) coefficients that described the analytic polynomial distortion
+    that most closely maps the coordinates (x1, y1) -> (x2, y2).
+
+    If the vectors x1 and y1 are undistorted coordinates and x2, y2 the distorted
+    coordinates this function will estimate the distortion coefficients.
+
+    If x1, y1 are distorted and x2, y2 are undistorted this function estimates the
+    inverse distortion coefficients.
+    """
+
+    A = np.zeros((36, 36))
+    Bx = np.zeros(36)
+    By = np.zeros(36)
+
+
+    for (xu, yu, xd, yd) in zip(xUndis, yUndis, xDist, yDist):
+        for i,j in ((a,b) for a in range(6) for b in range(6)):
+            for k,l in ((a,b) for a in range(6) for b in range(6)):
+                A[i+6*j][k+6*l] += xu**(i+k)*yu**(j+l)
+            Bx[i+6*j] += xd*(xu**i)*(yu**j)
+            By[i+6*j] += yd*(xu**i)*(yu**j)
+
+    Ainv = np.linalg.inv(A)
+    return np.dot(Ainv, Bx), np.dot(Ainv, By)
+
+
+
+
+
+
+
+
+def getWangCoefficientsFromTable(x1, y1, x2, y2, focalLength):
+    """
+    We estimate the (inverse) coefficients that described the analytic Wang distortion
     that most closely maps the coordinates (x1, y1) -> (x2, y2).
 
     If the vectors x1 and y1 are undistorted coordinates and x2, y2 the distorted
@@ -1050,7 +1092,7 @@ def getCoefficientsFromTable(x1, y1, x2, y2, focalLength):
 
 
 
-def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength):
+def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength, useWang=True):
 
     """
     From mapped undistorted to distorted focal plane coordinates.
@@ -1131,9 +1173,31 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
         x.read_direct(xDist)
         y.read_direct(yDist)
 
-    coefficients = getCoefficientsFromTable(xUndis, yUndis, xDist, yDist, focalLength)
+    if (useWang):
+        coefficients = getWangCoefficientsFromTable(xUndis, yUndis, xDist, yDist, focalLength)
+        return undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, coefficients, focalLength)
 
-    return undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, coefficients, focalLength)
+    else:
+        xcoefficients, ycoefficients = getPolynomialCoefficientsFromTable(xUndis, yUndis, xDist, yDist)
+        xDist = sum([ xcoefficients[i+6*j]*(xFPmm**i)*(yFPmm**j) for i in range(6) for j in range(6)])
+        yDist = sum([ ycoefficients[i+6*j]*(xFPmm**i)*(yFPmm**j) for i in range(6) for j in range(6)])
+        return xDist, yDist
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1210,7 +1274,7 @@ def distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist,
 
 
 
-def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength):
+def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPsfFile, focalLength, useWang=True):
 
     """
     From mapped distorted to undistorted focal plane coordinates.
@@ -1292,8 +1356,14 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
         x.read_direct(xDist)
         y.read_direct(yDist)
 
-    coefficients = getCoefficientsFromTable(xDist, yDist, xUndis, yUndis, focalLength)
-    return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, coefficients, focalLength)
+    if (useWang):
+        coefficients = getWangCoefficientsFromTable(xDist, yDist, xUndis, yUndis, focalLength)
+        return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, coefficients, focalLength)
+    else:
+        xcoefficients, ycoefficients = getPolynomialCoefficientsFromTable(xDist, yDist, xUndis, yUndis)
+        xUnd = sum([ xcoefficients[i+6*j]*(xFPdist**i)*(yFPdist**j) for i in range(6) for j in range(6)])
+        yUnd = sum([ ycoefficients[i+6*j]*(xFPdist**i)*(yFPdist**j) for i in range(6) for j in range(6)])
+        return xUnd, yUnd
 
 
 
@@ -1536,7 +1606,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
                               tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize,
                               includeFieldDistortion, normal, mappedDistortion=False,
-                              distortionCoefficients=None, pathToPsfFile=None):
+                              distortionCoefficients=None, pathToPsfFile=None, useWange = True):
 
     """Get the CCD and pixel coordinates.
 
@@ -1623,7 +1693,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         if mappedDistortion:
             xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
                                                                              pathToPsfFile,
-                                                                             focalLength)
+                                                                             focalLength, useWang)
         else:
             xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
                                                                        distortionCoefficients,
@@ -1816,7 +1886,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
                                        focalPlaneAngle, focalLength, pixelSize,
                                        includeFieldDistortion, normal,
                                        mappedDistortion=False, distortionCoefficients=None,
-                                       pathToPsfFile=None ):
+                                       pathToPsfFile=None, useWang=True ):
 
     """Calculate location of subfield around equatorial coordinates.
 
@@ -1905,7 +1975,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
                                                           focalPlaneAngle, focalLength,
                                                           pixelSize, includeFieldDistortion, normal,
                                                           mappedDistortion, distortionCoefficients,
-                                                          pathToPsfFile)
+                                                          pathToPsfFile, useWang)
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
@@ -1985,17 +2055,20 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         distortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
+        useWang                       = sim["PSF/MappedFromFile/DistortionModel"]
     elif (sim["Camera/IncludeFieldDistortion"] == "yes"  or
           sim["Camera/IncludeFieldDistortion"] == True):
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         pathToPsfFile          = None
         mappedDistortion       = False
         includeFieldDistortion = True
+        useWang                = False
     else:
         includeFieldDistortion = False
         distortionCoefficients = None
         pathToPsfFile          = None
         mappedDistortion       = False
+        useWang                = False
 
     # Fetch parameters and convert
     
@@ -2017,7 +2090,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
                                                               focalPlaneAngle, focalLength,
                                                               pixelSize, includeFieldDistortion,
                                                               normal, mappedDistortion,
-                                                              distortionCoefficients, pathToPsfFile)
+                                                              distortionCoefficients, pathToPsfFile, useWang)
 
     # That's it!
     
@@ -2072,6 +2145,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
         inverseDistortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
+        useWang                = sim["PSF/MappedFromFile/DistortionModel"]
 
     elif (sim["Camera/IncludeFieldDistortion"] == "yes" or
           sim["Camera/IncludeFieldDistortion"] == True):
@@ -2079,12 +2153,14 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
         pathToPsfFile          = None
         mappedDistortion       = False
         includeFieldDistortion = True
+        useWang                = False
 
     else:
         includeFieldDistortion        = False
         pathToPsfFile                 = None
         inverseDistortionCoefficients = None
         mappedDistortion              = False
+        useWang                       = False
 
     # Fetch parameters and convert
     
@@ -2119,7 +2195,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
 
     if includeFieldDistortion:
         if mappedDistortion:
-            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength)
+            xFPmm, yFPmm = mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength, useWang)
         else:
             xFPmm, yFPmm = distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
 
