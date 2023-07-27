@@ -399,6 +399,10 @@ void Camera::configure(ConfigurationParameters &configParam)
     {
         isWangDistortionModel = configParam.getString("PSF/MappedFromFile/DistortionModel") == "Wang";
     }
+    else
+    {
+        isWangDistortionModel = includeFieldDistortion;
+    }
     string psfFilePath     = configParam.getAbsoluteFilename("PSF/MappedFromFile/Filename");
 
     // Remark that if the PSF is mapped, no coefficients are read from the input
@@ -1343,7 +1347,6 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
 pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm)
 {
     double xFPdist, yFPdist;
-
     if (isWangDistortionModel)
         tie(xFPdist, yFPdist) = applyWangDistortion(xFPmm, yFPmm);
     else
@@ -1370,11 +1373,10 @@ pair<double, double> Camera::undistortedToDistortedFocalPlaneCoordinates(double 
 pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist)
 {
     double xFPmm, yFPmm;
-
     if (isWangDistortionModel)
-        tie(xFPmm, yFPmm) = applyWangInverseDistortion(xFPmm, yFPmm);
+        tie(xFPmm, yFPmm) = applyWangInverseDistortion(xFPdist, yFPdist);
     else
-        tie(xFPmm, yFPmm) = applyPolynomialInverseDistortion(xFPmm, yFPmm);
+        tie(xFPmm, yFPmm) = applyPolynomialInverseDistortion(xFPdist, yFPdist);
     return make_pair(xFPmm, yFPmm);
 }
 
