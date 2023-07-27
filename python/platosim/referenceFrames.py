@@ -1357,7 +1357,7 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
         y.read_direct(yDist)
 
     if (useWang):
-        coefficients = getCoefficientsFromTable(xDist, yDist, xUndis, yUndis, focalLength)
+        coefficients = getWangCoefficientsFromTable(xDist, yDist, xUndis, yUndis, focalLength)
         return distortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, coefficients, focalLength)
     else:
         xcoefficients, ycoefficients = getPolynomialCoefficientsFromTable(xDist, yDist, xUndis, yUndis)

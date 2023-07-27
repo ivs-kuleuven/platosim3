@@ -1622,7 +1622,7 @@ class Simulation(object):
                                                    includeFieldDistortion,
                                                    normal=True,
                                                    mappedDistortion=mappedDistortion,
-                                                   distortionCoefficients=distortionCoefficients, useWang)
+                                                   distortionCoefficients=distortionCoefficients, useWang=useWang)
                 ccdCode[i], xCCD[i], yCCD[i] = out[0], out[1], out[2]
                 
         # That's it!
