@@ -910,11 +910,12 @@ class Simulation(object):
         pixelSize       = float(self["CCD/PixelSize"])
 
         # If the psf is MappedFromFile we need to include mapped field distortion
-
+        useWang = False
         if self["PSF/Model"] == "MappedFromFile":
             includeFieldDistortion = True
             mappedDistortion       = True
             pathToPsfFile          = self["PSF/MappedFromFile/Filename"]
+            useWang                       = sim["PSF/MappedFromFile/DistortionModel"]
             distortionCoefficients = None
         elif (self["Camera/IncludeFieldDistortion"] == "yes" or
               self["Camera/IncludeFieldDistortion"] == "1"   or
@@ -942,7 +943,7 @@ class Simulation(object):
                                                                     includeFieldDistortion, normal,
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
-                                                                    pathToPsfFile)
+                                                                    pathToPsfFile, useWang)
 
         if ccdCode == None:
             return False
@@ -1090,11 +1091,13 @@ class Simulation(object):
             mappedDistortion              = True
             inverseDistortionCoefficients = None
             pathToPsfFile                 = self["PSF/MappedFromFile/Filename"]
+            useWang                       = sim["PSF/MappedFromFile/DistortionModel"]
         else:
             includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
             mappedDistortion       = False
             inverseDistortionCoefficients = self["Camera/FieldDistortion/ConstantInverseCoefficients"]
             pathToPsfFile          = None
+            useWang                = False
 
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
@@ -1105,7 +1108,7 @@ class Simulation(object):
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
         if mappedDistortion:
             for i in range(len(xFPmm)):
-                xFPmm[i], yFPmm[i] = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm[i], yFPmm[i], pathToPsfFile, focalLength)
+                xFPmm[i], yFPmm[i] = rf.mappedDistortedToUndistortedFocalPlaneCoordinates(xFPmm[i], yFPmm[i], pathToPsfFile, focalLength, useWang)
 
         elif (includeFieldDistortion == "yes" or
               includeFieldDistortion == "1"   or
@@ -1591,12 +1594,13 @@ class Simulation(object):
             if subfieldIsOnCCD:
 
                 # Fetch CCD code and pixel coordinates (account for field distortion in included)
-
+                useWang = False
                 if self["Camera/IncludeFieldDistortion"]:
                     includeFieldDistortion = self["Camera/IncludeFieldDistortion"]
                     if self["Camera/FieldDistortion/Type"] == 'FromFile':
                         mappedDistortion = True
                         distortionCoefficients = self["Camera/FieldDistortion/CoefficientsFromFile"]
+                        useWang                       = sim["PSF/MappedFromFile/DistortionModel"]
                     else:
                         mappedDistortion = False
                         distortionCoefficients = self["Camera/FieldDistortion/ConstantCoefficients"]
@@ -1618,7 +1622,7 @@ class Simulation(object):
                                                    includeFieldDistortion,
                                                    normal=True,
                                                    mappedDistortion=mappedDistortion,
-                                                   distortionCoefficients=distortionCoefficients)
+                                                   distortionCoefficients=distortionCoefficients, useWang)
                 ccdCode[i], xCCD[i], yCCD[i] = out[0], out[1], out[2]
                 
         # That's it!
