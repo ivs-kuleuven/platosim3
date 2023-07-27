@@ -39,10 +39,13 @@ class PointSpreadFunction : public HDF5Writer
         vector<double> estimateDistortionCoefficients(double focalLength);
         vector<double> estimateInverseDistortionCoefficients(double focalLength);
 
-       vector<double> xFP;
-       vector<double> yFP;
-       vector<double> xFPdist;
-       vector<double> yFPdist;
+        vector<vector<double>> estimatePolynomialCoefficients();
+        vector<vector<double>> estimateInversePolynomialCoefficients();
+
+        vector<double> xFP;
+        vector<double> yFP;
+        vector<double> xFPdist;
+        vector<double> yFPdist;
 
     protected:
 

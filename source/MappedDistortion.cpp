@@ -454,36 +454,6 @@ void MappedDistortion::luDecomposition()
 
 
 
-std::vector<double> MappedDistortion::luSolve(std::vector<double> b)
-{
-    int size_b = b.size();
-
-    std::vector<double> intermediate;
-    std::vector<double> output;
-    intermediate.resize(size_b, 0);
-    output.resize(size_b, 0);
-
-    // Solve the linear equations L * intermediate = B, where L is a lower diagonal
-    // matrix.
-    solveL(b, intermediate);
-
-    // Finally we solve the linear equatins U * output = intermediate, where U is an
-    // upper diagonal matrix.
-    solveU(intermediate, output);
-
-    return output;
-}
-
-
-
-
-
-
-
-
-
-
-
 
 
 /**

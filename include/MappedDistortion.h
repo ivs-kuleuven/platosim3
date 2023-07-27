@@ -63,7 +63,6 @@ private:
 
 
     void luDecomposition();                                                // Decomposes the matrix A in L and U so that LU = A;
-    std::vector<double> luSolve(std::vector<double> B);                    // Solves A*x = B
     void solveL(std::vector<double>& B, std::vector<double>& T);           // Solves L*T=B;
     void solveU(std::vector<double>& T, std::vector<double>& output);      // Solves U*output = T
 
