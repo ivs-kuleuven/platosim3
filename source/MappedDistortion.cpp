@@ -1,4 +1,5 @@
 #include "MappedDistortion.h"
+#include <H5Ppublic.h>
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -14,20 +15,20 @@
 
 
 /**
- * \brief Estimate the closest analytical model that approximates the distortion
+ * \brief Estimate the closest analytical Wang model that approximates the distortion
  *        given by the input parameters.
  *
  * \param x1  Vector that contains the undistorted x focal plane coordinates.
  *
  * \param x2  Vector that contains the undistorted y focal plane coordinates.
  *
- * \param z1  Vector that contains the distorted x focal plane coordinates.
+ * \param y1  Vector that contains the distorted x focal plane coordinates.
  *
- * \param z2 Vector that contains the distorted y focal plane coordinates.
+ * \param y2 Vector that contains the distorted y focal plane coordinates.
  *
  * \param focLength double that contains the value of the focal length.
  *
- * \note  This procedure finds the 7 coeficients that describe the analytic
+ * \note  This procedure finds the 7 coeficients that describe the analytic Wang
  *        distortion model best. It does this by solving a set of linear equations
  *        (A*x = B) by decomposing the linear matrix (A) into an upper diagonal (U)
  *         and lower diagonal (L) matrix. (eq. LU decomposition). [ A = LU ]
@@ -35,38 +36,19 @@
  */
 MappedDistortion::MappedDistortion(const std::vector<double> &x1,
                                    const std::vector<double> &x2,
-                                   const std::vector<double> &z1,
-                                   const std::vector<double> &z2,
+                                   const std::vector<double> &y1,
+                                   const std::vector<double> &y2,
                                    double focLength)
+:x1(x1), x2(x2), y1(y1), y2(y2)
 {
+
     unsigned int length = x1.size();
     focalLength = focLength;
+    isPolynomial = false;
 
     // Initialize the upper and lower diagonal matrix
     L.resize(7, std::vector<double>(7, 0.0));
     U.resize(7, std::vector<double>(7, 0.0));
-
-    // Initialize the vectors that will be used to store the coeficients and
-    // the intermidiate results (those that solve L x = B).
-    intermediate.resize(7, 0);
-    output.resize(7,0);
-
-    // Calculate the values that are needed in construct the vector A and B.
-    for (unsigned int i=0; i<length; i++)
-    {
-        double r1 = std::sqrt(x1[i] * x1[i] + x2[i] * x2[i]) / focalLength;
-        r.push_back(r1);
-        if (r1 == 0.0) {
-          cos.push_back(0);
-          sin.push_back(1);
-        } else
-        {
-            cos.push_back(x1[i] / (r1*focalLength));
-            sin.push_back(x2[i] / (r1*focalLength));
-        }
-        deltaX.push_back(z1[i] - x1[i]);
-        deltaY.push_back(z2[i] - x2[i]);
-    }
 
     // Initialize dimensions of the matrix A and vector B.
     for (int j = 0; j < 7; j++)
@@ -78,9 +60,116 @@ MappedDistortion::MappedDistortion(const std::vector<double> &x1,
 
     // We fill the matrix A and vector B.
     constructMatrix();
+
+    // We decompose the matrix A so that A = L*U.
+    luDecomposition();
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Estimate distortion by finding the closest 5th order 2D polynomial model
+ *         that approximates the distortion.
+ *
+ * \param x1  Vector that contains the undistorted x focal plane coordinates.
+ *
+ * \param x2  Vector that contains the undistorted y focal plane coordinates.
+ *
+ * \param z1  Vector that contains the distorted x focal plane coordinates.
+ *
+ * \param z2 Vector that contains the distorted y focal plane coordinates.
+ *
+ * \note  This procedure finds the 36 coeficients that describe a polynomial
+ *        distortion model best. It does this by solving a set of linear equations
+ *        (A*x = B) by decomposing the linear matrix (A) into an upper diagonal (U)
+ *         and lower diagonal (L) matrix. (eq. LU decomposition). [ A = LU ]
+ *
+ */
+MappedDistortion::MappedDistortion(const std::vector<double> &x1,
+                                   const std::vector<double> &x2,
+                                   const std::vector<double> &y1,
+                                   const std::vector<double> &y2)
+:x1(x1), x2(x2), y1(y1), y2(y2)
+{
+    unsigned int length = x1.size();
+    bool isPolynomial = true;
+
+    // Initialize the upper and lower diagonal matrix
+    L.resize(36, std::vector<double>(36, 0.0));
+    U.resize(36, std::vector<double>(36, 0.0));
+
+    // Initialize dimensions of the matrix A and vector B.
+    for (int j = 0; j < 36; j++)
+    {
+        std::vector<double> a(36, 0);
+        A.push_back(a);
+        B.push_back(0);
+        By.push_back(0);
+    }
+
+    // We fill the matrix A and vector B.
+    constructMatrixToFindPolynomial();
+
+
+    // We decompose the matrix A so that A = L*U.
+    luDecomposition();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Fills the matrix A and vector B and By with their respective values,
+ *        so that the system that we are trying to solve is A*x = B for distortion
+ *        in the x-direction and A*x = By for distortion in the y-direction.
+ *        (where we try and solve for vector x)
+ */
+void MappedDistortion::constructMatrixToFindPolynomial()
+{
+
+    for (int t = 0; t < x1.size(); t++)
+    {
+        // Add to the matrix A.
+        for (int i_col = 0; i_col < 6; i_col++)
+        {
+            for (int j_col = 0; j_col < 6; j_col++)
+            {
+                for (int i_row = 0; i_row < 6; i_row++)
+                {
+                    for (int j_row = 0; j_row < 6; j_row++)
+                    {
+                        A[i_col+6*j_col][i_row+6*j_row] += std::pow( x1[t], i_col + i_row) * std::pow( x2[t], j_col + j_row);
+                    }
+                }
+                B[i_col+6*j_col]  += y1[t]*std::pow(x1[t],i_col)*std::pow(x2[t],j_col);
+                By[i_col+6*j_col] += y2[t]*std::pow(x1[t],i_col)*std::pow(x2[t],j_col);
+            }
+        }
+    }
+}
 
 
 
@@ -97,52 +186,68 @@ MappedDistortion::MappedDistortion(const std::vector<double> &x1,
 void MappedDistortion::constructMatrix()
 {
 
-
-    for (int i = 0; i < r.size(); i++)
+    for (unsigned int i = 0; i < x1.size(); i++)
     {
+        // Initialize values that help with constructing the vector A and B.
+        double r = std::sqrt(x1[i] * x1[i] + x2[i] * x2[i]) / focalLength;
+        double cos, sin;
+        double deltaX, deltaY;
+        if (r == 0.0) {
+          cos = 0;
+          sin = 1;
+        } else
+        {
+            cos = x1[i] / (r*focalLength);
+            sin = x2[i] / (r*focalLength);
+        }
+        deltaX = y1[i] - x1[i];
+        deltaY = y2[i] - x2[i];
+
         // Add to the matrix A.
         std::vector<std::vector<double>> a = {
-            {std::pow(r[i], 6), std::pow(r[i], 8), std::pow(r[i], 10),
-             std::pow(r[i], 5) * cos[i], std::pow(r[i], 5) * sin[i],
-             std::pow(r[i], 5) * cos[i], std::pow(r[i], 5) * sin[i]},
-            {std::pow(r[i], 8), std::pow(r[i], 10), std::pow(r[i], 12),
-             std::pow(r[i], 7) * cos[i], std::pow(r[i], 7) * sin[i],
-             std::pow(r[i], 7) * cos[i], std::pow(r[i], 7) * sin[i]},
-            {std::pow(r[i], 10), std::pow(r[i], 12), std::pow(r[i], 14),
-             std::pow(r[i], 9) * cos[i], std::pow(r[i], 9) * sin[i],
-             std::pow(r[i], 9) * cos[i], std::pow(r[i], 9) * sin[i]},
-            {std::pow(r[i], 5) * cos[i], std::pow(r[i], 7) * cos[i],
-             std::pow(r[i], 9) * cos[i], std::pow(r[i], 4), 0,
-             std::pow(r[i], 4) * std::pow(cos[i], 2),
-             std::pow(r[i], 4) * sin[i] * cos[i]},
-            {std::pow(r[i], 5) * sin[i], std::pow(r[i], 7) * sin[i],
-             std::pow(r[i], 9) * sin[i], 0, std::pow(r[i], 4),
-             std::pow(r[i], 4) * cos[i] * sin[i],
-             std::pow(r[i], 4) * std::pow(sin[i], 2)},
-            {std::pow(r[i], 5) * cos[i], std::pow(r[i], 7) * cos[i],
-             std::pow(r[i], 9) * cos[i],
-             std::pow(r[i], 4) * std::pow(cos[i], 2),
-             std::pow(r[i], 4) * sin[i] * cos[i],
-             std::pow(r[i], 4) * std::pow(cos[i], 2),
-             std::pow(r[i], 4) * sin[i] * cos[i]},
-            {std::pow(r[i], 5) * sin[i], std::pow(r[i], 7) * sin[i],
-             std::pow(r[i], 9) * sin[i],
-             std::pow(r[i], 4) * sin[i] * cos[i],
-             std::pow(r[i], 4) * std::pow(sin[i], 2),
-             std::pow(r[i], 4) * sin[i] * cos[i],
-             std::pow(r[i], 4) * std::pow(sin[i], 2)}
+            {std::pow(r, 6), std::pow(r, 8), std::pow(r, 10),
+             std::pow(r, 5) * cos, std::pow(r, 5) * sin,
+             std::pow(r, 5) * cos, std::pow(r, 5) * sin},
+            {std::pow(r, 8), std::pow(r, 10), std::pow(r, 12),
+             std::pow(r, 7) * cos, std::pow(r, 7) * sin,
+             std::pow(r, 7) * cos, std::pow(r, 7) * sin},
+            {std::pow(r, 10), std::pow(r, 12), std::pow(r, 14),
+             std::pow(r, 9) * cos, std::pow(r, 9) * sin,
+             std::pow(r, 9) * cos, std::pow(r, 9) * sin},
+            {std::pow(r, 5) * cos, std::pow(r, 7) * cos,
+             std::pow(r, 9) * cos, std::pow(r, 4), 0,
+             std::pow(r, 4) * std::pow(cos, 2),
+             std::pow(r, 4) * sin * cos},
+            {std::pow(r, 5) * sin, std::pow(r, 7) * sin,
+             std::pow(r, 9) * sin, 0, std::pow(r, 4),
+             std::pow(r, 4) * cos * sin,
+             std::pow(r, 4) * std::pow(sin, 2)},
+            {std::pow(r, 5) * cos, std::pow(r, 7) * cos,
+             std::pow(r, 9) * cos,
+             std::pow(r, 4) * std::pow(cos, 2),
+             std::pow(r, 4) * sin * cos,
+             std::pow(r, 4) * std::pow(cos, 2),
+             std::pow(r, 4) * sin * cos},
+            {std::pow(r, 5) * sin, std::pow(r, 7) * sin,
+             std::pow(r, 9) * sin,
+             std::pow(r, 4) * sin * cos,
+             std::pow(r, 4) * std::pow(sin, 2),
+             std::pow(r, 4) * sin * cos,
+             std::pow(r, 4) * std::pow(sin, 2)}
         };
         addMatrixToA(a);
 
         // Add to the vector B.
-        std::vector<double> b = {
-            (deltaX[i] * cos[i] + deltaY[i] * sin[i])*std::pow(r[i], 3) / focalLength,
-            (deltaX[i] * cos[i] + deltaY[i] * sin[i])*std::pow(r[i], 5) / focalLength,
-            (deltaX[i] * cos[i] + deltaY[i] * sin[i])*std::pow(r[i], 7) / focalLength,
-            deltaX[i] * std::pow(r[i], 2) / focalLength,
-            deltaY[i] * std::pow(r[i], 2) / focalLength,
-            (deltaX[i] * cos[i] + deltaY[i] * sin[i])*cos[i]*std::pow(r[i], 2) / focalLength,
-            (deltaX[i] * cos[i] + deltaY[i] * sin[i])*sin[i]*std::pow(r[i], 2) / focalLength};
+        std::vector<double> b =
+            {
+            (deltaX*cos + deltaY*sin)*std::pow(r, 3) / focalLength,
+            (deltaX*cos + deltaY*sin)*std::pow(r, 5) / focalLength,
+            (deltaX*cos + deltaY*sin)*std::pow(r, 7) / focalLength,
+            deltaX*std::pow(r, 2) / focalLength,
+            deltaY*std::pow(r, 2) / focalLength,
+            (deltaX*cos + deltaY*sin)*cos*std::pow(r,2) / focalLength,
+            (deltaX*cos + deltaY*sin)*sin*std::pow(r,2) / focalLength
+            };
 
         addVectorToB(b);
     }
@@ -169,19 +274,79 @@ void MappedDistortion::constructMatrix()
  */
 std::vector<double> MappedDistortion::getParameters()
 {
-    // We decompose the matrix A so that A = L*U.
-    luDecomposition();
+    int size_b = B.size();
+    std::vector<double> output;
+    std::vector<double> intermediate;
+
+    output.resize(size_b, 0);
+    intermediate.resize(size_b, 0);
 
     // Solve the linear equations L * intermediate = B, where L is a lower diagonal
     // matrix.
-    solveL();
+    solveL(B, intermediate);
 
     // Finally we solve the linear equatins U * output = intermediate, where U is an
     // upper diagonal matrix.
-    solveU();
+    solveU(intermediate, output);
 
     return output;
 }
+
+
+
+
+
+
+/**
+ * \brief This method solved the linear set of equations given by A*x = B.
+ *        The solution to this problem contains the coeficients with which the
+ *        analytic distortion most closely matches the input values.
+ *
+ * \note  This is an alias for the method getParameters so that the user is able
+ *        to use getParametersX and getParametersY for the polynomial model and
+ *        getParameters for the Wang model.
+ */
+std::vector<double> MappedDistortion::getParametersX()
+{
+    return getParameters();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief This method solved the linear set of equations given by A*x = By.
+ *        The solution to this problem contains the coeficients with which the
+ *        analytic distortion most closely matches the input values.
+ */
+std::vector<double> MappedDistortion::getParametersY()
+{
+    int size_b = By.size();
+    std::vector<double> output;
+    std::vector<double> intermediate;
+
+    output.resize(size_b, 0);
+    intermediate.resize(size_b, 0);
+
+    // Solve the linear equations L * intermediate = B, where L is a lower diagonal
+    // matrix.
+    solveL(By, intermediate);
+
+    // Finally we solve the linear equatins U * output = intermediate, where U is an
+    // upper diagonal matrix.
+    solveU(intermediate, output);
+
+    return output;
+}
+
 
 
 
@@ -249,10 +414,12 @@ void MappedDistortion::addMatrixToA(std::vector<std::vector<double>> &matrix)
  */
 void MappedDistortion::luDecomposition()
 {
-    for (int i=0; i<7; i++)
+
+    int size_L = L.size();
+    for (int i=0; i<size_L; i++)
     {
         L[i][i] = 1.0;
-        for (int j=0; j<7; j++)
+        for (int j=0; j<size_L; j++)
         {
             if (i<=j)
             {
@@ -284,18 +451,54 @@ void MappedDistortion::luDecomposition()
 
 
 
+
+
+
+std::vector<double> MappedDistortion::luSolve(std::vector<double> b)
+{
+    int size_b = b.size();
+
+    std::vector<double> intermediate;
+    std::vector<double> output;
+    intermediate.resize(size_b, 0);
+    output.resize(size_b, 0);
+
+    // Solve the linear equations L * intermediate = B, where L is a lower diagonal
+    // matrix.
+    solveL(b, intermediate);
+
+    // Finally we solve the linear equatins U * output = intermediate, where U is an
+    // upper diagonal matrix.
+    solveU(intermediate, output);
+
+    return output;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief Solves the equation L*x = B.
  *
  * \note We exploit the fact that L is a lower diagonal matrix.
  *
  */
-void MappedDistortion::solveL()
+void MappedDistortion::solveL(std::vector<double> &B1, std::vector<double> &intermediate)
 {
-    intermediate[0] = B[0];
-    for (int i = 1; i < 7; i++)
+    int intermediate_size = intermediate.size();
+    intermediate[0] = B1[0];
+    for (int i = 1; i < intermediate_size; i++)
     {
-        intermediate[i] = B[i];
+        intermediate[i] = B1[i];
         for (int j = i-1; j >= 0; j--)
         {
             intermediate[i] -= L[i][j]*intermediate[j];
@@ -314,27 +517,29 @@ void MappedDistortion::solveL()
 
 
 /**
- * \brief Solves the equation L*x = intermediate.
+ * \brief Solves the equation U*x = intermediate.
  *
  * \note We use the fact that U is an upper diagonal matrix.
  *
  */
-void MappedDistortion::solveU()
+void MappedDistortion::solveU(std::vector<double>& interm, std::vector<double>& output)
 {
 
-    for (int i=6; i>=0; i--)
+    int size_output = output.size();
+    double sommen = 0;
+    for (int i=size_output-1; i>=0; i--)
     {
-        output[i] = intermediate[i];
-        for (int j = 6; j > i; j--)
+        output[i] = interm[i];
+        for (int j = size_output-1; j > i; j--)
         {
             output[i] -= U[i][j]*output[j];
-
         }
-        if (U[i][i] == 0 && intermediate[i] != 0) {
+
+        if (U[i][i] == 0 && output[i] != 0) {
             throw std::invalid_argument(
                 "We can not solve these equations!");
-        } else if (intermediate[i] == 0) {
-            output[0] = 0;
+        } else if (output[i] == 0) {
+            output[i] = 0;
         }
         else {
             output[i] = output[i] / U[i][i];
@@ -496,8 +701,10 @@ std::vector<double> MappedDistortion::dotProduct(std::vector<std::vector<double>
 bool MappedDistortion::vectorsAreEqual( std::vector<double> &a,
                                         std::vector<double> &b)
 {
-    for (int i=0; i<7; i++) {
-        if (abs(a[i] - b[i]) > 0.1) {
+    int a_size = a.size();
+    if (a_size != b.size()){ return false;}
+    for (int i=0; i<a_size; i++) {
+        if (2*abs(a[i] - b[i]) / (a[i] + b[i]) > 0.01) {
             return false;
         }
     }
@@ -526,40 +733,128 @@ bool MappedDistortion::resultIsSensible()
     std::cout << matricesAreEqual(x, A) << std::endl;
     std::cout << " " << std::endl;
     if (!matricesAreEqual(x, A)) {
-        return false;
-    }
+        return false;}
 
     std::cout << "Test2: L * intermediate= B" << std::endl;
-    std::vector<double> q = dotProduct(L, intermediate);
-    std::cout << vectorsAreEqual(q, B) << std::endl;
-    std::cout << " " << std::endl;
-    if (!vectorsAreEqual(q, B)) {
-        return false;
-    }
 
-    std::cout <<"Test3: U * output = output" << std::endl;
-    std::vector<double> q3 = dotProduct(U, output);
-    std::cout << vectorsAreEqual(q3, intermediate) << std::endl;;
-    std::cout << " " << std::endl;
-    if (!vectorsAreEqual(q3, intermediate)) {
-        return false;
-    }
+    if (!isPolynomial)
+    {
+        std::vector<double> output;
+        output = getParameters();
 
-    std::cout << "Test4: A * output2 = B" << std::endl;
-    std::vector<double> q4 = dotProduct(A, output);
-    std::cout << vectorsAreEqual(q4, B);
-    std::cout << " " << std::endl;
-    std::cout << " " << std::endl;
-    if (!vectorsAreEqual(q4, B)) {
-        return false;
-    }
+        std::vector<double> q1 = dotProduct(A, output);
+        std::cout << vectorsAreEqual(q1, B) << std::endl;
+        std::cout << " " << std::endl;
 
-    std::cout << "Test5: Coordinates match those that we expect it to match" << std::endl;
-    std::vector<double> theo_coef = {0.32419,  0.0232909,  0.407979,  0.00022463,  0.000217599,  0.000381958,  0.000963902};
-    std::cout << vectorsAreEqual(theo_coef, output) << std::endl;
-    if (!vectorsAreEqual(theo_coef, output)) {
-        return false;
+        if (!vectorsAreEqual(q1, B))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        std::vector<double> output1;
+        std::vector<double> output2;
+
+        output1 = getParametersX();
+        output2 = getParametersY();
+
+        std::vector<double> q1 = dotProduct(A, output1);
+        std::vector<double> q2 = dotProduct(A, output2);
+
+        std::cout << vectorsAreEqual(q1, B) << std::endl;
+        std::cout << vectorsAreEqual(q1, By) << std::endl;
+
+        if (!vectorsAreEqual(q1, B) || !vectorsAreEqual(q2, By))
+        {
+            return false;
+        }
     }
     return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Return the root mean square (RMS) difference between the polynomial distortion and the true
+ *        distortion as given by the values in y1 and y2.
+ *
+ * \output RMSx : RMS in the x-direction
+ *         RMSy : RMS in the y-direction
+ *
+ * \Note This function is only used for debugging purpose.
+ *
+ * \Note Only useable for the polynomial model
+ */
+std::pair<double, double> MappedDistortion::getRMS()
+{
+    std::vector<double> output1;
+    std::vector<double> output2;
+
+    double RMSx = 0;
+    double RMSy = 0;
+    output1 = getParametersX();
+    output2 = getParametersY();
+
+    for (int i = 0; i < x1.size(); i++)
+    {
+        double xE, yE;
+        xE = applyDistortion(x1[i], x2[i], output1);
+        yE = applyDistortion(x1[i], x2[i], output2);
+        RMSx += std::pow((xE - y1[i]), 2);
+        RMSy += std::pow((yE - y2[i]), 2);
+    }
+    return std::make_pair(std::sqrt(RMSx / x1.size()), std::sqrt(RMSy / x2.size()));
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Apply the polynomial distortion on the points x, y with polynomial
+ *        coefficients.
+ *
+ * \input: x:  input x-coordinate
+ *         y:  input y-coordinate
+ *         coefficients: polynomial coefficient that describe the distortion
+ *
+ * \output output: distorted coordinate
+ *
+ * \Note This function is only used for debugging purpose.
+ */
+double MappedDistortion::applyDistortion(double x, double y, std::vector<double> &coefficients)
+{
+    double output = 0;
+    for (int i=0; i<6; i++)
+    {
+        for (int j=0; j<6; j++)
+        {
+            output += coefficients[i+6*j]*std::pow(x, i)*std::pow(y, j);
+        }
+    }
+    return output;
 }
 
