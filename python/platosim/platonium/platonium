@@ -628,37 +628,39 @@ class PLATOnium(object):
         focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
 
         # Fetch focal plane coordinates [mm]
-        xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raTargetRad, decTargetRad,
-                                                     raPlatformRad, decPlatformRad,
-                                                     solarPanelOrientationRad,
-                                                     tiltTelescopeRad, azimuthTelescopeRad,
-                                                     focalPlaneAngle, focalLength)
-        if includeFieldDistortion == True or includeFieldDistortion == "yes":
-            if mappedDistortion:
-                xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                                    pathToPsfFile, focalLength)
-            else: 
-                xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                              distortionCoefficients,
-                                                                              focalLength)
-
-        # Fetch CCD code and pixel coordinates (account for field distortion if included)
-        ccdCode, xCCD, yCCD = rf.getCCDandPixelCoordinates(raTargetRad, decTargetRad,
+        self.xFP, self.yFP = rf.skyToFocalPlaneCoordinates(raTargetRad, decTargetRad,
                                                            raPlatformRad, decPlatformRad,
                                                            solarPanelOrientationRad,
                                                            tiltTelescopeRad, azimuthTelescopeRad,
-                                                           focalPlaneAngle, focalLength, pixelSize,
-                                                           includeFieldDistortion, normal=True,
-                                                           mappedDistortion=mappedDistortion,
-                                                           distortionCoefficients=distortionCoefficients,
-                                                           pathToPsfFile=pathToPsfFile)
+                                                           focalPlaneAngle, focalLength)
+        if includeFieldDistortion == True or includeFieldDistortion == "yes":
+            if mappedDistortion:
+                self.xFP, self.yFP = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(self.xFP, self.yFP,
+                                                                                          pathToPsfFile, focalLength)
+            else: 
+                self.xFP, self.yFP = rf.undistortedToDistortedFocalPlaneCoordinates(self.xFP, self.yFP,
+                                                                                    distortionCoefficients,
+                                                                                    focalLength)
+        
+                
+        # Fetch CCD code and pixel coordinates (account for field distortion if included)
+        infoCCD = rf.getCCDandPixelCoordinates(raTargetRad, decTargetRad,
+                                               raPlatformRad, decPlatformRad,
+                                               solarPanelOrientationRad,
+                                               tiltTelescopeRad, azimuthTelescopeRad,
+                                               focalPlaneAngle, focalLength, pixelSize,
+                                               includeFieldDistortion, normal=True,
+                                               mappedDistortion=mappedDistortion,
+                                               distortionCoefficients=distortionCoefficients,
+                                               pathToPsfFile=pathToPsfFile)
+        self.ccdCode, self.xCCD, self.yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
         
         # Calculate radial distance of coordinate away from OA
-        distanceOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength))
-        if distanceOA > 19.0:
+        self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP, focalLength))
+        if self.rOA > 19.0:
             if self.verbose > 0:
                 message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
-                            f'is outside camera FOV (d={distanceOA:.2f} deg) ' +
+                            f'is outside camera FOV (d={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             exit()
@@ -669,8 +671,8 @@ class PLATOnium(object):
              'rOA [deg]', 'xFP [mm]', 'yFP [mm]', 'Ncon']
         d = {'ID': [self.df['ID']], 'mag': [self.df['mag']],
              'ra [deg]': [self.df['ra']], 'dec [deg]': [self.df['dec']],
-             'CCD': [ccdCode], 'xCCD [pix]': [xCCD], 'yCCD [pix]': [yCCD],
-             'rOA [deg]': [distanceOA], 'xFP [mm]': [xFPmm], 'yFP [mm]': [yFPmm],
+             'CCD': [self.ccdCode], 'xCCD [pix]': [self.xCCD], 'yCCD [pix]': [self.yCCD],
+             'rOA [deg]': [self.rOA], 'xFP [mm]': [self.xFP], 'yFP [mm]': [self.yFP],
              'Ncon': self.numCon}
         self.df0 = pd.DataFrame(d, columns=c)
 
@@ -681,13 +683,13 @@ class PLATOnium(object):
 
         # Add CCD time-shift to time points
         # Only continue if ccdCode is found:
-        if ccdCode:
-            self.timeStart += float(sim['CCDPositions/TimeShift'][int(ccdCode)-1])
+        if self.ccdCode:
+            self.timeStart += float(sim['CCDPositions/TimeShift'][int(self.ccdCode)-1])
             self.time = np.arange(self.numExposures) * self.cadence + self.timeStart
         else:
             errorcode('warning', 'Star falls within a CCD gap!')
             exit()
-            
+
         # Finito!
         return sim
         
@@ -880,7 +882,7 @@ class PLATOnium(object):
         # Plot the subfield    
         f.showImage(self.beginExposureNr,
                     showStarPositions=showStarPositions,
-                    clipPercentile=clipPercentile,
+                    clip=clipPercentile,
                     showMaskOfStarID=mask,
                     useTitle=title,
                     colorMap='cubehelix',
@@ -1313,6 +1315,51 @@ class PLATOnium(object):
     #                            OUTPUTS                           #
     #--------------------------------------------------------------#
 
+    def create_sim_table(self):
+
+
+        # Write PlatoSim info to a table
+        filename = self.inputDir / 'tableSims.ftr'
+        data = {"ID":   self.targetNo+1,
+                "PIC":  self.df.ID,
+                "ra":   self.df.ra,
+                "dec":  self.df.dec,
+                "ncon": self.numCon,
+                "G":    self.group,
+                "C":    self.camera,
+                "Q":    self.quarter,
+                "rOA":  self.rOA,
+                "xFP":  self.xFP,
+                "yFP":  self.yFP,
+                "ccd":  self.ccdCode,
+                "xCCD": self.xCCD,
+                "yCCD": self.yCCD}
+        df1 = pd.DataFrame(data, index=[0])
+        
+        # Check of file exist or create it
+        try:
+            df0 = pd.read_feather(filename)
+        except: 
+            df1.to_feather(filename)
+        else:
+
+            # Remove index column
+            try: df0.drop(columns='index', inplace=True)
+            except: pass
+            
+            # Add data to data frame
+            df0 = pd.concat([df0, df1])
+
+            # Handle output format
+            df = df0.astype({"ID":int, "PIC":int, "G":int, "C":int, "Q":int, "ccd":int, "ncon":int})
+
+            # Set new index, and save
+            df.reset_index(inplace=True)
+            df.to_feather(filename)
+
+            
+            
+    
 
     def sort_output_normal(self):
 
@@ -1336,6 +1383,9 @@ class PLATOnium(object):
         if self.hpcDir:
             os.system(f'mv {self.outputSimName}.* {self.hpcDir}')
 
+        # Add sim info to table
+        self.create_sim_table()
+            
         # Execution time of module
         if self.verbose > 0:
             self.tocPrologue = datetime.datetime.now() - self.tic
@@ -1363,6 +1413,7 @@ class PLATOnium(object):
         prefixStarIDsim = self.outputDirStarIDsim + f'/{self.starID}'
         prefixStarIDnew = self.outputDirStarIDnew + f'/{self.starID}_{self.obsPrefix}'
 
+        
         # Rewrite data time series
         if args.sample == 'P1':
             cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'cy_err', 'bg_err',
@@ -1428,6 +1479,9 @@ class PLATOnium(object):
         # If requested move file to final output directory (for cluster)
         if self.hpcDir:
             os.system(f'mv {prefixStarIDnew}.* {self.hpcDir}')
+
+        # Add sim info to table
+        self.create_sim_table()
             
         # Execution time of module
         if self.verbose > 0:
