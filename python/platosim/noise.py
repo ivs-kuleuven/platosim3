@@ -305,7 +305,8 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         ax[0].set_xlim(xx[0], xx[-1])
         ax[0].legend()
 
-        ax[1].plot(df1.RA, df1.Dec, 'o', alpha=0.2)
+        ax[1].plot(ra,    dec,      'r*', alpha=0.5)
+        ax[1].plot(df1.RA, df1.Dec, 'o',  alpha=0.2)
         ax[1].set_title('Distribution on Sky')
         ax[1].set_xlabel('RA [deg]')
         ax[1].set_ylabel('Dec [deg]')

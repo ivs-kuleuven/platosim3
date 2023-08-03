@@ -61,6 +61,75 @@ warnings.simplefilter("ignore")
 tic = datetime.datetime.now()
 
 
+def copyInputYAML(field, odir):
+
+    """Function to copy and adjust a yaml ready to launch.
+
+    Parameters
+    ----------
+    field : str
+        Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
+    odir : str, pathlib object
+        Absolute output directory
+    """
+
+    # Get files names of YAML files
+    yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+    yaml_new = odir / "inputfile.yaml"
+
+    # Copy YAML if it doesn't exist already
+    if not yaml_new.is_file():
+
+        #print(f"Copying YAML configuration file : {yaml_new}")
+        shutil.copy(yaml_old, yaml_new)
+
+        # Find and replace a few strings:
+        with open(yaml_new, 'r') as file:
+            filedata = file.read()
+            filedata = filedata.replace('inputfiles/starcatalog.txt', field)
+            # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
+            filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+            filedata = filedata.replace( 'NumColumns:                      100',
+                                        f'NumColumns:                      7  ')
+            filedata = filedata.replace( 'NumRows:                         100',
+                                        f'NumRows:                         7  ')
+            filedata = filedata.replace('IncludePhotometry:               no ',
+                                        'IncludePhotometry:               yes')
+            filedata = filedata.replace('MaskUpdateInterval:              14.0',
+                                        'MaskUpdateInterval:              30.0')
+            filedata = filedata.replace('GroupByExposure:                 yes',
+                                        'GroupByExposure:                 no ')
+            filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                        'WriteBiasMaps:                   no ')
+            filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                        'WriteSmearingMaps:               no ')
+            filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                        'WriteFlatfieldMap:               no ')
+            filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                        'WriteThroughputMaps:             no ')
+            filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                        'WriteTransmissionEfficiency:     no ')
+            filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                        'WriteBackgroundMap:              no ')
+            filedata = filedata.replace('WriteCTI:                        yes',
+                                        'WriteCTI:                        no ')
+            filedata = filedata.replace('WriteACS:                        yes',
+                                        'WriteACS:                        no ')
+            filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                        'WriteTelescopeACS:               no ')
+            filedata = filedata.replace('WriteStarCatalog:                yes',
+                                        'WriteStarCatalog:                no ')
+            filedata = filedata.replace('WriteStarPositions:              yes',
+                                        'WriteStarPositions:              no ')
+            filedata = filedata.replace('WriteGhostPositions:             yes',
+                                        'WriteGhostPositions:             no ')
+            filedata = filedata.replace('WriteCosmics:                    yes',
+                                        'WriteCosmics:                    no ')
+            # Write the file out again
+            with open(yaml_new, 'w') as file:
+                file.write(filedata)
+
+                    
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
@@ -71,9 +140,9 @@ parser = argparse.ArgumentParser(epilog=__doc__,
                                  description=errorcode('software', '\nPIC of Destiny'))
 
 pic_group = parser.add_argument_group('PIC INFO (required)')
-pic_group.add_argument('targets', type=str, help='Number of targets saved in catalog (Select "all" for all stars)')
-pic_group.add_argument('sample',  type=str, help='PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)')
-pic_group.add_argument('field',   type=str, help='PLATO fields [NPF, SPF, all]       (Select "all" for both fields)')
+pic_group.add_argument('stars',  type=str, help='Number of targets saved in catalog (Select "all" for all stars)')
+pic_group.add_argument('sample', type=str, help='PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)')
+pic_group.add_argument('field',  type=str, help='PLATO fields [NPF, SPF]')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
 out_group.add_argument('-p', '--plot', action='store_true', help='Flag to plot target and contaminant catalog creation')
@@ -99,7 +168,7 @@ obs_group.add_argument('--ntime', metavar='NUM',   type=int, help='Number of ind
 
 args = parser.parse_args()
 
-numTargets    = args.targets
+numTargets    = args.stars
 starSample    = args.sample
 platoField    = args.field
 
@@ -182,14 +251,15 @@ if outputDir is not None or project is not None:
         outputFileCon = outputDir / outputPrefixCon
 
 # Copy an inputfile.yaml file if no file exist
-inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
-try:
-    inputFileNew = outputDir / 'inputfile.yaml'
-except:
-    pass
-else:
-    if not inputFileNew.is_file():
-        shutil.copy(inputFileYAML, inputFileNew)
+copyInputYAML(args.field, outputDir)
+# inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
+# try:
+#     inputFileNew = outputDir / 'inputfile.yaml'
+# except:
+#     pass
+# else:
+#     if not inputFileNew.is_file():
+#         shutil.copy(inputFileYAML, inputFileNew)
 
 #-----------------------------------------------------------------
 # TODO implement properly such dmag and dist can be requested too
@@ -504,7 +574,7 @@ if fileFormat != '.txt':
     # Check if too many stars are selected
     if len(df['ID']) > numTargetsTotalInPIC:
         errorcode('error', 'More stars selected than available in the PIC! See -h for sample notes')
-    elif numTargets > len(df['ID']) and samplePIC is None and args.targets != 'all':
+    elif numTargets > len(df['ID']) and samplePIC is None and args.stars != 'all':
         errorcode('error', 'More stars selected than available from chosen PIC sample and/or PLATO field! See -h for sample notes')
 
     # CHECK OBSERVABILITY BY EACH CAMERA
@@ -621,9 +691,9 @@ if fileFormat != '.txt':
 
     # Only after the above cuts can we select randomly a sub-sample (if applicable)
     # Use random.choices(data, weights=some weight, k=numTargets) if a weigthing is needed
-    # NOTE args.targets being a string is needed to select "all" in one of the samples too
+    # NOTE args.stars being a string is needed to select "all" in one of the samples too
     # NOTE we need to shuffle the sample if a specific number of timeseries are needed
-    if args.targets != 'all' or numTimeseries is not None:
+    if args.stars != 'all' or numTimeseries is not None:
         df = df.sample(n = numTargets)
 
     # Redefine the number fo targets
@@ -825,9 +895,9 @@ errorcode('module', '\nPrologue')
 if outputDir is not None:
     res = 200
     print('Saving all plots to {0}'.format(outputDir))
-    fig0[0].savefig(outputDir / f'plot_{outputPrefix}_allsky.png',       bbox_inches='tight', dpi=res)
-    fig1.savefig(outputDir    / f'plot_{outputPrefix}_pointing.png',     bbox_inches='tight', dpi=res)
-    fig2.savefig(outputDir    / f'plot_{outputPrefix}_TeffvsRadius.png', bbox_inches='tight', dpi=res)
+    fig0.savefig(outputDir / f'plot_{outputPrefix}_allsky.png',       bbox_inches='tight', dpi=res)
+    fig1.savefig(outputDir / f'plot_{outputPrefix}_pointing.png',     bbox_inches='tight', dpi=res)
+    fig2.savefig(outputDir / f'plot_{outputPrefix}_TeffvsRadius.png', bbox_inches='tight', dpi=res)
     if not fig3 is False: fig3[0].savefig(outputDir / f'plot_{outputPrefix}_distribution.png', bbox_inches='tight', dpi=res)
 
     # Save textfile with information about PIC stars
