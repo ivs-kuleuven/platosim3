@@ -26,7 +26,7 @@ import ipywidgets as widgets
 from astropy.io import fits
 
 # PlatoSim imports
-from platosim.utilities import imageClip, imageNorm, normalize
+from platosim.utilities import imageClip, normalize
 
 
 #==============================================================#

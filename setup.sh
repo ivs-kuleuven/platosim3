@@ -37,13 +37,14 @@ else
 
     # Footprint of project setup
     if [ -f "$PLATO_SETUP" ]; then
-	echo "------------------------------------------"
-	echo ":   PlatoSim has already been set up!    :"
-	echo "------------------------------------------"
-	echo "To redo the setup, simply remove the file:"
-	echo "$PLATO_SETUP"
-	echo "and run this setup.sh script again."
-	exit 1
+	rm $PLATO_SETUP
+	# echo "------------------------------------------"
+	# echo ":   PlatoSim has already been set up!    :"
+	# echo "------------------------------------------"
+	# echo "To redo the setup, simply remove the file:"
+	# echo "$PLATO_SETUP"
+	# echo "and run this setup.sh script again."
+	# exit 1
     fi
 
     # Write a bash_profile that will be loaded

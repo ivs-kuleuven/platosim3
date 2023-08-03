@@ -1321,20 +1321,7 @@ void Detector::readOut(float exposureTime)
     {
         Log.debug("Detector: no cosmic hits included.");
     }
-
-    // Brighter-Fatter effect [electrons -> electrons]
-
-    if (includeBFE)
-    {
-        Log.debug("Detector: adding Brighter-Fatter effect");
-
-        applyBFE();
-    }
-    else
-    {
-        Log.debug("Detector: no Brighter-Fatter effect added");
-    }
-
+        
     // Apply full-well saturation (blooming) [electrons -> electrons]
 
     if (includeFullWellSaturation)
@@ -1345,6 +1332,19 @@ void Detector::readOut(float exposureTime)
     else
     {
         Log.debug("Detector: no full well saturation applied.");
+    }
+
+        // Brighter-Fatter effect [electrons -> electrons]
+
+    if (includeBFE)
+    {
+        Log.debug("Detector: adding Brighter-Fatter effect");
+
+        applyBFE();
+    }
+    else
+    {
+        Log.debug("Detector: no Brighter-Fatter effect added");
     }
 
     // Apply Charge Transfer Inefficiency (CTI) [electrons -> electrons]
