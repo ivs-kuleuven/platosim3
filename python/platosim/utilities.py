@@ -447,7 +447,7 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
     image_max  = image.max()
     image_mean = image.mean()
     image_std  = image.std()
-    
+
     # Default scaling is 2 sigma
 
     if scale_min is None:
