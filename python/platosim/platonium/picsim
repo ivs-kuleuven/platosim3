@@ -673,9 +673,7 @@ if fileFormat != '.txt':
 # PLOT STARS
 
 # Plot targets in aitoff Galactic sky projection
-fig0 = plt.subplots(figsize = (13,9))
-img = plt.imread(f'{os.getenv("PLATO_PROJECT_HOME")}/docs/figures/gaiaDR3.png')
-pt.drawStarsInSkyAitoff(fig0, df['ra'], df['dec'], df['mag'], skymap=img)
+fig0, ax = pt.drawStarsInSkyAitoff(df['ra'], df['dec'], df['mag'])
 if plot: plt.show()
 
 # Save if both pointing fields are given
