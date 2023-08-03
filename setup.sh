@@ -8,7 +8,7 @@ PLATO_WORKDIR=$1
 PLATO_PIPELINE=$2
 
 # Set global parameters
-POETRY=$HOME/.local/bin/poetry   # TODO check install location
+POETRY=$HOME/.local/bin
 PLATO_SETUP=$PWD/.bash_profile
 PLATO_PROJECT_HOME=$PWD
 PLATO_MANPATH=$PWD/pipeline/man
@@ -47,6 +47,7 @@ else
     fi
 
     # Write a bash_profile that will be loaded
+    echo ""                                          >> $HOME/.bashrc
     echo "# >>> -- Export all PlatoSim paths -- <<<" >> $HOME/.bashrc
     echo "source $PLATO_SETUP"                       >> $HOME/.bashrc
     echo "# >>> ------------------------------- <<<" >> $HOME/.bashrc
@@ -57,7 +58,7 @@ else
     # Export paths
     echo "#!/usr/bin/env bash" >> $PLATO_SETUP
     echo "" >> $HOME/.bashrc
-    echo "export POETRY=$HOME/.local/bin/poetry" >> $PLATO_SETUP
+    echo "export POETRY=$POETRY"                 >> $PLATO_SETUP
     echo "export PLATO_PROJECT_HOME=$PWD"        >> $PLATO_SETUP 
     echo "export PLATO_WORKDIR=$PLATO_WORKDIR"   >> $PLATO_SETUP
     
@@ -83,7 +84,7 @@ else
 
     # Lastly, export the python path to bashrc
     echo "export PYTHONPATH=${PYTHONPATH}:$CONDA_PREFIX:$PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO_PIPELINE:$PLATO_MANPATH:$PLATO_PYLIB" >> $PLATO_SETUP
-    echo "export PATH=${PATH}:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
+    echo "export PATH=${PATH}:$POETRY:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
        
     # Add code to global executeables (-i overwrite old files) TODO
     cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/picsim    $CONDA_PREFIX/bin
