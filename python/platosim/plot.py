@@ -1027,7 +1027,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 
-def drawStarsInSkyAitoff(raStars, decStars, magStars, skymapFile=None,
+def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
                          cbarOrientation=None, cbarMap='rainbow',
                          figsize=(13,9)):
 
@@ -1094,7 +1094,7 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars, skymapFile=None,
 
     # Change cbarMap if no magnitudes are provided
 
-    if not magStars:
+    if magStars is None:
         cbarMap = None
         
     # Plot the targets on the sky (autumn_r, rainbow)
@@ -1104,7 +1104,7 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars, skymapFile=None,
 
     # Vertical or horizontal colorbar showing magnitudes
 
-    if magStars:
+    if magStars is not None:
         if cbarOrientation == 'vertical':
             cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
             cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
