@@ -26,7 +26,7 @@ import ipywidgets as widgets
 from astropy.io import fits
 
 # PlatoSim imports
-from platosim.utilities import imageNorm, normalize
+from platosim.utilities import imageClip, imageNorm, normalize
 
 
 #==============================================================#
@@ -630,9 +630,11 @@ class SimFile (object):
 
         hduList = []
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
-        for imageNr in range(Nimages):
+        for imageNr in range(0, Nimages):
+            
+            imageName = "image{0:06d}".format(imageNr)
             image = self.getImage(imageNr)
-            imageName = "Image{0:06d}".format(imageNr)
+            
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -640,7 +642,7 @@ class SimFile (object):
             hduList.append(hdu)
 
         myFits = fits.HDUList(hduList)
-        myFits.writeto(fileName)
+        myFits.writeto(fileName, overwrite=True)
 
 
 
@@ -1793,28 +1795,77 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def showImage(self, imageNr=False, clipPercentile=5.0, imgScale="clip",
+    def showMap(self, pixelMap, clabel=False, figsize=(6,5)):
+
+        """Make a plot any pixel map.
+        
+        Parameters
+        ----------
+        pixelMap : ndarray
+            Any pixel map from the HDF5 output file
+        clabel : str
+            String to change the colour bar label
+        figsize : mpl object
+            Figure size of plot
+        """
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        
+        # Axis and plot
+        
+        im = ax.imshow(pixelMap, interpolation='nearest', origin='lower', cmap="cubehelix")
+
+        # Colorbar
+        
+        divider = make_axes_locatable(ax)
+        cax     = divider.append_axes('right', size='5%', pad=0.05)
+        cbar    = fig.colorbar(im, cax=cax, orientation='vertical')
+        
+        # Labels
+        
+        ax.set_xlabel(r"Pixel column, $i$")
+        ax.set_ylabel(r"Pixel row, $j$")
+        if clabel:
+            cbar.ax.set_ylabel(clabel)
+        else:
+            cbar.ax.set_ylabel('Counts [ADU]')
+            
+        # Settings
+        
+        plt.tight_layout()
+
+        # Returns
+
+        return fig, ax
+
+
+
+
+
+    
+    
+    def showImage(self, imageNr=False, imgScale="percentile", clip=5.0,
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
                   tarMarkerSize=200, showMaskOfStarID=None,
-                  useTitle=False, showGrid=False, colorBar=False, colorMap="cubehelix",
-                  origin="lower", figsize=(8,8), fontSize=15):
+                  useTitle=False, showGrid=False, colorBar=True, colorMap="cubehelix",
+                  origin="lower", fontSize=15, figsize=(8,8)):
 
-        """Make a plot of the a requested image or the entire cube in HDF5.
+        """Make a plot of the a requested image or the entire image cube in HDF5.
 
         Parameters
         ----------
         imageNr: False, int
             False : Will plot all images in HDF5 using a slider
             int   : Integer sequential number of the image in the HDF5 file
-        clipPercentile: int, float
-            Intensities will be clipped between [value, 100-value] to improve the image contrast.
         imgScale : str
             Different options to select the image scaling:
-            clip   : Scale image using a percentile clipping
-            auto   : Scale image using a sigma clipping and linear scaling
-            log    : Scale image logarithmically
-            minmax : Scale image from min to max image value
+            percentile : Scale image using a percentile clipping [value, 100-value] 
+            auto       : Scale image using a sigma clipping and linear scaling
+            minmax     : Scale image linearly        [min, max]
+            log        : Scale image logarithmically [min, max]
+        clip: int, float
+            Scale and to improve the image contrast (see methods above)
         showStarPositions: bool
             False : Default
             True  : Plot the average star positions (averaged over the exposure)
@@ -1876,64 +1927,32 @@ class SimFile (object):
         else:
             image = self.getImage(imageNr)
             if image is None:
-                print(f"ERROR: Cannot extract image nr {imageNr}")
-                return None
+                print(f"ERROR: Image nr {imageNr} does not exist!")
+                return
             Nrows, Ncols = image.shape
 
         # Correct for the orientation
         
         extent = [0, Ncols, 0, Nrows]
-        
-        # Plot the image. Note that pixel coordinates start at the left bottom side of each pixel.
+
+        # Start plotting
+        # NOTE that pixel coordinates start at the left bottom side of each pixel
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111)
 
         # Add ticks
+        
         ax.tick_params(axis='both', which='major', labelsize=fontSize)
         ax.tick_params(axis='both', which='minor', labelsize=fontSize)
 
-        # Show image either using clip-procentage scaling or linear scaling if using a colorbar
+        # Show image either using clip-procentage or linear scaling if using a colorbar
         # The large dynamic range of the pixel values often results in images where only
         # the brightest stars are visible. To improve the contrast, clip the color mapping.
 
-        clabel  = "Counts [kADU]"
-        image   = image / 1000.
-        img_min = image.min()
-        img_max = image.max()
-
-        img_mean = image.mean()
-        img_std = image.std()
-
-        if imgScale == "clip":
-            image *= 1000.
-            clabel  = "Counts [ADU]"
-            vmin   = np.percentile(image, clipPercentile).astype(int)
-            vmax   = np.percentile(image, 100-clipPercentile).astype(int)
-            norm   = Normalize(vmin, vmax)
-
-        elif imgScale == "minmax":
-            vmin = img_min
-            vmax = img_max
-            norm = Normalize(img_min, img_max)
-
-        elif imgScale == 'log':
-            vmin, vmax = image.min(), image.max()
-            norm   = LogNorm(vmin, vmax)
-
-        elif imgScale == "auto":
-            sigma = 0.5
-            clabel  = "Normalised counts"
-            image = imageNorm(image, "linear", sigma=sigma)
-            vmin, vmax = image.min(), image.max()
-            norm = None  # Image is already normalized to [0,1]
-
-        else:
-            print("ERROR: Not valid scaling for 'imgScale'")
-            
-        # Generate image
-
-        if imgScale == "clip":
+        image, norm, vmin, vmax = imageClip(image, imgScale, clip)
+        
+        if imgScale == "percentile":
             imagePlot = ax.imshow(image, cmap=colorMap, interpolation="nearest",
                                     origin=origin, extent=extent, zorder=0)
             imagePlot.set_clim(vmin, vmax)
@@ -1941,21 +1960,19 @@ class SimFile (object):
             imagePlot = ax.imshow(image, norm=norm, cmap=colorMap, interpolation="nearest",
                                     origin=origin, extent=extent, zorder=0)
 
-        # Add colorbar if requested
-
+        # Colorbar
+        
+        clabel = 'Counts [ADU]'
         if colorBar:
             cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
 
-            # Remove default (small) minor tick label for logarithm plot
-            if imgScale == "log":
-                cbar.ax.tick_params(which='minor', right=False, labelright=False)
-
             # Adjust the colorbar to correct ADU values
             if imgScale == "log":
+                cbar.ax.tick_params(which='minor', right=False, labelright=False)
                 ticks_loc1  = np.logspace(np.log10(vmin), np.log10(vmax), 6)
-                ticks_loc2  = np.logspace(np.log10(img_min), np.log10(img_max), 6)
+                ticks_loc2  = np.logspace(np.log10(image.min()), np.log10(image.max()), 6)
                 ticks_label = [f"{i:.2f}" for i in ticks_loc2]
                 cbar.locator     = ticker.FixedLocator(ticks_loc1)
                 cbar.formatter   = ticker.FixedFormatter(ticks_label)
@@ -1968,15 +1985,15 @@ class SimFile (object):
                 cbar.locator   = ticker.FixedLocator(ticks_loc)
                 cbar.formatter = ticker.FixedFormatter(ticks_label)
                 cbar.update_ticks()
-
+                
         # If required, overplot a gray semi-transparent grid
-        # Note: this is only meaningful for smaller imagettes
+        # NOTE: this is only meaningful for smaller imagettes
 
         if showGrid is True:
             ax.grid(c='gray', ls='-', alpha=0.5, zorder=1)
             
         # Overplot rectangles over those pixels that are part of the mask
-        # Note: imshow reverses rows and columns
+        # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
             rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
@@ -2016,6 +2033,9 @@ class SimFile (object):
                 ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o',
                            facecolors='none', edgecolors='royalblue',
                            linewidth=lw, zorder=4)
+
+            # If requested, add star IDs to plot
+            
             if showStarIDs:
                 for k in range(len(ID)):
                     label = "{0}".format(ID[k])
@@ -2035,7 +2055,7 @@ class SimFile (object):
                     ax.annotate(label, (col[k], row[k]), fontsize='small',
                                 fontweight='extra bold', color="black")
 
-        # Ensure that the ax limits are properly set.
+        # Ensure that the axes limits are properly set
         
         ax.set_xlim(0, Ncols)
         ax.set_ylim(0, Nrows)
@@ -2045,8 +2065,8 @@ class SimFile (object):
         # User defined title-string
         if isinstance(useTitle, str):
             plt.title(useTitle, fontsize=fontSize)
-        # With the .hdf5
-        if useTitle is True:
+        # Or use default .hdf5 image nr
+        elif useTitle is True:
             fileBasename = os.path.splitext(self.filename)[0]
             title = fileBasename + " - image{0:06d}".format(imageNr)
             plt.title(title, fontsize=fontSize)
@@ -2054,7 +2074,6 @@ class SimFile (object):
         # By default, matplotlib only shows the (x,y) coordinates of each pixel,
         # but not the pixel value itself. Change this by redefining the ax.format_coord
 
-        #Nrows, Ncols = image.shape
         def format_coord(x, y):
             col = int(x)
             row = int(y)
@@ -2066,6 +2085,7 @@ class SimFile (object):
         ax.format_coord = format_coord
 
         # Show all ticks for smaller subfields or otherwise 10
+        
         Nrows, Ncols = Ncols, Nrows
         if Ncols <= 25:
             plt.xticks(np.arange(0, Nrows+1))
@@ -2085,8 +2105,12 @@ class SimFile (object):
 
         # Set labels if requested
 
-        plt.xlabel(r"Pixel column, $i$", fontsize=fontSize)
-        plt.ylabel(r"Pixel row, $j$",    fontsize=fontSize)
+        ax.set_xlabel(r"Pixel column, $i$", fontsize=fontSize)
+        ax.set_ylabel(r"Pixel row, $j$",    fontsize=fontSize)
+        if clabel:
+            cbar.ax.set_ylabel(clabel, fontsize=fontSize)
+        else:
+            cbar.ax.set_ylabel('Counts [ADU]', fontsize=fontSize)    
 
         # Plot with or without a slider
 
@@ -2112,52 +2136,6 @@ class SimFile (object):
 
         return fig, ax
 
-
-
-
-
-    def showMap(self, pixelMap, clabel=False, figsize=(6,5)):
-
-        """Make a plot any pixel map.
-        
-        Parameters
-        ----------
-        pixelMap : ndarray
-            Any pixel map from the HDF5 output file
-        clabel : str
-            String to change the colour bar label
-        figsize : mpl object
-            Figure size of plot
-        """
-
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
-        # Axis and plot
-        
-        im = ax.imshow(pixelMap, interpolation='nearest', origin='lower', cmap="cubehelix")
-
-        # Colorbar
-        
-        divider = make_axes_locatable(ax)
-        cax     = divider.append_axes('right', size='5%', pad=0.05)
-        cbar    = fig.colorbar(im, cax=cax, orientation='vertical')
-        
-        # Labels
-        
-        ax.set_xlabel(r"Pixel column, $i$")
-        ax.set_ylabel(r"Pixel row, $j$")
-        if clabel:
-            cbar.ax.set_ylabel(clabel)
-        else:
-            cbar.ax.set_ylabel('Counts [ADU]')
-            
-        # Settings
-        
-        plt.tight_layout()
-
-        # Returns
-
-        return fig, ax
 
 
 
@@ -2309,7 +2287,6 @@ class SimFile (object):
         # That's it!
 
         return fig, ax
-
 
 
 

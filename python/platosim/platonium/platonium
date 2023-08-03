@@ -579,7 +579,7 @@ class PLATOnium(object):
         numRowSubfield = sim["SubField/NumRows"]
         raTargetRad    = np.deg2rad(self.df['ra'])
         decTargetRad   = np.deg2rad(self.df['dec'])
-
+        
         self.subfieldIsOnCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
                                                                    numColSubfield, numRowSubfield,
                                                                    normal=True)

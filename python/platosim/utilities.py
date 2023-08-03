@@ -21,6 +21,7 @@ import h5py
 import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize, LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pylab import MaxNLocator
 from prettytable import PrettyTable
@@ -347,6 +348,71 @@ def normalize(signal, factor=1e6, length=-1):
 
 
 
+def imageClip(inputArray, norm="clip", sigma=2):
+
+    """Performs custom scaling of the input numpy array.
+
+    Parameters
+    ----------
+    inputArray : ndarray
+        Input image array to normalize.
+    norm : str
+        Normalization method. 
+        Options: ['linear', 'log', 'sqrt', 'asinh'] 
+    sigma : float
+        Scaling factor corresponding to the std of the image.
+    scale_min : float
+        Minimum data value.
+    scale_max : float
+        Maximum data value.
+    
+    Return
+    ------
+    image : ndarray
+        Normalized image array.
+
+    NOTE: This is a help function for simfile.showImage()
+    """
+    
+    # Input image array
+
+    image = np.array(inputArray, copy=True)
+
+    # Methods that return array values
+
+    if norm == "clip":
+        clipPercentile = sigma
+        vmin = np.percentile(image, clipPercentile).astype(int)
+        vmax = np.percentile(image, 100-clipPercentile).astype(int)
+        norm = Normalize(vmin, vmax)
+        
+    elif norm == "auto":
+        image = imageNorm(image, "linear", sigma)
+        vmin  = image.min()
+        vmax  = image.max()
+        norm  = None
+
+    elif norm == "minmax":
+        vmin = image.min()
+        vmax = image.max()
+        norm = Normalize(vmin, vmax)
+
+    elif norm == 'log':
+        vmin = image.min()
+        vmax = image.max()
+        norm = LogNorm(vmin, vmax)
+            
+    else:
+        print('ERROR: imageClip(): Not a valid scaling!')
+
+    # That's it!
+
+    return image, norm, vmin, vmax
+
+
+
+
+
 def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None):
 
     """Performs custom scaling of the input numpy array.
@@ -375,18 +441,25 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 
     image = np.array(inputArray, copy=True)
 
+    # Extract image information
+
+    image_min  = image.min()
+    image_max  = image.max()
+    image_mean = image.mean()
+    image_std  = image.std()
+    
     # Default scaling is 2 sigma
 
     if scale_min is None:
-        scale_min = image.mean() - sigma * image.std()
+        scale_min = image_mean - sigma * image_std
     if scale_max is None:
-        scale_max = image.mean() + sigma * image.std()
+        scale_max = image_mean + sigma * image_std
 
     # Clip data
 
     image = image.clip(min=scale_min, max=scale_max)
 
-    # Select normalization method
+    # Function below return normalized image arrat -> [0,1]
 
     if norm == "linear":
         image = (image - scale_min) / (scale_max - scale_min)
@@ -422,6 +495,9 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
         image[indices0] = 0.0
         image[indices2] = 1.0
         image[indices1] = np.arcsinh((image[indices1] - scale_min) / non_linear) / factor
+            
+    else:
+        print("ERROR: Not valid scaling for 'imgScale'")
 
     # That's it!
 

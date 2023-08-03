@@ -1027,8 +1027,9 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 
-def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None,
-                         cbarOrientation=None, cbarMap='rainbow'):
+def drawStarsInSkyAitoff(raStars, decStars, magStars, skymapFile=None,
+                         cbarOrientation=None, cbarMap='rainbow',
+                         figsize=(13,9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
 
@@ -1051,6 +1052,8 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None,
         Colorbar orientation. Default 'horizontal' else 'vertical'
     cbarMap : str
         Colormap of colorbar. Default 'rainbow'
+    figsize : list
+        Matplotlib figsize object
 
     Return
     ------
@@ -1058,6 +1061,10 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None,
         Axes matplotlib.pyplot handle object to be modified by the user
     """
 
+    # Generate figure object
+
+    fig = plt.subplots(figsize=figsize)
+    
     # Convert coordinates from ICRS to Galactic using astropy
     
     gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
@@ -1074,32 +1081,40 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None,
     if len(raStars) >= 1e5: ms = 0.1
 
     # Plot Galactic map as background (e.g. Gaia DR3)
-    # E.g.: skymap = plt.imread('skymap.png')
     
-    if skymap is not None:
-        ax.imshow(skymap)
-
+    if skymapFile is None:
+        skymap = plt.imread(f'{os.getenv("PLATO_PROJECT_HOME")}/docs/figures/gaiaDR3.png')
+    else:
+        skymap = plt.imread(skymapFile)
+    ax.imshow(skymap)
+    
     # Add the sky projection ontop as transparent layer
     
     axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
 
+    # Change cbarMap if no magnitudes are provided
+
+    if not magStars:
+        cbarMap = None
+        
     # Plot the targets on the sky (autumn_r, rainbow)
     
     im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
                      s=ms, cmap=cbarMap, zorder=3)
 
     # Vertical or horizontal colorbar showing magnitudes
-    
-    if cbarOrientation == 'vertical':
-        cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
-        cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
-        cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-        cbar.ax.tick_params(labelsize=fs)
-    else:
-        cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
-        cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
-        cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-        cbar.ax.tick_params(labelsize=fs)
+
+    if magStars:
+        if cbarOrientation == 'vertical':
+            cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
+            cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
+            cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
+            cbar.ax.tick_params(labelsize=fs)
+        else:
+            cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
+            cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
+            cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
+            cbar.ax.tick_params(labelsize=fs)
 
     # Change the tick labels so that they are 0->360, rather than -180->+180
     
@@ -1135,7 +1150,7 @@ def drawStarsInSkyAitoff(fig, raStars, decStars, magStars, skymap=None,
 
     # That's it
     
-    return axes
+    return fig, axes
 
 
 
@@ -1231,7 +1246,7 @@ def compass(ax, x, y, size):
             
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
                  showGroups=False, ncamStars=True, title=None,
-                 fov=30, fs=20, figsize=(9,9)):
+                 fovSize=30, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1257,7 +1272,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         Flag to show N-CAM visibility of PIC stars (default: True)
     title : str
         Title for plot if requested
-    fov : int, float
+    fovSize : int, float
         Radius of the plotted FOV [deg] 
     fs : int
         Fontsize of the labels in the plot
@@ -1291,7 +1306,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     fig = plt.figure(figsize=figsize)
     ax = plt.axes(projection=f'{view} degrees zoom', center=PF,
-                  radius=f'{fov} deg', rotate='180 deg')
+                  radius=f'{fovSize} deg', rotate='180 deg')
         
     # Load PIC stars for each N-CAM visibility
 
@@ -1396,7 +1411,6 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
-    plt.legend()
     ax.tick_params(axis='both', labelsize=fs)
     
     # Return figure
@@ -3304,8 +3318,6 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
 
     """Create and plot an animation of a set of imagettes.
 
-    TODO add photometric mask to animation
-
     Parameters
     ----------
     filename : str
@@ -3508,3 +3520,9 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     
     plt.draw()
     plt.plot()
+
+
+
+
+
+
