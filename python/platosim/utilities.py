@@ -348,7 +348,7 @@ def normalize(signal, factor=1e6, length=-1):
 
 
 
-def imageClip(inputArray, norm="clip", sigma=2):
+def imageClip(inputArray, norm="percentile", sigma=2):
 
     """Performs custom scaling of the input numpy array.
 
@@ -380,7 +380,7 @@ def imageClip(inputArray, norm="clip", sigma=2):
 
     # Methods that return array values
 
-    if norm == "clip":
+    if norm == "percentile":
         clipPercentile = sigma
         vmin = np.percentile(image, clipPercentile).astype(int)
         vmax = np.percentile(image, 100-clipPercentile).astype(int)

@@ -1842,8 +1842,6 @@ class SimFile (object):
 
 
 
-    
-    
     def showImage(self, imageNr=False, imgScale="percentile", clip=5.0,
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
@@ -1980,6 +1978,7 @@ class SimFile (object):
 
             # Adjust the colorbar to correct ADU values for auto-scaling
             if imgScale == "auto":
+                clabel = 'Normalised counts'
                 ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
                 ticks_loc      = np.linspace(vmin, vmax, 6)
                 cbar.locator   = ticker.FixedLocator(ticks_loc)
@@ -1999,7 +1998,7 @@ class SimFile (object):
             rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
-                                         edgecolor='b', facecolor='none', zorder=2)
+                                         edgecolor='orange', facecolor='none', zorder=2)
                 ax.add_patch(rect)
         
         # If required, overplot the true averaged star positions
@@ -2031,7 +2030,7 @@ class SimFile (object):
             
             else:
                 ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o',
-                           facecolors='none', edgecolors='royalblue',
+                           facecolors='royalblue', edgecolors='k',
                            linewidth=lw, zorder=4)
 
             # If requested, add star IDs to plot
