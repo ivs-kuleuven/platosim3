@@ -950,7 +950,7 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
     tie(centerRow, centerCol) = detector.focalPlaneToPixelCoordinates(centerSubFieldXmm, centerSubFieldYmm);
     tie(actualCenterRow, actualCenterCol) = detector.focalPlaneToPixelCoordinates(actualCenterSubFieldXmm, actualCenterSubFieldYmm);
 
-    // Actual coordiantes of the subfield
+    // Actual coordinates of the subfield
     Log.debug("Camera: actual center of subfield at CCD (row, col) = (" + to_string(actualCenterRow) + ", " + to_string(actualCenterCol) + ") pix");
     Log.debug("Camera: actual center of subfield at (Xmm, Ymm) = (" + to_string(actualCenterSubFieldXmm) + ", " + to_string(actualCenterSubFieldYmm) + ") mm");
     Log.debug("Camera: actual lower left corner of subfield at (Xmm, Ymm) = (" + to_string(actualCorner00Xmm) + ", " + to_string(actualCorner00Ymm) + ") mm");
@@ -1503,8 +1503,8 @@ pair<double, double> Camera::applyPolynomialInverseDistortion(double xFPdist, do
     {
         for (int j=0; j<6; j++)
         {
-            xFPmm += distortionPolynomialXCoef[i+6*j]*std::pow(xFPdist, i)*std::pow(yFPdist, j);
-            yFPmm += distortionPolynomialYCoef[i+6*j]*std::pow(xFPdist, i)*std::pow(yFPdist, j);
+            xFPmm += inverseDistortionPolynomialXCoef[i+6*j]*std::pow(xFPdist, i)*std::pow(yFPdist, j);
+            yFPmm += inverseDistortionPolynomialYCoef[i+6*j]*std::pow(xFPdist, i)*std::pow(yFPdist, j);
         }
     }
     return make_pair(xFPmm, yFPmm);
