@@ -1606,7 +1606,7 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
                               tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize,
                               includeFieldDistortion, normal, mappedDistortion=False,
-                              distortionCoefficients=None, pathToPsfFile=None, useWange = True):
+                              distortionCoefficients=None, pathToPsfFile=None, useWang = True):
 
     """Get the CCD and pixel coordinates.
 
@@ -2055,14 +2055,14 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
         distortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
-        useWang                       = sim["PSF/MappedFromFile/DistortionModel"]
+        useWang                = sim["PSF/MappedFromFile/DistortionModel"]
     elif (sim["Camera/IncludeFieldDistortion"] == "yes"  or
           sim["Camera/IncludeFieldDistortion"] == True):
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         pathToPsfFile          = None
         mappedDistortion       = False
         includeFieldDistortion = True
-        useWang                = False
+        useWang                = True
     else:
         includeFieldDistortion = False
         distortionCoefficients = None
@@ -2153,14 +2153,14 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
         pathToPsfFile          = None
         mappedDistortion       = False
         includeFieldDistortion = True
-        useWang                = False
+        useWang                = True
 
     else:
         includeFieldDistortion        = False
         pathToPsfFile                 = None
         inverseDistortionCoefficients = None
         mappedDistortion              = False
-        useWang                       = False
+        useWang                       = True
 
     # Fetch parameters and convert
     
