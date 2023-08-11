@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from test import eprint
 
 
+
 """
 This test checks the absolute aberration. The test consists out of 3 parts:
 
@@ -37,7 +38,7 @@ class AbsoluteAberration(Test):
         self.sim["ObservingParameters/StarCatalogFile"] = starFileName
 
 
-        dim = 4510
+        dim = 200
         self.sim["SubField/NumRows"]         = dim
         self.sim["SubField/NumColumns"]      = dim
         self.sim["SubField/ZeroPointRow"]    = 0
@@ -65,7 +66,7 @@ class AbsoluteAberration(Test):
         focalPlaneAngle       = radians(self.sim["Camera/FocalPlaneOrientation/ConstantValue"])
         focalLength           = self.sim["Camera/FocalLength/ConstantValue"] * 1000
         numExposures          = 365 * 24 * 60 * 60 // 25
-        deltaNumExposures     = 24 * 60 * 60 // 25 * 5
+        deltaNumExposures     = 5 * (24 * 60 * 60 // 25)
 
         outputRa  = []
         outputDec = []
@@ -76,6 +77,7 @@ class AbsoluteAberration(Test):
             self.sim["Camera/AberrationCorrection/StartTime"] = startTime0 + exposureNr*25
             self.simFile = self.sim.run(removeOutputFile=True)
             ([x], [y])   = self.simFile.getStarCoordinates(exposureNr)[3:5]
+
             ra, dec      = rf.focalPlaneToSkyCoordinates(x, y, raPlatform, decPlatform, solarPanelOrientation,   \
                                                          tiltAngle, azimuthAngle, focalPlaneAngle, focalLength)
             outputRa.append(ra)
@@ -83,7 +85,6 @@ class AbsoluteAberration(Test):
 
         self.outputRa  = np.rad2deg(np.array(outputRa))
         self.outputDec = np.rad2deg(np.array(outputDec))
-
 
 
     def runForSecondTest(self):
@@ -175,29 +176,28 @@ class AbsoluteAberration(Test):
         self.xDelta2, self.yDelta2 = abs(xFP1 - xFP2) > 0.001, abs(yFP1 - yFP2) > 0.001
 
 
-        
     def runSimulation(self):
-
         # Visually check that the abberation is in line with a theoretical estimate (with constant velocity 30km/s)
         self.runForYear()
         self.compareToTheoreticalEstimate()
 
         # Run for second test
         self.runForSecondTest()
-        
+
         # Run for the third test
         self.runForThirdTest()
 
 
-        
+
+
     def compareToTheoreticalEstimate(self):
 
         # The theoretical predicted aberration is calculated over the span of one year. We check whether the observed displacements over
         # one year fall withing the predicted range.
-            
+
         ([inputRa], [inputDec]) = (self.simFile.getStarCatalog()[1:3])
         lonStar, latStar = equatorial2galactic(inputRa, inputDec)
-            
+
         # Displacement that is measured over the span of a year.
         dxMeasurement  = (self.outputRa - inputRa) * 3600 * np.cos(np.deg2rad(self.outputDec))
         dyMeasurement  = (self.outputDec - inputDec) * 3600
@@ -206,38 +206,38 @@ class AbsoluteAberration(Test):
         # Theoretically predicted aberration over one year
         theoAber = [aberration(lonStar, latStar, lSun) for lSun in np.linspace(0, 2*np.pi, 360)]
         tAberGal = [galactic2equatorial(lamStar, betaStar) for lamStar, betaStar in theoAber]
-        
+
         raTheo, decTheo = zip(*tAberGal)
-        
+
         dxTheo     = (raTheo - inputRa) * 3600 * np.cos(np.deg2rad(decTheo))
         dyTheo     = (decTheo - inputDec ) * 3600
-        
+
         plt.plot(dxMeasurement, dyMeasurement, 'r')
         plt.plot(dxTheo, dyTheo)
         plt.savefig(self.ioPath + "/test" + self.nr +  "/aberrationOverYear.png")
-        
+
 
 
     def NoAberration(self):
         return self.xDelta1 and self.yDelta1
 
 
-    
+
     def maxAberration(self):
         return self.xDelta2 or self.yDelta2
-    
 
-    
+
+
     def compare(self):
 
         result1 = self.NoAberration()
         result2 = self.maxAberration()
         return (result1 and result2)
-        
 
 
 
-    
+
+
 
 
 if __name__ == "__main__":
