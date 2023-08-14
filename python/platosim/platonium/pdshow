@@ -6,4 +6,7 @@ import pandas as pd
 parser = argparse.ArgumentParser(epilog=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument('file', type=str, help='Filename to show content')
 args = parser.parse_args()
-print(pd.read_feather(args.file))
+
+filename = args.file
+
+print(pd.read_feather(filename))
