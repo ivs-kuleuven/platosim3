@@ -76,115 +76,112 @@ success = {True: successMessage, False: failureMessage}
 
 functions = [
     StarPositionOnCCD(),
-    StellarVariability(),
-    AbsoluteAberration(),
-    DifferentialAberration(),
-    FieldDistortion(),
-    TedFromFile(),
-    TedYawPitchRoll(),
-    TedOnCCDs(),
-    JitterYawPitchRoll(),
-    JitterFromFile(),
-    JitterOnCCDs(),
-    JitterOnCameras(),
     SkyBackGround(),
-    MappedGaussianPSF(),
-    AnalyticNonGaussianPSF(),
+    FullWellSaturation(),
+    JitterOnCCDs(),
+    FieldDistortion(),
+    StellarVariability(),
+    TedOnCCDs(),
+    SimpleCTI(),
     AnalyticGaussianPSF(),
-    PRNU(),
-    Rebinning(),
-    TransmissionEfficiency(),
-    Vignetting(),
-    Polarization(),
-    QuantumEfficiency(),
+    Short2013CTI(),
+    JitterOnCameras(),
+    ReadoutNoise(),
+    JitterFromFile(),
+    TedFromFile(),
     ParticulateContamination(),
     MolecularContamination(),
-    ShotNoise(),
-    DarkSignalNonUniformity(),
-    TempVariationOfCCD(),
-    BrighterFatterEffect(),
-    Cosmics(),
-    OpenShutterSmearing(),
-    SimpleCTI(),
-    Short2013CTI(),
+    Quaternion(),
+    QuantumEfficiency(),
+    PRNU(),
     Short2013CTIFromFile(),
-    PhotonNoise(),
-    ReadoutNoise(),
-    FullWellSaturation(),
-    Gain(),
+    AnalyticNonGaussianPSF(),
     ElectronicOffset(),
+    Rebinning(),
+    Polarization(),
+    ShotNoise(),
+    OpenShutterSmearing(),
+    TedYawPitchRoll(),
+    JitterYawPitchRoll(),
     Flooring(),
     DigitalSaturation(),
+    TransmissionEfficiency(),
+    MappedGaussianPSF(),
+    Cosmics(),
+    BrighterFatterEffect(),
+    AbsoluteAberration(),
     MetallicShield(),
-    Quaternion()]
+    PhotonNoise(),
+    DifferentialAberration(),
+    Gain(),
+    DarkSignalNonUniformity(),
+    TempVariationOfCCD(),
+    ]
 
 names = [
     "Star position on CCD",
-    "Stellar Variability",
-    "Absolute Aberration",
-    "Differential Aberration",
-    "Field Distortion",
-    "Thermo-Elastic drift from noise",
-    "Thermo-Elastic drift from file",
-    "TED on different CCDs",
-    "Jitter from red noise",
-    "Jitter from file",
-    "Jitter on different CCDs",
-    "Jitter on different cameras",
     "Sky Background",
-    "Mapped Gaussian PSF and Charge Diffusion",
-    "Analytic non Gaussian PSF",
+    "Full-Well Saturation",
+    "Jitter on different CCDs",
+    "Field Distortion",
+    "Stellar Variability",
+    "TED on different CCDs",
+    "Simple CTI model",
     "Analytic Gaussian PSF",
-    "Pixel-Responsivity Non Uniformity",
-    "Rebinning Subpixel",
-    "Transmission Efficiency",
-    "Vignetting",
-    "Polarization",
-    "Quantum Efficiency",
+    "Short 2013 model",
+    "Jitter on different cameras",
+    "Readout Noise",
+    "Jitter from file",
+    "Thermo-Elastic drift from file",
     "Particulate Contamination",
     "Molecular Contamination",
-    "Shot Noise",
-    "Dark Signal Non Uniformity",
-    "Temperature Variation of CCD",
-    "Brighter-Fatter Effect",
-    "Cosmics",
-    "Open-Shutter Smearing",
-    "Simple CTI model",
-    "Short 2013 model",
+    "Quaternions",
+    "Quantum Efficiency",
+    "Vignetting",
+    "Pixel-Responsivity Non Uniformity",
     "Short 2013 from file model",
-    "Photon Noise",
-    "Readout Noise",
-    "Full-Well Saturation",
-    "Gain",
+    "Analytic non Gaussian PSF",
     "Electronic Offset",
+    "Rebinning Subpixel",
+    "Polarization",
+    "Shot Noise",
+    "Open-Shutter Smearing",
+    "Thermo-Elastic drift from noise",
+    "Jitter from red noise",
     "Flooring",
     "Digital Saturation",
+    "Transmission Efficiency",
+    "Mapped Gaussian PSF and Charge Diffusion",
+    "Cosmics",
+    "Brighter-Fatter Effect",
+    "Absolute Aberration",
     "Metallic Shield",
-    "Quaternions"]
+    "Photon Noise",
+    "Differential Aberration",
+    "Gain",
+    "Dark Signal Non Uniformity",
+    "Temperature Variation of CCD",
+    ]
 
 
-def runTheTest(name, test):
+def runTheTest(name, test, i):
     t0 = time.time()
     with suppress_stdout():
         t  = test.run()
 
-    testMessages.append("{:<9}  {:^42}:{}\ttime: {:.1f}s".format("Test1:", name, success[t], time.time()-t0))
+    testMessages.append("{:<9}  {:^42}:{}\ttime: {:.1f}s".format("Test{}:".format(i), name, success[t], time.time()-t0))
     print(testMessages[-1])
 
 
 
 
-#runTheTest(names[0], functions[0])
 
-# print(len(names))
-# print(len(functions))
-
+i = 1
 startTime = time.time()
 for (name, function) in zip(names, functions):
-    runTheTest(name, function)
-# print("X")
-# map(runTheTest, zip(names, functions))
-# print("Y")
+    runTheTest(name, function, i)
+    i = i+1
+
 
 
 
