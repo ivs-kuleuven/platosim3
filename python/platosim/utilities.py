@@ -261,7 +261,6 @@ def downloadFromFTP(filename, outputDir, server='plato'):
             ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
             ftp.cwd(f'PLATOSIM/{ftp_subpath}')
 
-
             
 #--------------------------------------------------------------#
 #                      PANDAS OPERATIONS                       #
@@ -277,9 +276,6 @@ def pdAddColumn(df, newCol, name):
     cols = df.columns.tolist()
     cols = cols[-1:] + cols[:-1]
     return df[cols]
-
-
-
 
 
 #--------------------------------------------------------------#

@@ -27,10 +27,10 @@ latex()
 # Global parameters
 day2sec = 86400.
 
+
 #--------------------------------------------------------------#
 #                     RANDOM NOISE SOURCES                     #
 #--------------------------------------------------------------#
-
 
 
 #@njit
@@ -161,7 +161,6 @@ def timeSeriesFromMeanPSD(freq, psd):
             signal:  [ppm]
 
     EXAMPLE: 
-
         >>> timeStep = 25.0e-6    # in Ms
         >>> Nfreq = 15001
         >>> freq = arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timeStep
@@ -222,7 +221,7 @@ def timeSeriesFromMeanPSD(freq, psd):
 
 def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, plot=False):
 
-    """
+    """Pointing Reproducibility Error (PRE) in PLM reference frame.
     
     Paramters
     ---------
@@ -297,6 +296,9 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         x = np.abs(b/sigma - z)
         xx = np.linspace(-10*x, 10*x, 1000)
 
+        ra0  = (df1.RA-ra)   * 3600 / 18
+        dec0 = (df1.Dec-dec) * 3600 / 18
+        
         fig, ax = plt.subplots(1, 2, figsize=(9,4))
         
         ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
@@ -307,18 +309,18 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         ax[0].set_xlim(xx[0], xx[-1])
         ax[0].legend()
 
-        ax[1].plot(ra,    dec,      'r*', alpha=0.7, ms=10)
-        ax[1].plot(df1.RA, df1.Dec, 'o',  alpha=0.3)
+        ax[1].plot(ra0, dec0, 'o',  alpha=0.3)
+        ax[1].plot(0,   0,    'r*', alpha=0.7, ms=10)
         ax[1].set_title('Distribution on Sky')
-        ax[1].set_xlabel('RA [deg]')
-        ax[1].set_ylabel('Dec [deg]')
+        ax[1].set_xlabel('RA [pixel]')
+        ax[1].set_ylabel('Dec [pixel]')
         ax[1].set_aspect('equal', adjustable='box')
         ax[1].grid()
         
-        lim = np.max([np.max(np.abs(ra-df1.RA)), np.max(np.abs(dec-df1.Dec))])
+        lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
         lim += lim/10.
-        ax[1].set_xlim(ra-lim, ra+lim)
-        ax[1].set_ylim(dec-lim, dec+lim)
+        ax[1].set_xlim(-lim, +lim)
+        ax[1].set_ylim(-lim, +lim)
         
         plt.tight_layout()
         plt.show()
@@ -631,12 +633,16 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     rng = np.random.default_rng()
 
     # Create pandas data frame for different flags
-    #flags = ["time", "roll", "downlink", "safemode", "fineguidance",
-    #         "attitude", "ccdanomaly", "argabrightning"]
     df = pd.DataFrame()
 
     # Create continous time array
     df["time"] = time
+
+    # Storage arrays
+    roll   = np.zeros_like(time, dtype=bool)
+    link   = np.zeros_like(time, dtype=bool)
+    jitter = np.zeros_like(time, dtype=bool)
+    safe   = np.zeros_like(time, dtype=bool)
 
     # QUARTERLY ROLLS
 
@@ -648,19 +654,27 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     roll_events = quarter
     roll_event0 = np.zeros(n_roll)
     roll_event1 = np.zeros(n_roll)
-
+    
     for i, Q in zip(range(n_roll), roll_events):
         roll_gap = roll_duration + np.random.uniform(-roll_anomaly, roll_anomaly) # [d]
-        roll_event0[i] = (roll_period * Q - roll_gap/2) * day2sec  # [s]
-        roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec  # [s]
-        df["roll"] = np.logical_and(time>=roll_event0[i], time<=roll_event1[i])
-
+        roll_event0[i] = (roll_period * Q - roll_gap/2) * day2sec                 # [s]
+        roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec                 # [s]
+        roll_dex       = np.where((time>=roll_event0[i]) & (time<=roll_event1[i]))[0]
+        roll[roll_dex] = True
+        
+    # Save column
+    df["roll"] = roll
+        
     # DOWNLINK GAPS
 
     link_period   = 365.25/4/3
     link_duration = 5/24.           # [d] i.e. 5 hours
     link_anomaly  = 0.5/24.         # [d] i.e. 0.5 hour
-    link_events = np.arange((quarter[0]-1)*roll_period, quarter[-1]*roll_period, link_period)[1:]
+
+    # Remove overlaps with quarters
+    array0 = np.arange((quarter[0]-1)*roll_period, quarter[-1]*roll_period, link_period)[1:]
+    array1 = array0[2::3]
+    link_events = [i for i in array0 if i not in array1]
 
     n_link = len(link_events)
     link_event0 = np.zeros(n_link)
@@ -670,8 +684,12 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         link_gap = link_duration + np.random.uniform(-link_anomaly, link_anomaly)
         link_event0[i] = (L - link_gap/2) * day2sec
         link_event1[i] = (L + link_gap/2) * day2sec
-        df["downlink"] = np.logical_and(time>=link_event0[i], time<=link_event1[i])
+        link_dex       = np.where((time>=link_event0[i]) & (time<=link_event1[i]))[0]
+        link[link_dex] = True
 
+    # Save column
+    df["link"] = link
+        
     # LOSS OF FINE GUIDANCE
 
     freq = 180
@@ -693,8 +711,12 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
         jitter_event0[i] = (J - jitter_gap/2) * day2sec
         jitter_event1[i] = (J + jitter_gap/2) * day2sec
-        df["jitter"] = np.logical_and(time>=jitter_event0[i], time<=jitter_event1[i])
-
+        jitter_dex       = np.where((time>=jitter_event0[i]) & (time<=jitter_event1[i]))[0]
+        jitter[jitter_dex] = True
+        
+    # Save column
+    df["jitter"] = jitter
+        
     # SAVE MODE EVENTS
 
     freq = 270
@@ -716,26 +738,17 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         safe_gap = safe_duration + np.random.uniform(-safe_anomaly, safe_anomaly)
         safe_event0[i] = (S - safe_gap/2) * day2sec
         safe_event1[i] = (S + safe_gap/2) * day2sec
-        df["safe"] = np.logical_and(time>=safe_event0[i], time<=safe_event1[i])
+        safe_dex       = np.where((time>=safe_event0[i]) & (time<=safe_event1[i]))[0]
+        safe[safe_dex] = True
 
-    # Create new time array with all gaps
-    # df["tsim"] = ~df.roll * ~df.downlink
-    # df["tsim"] = df["tsim"].where(df["tsim"]!='T', 1) * df["time"]
-    # df["tsim"].replace({0: np.nan}, inplace=True) 
-    # df["tsim"].iloc[0] = 0
-
-    # df["tgap"] = ~df.roll * ~df.downlink
-    # df["tgap"] = ~df["tgap"]
-    # df["tgap"] = df["tgap"].where(df["tgap"]!='T', 1) * df["time"]
-    # df["tgap"].replace({0: np.nan}, inplace=True) 
-
+    # Save column
+    df["safe"] = safe
+    
     # Show figure
 
     if plot and n_roll != 0:
 
-        fig, ax = plt.subplots(figsize=(10, 3))
-
-        # Plots
+        fig, ax = plt.subplots(figsize=(9, 3))
         ax.axhline(y=0, linestyle=':', color='k')
 
         for i in range(n_roll):
@@ -758,23 +771,6 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
                              color='r', alpha=0.5)
             if i == n_safe-1: safe.set_label('Safe modes')
 
-        
-        # for i, col in zip(range(3), cols):
-        #     ax[i].plot(df["time"]/day2sec, df[col], 'k-')
-        #     ax[i].axhline(y=0, linestyle=':', color='k')
-        #     for k in range(N-1):
-        #         ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
-        # # Settings
-        # ax[1].set_ylabel("Pitch [arcsec]")
-        # ax[2].set_ylabel("Roll [arcsec]")
-        # for i in range(3):
-        #     ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
-        # # Layout
-        # ax[0].set_xticklabels([])
-        # ax[1].set_xticklabels([])
-        # plt.tight_layout(h_pad=0.2, w_pad=0)
-        # plt.show()
-
         # Labels
         ax.set_xlabel("Time [days]")
         ax.set_ylabel("Arb.")
@@ -785,8 +781,6 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         ax.set_xlim(df.time.iloc[0], df.time.iloc[-1]/day2sec+5)
         ax.set_ylim(-1,1)
         plt.tight_layout()
-
-        # Only plot if requested
         plt.show()
 
     # Save file (and plot) if requested
@@ -795,15 +789,163 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
         df.to_csv(outfile, sep=" ", header=False, index=False)
         
+    # Compute event times
+    
+    t0 = np.concatenate((roll_event0, link_event0, safe_event0))
+    t1 = np.concatenate((roll_event1, link_event1, safe_event1))
+        
     # That's it!
+    
+    return df, t0, t1-t0
 
-    return df
 
 
+
+
+def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, timeSpan=30,
+                          timeScale=False, amplitude=False, fileName=False, plot=False):
+
+    """Function to model detector temperature transients.
+
+    Parameters
+    ----------
+    time : ndarray
+        Time points with gaps [s]
+    tempCCD : float
+        Average CCD temperature [K]
+    gapSize : float, ndarray
+        Minimum duration to detect the gaps [days]
+    timeSpan : float, ndarray
+        Time duration to model each transient [days]
+        Parameter used to minimize run time.
+    timeScale : float, ndarray
+        Time scale duration of the flare(s) [days]
+        Linear model is used if False.
+    amplitude : float, ndarray
+        Temperature amplitude of the transient(s) [K]
+        Linear model is used if False.
+    plot : bool
+        Flag to plot the generated model.
+    """
+
+    # NOTE this is if we want to remove the data gaps from the df:
+    # df0 = df.drop(df[(df.roll == True)   | (df.link == True) |
+    #                  (df.jitter == True) | (df.safe == True)].index)
+    
+    # Secure numpy syntax
+    
+    if isinstance(time, pd.Series):
+        time = time.to_numpy()
+    if isinstance(t0, list):
+        t0 = np.array(t0)
+    if isinstance(td, list):
+        td = np.array(td)
+        
+    # Create temperature array to write to
+    
+    time = time / 86400.
+    temp = np.zeros_like(time)
+
+    # Convert to days
+    
+    timeGap0 = t0   / 86400.
+    tdurGap  = td   / 86400.
+    timeGap1 = timeGap0 + tdurGap
+    
+    # Unit parameters
+    
+    cadence = np.diff(time)[0]
+    ndex    = int(timeSpan / cadence)
+    n       = len(t0)
+
+    # Indices for start and end of each event
+    
+    timeDex0 = [np.argmin(np.absolute(time - timeGap0[i])) for i in range(n)]
+    timeDex1 = [np.argmin(np.absolute(time - timeGap1[i])) for i in range(n)]
+    
+    # Linear CCD temperature dependece with gap size
+    
+    if not timeScale:
+        timeScale = 1/tempConst * tdurGap
+    
+    # Linear CCD temperature dependece with gap size
+    
+    if not amplitude:
+        amplitude = tempConst * tdurGap
+
+    # Secure that a single event works
+    
+    try: len(timeGap1)
+    except: timeGap1 = [timeGap1]
+    try: len(timeScale)
+    except: timeScale = [timeScale]
+    try: len(amplitude)
+    except: amplitude = [amplitude]
+
+    # Loop over each transient event
+
+    for i in range(n):
+
+        # Time array during transient event
+        
+        tn = time/timeScale[i]
+
+        # Model parameters of transients
+        
+        a0 = 0.689
+        a1 = -1.6
+        b0 = 1 - a0
+        b1 = -0.2783
+        
+        # Secure last event is within time series
+        
+        if timeDex1[i]+ndex > len(time):
+            timeDex2 = len(time)-1
+        else:
+            timeDex2 = timeDex1[i] + ndex
+
+        # Loop over every time-step in the transient time interval
+
+        for j,k in zip(range(timeDex1[i], timeDex2), range(len(tn))):
+            temp[j] += (a0 * np.exp(a1 * tn[k]) +
+                        b0 * np.exp(b1 * tn[k]) * amplitude[i])
+
+            # Add amplitude for overlapping events
+            
+            if (temp[timeDex0[i]] > tempCCD+0.001) and (j==timeDex1[i]):
+               amplitude[i] += temp[timeDex0[i]]
+
+    # Add CCD zero point temperature
+    
+    temp += np.ones_like(temp) * tempCCD
+               
+    # Plot if requested
+    
+    if plot: 
+        fig, ax = plt.subplots(figsize=(9,3))
+        for i in range(n):
+            ax.axvspan(timeGap0[i], timeGap1[i], color='b', alpha=0.2)
+        ax.plot(time, temp, '-', lw=1, c='deeppink')
+        ax.set_xlabel('Time [d]')
+        ax.set_ylabel('CCD temperature [K]')
+        ax.set_xlim(np.min(time), np.max(time))
+        plt.tight_layout()
+        plt.show()
+
+    # Save data if requested
+
+    if fileName:
+        fig.savefig(f"{fileName[:-4]}.png", bbox_inches='tight', dpi=200)
+        np.savetxt(fileName, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
+
+    # That's it!
+        
+    return temp
 
 
         
- 
+
+
 def numpyFFT(signal, timestep):
     """
     Computes power spectrum of an equidistant time series 'signal'

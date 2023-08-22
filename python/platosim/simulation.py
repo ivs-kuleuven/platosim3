@@ -1027,8 +1027,8 @@ class Simulation(object):
 
     
 
-    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes,
-                                                  starIDs, starCatalogPath):
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs,
+                                                  starCatalogPath):
 
         """Create a star catalogue file from the pixel coordinates.
         
@@ -1204,11 +1204,6 @@ class Simulation(object):
                    np.transpose([time, dmag]),
                    fmt=['%.1f', '%.6f'])       
 
-        # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
-
-        #self["Sky/IncludeVariableSources"] = True
-        #self["Sky/IncludeVariableSources"] = variableSourceFile
-
 
 
 
@@ -1258,14 +1253,14 @@ class Simulation(object):
         
     def createDriftFile(self, quarter, fileName, model="poly", plot=False):
 
-        """Create a photometry file list in ascii format and sets it to the YAML input.
+        """Create a camera drift file in ascii format and sets it to the YAML input.
 
         Parameters
         ----------
-        starIDs : ndarray
-            Array with IDs of the star (integers)
-        fileName : str
-            Path of the photometry file that will be written.
+        quarter :
+        fileName :
+        model : 
+        plot :
 
         Return
         ------
@@ -1275,6 +1270,7 @@ class Simulation(object):
         """
 
         # Create TED file
+        
         from platosim.noise import getTED  
         getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
@@ -1288,6 +1284,42 @@ class Simulation(object):
 
 
 
+    def createDetectorTemperatureFile(self, time, temp, ccdFileName):
+
+        """Create a CCD(T) file in ascii format and sets it to the YAML input.
+
+        
+        Parameters
+        ----------
+        time : ndarray
+            Time points of time series [s]
+        temp : ndarray
+            CCD temeprature values [K]
+        ccdFileName : str
+            Filename of the CCD temeprature file
+
+        Return
+        ------
+        A file will be saved, containing a column of time and CCD temperature.
+        The "CCD/TemperatureFileName" tag in the yaml tree will be changed to the
+        ccdFileName.
+
+        NOTE: PlatoSim cannot model the FEE(T) yet.
+        """
+
+        # Create TED file
+                
+        np.savetxt(ccdFileName, np.transpose([time, temp]), fmt=['%.1f', '%.6f'])
+
+        # Set this to simulation
+
+        self["CCD/TemperatureFileName"] = ccdFileName
+        self["CCD/Temperature"]         = "FromFile"
+
+
+
+
+        
     def getReadoutTime(self):
 
         """Fetch the readout time.
