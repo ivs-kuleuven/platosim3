@@ -251,7 +251,8 @@ if outputDir is not None or project is not None:
         outputFileCon = outputDir / outputPrefixCon
 
 # Copy an inputfile.yaml file if no file exist
-copyInputYAML(args.field, outputDir)
+if outputDir:
+    copyInputYAML(args.field, outputDir)
 # inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
 # try:
 #     inputFileNew = outputDir / 'inputfile.yaml'
