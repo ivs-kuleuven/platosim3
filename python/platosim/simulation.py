@@ -1276,9 +1276,9 @@ class Simulation(object):
 
         # Set this to simulation
 
-        self["Telescope/UseDrift"]         = True
-        self["Telescope/UseDriftFromFile"] = True
-        self["Telescope/DriftFileName"]    = fileName
+        self["Telescope/UseDrift"]      = True
+        self["Telescope/DriftSource"]   = 'FromFile'
+        self["Telescope/DriftFileName"] = fileName
 
 
 
