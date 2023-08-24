@@ -183,9 +183,16 @@ def compilation(i, i_max, text=''):
     
 
 
-def downloadFromFTP(filename, outputDir, server='plato'):
+def downloadFromFTP(filename, outputDir=False, server='plato'):
 
     """Function to download file from KUL FTP.
+    
+    Parameters
+    ----------
+    filename : str
+        Filename of file on server
+    outputDir : str
+        Output directory to save file ()
     https://stackoverflow.com/questions/67300881/how-do-i-keep-a-ftp-connection-alive
     """
 
@@ -194,8 +201,8 @@ def downloadFromFTP(filename, outputDir, server='plato'):
     # If flase simply download the requested file
     
     ftp_filename = pathlib.Path(filename)
-    
-    if ftp_filename.suffix in ('.txt', '.csv', '.zip', '.npy', '.ftr', '.hdf5', '.h5'):
+
+    if ftp_filename.suffix:
         ftp_subpath = ftp_filename.parents[0]
         permission  = False
     else:
@@ -203,6 +210,9 @@ def downloadFromFTP(filename, outputDir, server='plato'):
         permission  = True
         
     # If file on FTP is within a folder, create folder locally
+
+    if not outputDir:
+        outputDir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles'
         
     outputDir = outputDir / ftp_subpath
     outputDir.mkdir(parents=True, exist_ok=True)
