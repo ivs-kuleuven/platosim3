@@ -632,12 +632,6 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     # Initialise random generator
     rng = np.random.default_rng()
 
-    # Create pandas data frame for different flags
-    df = pd.DataFrame()
-
-    # Create continous time array
-    df["time"] = time
-
     # Storage arrays
     roll   = np.zeros_like(time, dtype=bool)
     link   = np.zeros_like(time, dtype=bool)
@@ -661,10 +655,7 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec                 # [s]
         roll_dex       = np.where((time>=roll_event0[i]) & (time<=roll_event1[i]))[0]
         roll[roll_dex] = True
-        
-    # Save column
-    df["roll"] = roll
-        
+                
     # DOWNLINK GAPS
 
     link_period   = 365.25/4/3
@@ -686,9 +677,6 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         link_event1[i] = (L + link_gap/2) * day2sec
         link_dex       = np.where((time>=link_event0[i]) & (time<=link_event1[i]))[0]
         link[link_dex] = True
-
-    # Save column
-    df["link"] = link
         
     # LOSS OF FINE GUIDANCE
 
@@ -697,7 +685,7 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     jitter_duration = 0.5/24.
     jitter_anomaly  = 0.1/24.
     jitter_events   = []
-
+    
     while t < quarter[-1] * roll_period:            
         jitter_event = np.random.poisson(lam=freq)
         t += jitter_event
@@ -706,6 +694,8 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     n_jitter = len(jitter_events)
     jitter_event0 = np.zeros(n_jitter)
     jitter_event1 = np.zeros(n_jitter)
+    event0 = np.concatenate((roll_event0, link_event0))
+    event1 = np.concatenate((roll_event1, link_event1))        
 
     for i, J in zip(range(n_jitter), jitter_events):
         jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
@@ -713,9 +703,14 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         jitter_event1[i] = (J + jitter_gap/2) * day2sec
         jitter_dex       = np.where((time>=jitter_event0[i]) & (time<=jitter_event1[i]))[0]
         jitter[jitter_dex] = True
-        
-    # Save column
-    df["jitter"] = jitter
+
+        for j in range(len(event0)):
+            if ((jitter_event0[i] >= event0[j]) and (jitter_event1[i] <= event1[j]) or
+                (jitter_event0[i] <= event0[j]) and (jitter_event1[i] >= event1[j]) or
+                (jitter_event0[i] <= event0[j]) and (jitter_event1[i] >= event0[j]) or
+                (jitter_event0[i] <= event1[j]) and (jitter_event1[i] >= event1[j])):
+                jitter_event0[i] += event1[j] - event0[j]
+                jitter_event1[i] += event1[j] - event0[j]
         
     # SAVE MODE EVENTS
 
@@ -729,10 +724,12 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         safe_event = np.random.poisson(lam=freq)
         t += safe_event
         safe_events.append(t)
-
+        
     n_safe = len(safe_events)
     safe_event0 = np.zeros(n_safe)
     safe_event1 = np.zeros(n_safe)
+    event0 = np.concatenate((roll_event0, link_event0, jitter_event0))
+    event1 = np.concatenate((roll_event1, link_event1, jitter_event1))        
 
     for i, S in zip(range(n_safe), safe_events):
         safe_gap = safe_duration + np.random.uniform(-safe_anomaly, safe_anomaly)
@@ -740,10 +737,15 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         safe_event1[i] = (S + safe_gap/2) * day2sec
         safe_dex       = np.where((time>=safe_event0[i]) & (time<=safe_event1[i]))[0]
         safe[safe_dex] = True
-
-    # Save column
-    df["safe"] = safe
-    
+        
+        for j in range(len(event0)):
+            if ((safe_event0[i] >= event0[j]) and (safe_event1[i] <= event1[j]) or
+                (safe_event0[i] <= event0[j]) and (safe_event1[i] >= event1[j]) or
+                (safe_event0[i] <= event0[j]) and (safe_event1[i] >= event0[j]) or
+                (safe_event0[i] <= event1[j]) and (safe_event1[i] >= event1[j])):
+                safe_event0[i] += 2*(event1[j] - event0[j])
+                safe_event1[i] += 2*(event1[j] - event0[j])
+        
     # Show figure
 
     if plot and n_roll != 0:
@@ -778,7 +780,7 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
 
         # Layout
         ax.set_yticklabels([])
-        ax.set_xlim(df.time.iloc[0], df.time.iloc[-1]/day2sec+5)
+        ax.set_xlim(time[0]/day2sec, time[-1]/day2sec+5)
         ax.set_ylim(-1,1)
         plt.tight_layout()
         plt.show()
@@ -788,9 +790,18 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     if outfile:
         if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
         df.to_csv(outfile, sep=" ", header=False, index=False)
-        
-    # Compute event times
     
+    # Create pandas data frame for different flags
+    
+    df = pd.DataFrame()
+    df["time"]   = time
+    df["roll"]   = roll
+    df["link"]   = link
+    df["jitter"] = jitter
+    df["safe"]   = safe
+
+    # Compute event times
+        
     t0 = np.concatenate((roll_event0, link_event0, safe_event0))
     t1 = np.concatenate((roll_event1, link_event1, safe_event1))
         
@@ -803,7 +814,7 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
 
 
 def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, timeSpan=30,
-                          timeScale=False, amplitude=False, fileName=False, plot=False):
+                          timeScale=False, amplitude=False, outfile=False, plot=False):
 
     """Function to model detector temperature transients.
 
@@ -934,9 +945,9 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
 
     # Save data if requested
 
-    if fileName:
-        fig.savefig(f"{fileName[:-4]}.png", bbox_inches='tight', dpi=200)
-        np.savetxt(fileName, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
+    if outfile:
+        fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+        np.savetxt(outfile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
 
     # That's it!
         

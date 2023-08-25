@@ -72,12 +72,13 @@ class Payload(object):
         # File names
         if self.odir:
             self.fileNameGap = f"{self.odir}/instrumentGap.txt"
+            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
             self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
-            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
+            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
         else:
-            self.fileNameGap = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
+            self.fileNameGap = self.fileNameCCD = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
         # Number of images in a quarter
         self.nimg = (60 * 60 * 24 * 90) / 25.
@@ -149,7 +150,7 @@ class Payload(object):
 
                         
         
-    def create_job_script(self):
+    def createJobScript(self):
 
         """Function to create a job script to be used on the VSC.
         """
@@ -269,7 +270,7 @@ class Payload(object):
 
 
             
-    def create_param_file(self):
+    def createParamFile(self):
 
         """Function to create a job script to be used on the VSC.
         """
@@ -290,31 +291,37 @@ class Payload(object):
             filename = f"{self.odir}/{self.prefix}.data"
             with open(filename, "w") as ofile:
                 ofile.write(dedent(textfile).strip())
-        
 
 
 
 
                         
-    def create_time_gaps(self):
+    def createDataGapsAndTransients(self):
 
         """Function to create a time columns including Data Gaps.
         Used to include data gaps relavant for space mission orbiting in L2.
         """
 
-        # Generate a data-gaps file
-        errorcode('module', '\nDate gaps in time series\n')
+        # Generate a data-gap file
+        errorcode('module', '\nDate gaps & Thermal transients\n')
         print('Downtime due to quater interuptions')
         print('Downtime due to montly data downlinks')
         print('Downtime due to loss of fine guidance')
         print('Downtime due to safe-mode events')
-        ns.getDataGaps(self.time, self.Q,
-                       outfile=self.fileNameGap, plot=True)
-        if self.odir: print(f"File saved : {self.fileNameGap}")
+        _, self.t0, self.td = ns.getDataGaps(self.time, self.Q,
+                                             outfile=self.fileNameGap, plot=True)
+        if self.odir: print(f"File saved: {self.fileNameGap}")
+
+        # Generate thermal transient file
+        ns.temperatureTransients(self.time, self.t0, self.td, tempCCD=203.5,
+                                 outfile=self.fileNameCCD, plot=True)
+        if self.odir: print(f"File saved: {self.fileNameCCD}")
 
 
 
-            
+
+
+        
     def createPRE(self):
 
         """Function to create a Pointing Repeatability Error (PRE) file.
@@ -402,11 +409,11 @@ args = parser.parse_args()
 x = Payload(args)
 
 # Run each module
-x.create_job_script()
-x.create_param_file()
-x.create_time_gaps()
+x.createJobScript()
+x.createParamFile()
+x.createDataGapsAndTransients()
 x.createPRE()
 x.createAPE()
 x.createTED()
-x.createACS()
+#x.createACS()
 print('')
