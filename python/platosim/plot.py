@@ -1245,7 +1245,7 @@ def compass(ax, x, y, size):
 
             
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, ncamStars=True, title=None,
+                 showGroups=False, showLegend=True, ncamStars=True, title=None,
                  fovSize=30, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
@@ -1284,8 +1284,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
 
-    # Import extra package from astropy
-    # NOTE automatically installed using poetry setup
+    # NOTE ligo skymap is only usable with "poetry install --with platonium"
 
     import ligo.skymap.plot
     
@@ -1335,11 +1334,11 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
             x24, y24 = starPF24.l.deg, starPF24.b.deg
     
         # Plot PIC1.1.0 stars after N-CAM visibility
-
-        ax.plot(x06, y06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
+        t = ax.get_transform(system)
+        ax.plot(x06, y06, '.', c='skyblue',     transform=t, ms=1, zorder=1)
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=t, ms=1, zorder=2)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=t, ms=1, zorder=3)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=t, ms=1, zorder=4)
     
     # Plot stars and add legend scaled to the stellar magnitudes
     
@@ -1407,6 +1406,8 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     if title is not None:
         ax.set_title(title, fontsize=fs+2)
+    if showLegend:
+        plt.legend(loc='upper right')    
     ax.set_xlabel('RA',  fontsize=fs)
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)
