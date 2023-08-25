@@ -1423,21 +1423,28 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
         Rhe angular distance of the star w.r.t. the optical axis [rad]
     """
 
+    # Check if
+    if isinstance(xFP, np.float):
+        xFP = [xFP]
+        yFP = [yFP]
+
+    # Compute angular distance
+        
     tanx = xFP / focalLength
     tany = yFP / focalLength
-
     angularDistance = np.arccos(1.0/np.sqrt(1.0 + tanx*tanx + tany*tany));
 
     # Take care that the angle is between [0, 2*pi]
 
-    if angularDistance < 0.0:
-        angularDistance += 2.0 * np.pi
-    elif angularDistance > 2.0 * np.pi:
-        angularDistance -= 2.0 * np.pi
+    for i in range(len(xFP)):
+        if angularDistance[i] < 0.0:
+            angularDistance[i] += 2.0 * np.pi
+        elif angularDistance[i] > 2.0 * np.pi:
+            angularDistance[i] -= 2.0 * np.pi
 
     # That's it!
 
-    return angularDistance;
+    return angularDistance
 
 
 
