@@ -736,10 +736,10 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
     ccdZeroPointY = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle      = CCD[ccdCode]["angle"]
 
-    xmm, ymm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
-                                            ccdZeroPointX, ccdZeroPointY, ccdAngle)
-    angleFromOpticalAxis = gnomonicRadialDistanceFromOpticalAxis(xmm,ymm,focalLength)
-    azimuthFromXAxis = np.arctan2(ymm,xmm)
+    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
+                                                ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    angleFromOpticalAxis = gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength)
+    azimuthFromXAxis     = np.arctan2(yFPmm,xFPmm)
 
     return angleFromOpticalAxis, azimuthFromXAxis
 
@@ -1305,7 +1305,8 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
 
 
 
-def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize,
+                                 ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """From pixel to focal plane coordinates.
 
@@ -1342,12 +1343,14 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
 
     # Convert the CCD coordinates into FP coordinates [mm]
 
-    xFP = (xCCDmm - ccdZeroPointX) * np.cos(CCDangle) - (yCCDmm - ccdZeroPointY) * np.sin(CCDangle)
-    yFP = (xCCDmm - ccdZeroPointX) * np.sin(CCDangle) + (yCCDmm - ccdZeroPointY) * np.cos(CCDangle)
+    xFPmm = ((xCCDmm - ccdZeroPointX) * np.cos(CCDangle) -
+             (yCCDmm - ccdZeroPointY) * np.sin(CCDangle))
+    yFPmm = ((xCCDmm - ccdZeroPointX) * np.sin(CCDangle) +
+             (yCCDmm - ccdZeroPointY) * np.cos(CCDangle))
 
     # That's it
 
-    return xFP, yFP
+    return xFPmm, yFPmm
 
 
 
@@ -1423,10 +1426,11 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
         Rhe angular distance of the star w.r.t. the optical axis [rad]
     """
 
-    # Check if
+    # Secure handling of float, list, and arrays
+    
     if isinstance(xFP, np.float):
-        xFP = [xFP]
-        yFP = [yFP]
+        xFP = np.array([xFP])
+        yFP = np.array([yFP])
 
     # Compute angular distance
         
