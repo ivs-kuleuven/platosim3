@@ -35,11 +35,11 @@ class DifferentialAberration(Test):
     def setAllEffects(self):
         super().setAllEffects()
 
-        deltaStep = int(5*86400/25)
+        deltaStep = int(20*86400/25)
         endTime   = int(360*86400/25)
 
         self.exposures = np.arange(0, endTime, deltaStep)
-        self.positions = np.arange(10,3500,500)
+        self.positions = np.arange(10,3500,700)
         DKA = "yes"
 
 
@@ -93,11 +93,10 @@ class DifferentialAberration(Test):
         dx = np.zeros((npos, nexp))
         dy = np.zeros((npos, nexp))
 
-        colors = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'pink']
+        colors = ['blue', 'orange', 'green', 'red', 'purple']
 
         for i in range(npos):
             for j in range(nexp):
-
                 dx[i,j], dy[i,j] = self.simulate(True, self.positions[i], self.exposures[j], f"output{self.nr}")
                 c[i,j] = np.sqrt((dx[i,j]**2 + dy[i,j]**2))
 
@@ -150,4 +149,5 @@ def doesIncrease(input_list):
 if __name__ == "__main__":
     t = DifferentialAberration()
     print(t.run())
+
 

@@ -44,14 +44,15 @@ class TransmissionEfficiency(Test):
         
     def runSimulation(self):
 
-        # The simulation of run at equal spaced time intervales, so that there are 8 exposures in one year.
+        # The simulation of run at equal spaced time intervales, so that there are 2 exposures in one year.
         # The obtained flux and time is then added to an np.array. 
         secondsInYear = 60 * 60 * 24 * 365
         
         time          = np.array([])
         flux          = np.array([])
         
-        for exposure in range(0, int(secondsInYear * self.years / self.tCycle), int(secondsInYear / (8 * self.tCycle))):
+        for exposure in range(0, int(secondsInYear * self.years / self.tCycle), int(secondsInYear / (2 * self.tCycle))):
+
             self.sim["ObservingParameters/BeginExposureNr"] = exposure
             simFile = self.sim.run(removeOutputFile = True)
             image  = simFile.getImage(exposure)
@@ -97,6 +98,8 @@ class TransmissionEfficiency(Test):
 
 
 if __name__ == "__main__":
+
     t = TransmissionEfficiency()
+
     print(t.run())
 

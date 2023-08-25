@@ -149,7 +149,7 @@ class TedFromFile(Test):
 
         self.sim["ObservingParameters/NumExposures"]      = 50
         self.sim["Telescope/UseDrift"]                    = "yes"
-        self.sim["Telescope/UseDriftFromFile"]            = "yes"
+        self.sim["Telescope/DriftSource"]                 = "FromFile"
         self.sim["ControlHDF5Content/WriteStarPositions"] = "yes"
 
 
