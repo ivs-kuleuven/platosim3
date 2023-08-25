@@ -123,6 +123,7 @@ else
     echo ">> varsim -h"
     echo ">> payload -h"
     echo ">> platonium -h"
+    echo ">> pdshow -h"
     if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
 	echo "---------------------------"
 	echo " Pipeline has been set up !"
