@@ -27,12 +27,18 @@ from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 
 import astropy.units as u
+from astropy.io.votable  import parse
 from astropy.coordinates import SkyCoord
-from astroquery.simbad import Simbad
-from astroquery.mast import Catalogs
-from astroquery.gaia import Gaia
+from astroquery.simbad   import Simbad
+from astroquery.mast     import Catalogs
+from astroquery.gaia     import Gaia
 
 import platosim.utilities as ut
+
+
+#--------------------------------------------------------------#
+#                          FUNCTIONS                           #
+#--------------------------------------------------------------#
 
 
 def ticQuery(star, radius=2, Vmax=18, outFile=None):
@@ -98,9 +104,12 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
     return locs
 
 
+
+
+
 def ticQuery(star, radius=2, Vmax=18, outFile=None):
-    """
-    Query TIC catalog for stars around a given named source below a given V magnitude.
+
+    """Query TIC catalog for stars around a given named source below a givenV.
 
     Parameters
     ----------
@@ -258,22 +267,69 @@ def starQuery(star, radius=45):
 
 
 
-def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile='starcatGaiaDR3'):
+def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile=False):
 
-    # Output file
-    outputFileName = f"{ofile}.vot"
+    """Function to query a circular sky region from Gaia DR3.
+    
+    Parameters
+    ----------
+    ra : float, ndarray
+        Right ascension of central point for query [deg]
+    dec : float, ndarray
+        Declination of central point for query [deg]
+    radius : int, float
+        Angular radius to search for stars within [deg]
+    maglim : int, float
+        Magitude limit to search for stars below
+    ofile : str
+        File name (without file extension) to be saved
+
+    Return
+    ------
+    Feather file given by the file name destination
+
+    NOTE: The following data is available in Gaia DR3 (gaia_source):
+    source_id,
+    ra, 
+    dec,
+    parallax,
+    pmra, 
+    pmdec,
+    ruwe,
+    phot_g_mean_mag,
+    bp_rp,
+    radial_velocity,
+    phot_variable_flag,
+    non_single_star,
+    has_xp_continuous,
+    has_xp_sampled,
+    has_rvs,
+    has_epoch_photometry,
+    has_epoch_rv,
+    has_mcmc_gspphot,
+    has_mcmc_msc,
+    teff_gspphot,
+    logg_gspphot,
+    mh_gspphot,
+    distance_gspphot,
+    azero_gspphot,
+    ag_gspphot,
+    ebpminrp_gspphot
+    """
 
     # Configuration variables
+    
     coord = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
-    #coord  = lops1.copy()
     
     # Information about server
+    
     host = "gea.esac.esa.int"
     port = 443
     pathinfo = "/tap-server/tap/async"
     catalogue = 'gaiadr3.gaia_source'
-
+    
     # Create job to be parsed
+    
     params = urllib.urlencode({\
                                "REQUEST"        : "doQuery",
                                "LANG"           : "ADQL",
@@ -281,7 +337,7 @@ def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile='starcatGaiaDR3'):
                                "PHASE"          : "RUN",
                                "JOBNAME"        : "PLATO FGS catalog",
                                "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
-                               "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}),POINT(ra,dec)) AS dist, designation, ra, dec, phot_g_mean_mag FROM {catalogue} AS cat WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}),CIRCLE(cat.ra,cat.dec,{radius})) AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
+                               "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}),POINT(ra,dec)) AS dist, designation, ra, dec, phot_g_mean_mag, bp_rp FROM {catalogue} AS cat WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}),CIRCLE(cat.ra,cat.dec,{radius})) AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
 
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept"      : "text/plain"}
@@ -331,12 +387,32 @@ def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile='starcatGaiaDR3'):
     connection.request("GET",pathinfo+"/"+jobid+"/results/result")
     response = connection.getresponse()
     data = response.read().decode('iso-8859-1')
-    outputFile = open(outputFileName, "w")
+
+    # Output file name
+    
+    if ofile:
+        outputFileName = f'{ofile}.vot'
+    else:
+        outputFileName = 'starcatGaiaDR3.vot'
+
+    # Output file
+    
+    outputFile = open(outputFileName, 'w')
     outputFile.write(data)
     outputFile.close()
     connection.close()
-    print("Data saved in: " + outputFileName)	
 
     # Create a pandas data frame
-    df = ut.votable_to_pandas(outputFileName)
+    
+    votable = parse(outputFileName)
+    df = ut.votable2pandas(votable)
+    os.remove(outputFileName)
     df.to_feather(outputFileName.replace('.vot', '.ftr'))
+    if ofile:
+        ftrFile = outputFileName.replace('.vot', '.ftr')
+        df.to_feather(ftrFile)
+        print(f'Saved file: {ftrFile}')
+
+    # That's it!
+    
+    return df
