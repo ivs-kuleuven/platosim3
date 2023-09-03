@@ -309,12 +309,12 @@ class Payload(object):
         print('Downtime due to loss of fine guidance')
         print('Downtime due to safe-mode events')
         _, self.t0, self.td = ns.getDataGaps(self.time, self.Q,
-                                             outfile=self.fileNameGap, plot=True)
+                                             outfile=self.fileNameGap, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameGap}")
 
         # Generate thermal transient file
         ns.temperatureTransients(self.time, self.t0, self.td, tempCCD=203.5,
-                                 outfile=self.fileNameCCD, plot=True)
+                                 outfile=self.fileNameCCD, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameCCD}")
 
 
@@ -331,7 +331,7 @@ class Payload(object):
         # Generete PRE file
         errorcode('module', '\nPointing repeatability error (PRE)')
         ns.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
-                  outfile=self.fileNamePRE, show_table=True, plot=True)
+                  outfile=self.fileNamePRE, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNamePRE}")
 
         
@@ -347,7 +347,7 @@ class Payload(object):
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
         ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
-                  outfile=self.fileNameAPE, show_table=True, plot=True)
+                  outfile=self.fileNameAPE, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
 
@@ -361,7 +361,7 @@ class Payload(object):
         
         # Generate TED file
         errorcode('module', '\nThermo-Elastic Distortion (TED)')
-        ns.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
+        ns.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameTED}")
 
 
@@ -375,7 +375,7 @@ class Payload(object):
         
         # Generate TED file
         errorcode('module', '\nAttitude Control System (ACS)\n')
-        ns.getACS(self.time, outfile=self.fileNameACS, plot=True)
+        ns.getACS(self.time, outfile=self.fileNameACS, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameACS}")
 
 

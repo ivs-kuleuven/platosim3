@@ -302,8 +302,8 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         fig, ax = plt.subplots(1, 2, figsize=(9,4))
         
         ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
-        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Transverse')
-        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rotation')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
         ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
         ax[0].set_ylabel('Probability (PDF) [\%]')
         ax[0].set_xlim(xx[0], xx[-1])
@@ -386,8 +386,8 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
         fig, ax = plt.subplots(1, 2, figsize=(9,4))
 
         
-        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Transverse')
-        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rotation')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Trans.')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rot.')
         ax[0].set_title(f'APE distributions at {sigma}$\sigma$')
         ax[0].set_xlabel('Camera misalignment in FPA [pixel]')
         ax[0].set_ylabel('Probability (PDF) [\%]')
