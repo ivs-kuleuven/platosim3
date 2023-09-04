@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 
 """
-This python module contains all general utilities that are commonly used
-by the different codes within PlatoSim and PLATOnium.
-
-NOTE: these utilities needs the Poetry install!
+Python modules that contain some general utilities that are commonly
+used by the PlatoSim and PLATOnium.
 """
 
 # Standard
@@ -113,11 +111,12 @@ def getFunctions(script):
 
     """Fetch names of class functions.
     """
+    
     names = inspect.getmembers(script, inspect.isfunction)
     funcs = [item[0] for item in names]
     t = PrettyTable()
-    t.add_column(f"{script.__name__} functions", funcs)
-    return t
+    
+    return t.add_column(f"{script.__name__} functions", funcs)
     
 
 
@@ -133,8 +132,7 @@ def tqdmBar():
             <loop over something>
     """
 
-    bar_format = "{l_bar}{bar:50}{r_bar}{bar:-50b}"
-    return bar_format
+    return "{l_bar}{bar:50}{r_bar}{bar:-50b}"
 
 
 
@@ -193,6 +191,10 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
     outputDir : str
         Output directory to save file ()
     https://stackoverflow.com/questions/67300881/how-do-i-keep-a-ftp-connection-alive
+
+    Return
+    ------
+    File with <filename> is saved in <outputDir>
     """
 
     # Assume that no suffix means a folder of data
@@ -284,6 +286,7 @@ def pdAddColumn(df, newCol, name):
     df[name] = newCol
     cols = df.columns.tolist()
     cols = cols[-1:] + cols[:-1]
+
     return df[cols]
 
 
@@ -799,7 +802,6 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
     return noise / signal
 
 
-
 #--------------------------------------------------------------#
 #                       PLATOnium FUNCTIONS                    #
 #--------------------------------------------------------------#
@@ -912,14 +914,20 @@ def getPointingField(name, unit='deg'):
     Sky coordinates (alpha, delta, kappa) [deg]
     """
 
-    PF = {'NPF':   [265.08002279,  39.5836954,   8.5],         # PIC1.1.0: Galactic []
-          'SPF':   [ 86.79870508, -46.39594703,  8.8],     # PIC1.1.0: Galactic [253.0, -30.0, 0.0]
-          'LOPN':  [277.18023,     52.85952,     8.5],         # PIC2.0.0: Galactic [ 81.6, -24.6, 0.0]
-          'LOPS2': [ 95.31043,    -47.88693,    13.9947+180],  # PIC2.0.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # Used for simulations of KUL20
+    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000+180],  # PIC 1.1
+          'SPF':   [ 86.79870508, -46.39594703,  10.0000+180],  # PIC 1.1
+          'LOPN':  [277.18023,     52.85952,    -13.9947+180],  # PIC 2.0
+          'LOPS2': [ 95.31043,    -47.88693,     13.9947+180],  # PIC 2.0
+          'KUL20': [ 86.79870508, -46.39594703,  0.0]}          # TN of KUL20
 
-    p = PF[name]
+    # Check data field exists
+    
+    try: p = PF[name]
+    except KeyError: errorcode('error', 'Not valid PLATO field!' +
+                               'Options: NPF, SFP, LOPN, LOPS2')
 
+    # Convert units and return
+    
     if unit == 'deg':
         return p[0], p[1], p[2]
     elif unit == 'rad':
@@ -930,7 +938,101 @@ def getPointingField(name, unit='deg'):
 
 
 
+        
+def getSolarPanelOrientation(kappa, quarter):
 
+    """Fetch solar panel orientation for specific mission quarter.
+
+    Parameters
+    ----------
+    quarter : int
+        Mission quarter number (starting from 1)
+    kappa : float
+        Orientation of the solar panels (i.e. roll angle) [deg]
+
+    Return
+    ------
+    The corrected roll angle of the spacecraft
+    """
+
+    return math.fmod(quarter * 90, 360) - 90 + kappa        
+
+
+
+
+
+def copyInputYAML(field, odir):
+
+    """Function to copy and adjust a yaml ready to launch.
+
+    Parameters
+    ----------
+    field : str
+        Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
+    odir : str, pathlib object
+        Absolute output directory
+    """
+
+    # Get files names of YAML files
+    yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+    yaml_new = odir / "inputfile.yaml"
+
+    # Copy YAML if it doesn't exist already
+    if not yaml_new.is_file():
+
+        #print(f"Copying YAML configuration file : {yaml_new}")
+        shutil.copy(yaml_old, yaml_new)
+
+        # Find and replace a few strings:
+        with open(yaml_new, 'r') as file:
+            filedata = file.read()
+            filedata = filedata.replace('inputfiles/starcatalog.txt', field)
+            # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
+            filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+            filedata = filedata.replace( 'NumColumns:                      100',
+                                        f'NumColumns:                      7  ')
+            filedata = filedata.replace( 'NumRows:                         100',
+                                        f'NumRows:                         7  ')
+            filedata = filedata.replace('IncludePhotometry:               no ',
+                                        'IncludePhotometry:               yes')
+            filedata = filedata.replace('MaskUpdateInterval:              14.0',
+                                        'MaskUpdateInterval:              30.0')
+            filedata = filedata.replace('GroupByExposure:                 yes',
+                                        'GroupByExposure:                 no ')
+            filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                        'WriteBiasMaps:                   no ')
+            filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                        'WriteSmearingMaps:               no ')
+            filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                        'WriteFlatfieldMap:               no ')
+            filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                        'WriteThroughputMaps:             no ')
+            filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                        'WriteTransmissionEfficiency:     no ')
+            filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                        'WriteBackgroundMap:              no ')
+            filedata = filedata.replace('WriteCTI:                        yes',
+                                        'WriteCTI:                        no ')
+            filedata = filedata.replace('WriteACS:                        yes',
+                                        'WriteACS:                        no ')
+            filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                        'WriteTelescopeACS:               no ')
+            filedata = filedata.replace('WriteStarCatalog:                yes',
+                                        'WriteStarCatalog:                no ')
+            filedata = filedata.replace('WriteStarPositions:              yes',
+                                        'WriteStarPositions:              no ')
+            filedata = filedata.replace('WriteGhostPositions:             yes',
+                                        'WriteGhostPositions:             no ')
+            filedata = filedata.replace('WriteCosmics:                    yes',
+                                        'WriteCosmics:                    no ')
+            # Write the file out again
+            with open(yaml_new, 'w') as file:
+                file.write(filedata)
+
+
+
+
+                
 def votable2pandas(votable):
 
     """Function to convert a votable to a pandas data frame.
@@ -943,32 +1045,9 @@ def votable2pandas(votable):
     return table.to_pandas()
 
 
-
 #--------------------------------------------------------------#
 #                        VARSIM SPECIFIC                       #
 #--------------------------------------------------------------#
-
-
-def convertQuarterRange(dQ):
-    """
-    Small function that takes a string of numbers (here quarters)
-    and split it up into readable float values used as real number
-    ranges. If a single number is given, an quarter integer is 
-    returned.
-    """
-    quarters = []
-    for part in dQ.split(','):
-        if '-' in part:
-            # If a range in mag is provided
-            q1, q2 = part.split('-')
-            q1, q2 = int(q1), int(q2)
-            quarters.append(q1)
-            quarters.append(q2)
-        else:
-            # If only one mag-value is given select 1 mag around it
-            q1 = int(part)
-            quarters.append(q1)
-    return quarters
 
         
 def find_nearest(array, value):
@@ -1005,25 +1084,3 @@ def rebin3(x, xp, fp):
         # Interpolate!
         new_f = np.interp(x, xp, fp, left=0.0, right=0.0)
     return x, new_f
-
-
-
-
-# def picOfDestiny(distribution, prange):
-#     """
-#     This function randomly picks a value from any gievn distribution and returns it.
-#     The distribution must consist of values between 0 and 1 with its peak at 1. This function picks a
-#     random value from the allowed range and then uses a distribution to get a P number
-#     between 0 and 1, it then rolls a dice and chekcs wheter the dice roll is under the
-#     P number. If it is, then the picked value is returned. This ensures a recration of
-#     the distribution shape over thousands of picks
-#     """
-
-#     pick = random.random()*(prange[1]-prange[0]) + prange[0]
-#     p = distribution(pick)
-#     roll = random.random()
-#     if roll < p:
-#         return pick
-#     else:
-#         return distribution_pick(distribution, range)
-

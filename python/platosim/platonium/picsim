@@ -51,7 +51,7 @@ from tqdm import tqdm
 import platosim.plot       as pt
 import platosim.utilities  as ut
 import platosim.starquery as starQuery
-from platosim.utilities  import errorcode
+from platosim.utilities  import errorcode, copyInputYAML
 from platosim.simulation import Simulation
 
 # Disable warnings
@@ -59,75 +59,6 @@ warnings.simplefilter("ignore")
 
 # Start time tracking
 tic = datetime.datetime.now()
-
-
-def copyInputYAML(field, odir):
-
-    """Function to copy and adjust a yaml ready to launch.
-
-    Parameters
-    ----------
-    field : str
-        Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
-    odir : str, pathlib object
-        Absolute output directory
-    """
-
-    # Get files names of YAML files
-    yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
-    yaml_new = odir / "inputfile.yaml"
-
-    # Copy YAML if it doesn't exist already
-    if not yaml_new.is_file():
-
-        #print(f"Copying YAML configuration file : {yaml_new}")
-        shutil.copy(yaml_old, yaml_new)
-
-        # Find and replace a few strings:
-        with open(yaml_new, 'r') as file:
-            filedata = file.read()
-            filedata = filedata.replace('inputfiles/starcatalog.txt', field)
-            # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
-            filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
-            filedata = filedata.replace( 'NumColumns:                      100',
-                                        f'NumColumns:                      7  ')
-            filedata = filedata.replace( 'NumRows:                         100',
-                                        f'NumRows:                         7  ')
-            filedata = filedata.replace('IncludePhotometry:               no ',
-                                        'IncludePhotometry:               yes')
-            filedata = filedata.replace('MaskUpdateInterval:              14.0',
-                                        'MaskUpdateInterval:              30.0')
-            filedata = filedata.replace('GroupByExposure:                 yes',
-                                        'GroupByExposure:                 no ')
-            filedata = filedata.replace('WriteBiasMaps:                   yes',
-                                        'WriteBiasMaps:                   no ')
-            filedata = filedata.replace('WriteSmearingMaps:               yes',
-                                        'WriteSmearingMaps:               no ')
-            filedata = filedata.replace('WriteFlatfieldMap:               yes',
-                                        'WriteFlatfieldMap:               no ')
-            filedata = filedata.replace('WriteThroughputMaps:             yes',
-                                        'WriteThroughputMaps:             no ')
-            filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
-                                        'WriteTransmissionEfficiency:     no ')
-            filedata = filedata.replace('WriteBackgroundMap:              yes',
-                                        'WriteBackgroundMap:              no ')
-            filedata = filedata.replace('WriteCTI:                        yes',
-                                        'WriteCTI:                        no ')
-            filedata = filedata.replace('WriteACS:                        yes',
-                                        'WriteACS:                        no ')
-            filedata = filedata.replace('WriteTelescopeACS:               yes',
-                                        'WriteTelescopeACS:               no ')
-            filedata = filedata.replace('WriteStarCatalog:                yes',
-                                        'WriteStarCatalog:                no ')
-            filedata = filedata.replace('WriteStarPositions:              yes',
-                                        'WriteStarPositions:              no ')
-            filedata = filedata.replace('WriteGhostPositions:             yes',
-                                        'WriteGhostPositions:             no ')
-            filedata = filedata.replace('WriteCosmics:                    yes',
-                                        'WriteCosmics:                    no ')
-            # Write the file out again
-            with open(yaml_new, 'w') as file:
-                file.write(filedata)
 
                     
 #==============================================================#
@@ -237,6 +168,7 @@ outputPrefixTar = outputPrefix + '_targets'      + fileFormat
 outputPrefixCon = outputPrefix + '_contaminants' + fileFormat
 
 # Name space for output files
+
 if outputDir is not None or project is not None:
     # Resolve absolute output directory
     if outputDir is not None:
@@ -251,6 +183,7 @@ if outputDir is not None or project is not None:
         outputFileCon = outputDir / outputPrefixCon
 
 # Copy an inputfile.yaml file if no file exist
+
 if outputDir:
     copyInputYAML(args.field, outputDir)
 # inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
@@ -289,23 +222,21 @@ else:
     else: samplePIC = bitmask[starSample]
 
 # Select magnitude range or convert string to actual list range
+
 if magRange is None: magRange = [0, 20]  # Select all stars
 else: magRange = ut.convertMagnitudeRange(magRange)
 
 # Check for PLATO pointing field: ICRS-Ra-Dec (deg) and Galactic-long.-lat. (deg)
 
-PF = {'SPF': ['S', 86.79870508, -46.39594703, -4.25],
-      'NPF': ['N', 265.08002279, 39.5836954,   4.25]}
+alpha, delta, kappa = ut.getPointingField(platoField, unit='deg')
 
-if platoField is not None:
-    if platoField == 'all':
-        platoField = pointingField = None
-    else:
-        try: PF[platoField]
-        except KeyError: errorcode('error', 'Not valid PLATO field! Use either SPF or NPF')
-        else: pointingField = PF[platoField][0]
-
-# Visibility by N-cams: PIC gives EOL estimate but we here assume that no camera are lost!
+if platoField in ['NPF']:
+    pointingField = 'N'
+else:
+    pointingField = 'S'
+    
+# Visibility by N-cams:
+# NOTE PIC gives EOL estimate but we here assume that no camera are lost!
 
 cams     = {'6':  6, '12': 12, '18': 18, '24': 24}
 cams_EOL = [[5, 11, 16, 17, 22], [6, 12, 18, 18, 24]]
@@ -332,13 +263,14 @@ elif dmagConLimit > 22:
 if disConLimit is None:
     disConLimit = 45  # Default equal to 2 pixels
 elif disConLimit not in [30, 45, 60]:
-    errorcode('error', 'Not a valid contaminant-to-target distance! Use either 30, 45, or 60 arcsec')
+    errorcode('error', 'Not a valid contaminant-to-target distance! ' +
+              'Use either 30, 45, or 60 arcsec')
 
 #==============================================================#
 #                       LOAD PIC TARGETS                       #
 #==============================================================#
-
 # Fetch the datatargets and their contaminants from the PIC.
+
 errorcode('module', '\nPIC targets')
 
 def load_targets(pic_tar):
@@ -393,8 +325,8 @@ if inputFiles is not None:
             DF  = DF.append(pd.read_feather(inputFileTarget[i]))
             DFC = DFC.append(pd.read_feather(inputFileContam[i]))
 
-# If it is the first run of this software on a CSV format catalogue we save catalog to a binary file
-# This dramitically speed-up any future data reads
+# If it is the first run of this software on a CSV format catalogue we save
+# catalog to a binary file. This dramitically speed-up any future data reads
 try:
     pic_tar = np.load(inputFileTar.with_suffix('.npy'))
 except:
@@ -411,7 +343,8 @@ except:
     M      = data[:,7]
     ncams  = data[:,8]
     # String field needs to be loaded seperately: PLATO field: N=North, S=South
-    field = np.loadtxt(inputFileTar.with_suffix('.csv'), delimiter=',', usecols=[68], dtype=str)
+    field = np.loadtxt(inputFileTar.with_suffix('.csv'), delimiter=',',
+                       usecols=[68], dtype=str)
     # Load catalogue
     pic_tar = np.transpose([ID, ra, dec, mag, sample, Teff, R, M, ncams, field])
     ID, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
@@ -553,12 +486,9 @@ if fileFormat != '.txt':
 
     # Allow to select only one cam-group
     if camGroup:
-        raPF    = PF[platoField][1]
-        decPF   = PF[platoField][2]
-        kappaPF = PF[platoField][3]
         sim = Simulation('picsim')
-        dex = sim.getStarsWithinCameraGroup(raPF, decPF, kappaPF,
-                                            df['ra'].to_numpy(), df['dec'].to_numpy(), camGroup)
+        dex = sim.getStarsWithinCameraGroup(df['ra'].to_numpy(), df['dec'].to_numpy(),
+                                            alpha, delta, kappa, camGroup)
         
         # Select max number of stars if too many is requested
         max_stars = np.sum(dex[0])
@@ -586,9 +516,6 @@ if fileFormat != '.txt':
     camGroup = False
     if camGroup:
 
-        raPF  = PF[platoField][1]
-        decPF = PF[platoField][2]
-
         # CONFIGURE SPACECRAFT
 
         # # Set the telescope group ID
@@ -600,8 +527,8 @@ if fileFormat != '.txt':
 
         # # Select PLATO pointing field from inputfile (e.g. SPF, NPF, etc.)
         # pointingField  = sim["ObservingParameters/StarCatalogFile"]
-        # raPlatformDeg  = sim["ObservingParameters/RApointing"]  = self.PF[pointingField][0]  # [deg]
-        # decPlatformDeg = sim["ObservingParameters/DecPointing"] = self.PF[pointingField][1]  # [deg]
+        # raPlatformDeg  = sim["ObservingParameters/RApointing"]  = alpha
+        # decPlatformDeg = sim["ObservingParameters/DecPointing"] = delta
 
         # # Camera-group Alt (tilt) and Az
         # tiltTelescope    = sim["CameraGroups/TiltAngle"][self.group-1]
@@ -756,7 +683,7 @@ if platoField is None:
 if len(df['ID']) > 200: plotmag = None
 else: plotmag = df['mag'].to_numpy()
 title = f'{platoField} {starSample} sample'
-fig1, ax = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, title=title)
+fig1, ax = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, showGroups=True, showLegend=True, title=title)
 if plot: plt.show()
 
 # Plot sample distribution in Teff vs. Radius

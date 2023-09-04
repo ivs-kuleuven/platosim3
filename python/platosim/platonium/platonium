@@ -451,7 +451,7 @@ class PLATOnium(object):
         sim["Platform/Orientation/Angles/DecPointing"] = delta
 
         # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-        solarPanelOrientationDeg = math.fmod(self.quarter * 90, 360) - 90 + kappa
+        solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
