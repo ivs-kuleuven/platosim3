@@ -45,7 +45,7 @@ Please cite *Jannsen et al. (subm.)* if use PlatoSim in your research. The ADS B
 ## Feedback and Issues
 
 If you have any questions or experience any trouble while using PlatoSim, please open a [GitHub Issue](https://github.com/IvS-KULeuven/PlatoSim3/issues). <br> 
-In case of an issue -- to help us help you -- have a look at our guidelines for [Raising an Issue](https://ivs-kuleuven.github.io/PlatoSim3/basic_troubleshooting.html).
+In case of an issue - to help us help you - have a look at our guidelines for [Raising an Issue](https://ivs-kuleuven.github.io/PlatoSim3/basic_troubleshooting.html).
 
 ---
 
