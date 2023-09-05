@@ -511,7 +511,7 @@ class PLATOnium(object):
 
         # Attitude Orbit Control System (AOCS) jitter
         # First check if file from payload is present
-        inputFileAOCS = self.inputDir.joinpath('instrumentAOCS.txt')
+        inputFileAOCS = self.inputDir.joinpath('instrumentACS.txt')
         if inputFileAOCS.is_file():
             sim["Platform/UseJitter"]      = True
             sim["Platform/JitterSource"]   = 'FromFile'
@@ -560,8 +560,8 @@ class PLATOnium(object):
             sim["CCD/Position"]                 = str(self.ccdCode)
             sim["SubField/ZeroPointRow"]        = 0
             sim["SubField/ZeroPointColumn"]     = 0
-            sim["SubField/NumColumns"]          = 4510
-            sim["SubField/NumRows"]             = 4510
+            sim["SubField/NumColumns"]          = 100#4510
+            sim["SubField/NumRows"]             = 100#4510
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True
             sim["ControlHDF5Content/WritePixelMaps"]     = True
