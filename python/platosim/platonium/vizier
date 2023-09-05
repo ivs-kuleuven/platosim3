@@ -142,7 +142,7 @@ if plot:
 if verbose > 0:
     print('Start Gaia DR3 query')
 
-for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+    for i in tqdm(range(N), bar_format=ut.tqdmBar()):
         gaiaRegionQuery(raGrid[i], decGrid[i], radius=radius, maglim=maglim,
                         ofile=f'starcat_GaiaDR3_{field}_grid{i+1}')
 

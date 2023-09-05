@@ -495,7 +495,7 @@ class LightCurve(object):
         NOTE: flux_cor is only available for on-board photometry.
         """
         
-        if   unit == "e/s": flux = self.df[column] #/ 4.026526  # TODO change!
+        if   unit == "e/s": flux = self.df[column]
         elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
         elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
         elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
@@ -1218,16 +1218,17 @@ class LightCurve(object):
             time = self.time(unit=time_unit)
             flux = self.flux(unit='e/s')
         else:
-            group, camera, quarter = self.obs()
-            if not quarter:
-                lab = f"Raw data"
+            if legend: 
+                group, camera, quarter = self.obs()
+                if not quarter:
+                    lab = f"Raw data"
+                else:
+                    lab = f"N-CAM {group}.{camera} Q{quarter}"
             else:
-                lab = f"N-CAM {group}.{camera} Q{quarter}"
+                lab = None
             time = self.time(unit=time_unit)
             flux = self.flux(unit=flux_unit)
 
-        # Fetch columns
-        
         # Create matplotlib object 
 
         fig, ax = plt.subplots(1, 1, figsize=figsize)

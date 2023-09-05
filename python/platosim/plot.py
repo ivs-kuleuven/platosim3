@@ -1245,7 +1245,7 @@ def compass(ax, x, y, size):
 
             
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, ncamStars=True, title=None,
+                 showGroups=False, showLegend=True, ncamStars=True, title=None,
                  fovSize=30, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
@@ -1284,22 +1284,19 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         Use fig..savefig('<plot.png>', bbox_inches='tight', dpi=200)
     """
 
-    # Import extra package from astropy
-    # NOTE automatically installed using poetry setup
+    # NOTE ligo skymap is only usable with "poetry install --with platonium"
 
     import ligo.skymap.plot
     
-    # Select field
+    # Select field [deg]
 
-    PF_platform = ut.getPointingField(pointingField) 
-    PF_icrs = SkyCoord(PF_platform[0], PF_platform[1], frame='icrs', unit='deg')  # [deg]
-    #PF_gal  = PF_icrs.gal                                                        # [deg]
+    alpha, delta, kappa = ut.getPointingField(pointingField) 
 
     if system == 'icrs':
-        PF = PF_icrs
+        PF = SkyCoord(alpha, delta, frame='icrs', unit='deg')
         view = 'astro'
     elif system == 'galactic':
-        PF = PF_gal
+        PF = SkyCoord(alpha, delta, frame='galactic', unit='deg')
         view = system
 
     # START PLOT
@@ -1335,11 +1332,11 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
             x24, y24 = starPF24.l.deg, starPF24.b.deg
     
         # Plot PIC1.1.0 stars after N-CAM visibility
-
-        ax.plot(x06, y06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
+        t = ax.get_transform(system)
+        ax.plot(x06, y06, '.', c='skyblue',     transform=t, ms=1, zorder=1)
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=t, ms=1, zorder=2)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=t, ms=1, zorder=3)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=t, ms=1, zorder=4)
     
     # Plot stars and add legend scaled to the stellar magnitudes
     
@@ -1368,9 +1365,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
         # Show N-CAM groups
 
-        raGroups, decGroups = rf.getCameraGroupCoordinates(PF_platform[0],
-                                                           PF_platform[1],
-                                                           PF_platform[2])
+        raGroups, decGroups = rf.getCameraGroupCoordinates(alpha, delta, kappa)
         camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
             ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
@@ -1378,24 +1373,23 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
         # Plot pointing F-CAM group (i.e. platform pointing)
         
-        ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg, '*', c='k', mfc='magenta', ms=25,
+        ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=25,
                 transform=ax.get_transform('world'), zorder=6)
 
         # Plot F-CAM FOV as cicle
         
-        # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
+        # ax.plot(PF.ra.deg, PF.dec.deg,  marker='.',
         #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
         #         transform=ax.get_transform(system), zorder=6)
-        ax.scatter(PF_icrs.ra.deg, PF_icrs.dec.deg, s=115000, marker='o',
+        ax.scatter(PF.ra.deg, PF.dec.deg, s=115000, marker='o',
                    edgecolor='magenta', facecolor='none', linewidth=2,
                    transform=ax.get_transform(system), zorder=6)
         # The problem with projecting shapes due to missing cos factor
         # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
         # https://github.com/astropy/regions/issues/76
-        # circle = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 18, fc='none', lw=2,
+        # circle = patches.Circle((PF.ra.deg, PF.dec.deg), 18, fc='none', lw=2,
         #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
         #ax.add_patch()
-        
 
     # Add-on's
     
@@ -1407,6 +1401,8 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
     if title is not None:
         ax.set_title(title, fontsize=fs+2)
+    if showLegend:
+        plt.legend(loc='upper right')    
     ax.set_xlabel('RA',  fontsize=fs)
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)

@@ -451,7 +451,7 @@ class PLATOnium(object):
         sim["Platform/Orientation/Angles/DecPointing"] = delta
 
         # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-        solarPanelOrientationDeg = math.fmod(self.quarter * 90, 360) - 90 + kappa
+        solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
@@ -656,7 +656,8 @@ class PLATOnium(object):
         self.ccdCode, self.xCCD, self.yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
         
         # Calculate radial distance of coordinate away from OA
-        self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP, focalLength))
+        self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
+                                                                       focalLength));
         if self.rOA > 19.0:
             if self.verbose > 0:
                 message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
@@ -943,18 +944,25 @@ class PLATOnium(object):
             # Select detected stars
             ID = f['StarPositions/Exposure000000/starID'][:]
             df = self.dx.iloc[ID]
-            # Add stellar positions
-            df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:]
-            df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:]
+            df = df.reset_index()
+            # Add stellar positions.
+            df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:] - 0.5
+            df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:] - 0.5
             df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
             df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
-            # Rename index to starID
-            df = df.rename(columns={'index': 'starID'})
-            # Save to file
-            df = df.reset_index()
+            # Only keep stars within the rOA FOV
+            focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
+            df['rOA'] = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP,
+                                                                            focalLength))
+            df = df[df.rOA <= 19.55]
             df = df.drop(columns=['index'])
+            df = df.reset_index()
+            # Sort index and starID
+            df = df.rename(columns={'level_0': 'starID'})
+            df = df.drop(columns=['index'])
+            # Save to file
             df.to_feather(self.outputSimName + '.ftr')
-                
+
         # Make a animation if requested
         if self.animation:
             
@@ -1319,7 +1327,7 @@ class PLATOnium(object):
 
 
         # Write PlatoSim info to a table
-        filename = self.inputDir / 'tableSims.ftr'
+        filename = self.outputDir / f'{self.outputSimName}.ftr'
         data = {"ID":   self.targetNo+1,
                 "PIC":  self.df.ID,
                 "ra":   self.df.ra,
@@ -1335,7 +1343,8 @@ class PLATOnium(object):
                 "xCCD": self.xCCD,
                 "yCCD": self.yCCD}
         df1 = pd.DataFrame(data, index=[0])
-        
+        df1.to_feather(filename)
+        return
         # Check of file exist or create it
         try:
             df0 = pd.read_feather(filename)
@@ -1384,7 +1393,8 @@ class PLATOnium(object):
             os.system(f'mv {self.outputSimName}.* {self.hpcDir}')
 
         # Add sim info to table
-        self.create_sim_table()
+        if not self.fullFrame:
+            self.create_sim_table()
             
         # Execution time of module
         if self.verbose > 0:

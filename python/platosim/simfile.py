@@ -186,8 +186,8 @@ class SimFile (object):
         - readout time during the next exposure [s]
         """
 
-        isFastCamera = self.getInputParameter("Telescope", "GroupID")
-        ccdPosition  = self.getInputParameter("CCD", "Position")
+        cameraGroup = self.getInputParameter("Telescope", "GroupID")
+        ccdPosition = self.getInputParameter("CCD", "Position")
 
         if ccdPosition == "Custom":
 
@@ -196,7 +196,7 @@ class SimFile (object):
             firstRowExposed = self.getInputParameter("CCD", "FirstRowExposed")
 
         else:
-            if isFastCamera:
+            if cameraGroup == 'Fast':
                 index = int(ccdPosition[0]) - 1
             else:
                 index = int(ccdPosition) - 1
@@ -204,7 +204,7 @@ class SimFile (object):
             numRows    = self.getInputParameter("CCDPositions", "NumRows")[index]
             numColumns = self.getInputParameter("CCDPositions", "NumColumns")[index]
 
-            if isFastCamera:
+            if cameraGroup == 'Fast':
                 firstRowExposed = self.getInputParameter("CCDPositions",
                                                          "FirstRowForFastCamera")[index]
             else:
@@ -228,7 +228,7 @@ class SimFile (object):
         # - serial prescan
         # - serial overscan (virtual)
 
-        numColumnsReadout = numColumns / 2 + numColumnsBiasMap # + numRowsSerialOverScan
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap  #+ numRowsSerialOverScan
 
         # How many rows will be actually read out by the FEE?
         # - Nominal mode: image area + parallel over-scan
@@ -242,7 +242,7 @@ class SimFile (object):
         
         # FAST CAMERA
 
-        if isFastCamera:
+        if cameraGroup == 'Fast':
 
             # Move the upper half of the CCD down to the lower half, row-by-row
 
@@ -250,10 +250,9 @@ class SimFile (object):
 
             readoutTimeBeforeNextExposure = numRowsFrameTransfer * parallelTransferTimeFast
 
+            # Nominal mode:
             # The actual readout of the lower half of the CCD (after frame transfer)
             # is done while the next exposure has already started
-
-            # Nominal mode
 
             if readoutMode == "Nominal":
 
@@ -278,7 +277,7 @@ class SimFile (object):
         # NORMAL CAMERA
 
         else:
-
+            
             # Nominal mode (full-frame readout)
 
             if readoutMode == "Nominal":
@@ -320,6 +319,8 @@ class SimFile (object):
     def getGain(self):
 
         """Get the gain for both CCD halves.
+
+        NOTE: Left (F) and Right (E) seen from readout register.
         """
 
         gainCCD_F = self.getInputParameter("CCD/Gain", "RefValueLeft")
@@ -1069,7 +1070,9 @@ class SimFile (object):
             if (groupName == "PointLikeGhostPositions") or (groupName == "ExtendedGhostPositions"):
                 star = star[:-1]
             #---------------------------------
+            
             # Check if only a single image is requested and use that automatically
+
             N = len(self.hdf5file[groupName][star[0]]["rowPix"][:])
             if N == 1: imageNr = 0
             starID = np.array([int(s[-6:]) for s in star])
@@ -1549,7 +1552,7 @@ class SimFile (object):
            
     def getFlux(self, starID, fluxType="estimated"):
 
-        """Returns flux points.
+        """Returns flux points in units [e-/s].
         """
 
         # Select the proper flux name
@@ -1592,6 +1595,10 @@ class SimFile (object):
             else:
                 df[string] = flux
 
+        # Convert [e-/exp] -> [e-/s]
+        
+        df /= self.getReadoutTime()[0]
+        
         # Finito!
 
         return df
@@ -1638,10 +1645,12 @@ class SimFile (object):
             flux_input = self.getFlux(starID, fluxType="input")
             df = pd.concat([time, flux, flux_input], axis=1)
             df.columns = ["time", "flux", "flux_input"]
+            
         elif fluxType in ("input", "estimated"):
             flux = self.getFlux(starID, fluxType=fluxType)
             df = pd.concat([time, flux], axis=1)
             df.columns = ["time", "flux"]
+            
         else:
             print("ERROR: no such flux name, use either 'estimated' or 'input'!")
             
@@ -1842,8 +1851,6 @@ class SimFile (object):
 
 
 
-    
-    
     def showImage(self, imageNr=False, imgScale="percentile", clip=5.0,
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minVmag=None, maxVmag=None, showStarIDs=False,
@@ -1980,6 +1987,7 @@ class SimFile (object):
 
             # Adjust the colorbar to correct ADU values for auto-scaling
             if imgScale == "auto":
+                clabel = 'Normalised counts'
                 ticks_label    = [f"{i:.1f}" for i in np.linspace(0, 1, 6)]
                 ticks_loc      = np.linspace(vmin, vmax, 6)
                 cbar.locator   = ticker.FixedLocator(ticks_loc)
@@ -1999,7 +2007,7 @@ class SimFile (object):
             rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
-                                         edgecolor='b', facecolor='none', zorder=2)
+                                         edgecolor='orange', facecolor='none', zorder=2)
                 ax.add_patch(rect)
         
         # If required, overplot the true averaged star positions
@@ -2031,7 +2039,7 @@ class SimFile (object):
             
             else:
                 ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o',
-                           facecolors='none', edgecolors='royalblue',
+                           facecolors='royalblue', edgecolors='k',
                            linewidth=lw, zorder=4)
 
             # If requested, add star IDs to plot

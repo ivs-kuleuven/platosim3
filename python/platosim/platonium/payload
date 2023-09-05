@@ -16,7 +16,8 @@ While using the "--project" output path, the files will be generated
 directly into your working directory and will immediately be known
 and used when running "platonium". 
 """
-# TODO - instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
+# TODO instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
+# TODO instrumentBias.txt : Thermal transient after each data gaps increasing the bias 
 
 # Python standard
 import os
@@ -36,30 +37,25 @@ from pathlib import Path
 import platosim.noise as ns
 from platosim.utilities import errorcode, convertQuarterRange, getPointingField
 
-# Default prefix
-prefix = 'cluster'
-
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-class InstrumentSetup(object):
+class Payload(object):
 
     """Class to generate a realistic setup for multi-camera simulations.
     
     This class makes it straight forward to generate a realistic random
     model for various systematic instrumental effects. It likewise add
     all the necessary files needed to launch the simulations on a high
-    performance computing cluster
-
-    Usage example for a single feather file:
-
+    performance computing cluster.
     """
 
     def __init__(self, filename, mode="single", ncam=False):
 
-        # Constants
+        # Global parameters
         self.day2sec = 86400.
+        self.prefix  = 'cluster'
 
         # Plotting
         self.plot = args.plot
@@ -75,12 +71,14 @@ class InstrumentSetup(object):
 
         # File names
         if self.odir:
+            self.fileNameGap = f"{self.odir}/instrumentGap.txt"
+            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
             self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
-            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
+            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
         else:
-            self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
+            self.fileNameGap = self.fileNameCCD = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
         # Number of images in a quarter
         self.nimg = (60 * 60 * 24 * 90) / 25.
@@ -152,7 +150,7 @@ class InstrumentSetup(object):
 
                         
         
-    def create_job_script(self):
+    def createJobScript(self):
 
         """Function to create a job script to be used on the VSC.
         """
@@ -220,7 +218,7 @@ class InstrumentSetup(object):
         # Generate job script
 
         if self.odir:
-            print(f"Creating parameterization job-script: {self.odir}/{prefix}.slurm")
+            print(f"Creating parameterization job-script: {self.odir}/{self.prefix}.slurm")
 
         script = \
         """
@@ -264,7 +262,7 @@ class InstrumentSetup(object):
 
         # Save textfile for worker
         if self.odir:
-            filename = f"{self.odir}/{prefix}.slurm"
+            filename = f"{self.odir}/{self.prefix}.slurm"
             with open(filename, "w") as ofile:
                 ofile.write(dedent(script).strip())
 
@@ -272,13 +270,13 @@ class InstrumentSetup(object):
 
 
             
-    def create_param_file(self):
+    def createParamFile(self):
 
         """Function to create a job script to be used on the VSC.
         """
         
         if self.odir:
-            print(f"Creating HPC parameterization file  : {self.odir}/{prefix}.data")
+            print(f"Creating HPC parameterization file  : {self.odir}/{self.prefix}.data")
 
         # Add rows in a loop
         textfile = "star,group,camera,quarter\n"
@@ -290,237 +288,40 @@ class InstrumentSetup(object):
 
         # Save textfile for worker
         if self.odir:
-            filename = f"{self.odir}/{prefix}.data"
+            filename = f"{self.odir}/{self.prefix}.data"
             with open(filename, "w") as ofile:
                 ofile.write(dedent(textfile).strip())
-        
 
 
 
 
                         
-    def create_time_gaps(self):
+    def createDataGapsAndTransients(self):
 
-        """Function to create a job script to be used on the VSC.
-
-        All time gaps are based on knowledge from the Kepler mission.
-        The following time gaps are considered:
-
-          - Quarterly rolls
-          - Monthly data donlinks
-          - Loss of fine guidance
-          - Save mode events
-        
-        The Quarterly rolls introduce a time gap of 1-2 days happening every
-        three months (hence four times in a year). These are are needed in 
-        order to align the spacecraft's solar panels towards the Sun. Note that
-        the PES called PRE takes into account for the error in every pointing
-        from quarter to quarter. 
-
-        Montly data downlinks is needed during the mission. During these events
-        the spacecraft changed its orientation once a month to point at Earth
-        and downlink the last month of data. This caused a gap in the time series
-        data, as the spacecraft can not collect while it was downlinking. When 
-        the spacecraft returns to the regular pointing, its motion induced what
-        is known as a “thermal transient.” This means that the telescope components
-        and detector electronics underwent a temperature change, and the electron
-        count reading was temporarily increased. A change in temperature can slightly
-        change the camera focus. This manifests in the data as a downward slope 
-        caused by “reheating,” while the flux returns to its previous level. 
-
-        Loss of fine guidance and coarse pointing events which results in
-        a lower photometric precision. Typically these cadences are not
-        suggested for use in photometry. Since these event do not introduce
-        thermal transients in the light curve, they can simply be removed 
-        after the simulations have been generated by the user. 
-        
-        Safe modes (Kepler Data Characteristics Handbook, Section 4.2)
-        are another type of thermal transient that appears in Kepler data. 
-        A safe mode occured when the telescope temporarily shut off operation
-        due to an unexpected event, usually caused by an issue with the 
-        detector electronics. Typically a positive flux jump happens each event
-        (probably due to an increased gain) an exponentially decrease to the
-        count level before the event over a period of a few days.
+        """Function to create a time columns including Data Gaps.
+        Used to include data gaps relavant for space mission orbiting in L2.
         """
 
-        errorcode('module', '\nDate gaps in time series\n')
-
-        # Initialise random generator
-        rng = np.random.default_rng()
-
-        # Create pandas data frame for different flags
-        #flags = ["time", "roll", "downlink", "safemode", "fineguidance",
-        #         "attitude", "ccdanomaly", "argabrightning"]
-        df = pd.DataFrame()
-
-        # Create continous time array
-        df["time"] = self.time
-        
-        # QUARTERLY ROLLS
-
+        # Generate a data-gap file
+        errorcode('module', '\nDate gaps & Thermal transients\n')
         print('Downtime due to quater interuptions')
-        roll_period   = 365.25/4
-        roll_duration = 2.0
-        roll_anomaly  = 0.5
-
-        n_roll = len(self.Q)
-        roll_events = self.Q
-        roll_event0 = np.zeros(n_roll)
-        roll_event1 = np.zeros(n_roll)
-        
-        for i, Q in zip(range(n_roll), roll_events):
-            roll_gap = roll_duration + np.random.uniform(-roll_anomaly, roll_anomaly) # [d]
-            roll_event0[i] = (roll_period * Q - roll_gap/2) * self.day2sec  # [s]
-            roll_event1[i] = (roll_period * Q + roll_gap/2) * self.day2sec  # [s]
-            df["roll"] = np.logical_and(self.time>=roll_event0[i], self.time<=roll_event1[i])
-
-        # DOWNLINK GAPS
-
         print('Downtime due to montly data downlinks')
-        link_period   = 365.25/4/3
-        link_duration = 5/24.           # [d] i.e. 5 hours
-        link_anomaly  = 0.5/24.         # [d] i.e. 0.5 hour
-        link_events = np.arange((self.Q[0]-1)*roll_period, self.Q[-1]*roll_period, link_period)[1:]
-
-        n_link = len(link_events)
-        link_event0 = np.zeros(n_link)
-        link_event1 = np.zeros(n_link)
-        
-        for i, L in zip(range(n_link), link_events):
-            link_gap = link_duration + np.random.uniform(-link_anomaly, link_anomaly)
-            link_event0[i] = (L - link_gap/2) * self.day2sec
-            link_event1[i] = (L + link_gap/2) * self.day2sec
-            df["downlink"] = np.logical_and(self.time>=link_event0[i], self.time<=link_event1[i])
-
-        # LOSS OF FINE GUIDANCE
-
         print('Downtime due to loss of fine guidance')
-        freq = 180
-        t = self.Q[0] * roll_period
-        jitter_duration = 0.5/24.
-        jitter_anomaly  = 0.1/24.
-        jitter_events   = []
-        
-        while t < self.Q[-1] * roll_period:            
-            jitter_event = np.random.poisson(lam=freq)
-            t += jitter_event
-            jitter_events.append(t)
-
-        n_jitter = len(jitter_events)
-        jitter_event0 = np.zeros(n_jitter)
-        jitter_event1 = np.zeros(n_jitter)
-
-        for i, J in zip(range(n_jitter), jitter_events):
-            jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
-            jitter_event0[i] = (J - jitter_gap/2) * self.day2sec
-            jitter_event1[i] = (J + jitter_gap/2) * self.day2sec
-            df["jitter"] = np.logical_and(self.time>=jitter_event0[i], self.time<=jitter_event1[i])
-
-        # SAVE MODE EVENTS
-
         print('Downtime due to safe-mode events')
-        freq = 270
-        t = self.Q[0] * roll_period
-        safe_duration = 1
-        safe_anomaly  = 12/24.
-        safe_events   = []
+        _, self.t0, self.td = ns.getDataGaps(self.time, self.Q,
+                                             outfile=self.fileNameGap, plot=self.plot)
+        if self.odir: print(f"File saved: {self.fileNameGap}")
+
+        # Generate thermal transient file
+        ns.temperatureTransients(self.time, self.t0, self.td, tempCCD=203.5,
+                                 outfile=self.fileNameCCD, plot=self.plot)
+        if self.odir: print(f"File saved: {self.fileNameCCD}")
+
+
+
+
+
         
-        while t < self.Q[-1] * roll_period:            
-            safe_event = np.random.poisson(lam=freq)
-            t += safe_event
-            safe_events.append(t)
-
-        n_safe = len(safe_events)
-        safe_event0 = np.zeros(n_safe)
-        safe_event1 = np.zeros(n_safe)
-
-        for i, S in zip(range(n_safe), safe_events):
-            safe_gap = safe_duration + np.random.uniform(-safe_anomaly, safe_anomaly)
-            safe_event0[i] = (S - safe_gap/2) * self.day2sec
-            safe_event1[i] = (S + safe_gap/2) * self.day2sec
-            df["safe"] = np.logical_and(self.time>=safe_event0[i], self.time<=safe_event1[i])
-
-        # Create new time array with all gaps
-        # df["tsim"] = ~df.roll * ~df.downlink
-        # df["tsim"] = df["tsim"].where(df["tsim"]!='T', 1) * df["time"]
-        # df["tsim"].replace({0: np.nan}, inplace=True) 
-        # df["tsim"].iloc[0] = 0
-
-        # df["tgap"] = ~df.roll * ~df.downlink
-        # df["tgap"] = ~df["tgap"]
-        # df["tgap"] = df["tgap"].where(df["tgap"]!='T', 1) * df["time"]
-        # df["tgap"].replace({0: np.nan}, inplace=True) 
-
-        # Show figure
-
-        if n_roll != 0:
-            
-            fig, ax = plt.subplots(figsize=(10, 3))
-
-            # Plots
-            ax.axhline(y=0, linestyle=':', color='k')
-
-            for i in range(n_roll):
-                roll = ax.axvspan(roll_event0[i]/self.day2sec, roll_event1[i]/self.day2sec,
-                                 color='b', alpha=0.5)
-                if i == n_roll-1: roll.set_label('Quarter rolls')
-                
-            for i in range(n_link):
-                link = ax.axvspan(link_event0[i]/self.day2sec, link_event1[i]/self.day2sec,
-                                 color='m', alpha=0.5)
-                if i == n_roll-1: link.set_label('Downlinks')
-                
-            for i in range(n_jitter):
-                jitter = ax.axvspan(jitter_event0[i]/self.day2sec, jitter_event1[i]/self.day2sec,
-                                   color='orange', alpha=0.5)
-                if i == n_roll-1: jitter.set_label('Loss of FGS')
-                
-            for i in range(n_safe):
-                safe = ax.axvspan(safe_event0[i]/self.day2sec, safe_event1[i]/self.day2sec,
-                                 color='r', alpha=0.5)
-                if i == n_roll-1: safe.set_label('Safe modes')
-
-            # for i, col in zip(range(3), cols):
-            #     ax[i].plot(df["time"]/day2sec, df[col], 'k-')
-            #     ax[i].axhline(y=0, linestyle=':', color='k')
-            #     for k in range(N-1):
-            #         ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
-            # # Settings
-            # ax[1].set_ylabel("Pitch [arcsec]")
-            # ax[2].set_ylabel("Roll [arcsec]")
-            # for i in range(3):
-            #     ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
-            # # Layout
-            # ax[0].set_xticklabels([])
-            # ax[1].set_xticklabels([])
-            # plt.tight_layout(h_pad=0.2, w_pad=0)
-            # plt.show()
-
-            # Labels
-            ax.set_xlabel("Time [days]")
-            ax.set_ylabel("Arb.")
-            ax.legend(ncol=4, loc="center", bbox_to_anchor=(0.5, 1.2))
-
-            # Layout
-            ax.set_yticklabels([])
-            ax.set_xlim(df.time.iloc[0], df.time.iloc[-1]/self.day2sec+5)
-            ax.set_ylim(-1,1)
-            plt.tight_layout()
-            plt.show()
-
-        # APply start time relative mission BOL
-        #self.beginExposureNr = round(self.timeStart / self.cadence)
-        
-        if self.odir:
-            outfile = f'{self.odir}/instrumentGaps.txt'
-            fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
-            df.to_csv(outfile, sep=" ", header=False, index=False)
-            print(f"File saved : {outfile}")
-
-
-
-
-            
     def createPRE(self):
 
         """Function to create a Pointing Repeatability Error (PRE) file.
@@ -530,7 +331,7 @@ class InstrumentSetup(object):
         # Generete PRE file
         errorcode('module', '\nPointing repeatability error (PRE)')
         ns.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
-                  outfile=self.fileNamePRE, show_table=True, plot=True)
+                  outfile=self.fileNamePRE, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNamePRE}")
 
         
@@ -546,7 +347,7 @@ class InstrumentSetup(object):
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
         ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
-                  outfile=self.fileNameAPE, show_table=True, plot=True)
+                  outfile=self.fileNameAPE, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
 
@@ -560,7 +361,7 @@ class InstrumentSetup(object):
         
         # Generate TED file
         errorcode('module', '\nThermo-Elastic Distortion (TED)')
-        ns.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=True)
+        ns.getTED(self.Q, outfile=self.fileNameTED, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameTED}")
 
 
@@ -573,8 +374,8 @@ class InstrumentSetup(object):
         """
         
         # Generate TED file
-        errorcode('module', '\nAttitude Control System (ACS)')
-        ns.getACS(self.time, outfile=self.fileNameACS, plot=True)
+        errorcode('module', '\nAttitude Control System (ACS)\n')
+        ns.getACS(self.time, outfile=self.fileNameACS, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameACS}")
 
 
@@ -605,14 +406,14 @@ out_group.add_argument('--project',      metavar='NAME', type=str, help='Name of
 
 # Initialize instance of class
 args = parser.parse_args()
-x = InstrumentSetup(args)
+x = Payload(args)
 
 # Run each module
-x.create_job_script()
-x.create_param_file()
-x.create_time_gaps()
+x.createJobScript()
+x.createParamFile()
+x.createDataGapsAndTransients()
 x.createPRE()
 x.createAPE()
 x.createTED()
-x.createACS()
+#x.createACS()
 print('')

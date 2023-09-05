@@ -24,6 +24,7 @@ import pyaml
 import numpy as np
 
 # PlatoSim imports
+import platosim.utilities as ut
 import platosim.referenceFrames as rf
 from platosim.simfile import SimFile
 
@@ -1027,8 +1028,8 @@ class Simulation(object):
 
     
 
-    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes,
-                                                  starIDs, starCatalogPath):
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs,
+                                                  starCatalogPath):
 
         """Create a star catalogue file from the pixel coordinates.
         
@@ -1204,11 +1205,6 @@ class Simulation(object):
                    np.transpose([time, dmag]),
                    fmt=['%.1f', '%.6f'])       
 
-        # Set the "ObservingParameters/StarCatalogFile" tag in the yaml tree
-
-        #self["Sky/IncludeVariableSources"] = True
-        #self["Sky/IncludeVariableSources"] = variableSourceFile
-
 
 
 
@@ -1258,14 +1254,14 @@ class Simulation(object):
         
     def createDriftFile(self, quarter, fileName, model="poly", plot=False):
 
-        """Create a photometry file list in ascii format and sets it to the YAML input.
+        """Create a camera drift file in ascii format and sets it to the YAML input.
 
         Parameters
         ----------
-        starIDs : ndarray
-            Array with IDs of the star (integers)
-        fileName : str
-            Path of the photometry file that will be written.
+        quarter :
+        fileName :
+        model : 
+        plot :
 
         Return
         ------
@@ -1275,19 +1271,56 @@ class Simulation(object):
         """
 
         # Create TED file
+        
         from platosim.noise import getTED  
         getTED(quarter=quarter, model=model, outfile=fileName, plot=plot)
 
         # Set this to simulation
 
-        self["Telescope/UseDrift"]         = True
-        self["Telescope/UseDriftFromFile"] = True
-        self["Telescope/DriftFileName"]    = fileName
+        self["Telescope/UseDrift"]      = True
+        self["Telescope/DriftSource"]   = 'FromFile'
+        self["Telescope/DriftFileName"] = fileName
 
 
 
 
 
+    def createDetectorTemperatureFile(self, time, temp, ccdFileName):
+
+        """Create a CCD(T) file in ascii format and sets it to the YAML input.
+
+        
+        Parameters
+        ----------
+        time : ndarray
+            Time points of time series [s]
+        temp : ndarray
+            CCD temeprature values [K]
+        ccdFileName : str
+            Filename of the CCD temeprature file
+
+        Return
+        ------
+        A file will be saved, containing a column of time and CCD temperature.
+        The "CCD/TemperatureFileName" tag in the yaml tree will be changed to the
+        ccdFileName.
+
+        NOTE: PlatoSim cannot model the FEE(T) yet.
+        """
+
+        # Create TED file
+                
+        np.savetxt(ccdFileName, np.transpose([time, temp]), fmt=['%.1f', '%.6f'])
+
+        # Set this to simulation
+
+        self["CCD/TemperatureFileName"] = ccdFileName
+        self["CCD/Temperature"]         = "FromFile"
+
+
+
+
+        
     def getReadoutTime(self):
 
         """Fetch the readout time.
@@ -1431,30 +1464,35 @@ class Simulation(object):
 
 
 
-    def getStarsWithinCameraGroup(self, raPF, decPF, kappaPF, ra, dec,
-                                  camGroup=1, quarter=1, radius=False, sizeSubfield=6):
+    def getStarsWithinCameraGroup(self, ra, dec, alpha, delta, kappa,
+                                  cameraGroup=1, quarter=1, radiusFOV=False,
+                                  subfieldSize=6):
 
         """Fetch all stars within a camera group.
 
-        This function determines if any star from a catalogue is within the FOV of a specific
-        PLATO camera group.
+        This function determines if any star from a catalogue is within
+        the FOV of a specific PLATO camera group.
 
         TODO: Could be implemented in a better and faster manner!
 
         Parameters
         ----------
-        camGroup : int [1, 2, 3, 4]
-            N-CAM camera group ID
-        raPF : float
-            Right acsension of pointing field [deg]
-        decPF : float
-            Declination of pointing field [deg]
-        ra : list, array
+        ra : list, ndarray
             Right ascension of stars to be checked against [deg]
-        dec : list, tuple, array
+        dec : list, ndarray
             Declination of stars to be checked against [deg]
+        alpha : float
+            Right acsension of pointing field [deg]
+        delta : float
+            Declination of pointing field [deg]
         kappa : float
             Rotation of the platform [deg]
+        camGroup : int
+            N-CAM camera group ID [1, 2, 3, 4]
+        quarter : float
+            Mission quarter number (starting from 1)
+        subfieldSize : int
+            Number of pixels to place retangular subfield
 
         Return
         ------
@@ -1464,54 +1502,62 @@ class Simulation(object):
            Distance of each from the camera's optical axis [mm]
         """
 
-        # Telescope config
+        # Camera information
 
-        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF   # [deg]
-        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF  # [deg]
+        focalLength     = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [mm]
+        focalPlaneAngle = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        raPlatformRad  = np.deg2rad(raPlatformDeg)                                # [rad]
-        decPlatformRad = np.deg2rad(decPlatformDeg)                               # [rad]
+        # Platform orientation [deg]
 
-        focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
-        focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
+        alphaPlatformDeg = self["Platform/Orientation/Angles/RAPointing"]  = alpha
+        deltaPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = delta
+        kappaPlatformDeg = self["Platform/Orientation/Angles/SolarPanelOrientation"] = ut.getSolarPanelOrientation(kappa, quarter)
 
-        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90. - kappaPF, 360.)  # [deg]
-        solarPanelOrientation = np.deg2rad(float(solarPanelOrientation))             # [rad]
-
-        raTargetsRad  = np.deg2rad(ra)                                               # [rad]
-        decTargetsRad = np.deg2rad(dec)                                              # [rad]
-
+        # Convert coordinates to radians
+        
+        raTargetsRad  = np.deg2rad(ra)
+        decTargetsRad = np.deg2rad(dec)
+        alphaPlatformRad = np.deg2rad(alphaPlatformDeg)
+        deltaPlatformRad = np.deg2rad(deltaPlatformDeg)
+        kappaPlatformRad = np.deg2rad(float(kappaPlatformDeg))
+        
         # Loop over each star for this cam-group
 
-        self["Telescope/GroupID"] = camGroup
-        azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][camGroup-1])
-        tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][camGroup-1])
+        self["Telescope/GroupID"] = cameraGroup
+        tiltGroup = np.deg2rad(self["CameraGroups/TiltAngle"][cameraGroup-1])
+        azimGroup = np.deg2rad(self["CameraGroups/AzimuthAngle"][cameraGroup-1])
 
-        # Select how large the FOV should be
+        # Select how large the FOV should be [deg -> rad]
 
-        if not radius:
-            radius = self['CCD/RelativeTransmissivity/RadiusFOV']
+        if not radiusFOV:
+            radiusFOV = self['CCD/RelativeTransmissivity/RadiusFOV']
+        radiusFOV = np.deg2rad(radiusFOV)
+            
+        # Start loop over each star
+        # Check 1: if star in located on one of the 4 CCDs
+        # Check 2: if star is within the "radius" from the OA
         
         dexGroup   = np.zeros(len(ra), dtype=bool)
         distanceOA = np.zeros(len(ra))
 
         for i in range(len(ra)):
-
-            subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                                   sizeSubfield, sizeSubfield,
+            subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i],
+                                                                   decTargetsRad[i],
+                                                                   subfieldSize,
+                                                                   subfieldSize,
                                                                    normal=True)
             if subfieldIsOnCCD:
-
-                xFP, yFP = rf.skyToFocalPlaneCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                         raPlatformRad, decPlatformRad,
-                                                         solarPanelOrientation,
-                                                         tiltTelescope, azimuthTelescope,
+                xFP, yFP = rf.skyToFocalPlaneCoordinates(raTargetsRad[i],
+                                                         decTargetsRad[i],
+                                                         alphaPlatformRad,
+                                                         deltaPlatformRad,
+                                                         kappaPlatformRad,
+                                                         tiltGroup, azimGroup,
                                                          focalPlaneAngle, focalLength)
-
-                distanceOA[i] = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(xFP, yFP,
-                                                                                    focalLength))
-
-                if distanceOA[i] < radius:
+                
+                distanceOA[i] = rf.gnomonicRadialDistanceFromOpticalAxis(xFP, yFP,
+                                                                         focalLength)
+                if distanceOA[i] < radiusFOV:
                     dexGroup[i] = True
                 else:
                     dexGroup[i] = False
