@@ -560,8 +560,8 @@ class PLATOnium(object):
             sim["CCD/Position"]                 = str(self.ccdCode)
             sim["SubField/ZeroPointRow"]        = 0
             sim["SubField/ZeroPointColumn"]     = 0
-            sim["SubField/NumColumns"]          = 100#4510
-            sim["SubField/NumRows"]             = 100#4510
+            sim["SubField/NumColumns"]          = 4510
+            sim["SubField/NumRows"]             = 4510
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True
             sim["ControlHDF5Content/WritePixelMaps"]     = True
@@ -1567,7 +1567,7 @@ sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to 
 sim_group.add_argument('--mag',     metavar='PMAG', type=float, help='Option to change target magnitude (overwrites catalogue magnitude)')
 sim_group.add_argument('--nocon',       action='store_true',    help='Flag ignore all stellar contaminants')
 sim_group.add_argument('--reusejitter', action='store_true',    help='Flag to re-use AOCS jitter file across all quarters')
-sim_group.add_argument('--fullframe',   action='store_true',    help='Flag to simulate full-frame CCD ->CCDcode = starID ')
+sim_group.add_argument('--fullframe',   action='store_true',    help='Flag to simulate full-frame CCD -> CCDcode = starID')
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
 pip_group.add_argument('--sample',   metavar='PIC',     type=str,   help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')
