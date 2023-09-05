@@ -785,12 +785,6 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         plt.tight_layout()
         plt.show()
 
-    # Save file (and plot) if requested
-        
-    if outfile:
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
-        df.to_csv(outfile, sep=" ", header=False, index=False)
-    
     # Create pandas data frame for different flags
     
     df = pd.DataFrame()
@@ -799,7 +793,13 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     df["link"]   = link
     df["jitter"] = jitter
     df["safe"]   = safe
-
+        
+    # Save file (and plot) if requested
+        
+    if outfile:
+        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+        df.to_csv(outfile, sep=" ", header=False, index=False)
+    
     # Compute event times
         
     t0 = np.concatenate((roll_event0, link_event0, safe_event0))
