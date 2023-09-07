@@ -68,8 +68,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
         hdf5File = new HDF5File();
     }
 
-
-
     // Open the HDF5 output file where the images will be written
 
     hdf5File->open(outputFilename);
@@ -78,7 +76,8 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
     hdf5File->writeVersionInformation();
 
-
+    // Acquisition times
+    
     double readoutTimeDuringNextExposure;
     tie(readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure) = configureReadoutTime(configParams);
     exposureTime = cycleTime - readoutTimeBeforeNextExposure;
@@ -90,7 +89,6 @@ Simulation::Simulation(string inputFilename, string outputFilename)
     Log.debug("Simulation: Cycle time: " + to_string(cycleTime));
     Log.debug("Simulation: Exposure time: " + to_string(exposureTime));
     Log.debug("Simulation: Readout time before next exposure: " + to_string(readoutTimeBeforeNextExposure));
-
 
     // Depending on what the user requested, define the proper platform jitter generator
 
@@ -249,7 +247,7 @@ void Simulation::configure(ConfigurationParameters &configParams)
     numExposures                    = configParams.getInteger("ObservingParameters/NumExposures");
     useJitter                       = configParams.getBoolean("Platform/UseJitter");
     jitterSource                    = configParams.getString("Platform/JitterSource");
-    includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion"); // do we want to do this or should this be asked to Camera?
+    includeFieldDistortion          = configParams.getBoolean("Camera/IncludeFieldDistortion");     // TODO do we want to do this or should this be asked to Camera?
     useDrift                        = configParams.getBoolean("Telescope/UseDrift");
     driftSource                     = configParams.getString("Telescope/DriftSource");
     psfModel                        = configParams.getString("PSF/Model");

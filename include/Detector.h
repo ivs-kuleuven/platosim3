@@ -137,6 +137,8 @@ class Detector: public HDF5Writer
         arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
+        // TODO implement writing of time here
+        //virtual void writeTimeToHDF5(int exposureNr);
         virtual void writePixelMapsToHDF5(int exposureNr);
         virtual void writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr);
         virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);

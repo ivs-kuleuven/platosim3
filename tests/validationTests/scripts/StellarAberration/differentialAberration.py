@@ -78,7 +78,7 @@ class DifferentialAberration(Test):
         f = sim.run(removeOutputFile=True)
 
         # Fetch parameters
-        row, col = f.getStarPositions(sid)
+        row, col = f.getStarPositions(sid[0])
 
         return 4-row, 4-col
 
