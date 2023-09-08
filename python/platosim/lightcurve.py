@@ -23,13 +23,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as colors
-#import statsmodels.api as sm
 
 from astropy.time import TimeBase, Time, TimeDelta
 from astropy import units as u
 from astropy.units import Quantity
 import astropy.stats as stats
-
 
 from scipy import constants as c
 from scipy.ndimage import median_filter
@@ -170,18 +168,25 @@ class LightCurve(object):
 
 
     def _units(self, name=False, unit=False):
-        
+        # TODO under construction!
         names = list(self.df.columns.values)
         units = ['s', 'e/s']
         self.dic = {names[i]: units[i] for i in range(len(names))}
                  
 
-    def _unit_add(self, name, unit):
+
         
+    def _unit_add(self, name, unit):
+
+        # TODO under construction!
         self.dic[name] = unit
 
+
+
+        
     def _unit_convert(self, unit_from, unit_to):
 
+        # TODO under construction!
         # Convert time units
         if   unit == "s": time = self.df["time"]
         elif unit == "h": time = self.df["time"] / c.hour
@@ -364,9 +369,14 @@ class LightCurve(object):
         else: N = ""
         
         # Fetch all zip files and sort them using natsort
-        
+
         files = natsort.natsorted(glob.glob(f"{path}/{prefix}**{G}**{C}**{Q}**{N}.{suffix}"))
+
+        # Check if any file was found
         
+        if len(files) == 0:
+            errorcode('error', 'No files found! Check your path')
+            
         return files
 
     
@@ -1726,7 +1736,7 @@ class LightCurve(object):
                     model_detrend="poly", degree=2, window=0.5, mask=False,
                     model_clip="scipy", low=3, high=3):
                
-        """Merge light curves from a single star.
+        """Detrend and correct light curve of multi-camera observation.
 
         Function to merge multi-cameras and multi-quarter light curves into
         a single pandas data frame. If requested each of light curve can be
@@ -1821,116 +1831,9 @@ class LightCurve(object):
 
         return LightCurve(df0, mode="multi", ncam=False)
 
-
-
-
-
-
-
-    def reduce_star(self, flux_group_mean=False, ofile=False, suffix="ftr",
-                    model_detrend="poly", degree=2, window=0.5, mask=False,
-                    model_clip="scipy", low=3, high=3):
-               
-        """Merge light curves from a single star.
-
-        Function to merge multi-cameras and multi-quarter light curves into
-        a single pandas data frame. If requested each of light curve can be
-        detrended prior to the merge and as default it uses the Wotan is 
-        used. This package is good for planet transit searches, however, not
-        so much for preserving the stellar signal.
-
-        Parameters
-        ----------
-        quarter : int
-            Mission quarter number.
-        detrend : bool
-
-            Whether or not detrending should be applied before merge.
-        clip : bool
-            Whether or not sigma-clipping should be applied before merge.
-        ofile : str
-            Obsolute path to output file.
-        flux_group_mean : bool
-            Whether or not to mean measurements from the same camera (i.e. identical times).
-        suffix : str
-            Suffix of simulations (either 'hdf5' or 'ftr').
-
-        Return
-        ------
-        <ofile>.ftr : pdarray
-            Output feather file with merged data if requested.
-        lc : class object
-            Instance of the LightCurve class to be used to extract data.
-        ncam : int
-            Number of cameras being merged.
-        flag : int
-            Flag to if flux is normal (0) or abnormal (1) 
-        """
-
-        # Open a pandas data frame and write to it
-        
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-
-        # Fetch all zip files
-        
-        files  = self.files(suffix)
-        nfiles = len(files)
-
-        # Loop over each group and camera
-
-        for i in tqdm(range(nfiles), bar_format=ut.tqdmBar()):
-
-            # Fetch light curve object
-            try: lc = LightCurve(files[i])
-            except: pass
-            else:
-                
-                # Detrend light curve
-
-                lc.detrend(model=model_detrend, window=window, mask=mask)
-
-                # Remove outliers
-
-                lc.clip(model=model_clip, low=low, high=high)
-
-                # Create initial data frame and save to it
-
-                df = lc.data()
-                
-                if i == 0:
-                    df0['time'] = df.time
-                    df0['flux'] = df.flux_clip
-                else:
-                    df1['time'] = df.time
-                    df1['flux'] = df.flux_clip
-
-                    # Contatinate data frames
-
-                    df0 = pd.concat([df0, df1])
-
-        # Sort after logic structure and reset indices
-
-        df0 = df0.sort_values(by=["time"])
-        df0 = df0.reset_index(drop=True)
-
-        # If requested mean fluxes from same group (i.e. same time stamp)
-        
-        if flux_group_mean: df0 = df0.groupby('time').mean().reset_index()
-        
-        # If requested save output file
-        
-        if ofile: df0.to_feather(ofile)
-        
-        # Set a global light curve object
-
-        return LightCurve(df0, mode="multi", ncam=False)
-
-
     
 
     
-
 
     def run_NSRvsMag_analysis_perStar(self, outputFile, numStar, quarters=1, suffix="ftr"):
 
@@ -2490,190 +2393,12 @@ class LightCurve(object):
 
 
 
-    #--------------------------------------------------
-    #--------------------------------------------------
-    #--------------------------------------------------
-
-
-
-
-
     
+    def statistics_sim_info_table(self, idir, ofile, pointing, numStar, unpack=False):
 
-    def run_NSRvsMag_analysis_perStar_reference(self, vfile, idir0, idir1, ofile, numStar, quarters=1):
+        """Function to create a overview table of the simulated stars.
 
-        """Compute NSR(mag) for a stellar catalogue.
-                
-        Function to merge multi-cameras and multi-quarter light curves and
-        compute the NSR for merged light curve per star and quarter.
-
-        Parameters
-        ----------
-        outputFile : str
-           Full path including name and suffix of output file.
-        numStar : int
-           Number of stars to be analysed.
-        
-        Return
-        ------
-        <outputFile>.ftr : pdframe
-            Output feather file containing one NSR value per star and quarter.
-        """
-
-        # Open a pandas data frame and write to it
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-
-        # Load stellar catalogue
-        dc = pd.read_feather(vfile)
-
-        suffix = "hdf5"
-        
-        # Loop over each star
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
-
-            # Read path
-            starID = f"{i}".zfill(9)
-            path0  = f"{idir0}/{starID}"
-            path1  = f"{idir1}/{starID}"
-            
-            # Initialise object
-            lcs0 = LightCurve(path0, mode="multi")
-            lcs1 = LightCurve(path1, mode="multi")
-
-            # Unpack all zip files in the path folder
-            lcs0.unpack()
-            lcs1.unpack()
-            
-            # Check if any data exist for a given star
-            try: glob.glob(f"{path1}/*{suffix}")[0]
-            except: pass
-            else:
-                    
-                # Fetch manitude for each star
-                mag  = dc.mag.iloc[i-1]
-                ncon = dc.ncon.iloc[i-1]
-                
-                # Loop over each quarter
-
-                for q in range(1, quarters+1):
-
-                    # Merge all observations for the same quarter [ppm]
-                    df, ncam = self.merge_reference(path0, path1, quarter=q)
-
-                    # Check that any light curve exist for a given quarter
-                    if not ncam == 0:
-
-                        # Estimate NSR
-                        dt = 1/24.
-                        nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
-                        tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
-
-                        # Bin data
-                        flux_dex = df.columns.get_loc('flux')
-                        data = [df[df["time"].between(tbins[i], tbins[i+1])].to_numpy()
-                                for i in range(nbins-1)]
-                        noise = np.array([data[i][:,flux_dex].std()  for i in range(len(data))])
-                        nbin = len(noise)
-
-                        # Estimate NSR
-                        NSR = np.mean(noise) * 1e6 / np.sqrt(nbin)
-
-                        # Store data in data frame
-                        data = {"star":i, "quarter":q, "ncam":ncam, "ncon":ncon,
-                                "mag":mag, "NSR":NSR}
-                        df1 = pd.DataFrame(data, index=[0])
-                            
-                        # Add data to data frame
-                        df0 = pd.concat([df0, df1])
-
-                # Remove output files again
-                #lcs0.remove(path=path)
-                #lcs1.remove(path=path)
-                    
-        # Handle output format
-        df = df0.astype({"star":int, "quarter":int, "ncam":int, "ncon":int,
-                         "mag":np.float32, "NSR":np.float32})
-
-        # Sort data frame, set new index, and save
-        df = df.sort_values(by=["star", "quarter"])
-        df = df.reset_index()
-        df.to_feather(ofile)
-
-        
-
-
-
-    def merge_reference(self, path0, path1, flux_group_mean=True, quarter=False):
-
-        """Merge light curves from a single star.
-
-        Function to merge multi-cameras and multi-quarter light curves into
-        a single pandas data frame. If requested each of light curve can be
-        detrended prior to the merge and as default it uses the Wotan is 
-        used. This package is good for planet transit searches, however, not
-        so much for preserving the stellar signal.
-        """
-
-        # Open a pandas data frame and write to it
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-
-        # Fetch all zip files
-        files0 = self.files(path=path0, suffix='hdf5')
-        files1 = self.files(path=path1, suffix='hdf5')
-        nfiles = len(files0)
-        ncam   = 0
-
-        # Loop over each group and camera
-
-        for i in range(nfiles):
-
-            # Fetch light curve object
-            try: lc0 = LightCurve(files0[i])
-            except: pass
-            else:
-
-                # Mean flux signal
-                signal = lc0.flux(unit='e/s').mean()
-                                
-                # Fetch obs info                
-                G, C, Q = lc0.obs()
-
-                # Select quarter
-                if Q == quarter: ncam += 1
-                
-                # Create initial data frame and save to it
-                lc = LightCurve(files1[i])
-                if i == 0:
-                    df0['time'] = lc.time(unit='d')
-                    df0['flux'] = lc.flux(unit='e/s') / signal
-                    #df0['flux'] -= df0.flux.mean()
-                else:
-                    df1['time'] = lc.time(unit='d')
-                    df1['flux'] = lc.flux(unit='e/s') / signal
-                    df1['flux'] -= df1.flux.mean()
-                    # Contatinate data frames
-                    #df0 = pd.concat([df0, df1])
-                    
-        # Sort after logic structure and reset indices
-        df0 = df0.sort_values(by=["time"])
-        df0 = df0.reset_index(drop=True)
-
-        # If requested mean fluxes from same group (i.e. same time stamp)
-        if flux_group_mean:
-            df0 = df0.groupby('time').mean().reset_index()
-                
-        return df0, ncam
-    
-
-
-
-    
-    def statistics_sim_info_table(self, idir, ofile, pointing, numStar):
-
-        """
+        TODO under construction!
         """
 
         # Configuration file used in simulation
@@ -2700,7 +2425,8 @@ class LightCurve(object):
             lcs = LightCurve(path, mode="multi")
 
             # Unpack all files
-            #lcs.unpack()
+            if unpack:
+                lcs.unpack()
 
             # Fetch all cat files
             files  = self.files(path=path, suffix='ftr')
