@@ -182,19 +182,7 @@ if outputDir is not None or project is not None:
         outputFileTar = outputDir / outputPrefixTar
         outputFileCon = outputDir / outputPrefixCon
 
-# Copy an inputfile.yaml file if no file exist
-
-if outputDir:
-    copyInputYAML(args.field, outputDir)
-# inputFileYAML = Path(os.getenv('PLATO_PROJECT_HOME')) / 'inputfiles/inputfile.yaml'
-# try:
-#     inputFileNew = outputDir / 'inputfile.yaml'
-# except:
-#     pass
-# else:
-#     if not inputFileNew.is_file():
-#         shutil.copy(inputFileYAML, inputFileNew)
-
+        
 #-----------------------------------------------------------------
 # TODO implement properly such dmag and dist can be requested too
 if targetQuery:

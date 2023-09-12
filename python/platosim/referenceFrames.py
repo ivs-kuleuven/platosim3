@@ -1447,8 +1447,11 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
             angularDistance[i] -= 2.0 * np.pi
 
     # That's it!
-
-    return angularDistance
+        
+    if len(angularDistance) == 1:
+        return angularDistance[0]
+    else:
+        return angularDistance
 
 
 
@@ -1780,11 +1783,11 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
     Parameters
     ----------
     raPlatform : float
-        Right ascension of the pointing of the Platform [deg]
+        Right ascension of the pointing of the Platform [rad]
     decPlatform : float 
-        Declination of the pointing of the Platform [deg]
+        Declination of the pointing of the Platform [rad]
     solarPanelOrientation : float
-        Orientation of the solar panel [deg]
+        Orientation of the solar panel [rad]
         This corresponds to (0, pi/2, pi, 3pi/2) for quarters (Q1, Q2, Q3, mQ4)
 
     Return
@@ -1797,8 +1800,8 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
 
     # Relative azimuth and tilt angles of each camera group w.r.t platform
 
-    azimuthAngles = [45.0, 135.0, 225.0, 315.0]
-    tiltAngles    = [9.2, 9.2, 9.2, 9.2]
+    azimuthAngles = np.deg2rad([45.0, 135.0, 225.0, 315.0])
+    tiltAngles    = np.deg2rad([ 9.2,   9.2,   9.2,   9.2])
 
     # Fetch RA and Dec for each camera group
 
@@ -1806,13 +1809,13 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
     decGroups = []
 
     for group in range(4):
-        ra, dec = platformToTelescopePointingCoordinates(np.deg2rad(raPlatform),
-                                                         np.deg2rad(decPlatform),
-                                                         np.deg2rad(solarPanelOrientation),
-                                                         np.deg2rad(azimuthAngles[group]),
-                                                         np.deg2rad(tiltAngles[group]))
-        raGroups.append(np.rad2deg(ra))
-        decGroups.append(np.rad2deg(dec))
+        ra, dec = platformToTelescopePointingCoordinates(raPlatform,
+                                                         decPlatform,
+                                                         solarPanelOrientation,
+                                                         azimuthAngles[group],
+                                                         tiltAngles[group])
+        raGroups.append(ra)
+        decGroups.append(dec)
 
     # Finito!
 

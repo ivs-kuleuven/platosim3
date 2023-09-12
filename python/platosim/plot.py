@@ -1255,7 +1255,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     used by 'picsim'.
 
     Parameters
-    ----------
+    ---------
     pointingField : str
         The desired PLATO pointing field: 'SPF' or 'NPF'
     raSatrs : float
@@ -1365,8 +1365,12 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
         # Show N-CAM groups
 
-        raGroups, decGroups = rf.getCameraGroupCoordinates(alpha, delta, kappa)
-        camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
+        raGroups, decGroups = rf.getCameraGroupCoordinates(np.deg2rad(alpha),
+                                                           np.deg2rad(delta),
+                                                           np.deg2rad(kappa))
+        camPointing = SkyCoord(np.rad2deg(raGroups)*u.deg,
+                               np.rad2deg(decGroups)*u.deg,
+                               frame='icrs', unit='deg')  
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
             ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
                     mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
@@ -1381,9 +1385,12 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         # ax.plot(PF.ra.deg, PF.dec.deg,  marker='.',
         #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
         #         transform=ax.get_transform(system), zorder=6)
-        ax.scatter(PF.ra.deg, PF.dec.deg, s=115000, marker='o',
+        ax.scatter(PF.ra.deg, PF.dec.deg, s=85e3, marker='o',
                    edgecolor='magenta', facecolor='none', linewidth=2,
                    transform=ax.get_transform(system), zorder=6)
+        # ax.scatter(raGroups[3]*u.deg, decGroups[3]*u.deg, s=85e3, marker='o',
+        #            edgecolor='r', facecolor='none', linewidth=2,
+        #            transform=ax.get_transform(system), zorder=6)
         # The problem with projecting shapes due to missing cos factor
         # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
         # https://github.com/astropy/regions/issues/76

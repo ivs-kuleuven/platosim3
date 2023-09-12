@@ -329,7 +329,10 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
     
     if outfile:
         df.to_csv(outfile, sep=" ", header=False, index=False)
+        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
 
+    # That's it!
+    
     return PRE
 
 
@@ -338,7 +341,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
 
 def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False):
 
-    """
+    """TODO Finish doc string!
    
     Paramters
     ---------
@@ -352,10 +355,10 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
     # This gives a RMS value of 1.5 arcsec (6 pixel)
     t = 4.5/60  # [deg]
     b = 9.0/60  # [deg]
-
+        
     # Find distribution within 3 sigma of req.
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(24)])
-    bb = np.array([np.random.normal(0, t/sigma) for i in range(24)])
+    tt = np.array([np.random.normal(0, t/sigma) for i in range(26)])
+    bb = np.array([np.random.normal(0, t/sigma) for i in range(26)])
 
     # Corresponding yaw, pitch, roll
     dy = tt
@@ -369,7 +372,7 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
     # Plot histogram and data
     if show_table:
         # Print generate values
-        print('\nCamera alignment errors for all 24 N-CAMs [pixel]')
+        print(f'\nCamera alignment errors for all 26 cameras [pixel]')
         APE0 = np.transpose([tt, bb, dx, dy, dz]) * 3600 / 15
         df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
         print(df0)
@@ -384,7 +387,6 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
         xx = np.linspace(-10*t, 10*t, 1000)
 
         fig, ax = plt.subplots(1, 2, figsize=(9,4))
-
         
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Trans.')
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rot.')
@@ -413,9 +415,13 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
         plt.show()
 
     # Save APE camera misalignments
+    
     if outfile:
         df.to_csv(outfile, sep=" ", header=False, index=False)
-                       
+        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+
+    # That's it!
+    
     return APE
 
 
@@ -524,16 +530,16 @@ def getTED(quarter, model="poly", outfile=False, show_table=False, plot=False):
         ax[1].set_xticklabels([])
         plt.tight_layout(h_pad=0.2, w_pad=0)
         plt.show()
-
+        
     # Save data in one big drift text file for PlatoSim
     if outfile:
-        fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
         df.to_csv(outfile, sep=" ", header=False, index=False)
+        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
 
 
 
 
-
+            
 def getACS(time, rms=[0.038, 0.038, 0.040], outfile=False, plot=False):
 
     """Generate a Attitude and orbit Control System (ACS) jitter file.
@@ -577,9 +583,11 @@ def getACS(time, rms=[0.038, 0.038, 0.040], outfile=False, plot=False):
     # Save data in one jitter file
     
     if outfile:
-        fig1.savefig(f"{outfile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
-        fig2.savefig(f"{outfile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
         df.to_csv(outfile, sep=" ", header=False, index=False)
+        if plot:
+            fig1.savefig(f"{outfile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
+            fig2.savefig(f"{outfile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
+        
     
     
 
@@ -797,8 +805,8 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
     # Save file (and plot) if requested
         
     if outfile:
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
         df.to_csv(outfile, sep=" ", header=False, index=False)
+        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
     
     # Compute event times
         
@@ -946,9 +954,9 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
     # Save data if requested
 
     if outfile:
-        fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
         np.savetxt(outfile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
-
+        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+        
     # That's it!
         
     return temp

@@ -88,11 +88,14 @@ else
     echo "export PATH=${PATH}:$POETRY:$CONDA_PREFIX/bin:$PLATO_PROJECT_HOME/build:$PLATO_PIPELINE:$PLATO_PIPELINE/bin" >> $PLATO_SETUP
        
     # Add code to global executeables (-i overwrite old files) TODO
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/picsim    $CONDA_PREFIX/bin
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/varsim    $CONDA_PREFIX/bin
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/payload   $CONDA_PREFIX/bin
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium $CONDA_PREFIX/bin
-    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/pdshow    $CONDA_PREFIX/bin
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/vizier.py    $CONDA_PREFIX/bin/vizier
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/picsim.py    $CONDA_PREFIX/bin/picsim
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/varsim.py    $CONDA_PREFIX/bin/varsim
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/payload.py   $CONDA_PREFIX/bin/payload
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/platonium/platonium.py $CONDA_PREFIX/bin/platonium
+
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/scripts/migtool.py $CONDA_PREFIX/bin/migtool
+    cp -rf $PLATO_PROJECT_HOME/python/platosim/scripts/pdshow.py  $CONDA_PREFIX/bin/pdshow
     
     # Reload .bashrc TODO mac
     source $HOME/.bashrc
@@ -115,22 +118,30 @@ else
     # python -m ipykernel install --user
 
     # Finish with prolog message
-    echo "---------------------------"
-    echo " PLATOnium has been set up!"
-    echo "---------------------------"
-    echo "From bash checkout:"
+    echo "----------------------------"
+    echo " PLATOnium has been set up !"
+    echo "----------------------------"
+    echo ""
+    echo " From bash checkout:"
+    echo ""
+    echo ">> vizier -h"
     echo ">> picsim -h"
     echo ">> varsim -h"
     echo ">> payload -h"
     echo ">> platonium -h"
+    echo ""
+    echo " See also help functions:"
+    echo ""
+    echo ">> migtool -h"
     echo ">> pdshow -h"
+    echo ""
     if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
-	echo "---------------------------"
-	echo " Pipeline has been set up !"
-	echo "--------------------------"
+	echo " Pipeline extention is added:"
+	echo ""
 	echo ">> pproc.py -h"
 	echo ">> psffit.py -h"
 	echo ">> photometry.py -h"
 	echo ">> jittercorrection.py -h"
+	echo ""
     fi
 fi

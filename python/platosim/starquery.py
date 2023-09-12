@@ -282,7 +282,7 @@ def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile=False):
     maglim : int, float
         Magitude limit to search for stars below
     ofile : str
-        File name (without file extension) to be saved
+v        File name (without file extension) to be saved
 
     Return
     ------
@@ -335,7 +335,7 @@ def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile=False):
                                "LANG"           : "ADQL",
                                "FORMAT"         : "votable_plain",
                                "PHASE"          : "RUN",
-                               "JOBNAME"        : "PLATO FGS catalog",
+                               "JOBNAME"        : "PLATO catalog",
                                "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
                                "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}),POINT(ra,dec)) AS dist, designation, ra, dec, phot_g_mean_mag, bp_rp FROM {catalogue} AS cat WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}),CIRCLE(cat.ra,cat.dec,{radius})) AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
 

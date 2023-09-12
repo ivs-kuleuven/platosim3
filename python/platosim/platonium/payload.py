@@ -17,7 +17,6 @@ directly into your working directory and will immediately be known
 and used when running "platonium". 
 """
 # TODO instrumentGain.txt : Gain differences for the each CCD (F and E side) and FEE
-# TODO instrumentBias.txt : Thermal transient after each data gaps increasing the bias 
 
 # Python standard
 import os
@@ -57,9 +56,10 @@ class Payload(object):
         self.day2sec = 86400.
         self.prefix  = 'cluster'
 
-        # Plotting
+        # Flags
         self.plot = args.plot
-
+        self.fcam = args.fcam
+        
         # Output directory
         if args.outdir:
             self.odir = Path(args.outdir).resolve()
@@ -84,7 +84,8 @@ class Payload(object):
         self.nimg = (60 * 60 * 24 * 90) / 25.
 
         # Select pointng field
-        self.ra, self.dec, self.kappa = getPointingField(args.field)
+        self.field = args.field
+        self.ra, self.dec, self.kappa = getPointingField(self.field)
         
         # Short-hand definitions 
         N = args.stars
@@ -149,6 +150,78 @@ class Payload(object):
 
 
                         
+    def createInputYAML(self):
+
+        """Function to copy and adjust a yaml ready to launch.
+
+        Parameters
+        ----------
+        field : str
+            Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
+        odir : str, pathlib object
+            Absolute output directory
+        """
+
+        # Get files names of YAML files
+        yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+        yaml_new = self.odir / "inputfile.yaml"
+
+        # Copy YAML if it doesn't exist already
+        if not yaml_new.is_file():
+
+            #print(f"Copying YAML configuration file : {yaml_new}")
+            shutil.copy(yaml_old, yaml_new)
+
+            # Find and replace a few strings:
+            with open(yaml_new, 'r') as file:
+                filedata = file.read()
+                filedata = filedata.replace('inputfiles/starcatalog.txt', self.field)
+                # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
+                filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+                filedata = filedata.replace( 'NumColumns:                      100',
+                                            f'NumColumns:                      7  ')
+                filedata = filedata.replace( 'NumRows:                         100',
+                                            f'NumRows:                         7  ')
+                filedata = filedata.replace('IncludePhotometry:               no ',
+                                            'IncludePhotometry:               yes')
+                filedata = filedata.replace('MaskUpdateInterval:              14.0',
+                                            'MaskUpdateInterval:              30.0')
+                filedata = filedata.replace('GroupByExposure:                 yes',
+                                            'GroupByExposure:                 no ')
+                filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                            'WriteBiasMaps:                   no ')
+                filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                            'WriteSmearingMaps:               no ')
+                filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                            'WriteFlatfieldMap:               no ')
+                filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                            'WriteThroughputMaps:             no ')
+                filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                            'WriteTransmissionEfficiency:     no ')
+                filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                            'WriteBackgroundMap:              no ')
+                filedata = filedata.replace('WriteCTI:                        yes',
+                                            'WriteCTI:                        no ')
+                filedata = filedata.replace('WriteACS:                        yes',
+                                            'WriteACS:                        no ')
+                filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                            'WriteTelescopeACS:               no ')
+                filedata = filedata.replace('WriteStarCatalog:                yes',
+                                            'WriteStarCatalog:                no ')
+                filedata = filedata.replace('WriteStarPositions:              yes',
+                                            'WriteStarPositions:              no ')
+                filedata = filedata.replace('WriteGhostPositions:             yes',
+                                            'WriteGhostPositions:             no ')
+                filedata = filedata.replace('WriteCosmics:                    yes',
+                                            'WriteCosmics:                    no ')
+                # Write the file out again
+                if self.odir:
+                    with open(yaml_new, 'w') as file:
+                        file.write(filedata)
+
+
+
+
         
     def createJobScript(self):
 
@@ -209,7 +282,7 @@ class Payload(object):
         walltimeQuarter = timePerImage * self.nimg
         walltimeSafe    = walltimeQuarter + limitSafe/100 * walltimeQuarter
         walltime        = str(datetime.timedelta(seconds=int(walltimeSafe)))
-
+            
         # Print if simulation will run and if so, with what resources
         print(f'Preparing a SLURM job script for {numSim} individual simulations:')
         # print(f'Preparing {numSim} simulations with resources: ' +
@@ -221,7 +294,7 @@ class Payload(object):
             print(f"Creating parameterization job-script: {self.odir}/{self.prefix}.slurm")
 
         script = \
-        """
+        f"""
         #!/bin/bash
 
         #SBATCH -A <account>       # Account name of cluster (mandatory)
@@ -278,6 +351,11 @@ class Payload(object):
         if self.odir:
             print(f"Creating HPC parameterization file  : {self.odir}/{self.prefix}.data")
 
+        # Check if F-CAM is requested -> Group 5
+        if self.fcam:
+            self.G = range(5,6)
+            self.C = range(1,3)
+            
         # Add rows in a loop
         textfile = "star,group,camera,quarter\n"
         for starNo in self.N:
@@ -346,7 +424,7 @@ class Payload(object):
 
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
-        ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+        ns.getAPE(self.ra, self.dec, self.kappa, sigma=3, fcam=self.fcam,
                   outfile=self.fileNameAPE, show_table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
@@ -398,6 +476,7 @@ obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
 obs_group.add_argument('--group',   metavar='NO.', type=str, help='Group   no.: 1, 2, .. (Default: 1-4 = all)')
 obs_group.add_argument('--camera',  metavar='NO.', type=str, help='Camera  no.: 1, 2, .. (Default: 1-6 = all)')
 obs_group.add_argument('--quarter', metavar='NO.', type=str, help='Quarter no.: 1, 2, .. (Default: 1-8 = 2yr)')
+obs_group.add_argument('--fcam',    action='store_true', help='Setup for F-CAMs')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
 out_group.add_argument('-p', '--plot',   action='store_true',      help='Flag to plot each action')
@@ -409,6 +488,7 @@ args = parser.parse_args()
 x = Payload(args)
 
 # Run each module
+x.createInputYAML()
 x.createJobScript()
 x.createParamFile()
 x.createDataGapsAndTransients()
