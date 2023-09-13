@@ -152,9 +152,9 @@ class StarQuery(object):
         filename = self.odir / f'starcat_GaiaDR3_{self.field}'
         N = len(self.raGrid)
         
-        # for i in tqdm(range(N), bar_format=ut.tqdmBar()):
-        #     sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
-        #                        maglim=self.maglim, ofile=f'{filename}_grid{i+1}')
+        for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+            sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
+                               maglim=self.maglim, ofile=f'{filename}_grid{i+1}')
 
         # Combine all the data sets
 
