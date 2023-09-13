@@ -37,6 +37,7 @@ from pathlib import Path
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 from platosim.simulation   import Simulation
+from platosim.simfile      import SimFile
 from platosim.utilities    import errorcode, pdAddColumn, getPointingField
 from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
 from platosim.matplotlibrc import setup
@@ -74,6 +75,7 @@ class PLATOnium(object):
         self.cadence      = args.cadence
         self.simTime      = args.tdur
         self.simExposures = args.nexp
+        self.simBeginExp  = args.bexp
         self.picID        = args.pic
         self.maskUpdate   = args.mask
         self.seed         = args.seed
@@ -423,8 +425,12 @@ class PLATOnium(object):
         # Start time of simulation
         self.timeStart = round(90. * (self.quarter - 1) * 86400.)
 
+        # Check of begin exposure number is parsed
+        if not self.simBeginExp:
+            self.simBeginExp = 0
+        
         # Apply start time relative mission BOL
-        self.beginExposureNr = round(self.timeStart / self.cadence)
+        self.beginExposureNr = round(self.timeStart / self.cadence) + self.simBeginExp
         sim['ObservingParameters/BeginExposureNr'] = self.beginExposureNr
 
         # Duration of time series
@@ -578,7 +584,9 @@ class PLATOnium(object):
                 sim["SubField/ZeroPointColumn"] = shieldCols[0]
                 sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
                 sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
-            
+            else:
+                sim["SubField/NumRows"]         = 100 #shieldRows[1] - shieldRows[0]
+                sim["SubField/NumColumns"]      = 100 #shieldCols[1] - shieldCols[0]
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True
             sim["ControlHDF5Content/WritePixelMaps"]     = True
@@ -962,16 +970,26 @@ class PLATOnium(object):
         
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
-            f = h5py.File(outputFile, "r")
-            # Select detected stars
-            ID = f['StarPositions/Exposure000000/starID'][:]
+            f = SimFile(f'{self.outputSimName}.hdf5')
+            ID, yCCD, xCCD, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr) 
             df = self.dx.iloc[ID]
             df = df.reset_index()
-            # Add stellar positions.
-            df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:] - 0.5
-            df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:] - 0.5
-            df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
-            df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
+            df['xCCD'] = xCCD - 0.5
+            df['yCCD'] = yCCD - 0.5
+            df['xFP']  = xFP
+            df['yFP']  = yFP
+            #---------------------------
+            # f = h5py.File(outputFile, "r")
+            # # Select detected stars
+            # ID = f['StarPositions/Exposure000000/starID'][:]
+            # df = self.dx.iloc[ID]
+            # df = df.reset_index()
+            # # Add stellar positions.
+            # df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:] - 0.5
+            # df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:] - 0.5
+            # df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
+            # df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
+            #------------------------
             # Only keep stars within the rOA FOV
             focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
             df['rOA'] = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP,
@@ -1582,7 +1600,7 @@ sim_group = parser.add_argument_group('SIM PARAMETERS')
 sim_group.add_argument('--cadence', metavar='SEC',  type=float, help='Cadence or cycle time step for each exposure [seconds] (default: 25 s)')
 sim_group.add_argument('--tdur',    metavar='DAY',  type=float, help='Total lenght of shortened quarter time series [days]')
 sim_group.add_argument('--nexp',    metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
-#obs_group.add_argument('--mexp', metavar='NO.',  type=int, help='Number of equidistant exposures in quarter or shortened time series.')
+sim_group.add_argument('--bexp',    metavar='NO.',  type=int,   help='Number of exposure from beginning of quarter')
 sim_group.add_argument('--pic',     metavar='ID',   type=int,   help='ID from the PIC (overwrites "starID")')
 sim_group.add_argument('--seed',    metavar='INT',  type=int,   help='Option to bootstrap seeds in order to reproduce results')
 sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
