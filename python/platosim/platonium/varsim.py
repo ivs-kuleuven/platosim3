@@ -92,7 +92,7 @@ t_day    = 86400.  # [s]
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-class Variability(object):
+class VarSim(object):
 
     """Class to generate noise-less light curves.
     """
@@ -730,10 +730,6 @@ class Variability(object):
         if args.plot:
             lc_tot = lc_gran + lc_puls  
             pt.plot_amplitude_time_series(time, lc_gran, lc_puls, lc_tot, self.star_source)
-            #pt.plot_amplitude_spectrum(time, [lc_gran, lc_puls, lc_tot], cadence)
-
-           
-
 
             
     #--------------------------------------------------------------#
@@ -804,6 +800,7 @@ class Variability(object):
         ----------
         time_start : 
         """
+        
         # time_start and time_end are given in days and define the time interval over which to simulate the flare
         # the sampling should be given in exposures or data-points per day
         # the period and amplitude define the allowed range in periods and amplitudes to include
@@ -1764,7 +1761,7 @@ if args.spot is True or args.spot is None:
     args.spot = True
 
 # Initialize instance of class
-v = Variability(args)
+v = VarSim(args)
 
 # Include stellar variability
 if args.star == 'roAp':

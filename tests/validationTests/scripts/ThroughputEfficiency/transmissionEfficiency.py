@@ -58,8 +58,7 @@ class TransmissionEfficiency(Test):
             image  = simFile.getImage(exposure)
 
             hfile = h5py.File(self.outputDir + "/test" + self.nr + ".hdf5", 'r')
-            t = h5.h5get(hfile, ["ACS", "Time"], verbose = False)
-    
+            t = h5.h5get(hfile, "Time/time", verbose = False)
             time = np.append(time, t)
             flux = np.append(flux, image[0][0])
 
@@ -67,7 +66,7 @@ class TransmissionEfficiency(Test):
         self.flux = flux
 
 
-
+        
 
 
 
@@ -83,7 +82,6 @@ class TransmissionEfficiency(Test):
 
         tmePlato = self.flux / self.flux[0] * tmeBOL
         tmeTheo  = tmeBOL + self.time * (tmeEOL - tmeBOL) / endTime
-
         RMS      = np.sqrt(np.sum((1 / len(tmePlato)) * (tmePlato - tmeTheo)**2))
         return RMS < 0.01
 

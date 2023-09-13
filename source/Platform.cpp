@@ -144,12 +144,12 @@ void Platform::flushOutput()
 
         if (!historyTime.empty())
         {
-           hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
-           hdf5File.writeArray("/ACS/", "PlatformRA",  historyRA.data(),    historyRA.size());
-           hdf5File.writeArray("/ACS/", "PlatformDec", historyDec.data(),   historyDec.size());
-           hdf5File.writeArray("/ACS/", "Yaw",         historyYaw.data(),   historyYaw.size());
-           hdf5File.writeArray("/ACS/", "Pitch",       historyPitch.data(), historyPitch.size());
-           hdf5File.writeArray("/ACS/", "Roll",        historyRoll.data(),  historyRoll.size());
+	  //hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
+           hdf5File.writeArray("/ACS/", "platformRA",  historyRA.data(),    historyRA.size());
+           hdf5File.writeArray("/ACS/", "platformDec", historyDec.data(),   historyDec.size());
+           hdf5File.writeArray("/ACS/", "yaw",         historyYaw.data(),   historyYaw.size());
+           hdf5File.writeArray("/ACS/", "pitch",       historyPitch.data(), historyPitch.size());
+           hdf5File.writeArray("/ACS/", "roll",        historyRoll.data(),  historyRoll.size());
         }
         else
         {

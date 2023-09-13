@@ -660,7 +660,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(Nimages):
             image = self.getSmearingMap(imageNr)
-            imageName = "SmearingMap{0:06d}".format(imageNr)
+            imageName = "smearingMap{0:06d}".format(imageNr)
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -685,7 +685,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(Nimages):
             image = self.getBiasMapLeft(imageNr)
-            imageName = "BiasMap{0:06d}".format(imageNr)
+            imageName = "biasMap{0:06d}".format(imageNr)
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -710,7 +710,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(Nimages):
             image = self.getBiasMapRight(imageNr)
-            imageName = "BiasMap{0:06d}".format(imageNr)
+            imageName = "biasMap{0:06d}".format(imageNr)
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -760,14 +760,14 @@ class SimFile (object):
 
         # Extract arrays
 
-        yaw   = self.hdf5file["ACS"]["Yaw"][:]
-        pitch = self.hdf5file["ACS"]["Pitch"][:]
-        roll  = self.hdf5file["ACS"]["Roll"][:]
+        yaw   = self.hdf5file["ACS"]["yaw"][:]
+        pitch = self.hdf5file["ACS"]["pitch"][:]
+        roll  = self.hdf5file["ACS"]["roll"][:]
 
         # Extract the time values - That's it!
         
         if getTime:
-            time = self.hdf5file["ACS"]["Time"][:]
+            time = self.hdf5file["Time"]["time"][:]
             return yaw, pitch, roll, time
         else:
             return yaw, pitch, roll
@@ -804,14 +804,14 @@ class SimFile (object):
 
         # Extract arrays
 
-        yaw   = self.hdf5file["Telescope"]["TelescopeYaw"][:]
-        pitch = self.hdf5file["Telescope"]["TelescopePitch"][:]
-        roll  = self.hdf5file["Telescope"]["TelescopeRoll"][:]
+        yaw   = self.hdf5file["Telescope"]["telescopeYaw"][:]
+        pitch = self.hdf5file["Telescope"]["telescopePitch"][:]
+        roll  = self.hdf5file["Telescope"]["telescopeRoll"][:]
 
         # Extract the time values
         
         if getTime:
-            time = self.hdf5file["Telescope"]["Time"][:]
+            time = self.hdf5file["Time"]["time"][:]
             return yaw, pitch, roll, time
         else:
             return yaw, pitch, roll
@@ -842,8 +842,8 @@ class SimFile (object):
         jitter continues.
         """
 
-        alpha = self.hdf5file["ACS"]["PlatformRA"][:]
-        delta = self.hdf5file["ACS"]["PlatformDec"][:]
+        alpha = self.hdf5file["ACS"]["platformRA"][:]
+        delta = self.hdf5file["ACS"]["platformDec"][:]
         #kappa = self.hdf5file["Platform"]["SolarPanelOrientation"][:]
         
         # That's it
@@ -1063,14 +1063,6 @@ class SimFile (object):
             
             star = list(self.hdf5file[groupName].keys())
             
-            # TODO remove this when time column is deleted from StarPositions in HDF5
-            #---------------------------------
-            if groupName == "StarPositions":
-                star = star[1:]
-            if (groupName == "PointLikeGhostPositions") or (groupName == "ExtendedGhostPositions"):
-                star = star[:-1]
-            #---------------------------------
-            
             # Check if only a single image is requested and use that automatically
 
             N = len(self.hdf5file[groupName][star[0]]["rowPix"][:])
@@ -1208,11 +1200,11 @@ class SimFile (object):
 
             # Get all Exposure00.. strings and avoid the time array being the last entry
 
-            exp   = np.array(self.hdf5file[groupName])[:-1]
-            Nexp  = len(exp)
+            exp       = np.array(self.hdf5file[groupName])[:]
+            Nexp      = len(exp)
             starIDs   = self.hdf5file[groupName][exp[0]]["starID"][:]
             starIndex = np.where(starIDs == starID)
-            star = starIndex[0]
+            star      = starIndex[0]
 
             # Check if star exist
 
@@ -1335,11 +1327,11 @@ class SimFile (object):
 
         # Extract the arrays from the HDF5 file
 
-        entryRows    = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryRows"][:]
-        entryColumns = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryColumns"][:]
-        entryAngles  = self.hdf5file["Cosmics"][field][exposureGroupName]["EntryAngles"][:]
-        intensities  = self.hdf5file["Cosmics"][field][exposureGroupName]["Intensities"][:]
-        trailLengths = self.hdf5file["Cosmics"][field][exposureGroupName]["TrailLengths"][:]
+        entryRows    = self.hdf5file["Cosmics"][field][exposureGroupName]["entryRows"][:]
+        entryColumns = self.hdf5file["Cosmics"][field][exposureGroupName]["entryColumns"][:]
+        entryAngles  = self.hdf5file["Cosmics"][field][exposureGroupName]["entryAngles"][:]
+        intensities  = self.hdf5file["Cosmics"][field][exposureGroupName]["intensities"][:]
+        trailLengths = self.hdf5file["Cosmics"][field][exposureGroupName]["trailLengths"][:]
             
         # That's it!
 
@@ -1425,9 +1417,9 @@ class SimFile (object):
 
         # Extract the arrays from the HDF5 file
 
-        col  = self.hdf5file["Cosmics"][field][exposureGroupName]["Columns"][:]
-        row  = self.hdf5file["Cosmics"][field][exposureGroupName]["Rows"][:]
-        flux = self.hdf5file["Cosmics"][field][exposureGroupName]["Flux"][:]
+        col  = self.hdf5file["Cosmics"][field][exposureGroupName]["columns"][:]
+        row  = self.hdf5file["Cosmics"][field][exposureGroupName]["rows"][:]
+        flux = self.hdf5file["Cosmics"][field][exposureGroupName]["flux"][:]
 
         # That's it!
 
