@@ -75,6 +75,7 @@ class SimFile (object):
     def reload(self):
 
         """Close the file, and reload it.
+
         Useful when the file may have changed meanwhile.
         """
 
@@ -86,7 +87,9 @@ class SimFile (object):
 
 
     def checkPhotometry(self):
-        # Check that photometry has been saved
+
+        """Check that photometry has been saved.
+        """
 
         if "Photometry" not in self.hdf5file["/"].keys():
             print("ERROR: No photometry present in the HDF5 file!")
@@ -120,11 +123,6 @@ class SimFile (object):
 
 
 
-
-    
-    #--------------------------------------------------------------#
-    #                    SIMULATION PARAMETERS                     #
-    #--------------------------------------------------------------#
 
 
     def getTime(self):
@@ -347,6 +345,9 @@ class SimFile (object):
         
         return np.sqrt(ronCCD**2 + ronFEE**2)
 
+
+
+    
     
     #--------------------------------------------------------------#
     #                          IMAGE MAPS                          #
@@ -599,11 +600,13 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def saveHighResolutionPSFtoFITS(self, FITSfileName):
-        """
-        In case of the analytic non-Gaussian PSF, a high-resolution PSF corresponding to the center
-        of the subfield is stored in the HDF5 file. Extract this image and save it to a FITS file
-        This function will fail when PlatoSim was not run with an analytic non-Gaussian PSF.
+    def saveHighResPSFtoFITS(self, FITSfileName):
+
+        """Save the high resolution PSF to a FITS file.
+
+        In case of the analytic non-Gaussian PSF, a high-resolution PSF corresponding
+        to the center of the subfield is stored in the HDF5 file. Extract this image
+        and save it to a FITS file.
         """
 
         imageName = "HighResPSFmapCenterSubfield"
@@ -623,7 +626,9 @@ class SimFile (object):
 
 
     def saveImagesToFITS(self, fileName):
-        """
+
+        """Save the image maps to a FITS file.
+
         Save all subfield images in the HDF5 file to a FITS file with the given file name.
         This will go horribly wrong when the number of images is too large or when the images
         themselves are too large.
@@ -650,7 +655,9 @@ class SimFile (object):
 
 
     def saveSmearingMapsToFITS(self, fileName):
-        """
+
+        """Save the smearing maps to a fits file.
+
         Save all smearing maps in the HDF5 file to a FITS file with the given file name.
         This will go horribly wrong when the number of exposures is too large or when the maps
         themselves are too large.
@@ -675,7 +682,9 @@ class SimFile (object):
 
 
     def saveBiasMapsLeftToFITS(self, fileName):
-        """
+
+        """Save the left bias maps to a FITS file.
+
         Save all bias maps in the HDF5 file to a FITS file with the given file name.
         This will go horribly wrong when the number of exposures is too large or when the maps
         themselves are too large.
@@ -700,7 +709,9 @@ class SimFile (object):
 
 
     def saveBiasMapRightToFITS(self, fileName):
-        """
+
+        """Save the right bias maps to a FITS file.
+
         Save all bias maps in the HDF5 file to a FITS file with the given file name.
         This will go horribly wrong when the number of exposures is too large or when the maps
         themselves are too large.
@@ -725,135 +736,190 @@ class SimFile (object):
 
         
     #--------------------------------------------------------------#
-    #                      PLATFORM & TELESCOPE                    #
+    #                     PLATFORM & TELESCOPE                     #
     #--------------------------------------------------------------#
 
 
-    def getYawPitchRoll(self, getTime=False):
+    def getPayloadInfo(self, groupName, subGroup, getTime, df):
 
-        """Get (yaw, pitch, roll) of platform.
+        """Get all columns saved to the telescope entry.
         
-        Get the yaw, pitch and roll angle values of the platform pointng
-        at the end of each exposure.
+        The telescope information contains information about the telescope 
+        jitter and pointing. This implies: time, (yaw, pitch, roll) angles,
+        and (RA, Dec) of the telescope pointing. The cadence is equal to the
+        time scale set in the YAML configuration file.
 
         Parameters
         ----------
         getTime : bool
-            If True the function also returns the jitter time
+            If "True" also the time points are returned
 
         Returns
         -------
+        time : ndarray
+            Time point [s]
         yaw : ndarray
-            Yaw of platform pointing [arcsec]
+            Yaw of the telescope pointing [arcsec]
         pitch : ndarray
-            Pitch of platform pointing [arcsec]
+            Pitch of the telescope pointing [arcsec]
         roll : ndarray
-            Roll of platform pointing [arcsec]
-
-        Notes
-        -----
-        The yaw, pitch, roll values at the end of an exposure are not the
-        same as the ones at the beginning of the next exposure, because 
-        between two exposures there is the CCD readout time during which
-        the ACS jitter continues.
+            Roll of the telescope pointing [arcsec]
+        alpha : ndarray
+            Right acsension of the telescope pointing [deg]
+        delta : ndarray
+            Declination of the telescope pointing [deg]
         """
+
+        # TODO change code to be exact the sam entries!
+
+        if groupName == 'ACS':
+            stringRA    = 'platformRA'
+            stringDec   = 'platformDec'
+            stringYaw   = 'yaw'
+            stringPitch = 'pitch'
+            stringRoll  = 'roll'
+        elif groupName == 'Telescope':
+            stringRA    = 'telescopeRA'
+            stringDec   = 'telescopeDec'
+            stringYaw   = 'telescopeYaw'
+            stringPitch = 'telescopePitch'
+            stringRoll  = 'telescopeRoll'
 
         # Extract arrays
 
-        yaw   = self.hdf5file["ACS"]["yaw"][:]
-        pitch = self.hdf5file["ACS"]["pitch"][:]
-        roll  = self.hdf5file["ACS"]["roll"][:]
-
-        # Extract the time values - That's it!
-        
         if getTime:
-            time = self.hdf5file["Time"]["time"][:]
-            return yaw, pitch, roll, time
-        else:
-            return yaw, pitch, roll
+            time  = self.hdf5file[groupName]["time"][:]
+
+        if subGroup in ['info', 'pointing']:
+            alpha = self.hdf5file[groupName][stringRA][:]
+            delta = self.hdf5file[groupName][stringDec][:]
+            
+        if subGroup in ['info', 'angles']:
+            pitch = self.hdf5file[groupName][stringYaw][:]
+            roll  = self.hdf5file[groupName][stringPitch][:]
+            yaw   = self.hdf5file[groupName][stringRoll][:]
+            
+        # Return requested columns
+
+        if subGroup == 'info':
+            if df:
+                return pd.DataFrame({'time':time, 'alpha':alpha, 'delta':delta,
+                                     'yaw':yaw, 'pitch':pitch, 'roll':roll})
+            else:
+                return time, alpha, delta, yaw, pitch, roll
+
+        elif subGroup == 'pointing':
+            if getTime:
+                if df:
+                    return pd.DataFrame({'time':time, 'alpha':alpha, 'delta':delta})
+                else:
+                    return time, alpha, delta
+            else:
+                if df:
+                    return pd.DataFrame({'alpha':alpha, 'delta':delta})
+                else:
+                    return alpha, delta
+            
+        elif subGroup == 'angles':
+            if getTime:
+                if df:
+                    return pd.DataFrame({'time':time, 'yaw':yaw, 'pitch':pitch, 'roll':roll})
+                else:
+                    return time, yaw, pitch, roll
+            else:
+                if df:
+                    return pd.DataFrame({'yaw':yaw, 'pitch':pitch, 'roll':roll})
+                else:
+                    return yaw, pitch, roll
+
+            
 
 
+                
+    def getPlatformInfo(self, df=False):
 
+        """Get platform information.
 
-
-    def getYawPitchRollFromDrift(self, getTime=False):
+        This function use the general 'getPayloadInfo' function to fetch
+        the information contained in the 'ACS' HDF5 group.
         """
-        Get the camera yaw, pitch and roll angle values at the end of each exposure.
 
-        Parameters
-        ----------
-        getTime : bool
-            If True the function also returns the jitter time
+        return self.getPayloadInfo("ACS", "info", True, df)
 
-        Returns
-        -------
-        yaw : ndarray
-            Yaw of platform pointing [arcsec]
-        pitch : ndarray
-            Pitch of platform pointing [arcsec]
-        roll : ndarray
-            Roll of platform pointing [arcsec]
 
-        Notes
-        -----
-        The yaw, pitch, roll values at the end of an exposure are not the
-        same as the ones at the beginning of the next exposure, because 
-        between two exposures there is the CCD readout time during which
-        the drift continues.
+
+
+
+    def getPlatformPointingCoordinates(self, getTime=False, df=False):
+
+        """Get platform pointing coordinates.
+
+        This function use the general 'getPayloadInfo' function to fetch
+        the pointing coordinates contained in the 'Platform' HDF5 group.
         """
 
-        # Extract arrays
+        return self.getPayloadInfo("ACS", "pointing", getTime, df)
 
-        yaw   = self.hdf5file["Telescope"]["telescopeYaw"][:]
-        pitch = self.hdf5file["Telescope"]["telescopePitch"][:]
-        roll  = self.hdf5file["Telescope"]["telescopeRoll"][:]
 
-        # Extract the time values
+
+
+
+    def getPlatformYawPitchRoll(self, getTime=False, df=False):
+
+        """Get platform jitter information.
+
+        This function use the general 'getPayloadInfo' function to fetch
+        the jitter information contained in the 'Platform' HDF5 group.
+        """
+
+        return self.getPayloadInfo("ACS", "angles", getTime, df)
+
+
+
+
+
+    def getTelescopeInfo(self, df=False):
+
+        """Get telescope information.
+
+        This function use the general 'getPayloadInfo' function to fetch
+        the information contained in the 'Telescope' HDF5 group.
+        """
+
+        return self.getPayloadInfo("Telescope", "info", True, df)
+
+
+
+
+
+    def getTelescopePointingCoordinates(self, getTime=False, df=False):
+
+        """Get telescope pointing coordinates.
+
+        This function use the general 'getPayloadInfo' function to fetch
+        the information contained in the 'Telescope' HDF5 group.
+        """
+
+        return self.getPayloadInfo("Telescope", "pointing", getTime, df)
+
+
+
+
+
+    def getTelescopeYawPitchRoll(self, getTime=False, df=False):
+
+        """Get telescope drift information.
+
+        This function use the general 'getPayloadInfo' function to fetch
+        the pointing information contained in the 'Telescope' HDF5 group.
+        """
+
+        return self.getPayloadInfo("Telescope", "angles", getTime, df)
+    
+
+
+
         
-        if getTime:
-            time = self.hdf5file["Time"]["time"][:]
-            return yaw, pitch, roll, time
-        else:
-            return yaw, pitch, roll
-
-
-
-
-
-    def getPlatformPointingCoordinates(self): # TODO add kappa to output file!
-
-        """Get the pointing of platform.
-
-        Get the RA and Dec values of the Platform pointing axis
-        at the end of each exposure.
-
-        Returns
-        -------
-        RA : ndarray
-            Right ascension of platform pointing [deg]
-        dec : ndarray
-            Declination of platform pointing [deg]
-
-        Notes
-        -----
-        The coordinate values at the end of an exposure are not the same
-        as the ones at the beginning of the next exposure, because between
-        two exposures there is the CCD readout time during which the ACS
-        jitter continues.
-        """
-
-        alpha = self.hdf5file["ACS"]["platformRA"][:]
-        delta = self.hdf5file["ACS"]["platformDec"][:]
-        #kappa = self.hdf5file["Platform"]["SolarPanelOrientation"][:]
-        
-        # That's it
-
-        return alpha, delta
-
-
-
-
-
     #--------------------------------------------------------------#
     #                       STELLAR INFORMATION                    #
     #--------------------------------------------------------------#
