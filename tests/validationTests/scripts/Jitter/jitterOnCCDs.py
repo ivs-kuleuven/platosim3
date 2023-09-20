@@ -59,7 +59,7 @@ class JitterOnCCDs(Test):
 
             # Get the jitter from the simulation
             simFile = self.sim.run(removeOutputFile = True)
-            yaw, pitch, roll, time = simFile.getYawPitchRoll(True)
+            time, yaw, pitch, roll = simFile.getPlatformYawPitchRoll(getTime=True)
             self.jitter[CCD] = [time, yaw, pitch, roll]
 
 
