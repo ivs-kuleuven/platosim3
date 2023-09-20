@@ -125,7 +125,7 @@ class SimFile (object):
 
 
 
-    def getTime(self):
+    def getTime(self, df=False):
 
         """Get the time points according to the CCD cadence [s].
         """
@@ -138,9 +138,14 @@ class SimFile (object):
         # TODO fix this in future!
         if ccdCode == "Custom": ccdCode = "1"
         timeShift = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
-        timeArray = np.arange(beginExposure, beginExposure + numExposures) * cadence + timeShift
+        timeArray = np.arange(beginExposure, beginExposure+numExposures) * cadence+timeShift
 
-        return pd.DataFrame({"time": timeArray}) 
+        # Return time points
+
+        if df:
+            return pd.DataFrame({"time": timeArray})
+        else:
+            return timeArray
 
     
 
@@ -925,7 +930,7 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getStarCatalog(self):
+    def getStarCatalog(self, df=False):
 
         """Get the stellar catalogue.
 
@@ -943,7 +948,8 @@ class SimFile (object):
 
         Parameters
         ----------
-        None
+        df : bool
+            Flag to save stellar catalogue to a pandas data frame
 
         Returns
         -------
@@ -954,7 +960,7 @@ class SimFile (object):
             Right ascension of stars [deg]
         dec : ndarray
             Declination of stars [deg]
-        Vmag : ndarray
+        mag : ndarray
             V magnitude of stars
         xFPmm : ndarray
             Initial planar X focal plane coordinates of the stars [mm]
@@ -986,32 +992,38 @@ class SimFile (object):
 
         # Extract the data from the HDF5 file
 
-        starIDs = self.hdf5file["StarCatalog"]["starIDs"][:]
-        RA      = self.hdf5file["StarCatalog"]["RA"][:]
-        dec     = self.hdf5file["StarCatalog"]["Dec"][:]
-        Vmag    = self.hdf5file["StarCatalog"]["Vmag"][:]
+        ID  = self.hdf5file["StarCatalog"]["starIDs"][:]
+        ra  = self.hdf5file["StarCatalog"]["RA"][:]
+        dec = self.hdf5file["StarCatalog"]["Dec"][:]
+        mag = self.hdf5file["StarCatalog"]["Vmag"][:]
 
         # xFPmm, yFPmm, rowPix, and colPix were all introduced with the same commit
         # So, testing if xFPmm is present in the StarCatalog group is sufficient
 
         if "xFPmm" in self.hdf5file["StarCatalog"].keys():
             
-            xFPmm  = self.hdf5file["StarCatalog"]["xFPmm"][:]
-            yFPmm  = self.hdf5file["StarCatalog"]["yFPmm"][:]
-            colPix = self.hdf5file["StarCatalog"]["colPix"][:]
-            rowPix = self.hdf5file["StarCatalog"]["rowPix"][:]
+            xFP  = self.hdf5file["StarCatalog"]["xFPmm"][:]
+            yFP  = self.hdf5file["StarCatalog"]["yFPmm"][:]
+            xCCD = self.hdf5file["StarCatalog"]["colPix"][:]
+            yCCD = self.hdf5file["StarCatalog"]["rowPix"][:]
 
-            return starIDs, RA, dec, Vmag, xFPmm, yFPmm, rowPix, colPix
+            if df:
+                return pd.DataFrame({'ID':ID, 'ra':ra, 'dec':dec, 'mag':mag,
+                                     'xFP':xFP, 'yFP':yFP, 'xPix':xCCD, 'yPix':yCCD})
+            else:
+                return ID, ra, dec, mag, xFP, yFP, xCCD, yCCD
 
-        # That's it!
+        else:
+            if df:
+                return pd.DataFrame({'ID':ID, 'ra':ra, 'dec':dec, 'mag':mag})
+            else:
+                return ID, ra, dec, mag, None, None, None, None
 
-        return starIDs, RA, dec, Vmag, None, None, None, None
 
 
 
 
-
-    def getCoordinates(self, groupName, imageNr, minVmag=None, maxVmag=None):
+    def getCoordinates(self, groupName, imageNr, minMag=None, maxMag=None, df=False):
 
         """General function to get coordinate information.
 
@@ -1022,14 +1034,16 @@ class SimFile (object):
         ----------
         imageNr : int 
             Integer sequential number of the image in the HDF5 file.
-        minVmag : int, float
-            Min V magnitude of the stars causing the point-like ghosts. 
-            Only return ghosts for which the originating star is fainter than minVmag.
+        minMag : int, float
+            Min magnitude of the objects detected on the CCD subfield.
+            Only return objects brighter than minMag.
             Should be 'None' if no cut in minimum magnitude should be made.
-        maxVmag : int, float
-            Maximum V magnitude of the stars causing the point-like ghosts. 
-            Only return ghosts for which the originating star is brighter than maxVmag.
+        maxMag : int, float
+            Maximum magnitude of the objects detected on the CCD subfield.
+            Only return objects fainter than maxMag.
             Should be 'None' if no cut in maximum magnitude should be made.
+        df : bool
+            Flag to save stellar catalogue to a pandas data frame
 
         Return
         ------
@@ -1055,7 +1069,7 @@ class SimFile (object):
           ghosts during the exposure.
         - To get the pixel with the higest flux of star #0, given its (row, col) coordinates:
           >>> im = file.getImage(0)
-          >>> ID,row,col,Xmm,Ymm,flux = file.getPointLikeGhostCoordinates(4,minVmag=6.0,maxVmag=9.0)
+          >>> ID,row,col,Xmm,Ymm,flux = file.getPointLikeGhostCoordinates(4,minMag=6.0,maxMag=9.0)
           >>> im[int(row[0]), int(col[0])]
         - To use this function to overplot the positions of the point-like ghost on an 
           image plotted by showImage(), use plt.scatter(floor(col), floor(row)) because 
@@ -1145,47 +1159,64 @@ class SimFile (object):
             if groupName == "ExtendedGhostPositions":
                     
                 radius = np.array([self.hdf5file[groupName][s]["radius"][imageNr] for s in star])
-
                 
         # If no cut in V magnitude is required, we're finished.
 
-        if (minVmag == None) and (maxVmag == None):
+        if (minMag == None) and (maxMag == None):
             
             if groupName == "ExtendedGhostPositions":
-                return starID, row, col, Xmm, Ymm, flux, radius
+                if df:
+                    return pd.DataFrame({'ID':starID, 'row':row, 'col':col,
+                                         'xFP':Xmm, 'yFP':Ymm, 'flux':flux,
+                                         'radius':radius})
+                else:
+                    return starID, row, col, Xmm, Ymm, flux, radius
             else:
-                return starID, row, col, Xmm, Ymm, flux
+                if df:
+                    pd.DataFrame({'ID':starID, 'row':row, 'col':col,
+                                  'xFP':Xmm, 'yFP':Ymm, 'flux':flux})
+                else:
+                    return starID, row, col, Xmm, Ymm, flux
         
         # If a cut in magnitude is required, get the magnitudes from the star input catalogue
 
-        inputStarIDs, _, _, Vmag, _, _, _, _ = self.getStarCatalog()
-        subFieldVmag = Vmag[np.in1d(inputStarIDs, starID)]
+        inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
+        subFieldMag = mag[np.in1d(inputStarIDs, starID)]
 
         # If the min or max V magnitude is set to None, use the default values
 
-        if minVmag == None:
-            minVmag = subFieldVmag.min()
-        if maxVmag == None:
-            maxVmag = subFieldVmag.max()
+        if minMag == None:
+            minMag = subFieldMag.min()
+        if maxMag == None:
+            maxMag = subFieldMag.max()
 
         # Make the magnitude cut
 
-        selection = (subFieldVmag >= minVmag) & (subFieldVmag <= maxVmag)
+        dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
 
         # Return after stellar cut
 
         if groupName == "ExtendedGhostPositions":
-            return (starID[selection], row[selection], col[selection],
-                    Xmm[selection], Ymm[selection], flux[selection], radius[selection])
+            if df:
+                return pd.DataFrame({'ID':starID[dex], 'row':row[dex], 'col':col[dex],
+                                     'xFP':Xmm[dex], 'yFP':Ymm[dex], 'flux':flux[dex],
+                                     'radius':radius[dex]})
+            else:
+                return (starID[dex], row[dex], col[dex],
+                        Xmm[dex], Ymm[dex], flux[dex], radius[dex])
+            
         else:
-            return (starID[selection], row[selection], col[selection],
-                    Xmm[selection], Ymm[selection], flux[selection])
+            if df:
+                return pd.DataFrame({'ID':starID[dex], 'row':row[dex], 'col':col[dex],
+                                     'xFP':Xmm[dex], 'yFP':Ymm[dex], 'flux':flux[dex]})
+            else:
+                return (starID[dex], row[dex], col[dex], Xmm[dex], Ymm[dex], flux[dex])
 
     
     
 
         
-    def getStarCoordinates(self, imageNr, minVmag=None, maxVmag=None):
+    def getStarCoordinates(self, imageNr, minMag=None, maxMag=None, df=False):
 
         """Get star information.
 
@@ -1194,13 +1225,13 @@ class SimFile (object):
         See parameters and returns for this function.
         """
 
-        return self.getCoordinates("StarPositions", imageNr, minVmag, maxVmag)
+        return self.getCoordinates("StarPositions", imageNr, minMag, maxMag, df)
 
 
 
     
 
-    def getPointLikeGhostCoordinates(self, imageNr, minVmag=None, maxVmag=None):
+    def getPointLikeGhostCoordinates(self, imageNr, minMag=None, maxMag=None, df=False):
 
         """Get point-like ghost information.
                 
@@ -1209,13 +1240,13 @@ class SimFile (object):
         See parameters and returns for this function.
         """
 
-        return self.getCoordinates("PointLikeGhostPositions", imageNr, minVmag, maxVmag)
+        return self.getCoordinates("PointLikeGhostPositions", imageNr, minMag, maxMag, df)
 
 
 
 
     
-    def getExtendedGhostCoordinates(self, imageNr, minVmag=None, maxVmag=None):
+    def getExtendedGhostCoordinates(self, imageNr, minMag=None, maxMag=None, df=False):
 
         """Get point-like ghost information.
                 
@@ -1224,13 +1255,13 @@ class SimFile (object):
         See parameters and returns for this function.
         """
         
-        return self.getCoordinates("ExtendedGhostPositions", imageNr, minVmag, maxVmag)
+        return self.getCoordinates("ExtendedGhostPositions", imageNr, minMag, maxMag, df)
 
 
 
 
     
-    def getStarPositions(self, starID):
+    def getStarPositions(self, starID, getTime=False, df=False):
 
         """Get stellar pixel positions
 
@@ -1249,7 +1280,12 @@ class SimFile (object):
         col : ndarray
             Pixel column coordinates of each star in the image (float).
         """
-        
+
+        # Get the time column
+
+        if getTime:
+            time = self.getTime()
+
         # Check if the point-like ghost info was saved to the HDF5 file
 
         groupName = "StarPositions"
@@ -1294,8 +1330,18 @@ class SimFile (object):
             col = self.hdf5file[groupName][star]["colPix"][:]
 
         # That's it!
-        
-        return row, col
+
+        if getTime:
+            if df:
+                return pd.DataFrame({'time':time, 'row':row, 'col':col})
+            else:
+                return time, row, col
+            
+        else:
+            if df:
+                return pd.DataFrame({'row':row, 'col':col})
+            else:
+                return row, col
 
 
 
@@ -1306,7 +1352,7 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getCosmicsInfo(self, imageNr, field="SubField"):
+    def getCosmicsInfo(self, imageNr, field="SubField", df=False):
 
         """Get information about cosmic rays in the pixel maps.
         
@@ -1402,16 +1448,24 @@ class SimFile (object):
         # That's it!
 
         if len(intensities) == 1 and intensities[0] == -1.0:
-            empty = np.array([])
-            return empty, empty, empty, empty, empty
+            if df:
+                return pd.DataFrame()
+            else:
+                empty = np.array([])
+                return empty, empty, empty, empty, empty
         else:
-            return entryRows, entryColumns, entryAngles, intensities, trailLengths
+            if df:
+                return pd.DataFrame({'entryRows':entryRows, 'entryColumns':entryColumns,
+                                     'entryAngles':entryAngles, 'intensities':intensities,
+                                     'trailLengths':trailLengths})
+            else:
+                return entryRows, entryColumns, entryAngles, intensities, trailLengths
 
 
         
 
 
-    def getCosmicsAffectedPixels(self, imageNr, field="SubField"):
+    def getCosmicsAffectedPixels(self, imageNr, field="SubField", df=False):
 
         """Get the pixel affected by cosmic rays.
 
@@ -1489,7 +1543,10 @@ class SimFile (object):
 
         # That's it!
 
-        return row, col, flux
+        if df:
+            return pd.DataFrame({'row':row, 'col':col, 'flux':flux})
+        else:
+            return row, col, flux
 
 
 
@@ -1911,7 +1968,7 @@ class SimFile (object):
 
     def showImage(self, imageNr=False, imgScale="percentile", clip=5.0,
                   showStarPositions=False, showPointLikeGhostPositions=False,
-                  minVmag=None, maxVmag=None, showStarIDs=False,
+                  minMag=None, maxMag=None, showStarIDs=False,
                   tarMarkerSize=200, showMaskOfStarID=None,
                   useTitle=False, showGrid=False, colorBar=True, colorMap="cubehelix",
                   origin="lower", fontSize=15, figsize=(8,8)):
@@ -1938,10 +1995,10 @@ class SimFile (object):
         showPointLikeGhostPositions: bool
             False : Default
             True  : Plot the average pointlike ghost position (averaged over the exposure)
-        minVmag: int, float
+        minMag: int, float
             The minimum V magnitude of the stars/ghosts for which the position should be plotted.
             Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
-        maxVmag: int, float
+        maxMag: int, float
             The maximum V magnitude of the stars/ghosts for which the position should be plotted.
             Only relevant if either showStarPositions or showPointLikeGhostPositions is True.
         showStarIDs: bool
@@ -2072,8 +2129,8 @@ class SimFile (object):
 
         if showStarPositions:
             ID, row, col, Xmm, Ymm, flux = self.getStarCoordinates(imageNr,
-                                                                   minVmag=minVmag,
-                                                                   maxVmag=maxVmag)
+                                                                   minMag=minMag,
+                                                                   maxMag=maxMag)
             # Set linewidth of marker
 
             lw = 0.06 * fontSize
@@ -2112,8 +2169,8 @@ class SimFile (object):
 
         if showPointLikeGhostPositions:
             ID, row, col, Xmm, Ymm, flux = self.getPointLikeGhostCoordinates(imageNr,
-                                                                             minVmag=minVmag,
-                                                                             maxVmag=maxVmag)
+                                                                             minMag=minMag,
+                                                                             maxMag=maxMag)
             ax.scatter(col, row, marker='o', s=6, c='b')
             if showStarIDs:
                 for k in range(len(ID)):
