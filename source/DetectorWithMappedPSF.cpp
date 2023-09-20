@@ -27,9 +27,22 @@
  * \param camera         Camera to which to attach the detector.
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
-
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam,
+					     HDF5File &hdf5file,
+					     Camera &camera,
+					     TemperatureGenerator &feeTemperatureGenerator,
+					     TemperatureGenerator &detectorTemperatureGenerator,
+					     double readoutTimeBeforeNextExposure,
+					     double readoutTimeDuringNextExposure)
+  : Detector(configParam,
+	     hdf5file,
+	     camera,
+	     feeTemperatureGenerator,
+	     detectorTemperatureGenerator,
+	     readoutTimeBeforeNextExposure,
+	     readoutTimeDuringNextExposure),    
+    includeFlatfield(true),
+    writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -46,18 +59,22 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
+    // Initialize the subpixel background map
+    
     if (!constantSkyBackground)
-    {
-        // Initialize the subpixel background map
-        subPixelBackgroundMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+    { 
+      subPixelBackgroundMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     }
+    
+    // Allocate memory for undistorted maps
+    
     unDistortedX.zeros(numRowsPixelMap, numColumnsPixelMap);
     unDistortedY.zeros(numRowsPixelMap, numColumnsPixelMap);
 
+    // Generate the flatfield map
+    
     if (includeFlatfield)
     {
-        // Generate the flatfield map
-
         generateFlatfieldMap();
     }
 
@@ -67,6 +84,9 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     psf = new PointSpreadFunction(configParam, hdf5file);
     setPsfForSubfield();
 }
+
+
+
 
 
 
@@ -81,6 +101,10 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 }
 
 
+
+
+
+
 /**
  * \brief Configure the DetectorWithMappedPSF object using the given
  *        configuration parameters.
@@ -89,13 +113,13 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
  */
 void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 {
-    flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
-    includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
-    includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
-
+    // General configuration parameters
+  
+    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
+    includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
+    includeConvolution        = configParam.getBoolean("CCD/IncludeConvolution");
     writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
-
-    numSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
+    numSubPixelsPerPixel      = configParam.getInteger("SubField/SubPixels");
 
     // Configuration parameters for the noise source random seeds
 
@@ -123,13 +147,13 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 
     // Derive the dimensions of the sub-pixel map
 
-    numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel;       // TODO Add edge pixels
+    numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel; // TODO Add edge pixels
     numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
 
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
-    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
+    writeDiffusedPSF  = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 }
 
 
@@ -207,16 +231,12 @@ void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
 
 
 
-
-
-
 /**
  * \brief: Generate the (random) flatfield variations.  This map is generated
  *         at sub-pixel level but without the edge pixels.
  *
  * https://github.com/python-acoustics/python-acoustics/blob/master/acoustics/generator.py#L108
  */
-
 void DetectorWithMappedPSF::generateFlatfieldMap()
 {
     Log.info("DetectorWithMappedPSF: generating flatfield map.");
@@ -939,11 +959,16 @@ void DetectorWithMappedPSF::convolveWithPsf()
  */
 void DetectorWithMappedPSF::initHDF5Groups()
 {
-    // Init the groups specific for the MappedPSF detector
-
-    if (writeSubPixelImagesToHDF5)
+  if (writeFlatfieldMap)
     {
-        hdf5File.createGroup("/SubPixelImages");
+      Log.debug("DetectorWithMappedPSF: creating Flatfield entry in HDF5");
+      hdf5File.createGroup("/Flatfield");
+    }
+
+  if (writeSubPixelImagesToHDF5)
+    {
+      Log.debug("DetectorWithMappedPSF: creating SubPixelImages entry in HDF5");
+      hdf5File.createGroup("/SubPixelImages");
     }
 }
 

@@ -274,6 +274,7 @@ class Detector: public HDF5Writer
         bool writeBackgroundMap;                  // Wheter or not to write the background map to the HDF5 file.
         bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure
         bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
+        bool writeFlatfieldMap;                  // Whether or not to write the flatfield map to the HDF5 file, for each exposure  
         bool writeCosmics;                       // Whether or not to write the cosmics row, column and flux to the HDF5 file, for each exposure
         bool writeCTI;                           // Whether or not to write the BOL/EOL trap density maps for each species to the HDF5 file
 

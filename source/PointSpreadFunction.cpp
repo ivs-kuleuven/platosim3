@@ -28,26 +28,23 @@
  * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
  *
  * \param configParam: Configuration parameters for the detector.
- *
  * \param hdf5file:HFD5 file to write the detector images to.
- *
  * \param camera: Camera to which to attach the detector.
- *
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start [s].
  */
 PointSpreadFunction::PointSpreadFunction(ConfigurationParameters &configParam, HDF5File &hdf5file) : HDF5Writer(hdf5file)
 {
-    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
-
-    initHDF5Groups();
-
     // Parse the parameters from the configuration file.
 
     configure(configParam);
 
     isSelected = false;
-    isRotated = false;
+    isRotated  = false;
 
+    // Create the groups in the HDF5 file where the different PSFs and their description will be saved.
+
+    initHDF5Groups();
+    
     // Prepare the psfFile by performing some basic checks
 
     if (!FileUtilities::fileExists(absolutePath))
@@ -103,9 +100,11 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
         // The number of sub-pixels per pixel is derived from the number of pixels specified
         // and the size of the array in the file. (The number of sub-pixels should be in the file).
 
-        absolutePath = configParam.getAbsoluteFilename("PSF/MappedFromFile/Filename");
-        numberOfPixels = configParam.getInteger("PSF/MappedFromFile/NumberOfPixels");
+        absolutePath           = configParam.getAbsoluteFilename("PSF/MappedFromFile/Filename");
+        numberOfPixels         = configParam.getInteger("PSF/MappedFromFile/NumberOfPixels");
+	includeChargeDiffusion = configParam.getBoolean("PSF/MappedFromFile/IncludeChargeDiffusion");
 	writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
+	writeDiffusedPSF       = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
     }
     else
     {
@@ -131,15 +130,17 @@ void PointSpreadFunction::configure(ConfigurationParameters &configParam)
 
 
 
-/**
+/**'
  * \brief Creates the group(s) in the HDF5 file where the PSF information will be stored.
  *        These group(s) has (have) to be created once, at the very beginning.
  */
 void PointSpreadFunction::initHDF5Groups()
 {
-    Log.debug("PointSpreadFunction: initialising HDF5 groups");
-
-    hdf5File.createGroup("/PSF");
+  if (writeHighResolutionPSF || (writeDiffusedPSF && includeChargeDiffusion))
+    {
+      Log.debug("PointSpreadFunction: initialising HDF5 groups");
+      hdf5File.createGroup("/PSF");
+    }  
 }
 
 
@@ -158,7 +159,10 @@ void PointSpreadFunction::flushOutput()
 
     // Save the PSF subpixel map when it is rebinned to pixel level.
 
-    rebinToPixels();
+    if (writeHighResolutionPSF || (writeDiffusedPSF && includeChargeDiffusion))
+      {
+	rebinToPixels();
+      }
 }
 
 
@@ -219,8 +223,6 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     psfFile.readArray("/", selectedDatasetName, psfMap);
 
-
-
     rotationAngle = 0.0;
 
     // We should be able to read the number of sub-pixels per pixel that was used to generate the PSFs
@@ -230,10 +232,12 @@ void PointSpreadFunction::select(double xFP, double yFP)
 
     numberOfSubPixelsPerPixel = psfMap.n_rows / numberOfPixels;
 
-    hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from dataset " + datasetName + ".");
-
+    if (writeHighResolutionPSF || (writeDiffusedPSF && includeChargeDiffusion))
+      {
+	hdf5File.writeAttribute("/PSF", "selectedPSF", "Realistic PSF selected from dataset " + datasetName + ".");
+      }
+    
     isSelected = true;
-
     initializeDistortionMap();
 }
 
@@ -270,10 +274,11 @@ void PointSpreadFunction::rotate(double angle)
         Log.debug("PointSpreadFunction: rotated current PSF over angle " + to_string(rad2deg(angle)) + " deg");
 
         // Write the psfMap of the rotated PSF to the HDF5 output file
+	
 	if (writeHighResolutionPSF)
 	{
-        hdf5File.writeArray("/PSF", "highResPSF", psfMap);
-        hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
+	  hdf5File.writeArray("/PSF", "highResPSF", psfMap);
+	  hdf5File.writeAttribute("/PSF", "rotationAngle", rotationAngle);
 	}
     }
 }
@@ -290,16 +295,16 @@ void PointSpreadFunction::rotate(double angle)
 arma::fmat PointSpreadFunction::rebinToPixels()
 {
     unsigned int binSize = psfMap.n_rows / numberOfSubPixelsPerPixel;
-
     arma::fmat rebinnedMap = ArrayOperations::rebin(psfMap, binSize, binSize);
-
     isRebinned = true;
-
     rebinnedMap /= arma::accu(rebinnedMap);
 
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+    if (writeHighResolutionPSF || (writeDiffusedPSF && includeChargeDiffusion))
+      {
+	hdf5File.writeArray("/PSF", "rebinnedPSFpixel", rebinnedMap);
+      }
 
     return rebinnedMap;
 }
@@ -334,7 +339,10 @@ arma::fmat PointSpreadFunction::rebinToSubPixels(unsigned int targetSubPixels)
 
     // Write the rebinned PSF to the output HDF5 file
 
-    hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+    if (writeHighResolutionPSF || (writeDiffusedPSF && includeChargeDiffusion))
+      {
+	hdf5File.writeArray("/PSF", "rebinnedPSFsubPixel", rebinnedMap);
+      }
 
     return rebinnedMap;
 }
