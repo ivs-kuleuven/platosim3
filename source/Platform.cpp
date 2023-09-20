@@ -13,17 +13,21 @@
  * 
  * \note  The jitterGenerator has been configured in Simulation::Simulation()
  */
-
-Platform::Platform(ConfigurationParameters configParams, HDF5File &hdf5File, JitterGenerator &jitterGenerator)
-: HDF5Writer(hdf5File), useJitter(true), internalTime(0.0), jitterGenerator(jitterGenerator)
+Platform::Platform(ConfigurationParameters configParams,
+		   HDF5File &hdf5File,
+		   JitterGenerator &jitterGenerator)
+: HDF5Writer(hdf5File),
+  useJitter(true),
+  internalTime(0.0),
+  jitterGenerator(jitterGenerator)
 {
-    // Initialise the HDF5 group(s) in the output file
-
-    initHDF5Groups();
-
     // Configure the Platfrom object
 
     configure(configParams);
+
+    // Initialise the HDF5 group(s) in the output file
+
+    initHDF5Groups();
 
     // Initialise the rotation matrices (should be done after configuration) with the unjittered spacecraft
 
@@ -64,32 +68,38 @@ Platform::~Platform()
 
 void Platform::configure(ConfigurationParameters &configParams)
 {
-    useJitter = configParams.getBoolean("Platform/UseJitter");
+  // General configuration parameters
+  
+  useJitter = configParams.getBoolean("Platform/UseJitter");
+  writeACS  = configParams.getBoolean("ControlHDF5Content/WriteACS");
+  platformOrientationSource = configParams.getString("Platform/Orientation/Source");
 
-    platformOrientationSource = configParams.getString("Platform/Orientation/Source");
-    if (platformOrientationSource == "Angles") {
-        Log.info("Platform: using the (RA, Dec, Kappa) angles to determine the initial platform orientation");
-        originalRA  = deg2rad(configParams.getDouble("Platform/Orientation/Angles/RAPointing"));            
-        originalDec = deg2rad(configParams.getDouble("Platform/Orientation/Angles/DecPointing"));
-        originalKappa = deg2rad(configParams.getDouble("Platform/Orientation/Angles/SolarPanelOrientation"));
-        currentRA   = originalRA;
-        currentDec  = originalDec;
-        Log.debug("Platform: (RA, Dec, Kappa) = (" + to_string(rad2deg(originalRA)) + " deg, " + to_string(rad2deg(originalDec)) + " deg, " + to_string(rad2deg(originalKappa)) + " deg)");
+  // Select method of platform pointing
+  
+  if (platformOrientationSource == "Angles")
+    {
+      Log.info("Platform: using the (RA, Dec, Kappa) angles to determine the initial platform orientation");
+      originalRA  = deg2rad(configParams.getDouble("Platform/Orientation/Angles/RAPointing"));            
+      originalDec = deg2rad(configParams.getDouble("Platform/Orientation/Angles/DecPointing"));
+      originalKappa = deg2rad(configParams.getDouble("Platform/Orientation/Angles/SolarPanelOrientation"));
+      currentRA   = originalRA;
+      currentDec  = originalDec;
+      Log.debug("Platform: (RA, Dec, Kappa) = (" + to_string(rad2deg(originalRA)) + " deg, " + to_string(rad2deg(originalDec)) + " deg, " + to_string(rad2deg(originalKappa)) + " deg)");
     }
-    else if (platformOrientationSource == "Quaternion") {
-        Log.info("Platform: using the Platform/Orientation/Quaternion to determine the initial platform orientation");
-        vector<double> quaternion = configParams.getDoubleVector("Platform/Orientation/Quaternion/Components");
-        copy(quaternion.begin(), quaternion.end(), original_q_EQ2PLM.begin());
-        tie(originalRA, originalDec) = calculatePlatFormSkyCoordinatesFromQuaternion(original_q_EQ2PLM);         // [rad]
-        currentRA  = originalRA;                                                                                 // [rad]
-        currentDec = originalDec;                                                                                // [rad]
-        Log.debug("Platform: (RA, Dec) from quaternion = (" + to_string(rad2deg(originalRA)) + " deg, " + to_string(rad2deg(originalDec)) + " deg)");
+  else if (platformOrientationSource == "Quaternion")
+    {
+      Log.info("Platform: using the Platform/Orientation/Quaternion to determine the initial platform orientation");
+      vector<double> quaternion = configParams.getDoubleVector("Platform/Orientation/Quaternion/Components");
+      copy(quaternion.begin(), quaternion.end(), original_q_EQ2PLM.begin());
+      tie(originalRA, originalDec) = calculatePlatFormSkyCoordinatesFromQuaternion(original_q_EQ2PLM);         // [rad]
+      currentRA  = originalRA;                                                                                 // [rad]
+      currentDec = originalDec;                                                                                // [rad]
+      Log.debug("Platform: (RA, Dec) from quaternion = (" + to_string(rad2deg(originalRA)) + " deg, " + to_string(rad2deg(originalDec)) + " deg)");
     }
-    else {
-        Log.error("In input yaml file: unsupported Platform/Orientation/Source value. Only Angles or Quaternion are allowed");
+  else
+    {
+      Log.error("In input yaml file: unsupported Platform/Orientation/Source value. Only Angles or Quaternion are allowed");
     }
-
-    writeACS    = configParams.getBoolean("ControlHDF5Content/WriteACS");
 }
 
 
@@ -110,9 +120,11 @@ void Platform::configure(ConfigurationParameters &configParams)
 
 void Platform::initHDF5Groups()
 {
-    Log.debug("Platform: initialising HDF5 groups");
-
-    hdf5File.createGroup("/ACS");
+  if (writeACS)
+    {
+      Log.debug("Platform: initialising HDF5 group: ACS");
+      hdf5File.createGroup("/ACS");
+    }
 }
 
 
@@ -128,32 +140,30 @@ void Platform::initHDF5Groups()
 /**
  * \brief Write all recorded information to the HDF5 output file
  */
-
 void Platform::flushOutput()
 {
-    if (writeACS)
+  if (writeACS)
     {
-        Log.info("Platform: Flushing output to HDf5 file.");
+      Log.info("Platform: Flushing output to HDf5 file.");
 
-        if ( ! hdf5File.hasGroup("ACS") )
+      if (!hdf5File.hasGroup("/ACS"))
         {
-            Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
-            return;
+	  Log.warning("Platform.flushOutput: HDF5 file has no ACS group, cannot flush Platform information.");
+	  return;
         }
-        
 
-        if (!historyTime.empty())
+      if (!historyTime.empty())
         {
-	  //hdf5File.writeArray("/ACS/", "Time",        historyTime.data(),  historyTime.size());
-           hdf5File.writeArray("/ACS/", "platformRA",  historyRA.data(),    historyRA.size());
-           hdf5File.writeArray("/ACS/", "platformDec", historyDec.data(),   historyDec.size());
-           hdf5File.writeArray("/ACS/", "yaw",         historyYaw.data(),   historyYaw.size());
-           hdf5File.writeArray("/ACS/", "pitch",       historyPitch.data(), historyPitch.size());
-           hdf5File.writeArray("/ACS/", "roll",        historyRoll.data(),  historyRoll.size());
+	  hdf5File.writeArray("/ACS", "time",        historyTime.data(),  historyTime.size());
+	  hdf5File.writeArray("/ACS", "platformRA",  historyRA.data(),    historyRA.size());
+	  hdf5File.writeArray("/ACS", "platformDec", historyDec.data(),   historyDec.size());
+	  hdf5File.writeArray("/ACS", "yaw",         historyYaw.data(),   historyYaw.size());
+	  hdf5File.writeArray("/ACS", "pitch",       historyPitch.data(), historyPitch.size());
+	  hdf5File.writeArray("/ACS", "roll",        historyRoll.data(),  historyRoll.size());
         }
-        else
+      else
         {
-           Log.warning("Platform: No ACS history to flush to HDF5 file.");
+	  Log.warning("Platform: No ACS history to flush to HDF5 file.");
         }
     }
 }

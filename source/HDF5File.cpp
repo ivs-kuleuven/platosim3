@@ -2060,6 +2060,22 @@ void HDF5File::writeVersionInformation()
 
 
 
+// /** TODO implement idependent time column!
+//  * \brief: include the tranmsissionEfficiency values to the HDF5 file.
+//  *
+//  */
+// void HDF5File::writeTime(double* array, int size)
+// {
+//     writeArray("Time/", "time", array, size);
+// }
+
+
+
+
+
+
+
+
 
 
 /**
@@ -2164,7 +2180,7 @@ void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuant
 void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vector<double>& dec,
 				 vector<double>& yaw, vector<double>& pitch, vector<double>& roll)
 {
-    writeArray("/Time/",      "time",           time.data(),    time.size());
+    writeArray("/Telescope/", "time",           time.data(),    time.size());
     writeArray("/Telescope/", "telescopeRA",    RA.data(),      RA.size());         // [deg]
     writeArray("/Telescope/", "telescopeDec",   dec.data(),     dec.size());        // [deg]
     writeArray("/Telescope/", "telescopeYaw",   yaw.data(),     yaw.size());        // [arcsec]
@@ -2186,8 +2202,8 @@ void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vecto
 
 /**
  * /brief: save the star positions to the HDF5 file.
- * /Note: This is the old way of doing things!
  *
+ * NOTE: keyValuePair is (key, value) pair, where key is also a pair consisting of the startTime and StarID
  */
 void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, int beginExposureNr)
 {
@@ -2196,7 +2212,17 @@ void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<d
 
     vector<double> time;
     for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
-    
+
+    // TODO Remove
+    // if (!time.empty())
+    // {
+    //   writeArray("StarPositions/", "time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //   Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    // }
+
     if (time.empty())
     {
       Log.warning("HDF5File: No star positions to write to HDF5 file.");
@@ -2274,6 +2300,15 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
     vector<double> time;
     for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
 
+    // if (!time.empty())
+    // {
+    //   writeArray("StarPositions/", "Time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //   Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    // }
+    
     if (time.empty())
     {
       Log.warning("HDF5File: No star positions to write to HDF5 file.");
@@ -2327,6 +2362,7 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
         myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
         const string exposureGroupName = "/StarPositions/" + myStream.str();
         createGroup(exposureGroupName);
+        //writeArray(exposureGroupName, "time",   times.data(),   times.size());	
         writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
         writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
         writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
@@ -2362,6 +2398,15 @@ void HDF5File::writePointlikeGhostByExposure(map<double, map<unsigned int, array
     createGroup("/PointLikeGhostPositions");
     vector<double> time;
     for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
+
+    // if (!time.empty())
+    // {
+    //     writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //     Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
+    // }
     
     if (time.empty())
     {
@@ -2450,6 +2495,15 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
     vector<double> time;
     for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
 
+    // if (!time.empty())
+    // {
+    //     writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //     Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
+    // }
+    
     if (time.empty())
     {
         Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
@@ -2507,6 +2561,7 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
           myStream << "StarID" << setfill('0') << setw(6) << 0 + starIDs[n];
           const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
           createGroup(pointLikeGhostGroupName);
+          //writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());  
           writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
           writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
           writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
@@ -2545,6 +2600,16 @@ void HDF5File::writeExtendedGhostByExposure(map<double, map<unsigned int, array<
   createGroup("/ExtendedGhostPositions");
   vector<double> time;
   for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
+
+  // if (!time.empty())
+  // {
+  //   writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+  // }
+  // else
+  // {
+  //   Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
+  // }
+  
   if (time.empty())
   {
     Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
@@ -2632,6 +2697,15 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
   vector<double> time;
   for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
 
+  // if (!time.empty())
+  // {
+  //   writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+  // }
+  // else
+  // {
+  //   Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
+  // }
+  
   if (time.empty())
   {
     Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
@@ -2688,6 +2762,7 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
       myStream << "Exposure" << setfill('0') << setw(6) << 0 + starIDs[n];
       const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
       createGroup(extendedGhostGroupName);
+      //writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());      
       writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),       xFPmm.size());
       writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),       yFPmm.size());
       writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),      rowPix.size());

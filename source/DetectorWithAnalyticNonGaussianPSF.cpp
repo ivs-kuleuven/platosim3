@@ -27,9 +27,21 @@
  * \param camera         Camera to which to attach the detector.
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
-
-DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-: Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), sigma(nullptr)
+DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(ConfigurationParameters &configParam,
+								       HDF5File &hdf5file,
+								       Camera &camera,
+								       TemperatureGenerator &feeTemperatureGenerator,
+								       TemperatureGenerator &detectorTemperatureGenerator,
+								       double readoutTimeBeforeNextExposure,
+								       double readoutTimeDuringNextExposure)
+: Detector(configParam,
+	   hdf5file,
+	   camera,
+	   feeTemperatureGenerator,
+	   detectorTemperatureGenerator,
+	   readoutTimeBeforeNextExposure,
+	   readoutTimeDuringNextExposure),
+  sigma(nullptr)
 {
     // Parse the parameters from the configuration file.
 
@@ -46,7 +58,7 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
       generateFlatfieldMap();
     }
 
-    // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
+    // TODO Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
     // Then select the proper PSF for the given subfield. Should only be done after calling configure().
 }
 
@@ -84,13 +96,15 @@ DetectorWithAnalyticNonGaussianPSF::~DetectorWithAnalyticNonGaussianPSF()
 
 void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &configParam)
 {
-    numExposures        = configParam.getUnsignedInteger("ObservingParameters/NumExposures");
-    beginExposureNr     = configParam.getUnsignedInteger("ObservingParameters/BeginExposureNr");
-    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");
 
-    flatfieldNoiseRMS   = configParam.getDouble("CCD/FlatfieldNoiseRMS");
-    includeFlatfield    = configParam.getBoolean("CCD/IncludeFlatfield");
-    flatfieldSeed       = configParam.getLong("RandomSeeds/FlatFieldSeed");
+    // Fetch configuration information
+  
+    numExposures      = configParam.getUnsignedInteger("ObservingParameters/NumExposures");
+    beginExposureNr   = configParam.getUnsignedInteger("ObservingParameters/BeginExposureNr");
+    cycleTime         = configParam.getDouble("ObservingParameters/CycleTime");
+    flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
+    includeFlatfield  = configParam.getBoolean("CCD/IncludeFlatfield");
+    flatfieldSeed     = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
     // Read and configure the parameters used to calculate the PSF
 
@@ -121,11 +135,10 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
 
     // The parameters for the charge diffusion
 
-    includeChargeDiffusion = configParam.getBoolean("PSF/AnalyticNonGaussian/IncludeChargeDiffusion");
+    includeChargeDiffusion  = configParam.getBoolean("PSF/AnalyticNonGaussian/IncludeChargeDiffusion");
     chargeDiffusionStrength = configParam.getDouble("PSF/AnalyticNonGaussian/ChargeDiffusionStrength");
 
     Log.info("DetectorWithAnalyticNonGaussianPSF: sigma of charge diffusion: " + to_string(chargeDiffusionStrength) + " pix");
-
 
     // The sigma of the PSF can either be a fixed value, or given by a time series in a file
 
@@ -145,10 +158,9 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
         Log.info("DetectorWithAnalyticNonGaussianPSF: Reading sigma PSF from " + sigmaPSFInputFile);
     }
 
-
     // The configuration for the on-the-fly photometry
 
-    includePhotometry    = configParam.getBoolean("Photometry/IncludePhotometry");
+    includePhotometry = configParam.getBoolean("Photometry/IncludePhotometry");
 
     if (includePhotometry)
     {
@@ -192,12 +204,11 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
         }
     }
 
-
     // The configuration for the HDF5 contents
 
-    writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
+    writeFlatfieldMap      = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
     writeHighResolutionPSF = configParam.getBoolean("ControlHDF5Content/WriteHighResolutionPSF");
-    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
+    writeDiffusedPSF       = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 
 } // end configure()
 
@@ -386,6 +397,7 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
     if (writeFlatfieldMap)
     {
         Log.debug("Detector: writing PRNU to HDF5");
+	hdf5File.createGroup("/Flatfield");
         hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
     }
 }
@@ -913,7 +925,10 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
     // Create the group in the HDF5 file.
     // We chose the same name as for DetectorWithMappedPSF
 
-    hdf5File.createGroup("/PSF");
+    if (writeHighResolutionPSF || (writeDiffusedPSF && includeChargeDiffusion))
+      {
+    	hdf5File.createGroup("/PSF");
+      }
 
     // Generate and save the high resolution PSF (center of subfield)
 

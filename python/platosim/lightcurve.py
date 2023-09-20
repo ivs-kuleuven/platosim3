@@ -978,7 +978,7 @@ class LightCurve(object):
             flux         = df[column]    / 1e3  # [ke-/s]
             flux_trend   = df.flux_trend / 1e3  # [ke-/s]
         elif column == 'flux_stitch':
-            ylab1      = 'Flux [ppt]'
+            ylab0      = 'Flux [ppt]'
             flux       = df[column]             # [ppt]
             flux_trend = df.flux_trend          # [ppt]
 

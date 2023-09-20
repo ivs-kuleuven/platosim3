@@ -36,6 +36,8 @@ class PointSpreadFunction : public HDF5Writer
         arma::fmat getOriginalPSF();
         vector<std::array<double, 4>> getDistortionMap();
         bool writeHighResolutionPSF;
+        bool writeDiffusedPSF;
+        bool includeChargeDiffusion;
         vector<std::array<double, 4>> distortionMap;
 
     protected:

@@ -3285,33 +3285,47 @@ void Detector::initHDF5Groups()
 {
     Log.debug("Detector: initialising HDF5 groups");
 
-    hdf5File.createGroup("/Time");
-    hdf5File.createGroup("/Images");
-    hdf5File.createGroup("/BiasMapsLeft");
-    hdf5File.createGroup("/BiasMapsRight");
-    hdf5File.createGroup("/SmearingMaps");
-    hdf5File.createGroup("/Flatfield");
-    hdf5File.createGroup("/ThroughputMaps");
+    //hdf5File.createGroup("/Time");
 
+    if (writePixelMaps)
+      {
+	hdf5File.createGroup("/Images");
+      }
+
+    if (writeBiasMaps)
+      {
+	hdf5File.createGroup("/BiasMapsLeft");
+	hdf5File.createGroup("/BiasMapsRight");
+      }
+    
+    if (writeSmearingMaps)
+      {
+	hdf5File.createGroup("/SmearingMaps");
+      }
+
+    if (writeThroughputMaps)
+      {
+	hdf5File.createGroup("/ThroughputMaps");
+      }
+   
     if (writeBackgroundMap || constantSkyBackground)
-    {
+      {
         hdf5File.createGroup("/BackgroundMap");
-    }    
+      }    
     
     if (writeCTI && (CTImodel == "Short2013"))
-    {
+      {
         hdf5File.createGroup("/CTI");
-    }
+      }
 
     if (writeCosmics)
-    {
+      {
         hdf5File.createGroup("/Cosmics");
         hdf5File.createGroup("/Cosmics/SubField");
         hdf5File.createGroup("/Cosmics/SmearingMap");
         hdf5File.createGroup("/Cosmics/BiasMapLeft");
         hdf5File.createGroup("/Cosmics/BiasMapRight");
-    }
-
+      }
 }
 
 

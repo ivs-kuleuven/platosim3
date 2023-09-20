@@ -77,17 +77,19 @@ Camera::~Camera()
  * \brief Creates the group(s) in the HDF5 file where the star information will be stored.
  *        These group(s) have to be created once, at the very beginning.
  */
-
 void Camera::initHDF5Groups()
 {
     Log.debug("Camera: initialising HDF5 groups");
 
-    hdf5File.createGroup("/StarPositions");
+    if (writeStarPositions)
+      {
+	hdf5File.createGroup("/StarPositions");
+      }
+    
     if (writeTransmissionEfficiency)
     {
       hdf5File.createGroup("/TransmissionEfficiency");
     }
-
 }
 
 
@@ -228,21 +230,21 @@ pair<starInfoIterator, starInfoIterator> Camera::getInfoForTheMostRecentExposure
 void Camera::flushOutput()
 {
 
-    // Extract and save the time points of all exposures
-    // Note: keyValuePair is (key, value) pair, where key is also a pair consisting of the startTime and StarID
-
+    // Write information about star positions
+ 
     if (writeStarPositions)
-    {
-        if (groupByExposure){hdf5File.writeStarPositionByExposure(detectedStarInfo, beginExposureNr);}
-	else {hdf5File.writeStarPositionByStarID(detectedStarInfo, starIDsInSubfield);}
-    }
-    else
-    {
-        Log.warning("Camera: No star positions written to HDF5 file by user demand (see input file).");
-    }
+      {
+	if (groupByExposure)
+	  {
+	    hdf5File.writeStarPositionByExposure(detectedStarInfo, beginExposureNr);
+	  }
+	else
+	  {
+	    hdf5File.writeStarPositionByStarID(detectedStarInfo, starIDsInSubfield);
+	  }
+      }
 
-
-    // If the ghost option was set, also write for each exposure the info of the ghost stars to the HDF5 file.
+    // Write info of the ghost stars to the HDF5 file
 
     if ((includePointLikeGhosts || includeExtendedGhosts) && writeGhostPositions)
     {
