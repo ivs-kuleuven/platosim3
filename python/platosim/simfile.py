@@ -1665,7 +1665,7 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
            
-    def getFlux(self, starID, fluxType="estimated"):
+    def getFlux(self, starID, fluxType="estimated", df=False):
 
         """Returns flux points in units [e-/s].
         """
@@ -1675,7 +1675,7 @@ class SimFile (object):
         if   fluxType == "estimated": lctype = "estimatedFlux"
         elif fluxType == "input":     lctype = "inputFlux"
         else:
-            print("ERROR: simfile.getFlux(): fluxType can only be 'estimated' or 'input'")
+            print("ERROR: SimFile.getFlux(): fluxType can only be 'estimated' or 'input'")
             return None
         
         # Query either a single star or multiple stars as requested
@@ -1685,45 +1685,54 @@ class SimFile (object):
             starID = np.array([starID])
             names = False
         else:
-            names = True
+             names = True
 
         # Add a flux column(s) for the star(s)
 
         for ID in starID:
 
             # Check photometry is present for each star
+            
             starIDgroupName = f"starID{ID}"
             if starIDgroupName not in self.hdf5file["Photometry"]["Lightcurves"].keys():
-                print(f"ERROR: simfile.getFlux(): {starIDgroupName} not present in " +
+                print(f"ERROR: SimFile.getFlux(): {starIDgroupName} not present in " +
                       "Photometry/Lightcurves/ in the HDF5 file")
 
             # Select correct name convention
+            
             if names: string = f"flux_{ID}"
             else:     string = "flux"
 
             # Fetch flux column
+            
             flux = np.array(self.hdf5file[f"Photometry/Lightcurves/starID{ID}/{lctype}"])
 
             # Create data frame and append to it
+            
             if ID == starID[0]:
-                df = pd.DataFrame({string: flux})
+                df0 = pd.DataFrame({string: flux})
             else:
-                df[string] = flux
+                df0[string] = flux
 
-        # Convert [e-/exp] -> [e-/s]
+        # Convert unit [e-/exp] -> [e-/s]
         
-        df /= self.getReadoutTime()[0]
+        df0 /= self.getReadoutTime()[0]
         
         # Finito!
 
-        return df
+        if df:
+            return df0
+        else:
+            flux = df0.to_numpy().T
+            if not names: flux = flux[0]                
+            return flux 
 
 
 
 
 
 
-    def getLightCurve(self, starID, fluxType='estimated'):
+    def getLightCurve(self, starID, fluxType='estimated', df=False):
 
         """Extract the light curve of one or more stars
 
@@ -1751,25 +1760,31 @@ class SimFile (object):
 
         # Fetch time column
 
-        time = self.getTime()
+        time = self.getTime(df=True)
 
         # Fetch flux column(s)
 
         if fluxType == 'both':
-            flux       = self.getFlux(starID, fluxType="estimated")
-            flux_input = self.getFlux(starID, fluxType="input")
-            df = pd.concat([time, flux, flux_input], axis=1)
-            df.columns = ["time", "flux", "flux_input"]
+            flux       = self.getFlux(starID, fluxType="estimated", df=True)
+            flux_input = self.getFlux(starID, fluxType="input",     df=True)
+            if df:
+                df = pd.concat([time, flux, flux_input], axis=1)
+                df.columns = ["time", "flux", "flux_input"]
+                return df
+            else:
+                return time.to_numpy().T, flux.to_numpy().T, flux_input.to_numpy().T
             
         elif fluxType in ("input", "estimated"):
-            flux = self.getFlux(starID, fluxType=fluxType)
-            df = pd.concat([time, flux], axis=1)
-            df.columns = ["time", "flux"]
-            
+            flux = self.getFlux(starID, fluxType=fluxType, df=True)
+            if df:
+                df = pd.concat([time, flux], axis=1)
+                df.columns = ["time", "flux"]
+                return df
+            else:
+                return time.to_numpy().T, flux.to_numpy().T
         else:
             print("ERROR: no such flux name, use either 'estimated' or 'input'!")
-            
-        return df
+
 
 
 
@@ -2357,7 +2372,7 @@ class SimFile (object):
 
         # Fetch the light curve
 
-        df = self.getLightCurve(starID, fluxType='estimated')
+        df = self.getLightCurve(starID, fluxType='estimated', df=True)
 
         # Change time units
 
