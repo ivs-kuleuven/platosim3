@@ -39,8 +39,8 @@ import astropy.units as u
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
-from platosim.matplotlibrc import setup
-setup()
+from platosim.matplotlibrc import setup_notebook
+setup_notebook()
 
 # Hard-code values
 aa = 0.5  # Alpha transparency
@@ -2626,49 +2626,49 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
 #                        VARSIM PLOTS                          #
 #--------------------------------------------------------------#
 
-def plot_phoenix_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
-                     flux, bb_flux, flux1_in, flux2_in, flux_equi,
-                     Teff, Teff_upper, Teff_lower):
+def plot_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
+             flux, flux1_in, flux2_in, flux_equi,
+             Teff, Teff_upper, Teff_lower):
 
-    """Plot PHOENIX SED for best model fit.
+    """Plot synthetic SED for best model fit.
     """
 
-    fig, ax = plt.subplots(2, 1, figsize=(12,7))
-
-    # Plot PHOENIXS SED and blackbody model
-    
-    #ax[0].plot(wvl, flux, c='k', label=r'PHOENIX model $T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff)), lw=lw)
-    #ax[0].plot(wvl*1000, bb_flux, label='Blackbody model')
-    #ax[0].set_xlim(0, 20000)
-    #ax[0].legend(fontsize=12)
+    fig, ax = plt.subplots(2, 1, figsize=(9,7))
 
     # Plot the interpolation of the grid
-    
-    ax[0].plot(wvl2_in, flux2_in, c='blue', lw=lw, alpha=0.8,
-               label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff_upper)))
-    ax[0].plot(wvl, flux, c='k', lw=lw, alpha=0.8,
-               label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff)))
-    ax[0].plot(wvl1_in, flux1_in, c='green', lw=lw, alpha=0.8,
-               label=r'$T_{\mathrm{eff}}$'+' = {0} K'.format(int(Teff_lower)))
-    ax[0].set_xlim(2000, 10000)
-    ax[0].legend(fontsize=12)
+
+    ymax0 = flux2_in.max() + flux2_in.max() * 0.1
+    ax[0].plot(wvl2_in, flux2_in, c='blue', lw=1, alpha=0.8,
+               label=r'$T_{\mathrm{eff}}$' + f' = {int(Teff_upper)} K')
+    ax[0].plot(wvl, flux, c='k', lw=1, alpha=0.8,
+               label=r'$T_{\mathrm{eff}}$' + f' = {int(Teff)} K')
+    ax[0].plot(wvl1_in, flux1_in, c='green', lw=1, alpha=0.8,
+               label=r'$T_{\mathrm{eff}}$' + f' = {int(Teff_lower)} K')
+    ax[0].fill_between((wvl_equi[0], wvl_equi[-1]), 0, ymax0, facecolor='r', alpha=0.2)
+    ax[0].set_xlim(1000, 13000)
+    ax[0].set_ylim(0, ymax0)
+    ax[0].legend(fontsize=14)
 
     # Plot the final equidistant grid used for further calculations
-    
-    ax[1].plot(wvl, flux, 'k', lw=lw, alpha=0.8,
+
+    ymax1 = flux_equi.max() + flux_equi.max() * 0.3
+    ax[1].plot(wvl, flux, 'k', lw=1, alpha=0.8,
                label='Zoom-in on original grid')
-    ax[1].plot(wvl_equi, flux_equi, 'r', lw=0.8, alpha=1.0,
-               label=r'Equidistant grid: by Subhajit Sarkar')
-    ax[1].set_xlim(wvl_equi[0]-500, wvl_equi[-1]+500)
+    ax[1].plot(wvl_equi, flux_equi, 'r', lw=2, alpha=0.5,
+               label=r'Equidis. grid method by S. Sarkar')
+    ax[1].set_xlim(wvl_equi[0]-1000, wvl_equi[-1]+1000)
+    ax[1].set_ylim(0, ymax1)
+    ax[1].legend(fontsize=14)
+
+    # Settings
+
     ax[1].set_xlabel('$\lambda$ [AA]')
-    ax[1].legend(fontsize=12)
+    fig.supylabel(r'Flux [ergs sec$^{-1}$ cm$^{-2}$ AA$^{-1}$ sr$^{-1}$]')
     plt.tight_layout()
-    fig.text(0.001, 0.5, r'Flux [ergs sec$^{-1}$ cm$^{-2}$ AA$^{-1}$ sr$^{-1}$]',
-             va='center', rotation='vertical')
+    plt.show()
     
     # Finito!
     
-    plt.show()
     return fig, ax
 
 

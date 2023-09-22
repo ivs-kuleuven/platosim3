@@ -337,7 +337,16 @@ v        File name (without file extension) to be saved
                                "PHASE"          : "RUN",
                                "JOBNAME"        : "PLATO catalog",
                                "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
-                               "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}),POINT(ra,dec)) AS dist, designation, ra, dec, phot_g_mean_mag, bp_rp FROM {catalogue} AS cat WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}),CIRCLE(cat.ra,cat.dec,{radius})) AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
+                               "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}), " +
+                                                   "POINT(ra,dec)) " +
+                                                   "AS dist, designation, ra, dec, " +
+                                                   "parallax, parallax_error, pmra, pmdec, ruwe, " +
+                                                   "phot_g_mean_mag, bp_rp " +
+                                                   "teff_gspphot, logg_gspphot, " + 
+                                                  f"FROM {catalogue} AS cat " +
+                                                  f"WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}), " +
+                                                  f"CIRCLE(cat.ra,cat.dec,{radius})) " +
+                                                  f"AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
 
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept"      : "text/plain"}
