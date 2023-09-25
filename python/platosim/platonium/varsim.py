@@ -60,7 +60,7 @@ import batman
 import platosim.plot      as pt
 import platosim.utilities as ut
 from platosim.utilities import errorcode, downloadFromFTP
-from platosim.phoenix   import Phoenix
+from platosim.spectrum  import Spectrum
 from platosim.varsource import load_star, load_exoplanet
 from platosim.varsource import (LimbDarkening,
                                 DopplerBeaming,
@@ -95,6 +95,8 @@ t_day    = 86400.  # [s]
 class VarSim(object):
 
     """Class to generate noise-less light curves.
+
+    NOTE All input parameters with a physical unit needs a astropy.units attached.
     """
     
     def __init__(self, args):
@@ -212,8 +214,8 @@ class VarSim(object):
 
     
     def stellar_source(self):
-        """ 
-        NOTE All input parameters that has a physical unit needs a astropy.units attached.
+
+        """Select the stellar paramters.
         """
 
         # Check star source or use Sun as default
@@ -267,89 +269,103 @@ class VarSim(object):
         
         
     def stellar_spectrum(self):
-        """ 
-        PHOENIX MODELS
-        Phoenix atmospheric models: NextGen (gas phase only, use for Teff > 2700K)
-        https://phoenix.astro.physik.uni-goettingen.de/
 
-        NOTE All input parameters that has a physical unit needs a astropy.units attached.
+        """Calculates the bolometric correction from high-res spectra.
+        
+        This function uses the model grid method described in Sarkar+2018:
+        https://academic.oup.com/mnras/article/481/3/2871/5092616
         """
 
         # Load parameters
-        wvl_tele = self.wvl_tele.to('AA').value
+        wvl_tele  = self.wvl_tele.to('AA').value
+        tran_tele = self.tra_tele
         Teff = self.Teff.value
         logg = self.logg
         Z    = self.Z
         R    = self.R
         L    = self.L
         
-        # PHOENIX HIGH RESOLUTION SPECTRA
-        
-        phoenix = Phoenix()
+        # Initialise class for synthetic spectra
+        spec = Spectrum()
+
         # Select temeperature ranges
-        if Teff < 7000: dT = 50
-        else: dT = 100
+        if Teff <= 12200:
+            library = 'PhoenixHiRes'
+            if Teff < 7000: dT = 50
+            else: dT = 100
+        else:
+            library = 'Atlas9'
+            if Teff < 13000: dT = 125
+            else: dT = 500
+
         # Make sure parameters are within limits
-        Teff_lower, logg, Z, alpha = phoenix.nearest_parameters(Teff-dT, logg, Z, 0, 'HiRes')
-        Teff_upper, logg, Z, alpha = phoenix.nearest_parameters(Teff+dT, logg, Z, 0, 'HiRes')
+        Teff_lower, logg, Z, alpha = spec.nearest_parameters(Teff-dT, logg, Z, 0, library)
+        Teff_upper, logg, Z, alpha = spec.nearest_parameters(Teff+dT, logg, Z, 0, library)
+
         # Fetch high resolution spectra
-        wvl1_in, flux1_in = phoenix.getHiResFITS(Teff_lower, logg, Z, alpha=0)
-        wvl2_in, flux2_in = phoenix.getHiResFITS(Teff_upper, logg, Z, alpha=0)
-
+        if Teff <= 12200:
+            wvl1_in, flux1_in = spec.getPhoenixHiResFITS(Teff_lower, logg, Z, alpha=0)
+            wvl2_in, flux2_in = spec.getPhoenixHiResFITS(Teff_upper, logg, Z, alpha=0)
+        else:
+            wvl1_in, flux1_in = spec.getAtlasFITS(Teff_lower, logg, Z, alpha=0)
+            wvl2_in, flux2_in = spec.getAtlasFITS(Teff_upper, logg, Z, alpha=0)
+        
         # Cut off IR part -> above 2 microns and check
-        wvl_max = 20000
-        dex = np.where(wvl1_in > wvl_max)
-        wvl1_in = np.delete(wvl1_in, dex)    # [AA]
-        wvl2_in = np.delete(wvl2_in, dex)    # [AA]
-        flux1_in = np.delete(flux1_in, dex)  # [ergs/sec/cm2/AA]
-        flux2_in = np.delete(flux2_in, dex)  # [ergs/sec/cm2/AA]
-
+        wvl_max  = 20000
+        dex      = np.where(wvl1_in > wvl_max)
+        wvl1_in  = np.delete(wvl1_in, dex)      # [AA]
+        wvl2_in  = np.delete(wvl2_in, dex)      # [AA]
+        flux1_in = np.delete(flux1_in, dex)     # [ergs/s/cm2/AA]
+        flux2_in = np.delete(flux2_in, dex)     # [ergs/s/cm2/AA]
+        
         # Check that the interpolation between the two SEDs can be done
         if len(wvl1_in) != len(wvl2_in):
-            errorcode('error', 'PHOENIX spectra are not of same size - investigate interpolation!')
+            errorcode('error', 'Spectra are not of same size! Check interpolation')
 
-        # Create SED for star by interpolating nearby absolutely calibrated PHOENIX models
+        # Create SED for star by interpolating nearby absolutely calibrated spectra
         wvl  = (wvl1_in + wvl2_in) / 2.
         flux = flux1_in + (Teff-Teff_lower) * (flux2_in-flux1_in) * float(Teff_upper-Teff_lower)**-1
-        #bb_flux = bb_flux1_in + (Teff-Teff_lower) * (bb_flux2_in-bb_flux1_in) * (Teff_upper-Teff_lower)**-1
 
         # Measure total luminosity from SED [ergs/s]
         Total_Luminosity1 = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux1_in, wvl1_in)
         Total_Luminosity2 = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux2_in, wvl2_in)
 
         # Consistency check [ergs/sec]
+        # NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
         if self.verbose > 0:
             Total_Luminosity  = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux, wvl) * u.erg/u.s
-            print('Theoretical Luminosity [ergs/sec] : {:.3e}'.format(L.to('erg/s'))) # /np.pi if Atmos
-            print('PHOENIX SED Luminosity [ergs/sec] : {:.3e} \n'.format(Total_Luminosity))
+            print('Theoretical Luminosity [ergs/sec] : {:.3e}'.format(L.to('erg/s')))
+            print('Synthetic   Luminosity [ergs/sec] : {:.3e} \n'.format(Total_Luminosity))
 
         # Measure bolometric luminosity amplitude gradient (vs. temperature variation)
         # This will be used instead of the approximate relation provided by Kjeldsen & Bedding (1995)
-        bol_coeff = round(ut.diff(Total_Luminosity2, Total_Luminosity1) /
-                          ut.diff(Teff_upper, Teff_lower), 2)
+        # bol_coeff = round(ut.diff(Total_Luminosity2, Total_Luminosity1) /
+        #                   ut.diff(Teff_upper, Teff_lower), 2)
 
         # Measure passband luminosity amplitude gradient (vs. bolometric luminosity amplitude)
-        ind_wavlMin = ut.find_nearest(wvl, wvl_tele[0])
-        ind_wavlMax = ut.find_nearest(wvl, wvl_tele[-1])
-        if ind_wavlMax-ind_wavlMin == 1:
+        dex_wavlMin = ut.find_nearest(wvl, wvl_tele[0])
+        dex_wavlMax = ut.find_nearest(wvl, wvl_tele[-1])
+        if dex_wavlMax-dex_wavlMin == 1:
             Luminosity1_lambda = (4*np.pi * (R.cgs.value)**2 *
-                                  (wvl1_in[ind_wavlMax] - wvl1_in[ind_wavlMin]) *
-                                  (flux1_in[ind_wavlMax] + flux1_in[ind_wavlMin])/2.)
+                                  ( wvl1_in[dex_wavlMax] -  wvl1_in[dex_wavlMin]) *
+                                  (flux1_in[dex_wavlMax] + flux1_in[dex_wavlMin]) / 2.)
             Luminosity2_lambda = (4*np.pi * (R.cgs.value)**2 *
-                                  (wvl2_in[ind_wavlMax] - wvl2_in[ind_wavlMin]) *
-                                  (flux2_in[ind_wavlMax] + flux2_in[ind_wavlMin])/2.)
+                                  ( wvl2_in[dex_wavlMax] -  wvl2_in[dex_wavlMin]) *
+                                  (flux2_in[dex_wavlMax] + flux2_in[dex_wavlMin]) / 2.)
         else:
             Luminosity1_lambda = (4*np.pi * (R.cgs.value)**2 *
-                                  np.trapz(flux1_in[ind_wavlMin:ind_wavlMax],
-                                           wvl1_in[ind_wavlMin:ind_wavlMax]))
+                                  np.trapz(flux1_in[dex_wavlMin:dex_wavlMax],
+                                           wvl1_in[dex_wavlMin:dex_wavlMax]))
             Luminosity2_lambda = (4*np.pi * (R.cgs.value)**2 *
-                                  np.trapz(flux2_in[ind_wavlMin:ind_wavlMax],
-                                           wvl2_in[ind_wavlMin:ind_wavlMax]))
+                                  np.trapz(flux2_in[dex_wavlMin:dex_wavlMax],
+                                           wvl2_in[dex_wavlMin:dex_wavlMax]))
 
         # Bolometric correction cofficient
-        self.bol_coeff = ut.diff(Luminosity2_lambda, Luminosity1_lambda) / ut.diff(Total_Luminosity2, Total_Luminosity1)
+        self.bol_coeff = (ut.diff(Luminosity2_lambda, Luminosity1_lambda) /
+                          ut.diff(Total_Luminosity2, Total_Luminosity1))
         if self.verbose > 0:
-            print('Bolometric to {0} passband correction coefficient: {1}'.format(self.instrument, round(self.bol_coeff, 4)))
+            print(f'Bolometric to {self.instrument} passband correction ' +
+                  f'coefficient: {round(self.bol_coeff, 4)}')
 
         # Rebinned spectrum TODO delete?
         wvl_equi = np.arange(wvl_tele[0], wvl_tele[-1], 1)
@@ -360,167 +376,19 @@ class VarSim(object):
         # Plot the above calculations
         bb_flux = 1
         if args.plot:
-            pt.plot_phoenix_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
-                                flux, bb_flux, flux1_in, flux2_in, flux_equi,
-                                Teff, Teff_upper, Teff_lower)
+            pt.plot_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
+                        flux, flux1_in, flux2_in, flux_equi,
+                        Teff, Teff_upper, Teff_lower)
 
 
 
 
+            
     #--------------------------------------------------------------#
     #                   MODELS OF SOLAR-LIKE STARS                 #
     #--------------------------------------------------------------#
 
-    
-    def stellar_activity(self):
-        """
-        This function simulate a synthetic noise-less light curve of main-sequence
-        stars that include stellar activity in the form of cyclic spot modulations.
 
-        Resources
-        ---------
-        Noyes et al.            (1984) : https://adsabs.harvard.edu/pdf/1984ApJ...279..763N
-        Pillet et al.           (1993) : https://www.cambridge.org/core/journals/international-astronomical-union-colloquium/article/distribution-of-sunspot-decay-rates/9D2174592A1C0CD0E9DD8B1DF347B7FF#
-        Baumann and Solanki     (2005) : https://www.aanda.org/articles/aa/abs/2005/45/aa3415-05/aa3415-05.html
-        Mamajek and Hillenbrand (2008) : https://iopscience.iop.org/article/10.1086/591785/meta
-        Llama et al.            (2012) : https://academic.oup.com/mnrasl/article/422/1/L72/971190?login=true
-        Aigrain et al.          (2012) : https://academic.oup.com/mnras/article/419/4/3147/2908053?login=true
-        Meunier et al.          (2019) : https://arxiv.org/abs/1911.05319
-        
-        Assumptions
-        -----------
-        * Model of spots only (missing e.g. faculae)
-        * Model only valid for main-sequence stars
-        
-        Code courtesy
-        -------------
-        Suzanne Aigrain : Aigrain et al. (2012)
-        """
-
-        from platosim.starspot import simulate_lc
-        
-        # Start script
-        if self.verbose > 0:
-            errorcode('module', '\nStellar activity\n')
-
-        # Use a random uniform distribution
-        # NOTE secure a lower misalignment for planetary systems
-        if args.planet or args.planet_params or args.xsource:
-            incl = np.random.uniform(85, 90)
-        else:
-            # None means cos(i_star) uniform between 0-90 deg
-            incl = None
-            
-        # Re-run random activity cycle until it fits in memory!
-        lc = None
-        while lc is None:
-            lc, params = simulate_lc(teff=self.Teff.value,
-                                     time=self.time.to('d').value,
-                                     dur=self.timeDur.to('d').value,
-                                     cadence_hours=self.cadence.to('h').value,
-                                     incl=incl,
-                                     verbose=self.verbose,
-                                     doplot=args.plot)
-
-        # Store global variables
-        lc = lc * 1e6
-        self.lc['spot'] = lc.tolist()
-        self.spot_params = params
-
-
-
-
-
-
-
-
-    def stellar_flare(self, tscale=False, tmax=False, amplitude=30, asymmetry=1):
-
-        """Function to model flares.
-        
-        Parameters
-        ----------
-        tscale : float, ndarray
-            Time scale duration of the flare(s) [days]
-        tmax : float, ndarray
-            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
-        amplitude : float, ndarray
-            Amplitude of the flare(s) [mmag]
-        asymmetry : float, ndarray
-            Asymmetry factor of the flare(s)
-        """
-
-        # Convert units of input parameters
-        time = self.time.to('d').value
-        flux = np.zeros_like(time)
-
-        # Secure that single flare works
-        try: len(tmax)
-        except: tmax = [tmax]
-        
-        # Loop over each flare event
-        
-        for m in range(len(tmax)):
-
-            # Start and end of flare event
-            t0 = (time[0]  - tmax[m])
-            t1 = (time[-1] - tmax[m])
-            dt = np.diff(time)[0]
-
-            # Time array during flare event
-            tn = np.arange(t0, t1, dt)
-            t = tn/tscale
-
-            # Model parameters of flare
-            B = asymmetry
-            C = 1/B
-            b = -1.941 - 0.175 + 2.246 + 1
-            c = 1 - 0.689
-
-            # Loop over every time-step in the flare time interval
-            # NOTE: this is defined relative to this flares maxima and put in units
-            # of the time-scale here the analytic expressions for the rise and decay
-            # are used to determine the flux of this flare
-
-            for i in range(len(t)):
-
-                # Rise of flare
-                if t[i]*B > -1 and t[i]*B <= 0:
-                    flux[i] += (1
-                                + 1.941 * (t[i]*B)
-                                - 0.175 * (t[i]*B)**2
-                                - 2.246 * (t[i]*B)**3
-                                - b     * (t[i]*B)**4)
-
-                # Decay of flare
-                elif t[i]*C > 0:
-                    flux[i] += 0.689 * np.exp(-1.6 * t[i]*C) + c * np.exp(-0.2783 * t[i]*C)
-
-                # No flare
-                else:
-                    flux[i] += 0
-
-        # Convert to magnitude [mmag]
-        mag = flux * amplitude
-                    
-        # plot light curve
-        # if args.plot:
-        #     plt.figure(figsize=(10, 5))
-        #     plt.plot(time, mag , 'm-')
-        #     plt.xlabel('Time [d]')
-        #     plt.ylabel(r'$\delta m$ [mmag]')
-        #     plt.xlim(np.min(time), np.max(time))
-        #     plt.tight_layout()
-        #     plt.show()
-            
-
-        return flux * amplitude + 1
-
-        
-
-
-        
-        
     def stellar_gran_osc(self):
         """
         Function to simulate stellar granulation and stochastic oscillation (p-modes).
@@ -538,9 +406,10 @@ class VarSim(object):
         Ballot et al.      (2011) : https://arxiv.org/abs/1105.4557
         Kallinger et al.   (2014) : https://arxiv.org/abs/1408.0817
 
-        Codes (p-mode)
-        --------------
-        De Ridder et. al.  (2006) : https://academic.oup.com/mnras/article/365/2/595/976827
+        Code & Data (p-modes)
+        ---------------
+        De Ridder et al.   (2006) : https://academic.oup.com/mnras/article/365/2/595/976827
+        Broomhall et al.   (2009) : Tables in paper 
         """
 
         # Start script
@@ -730,6 +599,162 @@ class VarSim(object):
         if args.plot:
             lc_tot = lc_gran + lc_puls  
             pt.plot_amplitude_time_series(time, lc_gran, lc_puls, lc_tot, self.star_source)
+
+
+
+
+
+            
+    def stellar_activity(self):
+
+        """Model stellar spot modulations.
+
+        This function simulate a synthetic noise-less light curve of main-sequence
+        stars that include stellar activity in the form of cyclic spot modulations.
+
+        Resources
+        ---------
+        Noyes et al.            (1984) : https://adsabs.harvard.edu/pdf/1984ApJ...279..763N
+        Pillet et al.           (1993) : https://www.cambridge.org/core/journals/international-
+                                         astronomical-union-colloquium/article/distribution-of-
+                                         sunspot-decay-rates/9D2174592A1C0CD0E9DD8B1DF347B7FF#
+        Baumann and Solanki     (2005) : https://www.aanda.org/articles/aa/abs/2005/45/aa3415-05/aa3415-05.html
+        Mamajek and Hillenbrand (2008) : https://iopscience.iop.org/article/10.1086/591785/meta
+        Llama et al.            (2012) : https://academic.oup.com/mnrasl/article/422/1/L72/971190?login=true
+        Aigrain et al.          (2012) : https://academic.oup.com/mnras/article/419/4/3147/2908053?login=true
+        Meunier et al.          (2019) : https://arxiv.org/abs/1911.05319
+        
+        Assumptions
+        -----------
+        - Model of spots only (missing e.g. faculae)
+        - Model only valid for main-sequence stars
+        
+        Code courtesy
+        -------------
+        Suzanne Aigrain : Aigrain et al. (2012)
+        """
+
+        from platosim.starspot import simulate_lc
+        
+        # Start script
+        if self.verbose > 0:
+            errorcode('module', '\nStellar activity\n')
+
+        # Use a random uniform distribution
+        # NOTE secure a lower misalignment for planetary systems
+        if args.planet or args.planet_params or args.xsource:
+            incl = np.random.uniform(85, 90)
+        else:
+            # None means cos(i_star) uniform between 0-90 deg
+            incl = None
+            
+        # Re-run random activity cycle until it fits in memory!
+        lc = None
+        while lc is None:
+            lc, params = simulate_lc(teff=self.Teff.value,
+                                     time=self.time.to('d').value,
+                                     dur=self.timeDur.to('d').value,
+                                     cadence_hours=self.cadence.to('h').value,
+                                     incl=incl,
+                                     verbose=self.verbose,
+                                     doplot=args.plot)
+
+        # Store global variables
+        lc = lc * 1e6
+        self.lc['spot'] = lc.tolist()
+        self.spot_params = params
+
+
+
+
+
+
+
+
+    def stellar_flare(self, tscale=False, tmax=False, amplitude=30, asymmetry=1):
+
+        """Function to model flares.
+        
+        Parameters
+        ----------
+        tscale : float, ndarray
+            Time scale duration of the flare(s) [days]
+        tmax : float, ndarray
+            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
+        amplitude : float, ndarray
+            Amplitude of the flare(s) [mmag]
+        asymmetry : float, ndarray
+            Asymmetry factor of the flare(s)
+        """
+
+        # Convert units of input parameters
+        time = self.time.to('d').value
+        flux = np.zeros_like(time)
+
+        # Secure that single flare works
+        try: len(tmax)
+        except: tmax = [tmax]
+        
+        # Loop over each flare event
+        
+        for m in range(len(tmax)):
+
+            # Start and end of flare event
+            t0 = (time[0]  - tmax[m])
+            t1 = (time[-1] - tmax[m])
+            dt = np.diff(time)[0]
+
+            # Time array during flare event
+            tn = np.arange(t0, t1, dt)
+            t = tn/tscale
+
+            # Model parameters of flare
+            B = asymmetry
+            C = 1/B
+            b = -1.941 - 0.175 + 2.246 + 1
+            c = 1 - 0.689
+
+            # Loop over every time-step in the flare time interval
+            # NOTE: this is defined relative to this flares maxima and put in units
+            # of the time-scale here the analytic expressions for the rise and decay
+            # are used to determine the flux of this flare
+
+            for i in range(len(t)):
+
+                # Rise of flare
+                if t[i]*B > -1 and t[i]*B <= 0:
+                    flux[i] += (1
+                                + 1.941 * (t[i]*B)
+                                - 0.175 * (t[i]*B)**2
+                                - 2.246 * (t[i]*B)**3
+                                - b     * (t[i]*B)**4)
+
+                # Decay of flare
+                elif t[i]*C > 0:
+                    flux[i] += 0.689 * np.exp(-1.6 * t[i]*C) + c * np.exp(-0.2783 * t[i]*C)
+
+                # No flare
+                else:
+                    flux[i] += 0
+
+        # Convert to magnitude [mmag]
+        mag = flux * amplitude
+                    
+        # plot light curve
+        # if args.plot:
+        #     plt.figure(figsize=(10, 5))
+        #     plt.plot(time, mag , 'm-')
+        #     plt.xlabel('Time [d]')
+        #     plt.ylabel(r'$\delta m$ [mmag]')
+        #     plt.xlim(np.min(time), np.max(time))
+        #     plt.tight_layout()
+        #     plt.show()
+            
+
+        return flux * amplitude + 1
+
+        
+
 
             
     #--------------------------------------------------------------#

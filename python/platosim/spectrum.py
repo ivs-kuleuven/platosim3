@@ -1,77 +1,93 @@
 #!/usr/bin/env python
 
 """
-This is a script holding all relevant PHOENIX download and read features.
+This class contains functions relevant for downloading SEDs from 
+the PHOENIX and ATLAS9 library of synthetic spectra.
 """
 
+# Python default
 import os
 import zipfile
 import urllib.request
 from pathlib import Path
 
+# PlatoSim standard
 import numpy as np
+import pandas as pd
 from astropy.io import fits
 
-# PlatoSim
+# PlatoSim functions
 from platosim.utilities import errorcode, find_nearest
 
 
 #==============================================================#
-#                         PHOENIX CLASS                        #
+#                           SED CLASS                          #
 #==============================================================#
 
+class Spectrum(object):
 
-class Phoenix(object):
-    """
-    This class provides a convenient handling of PHOENIX spectra.
-    For a given set of effective Temperature, log g, metalicity and alpha,
-    it downloads the spectrum from PHOENIX ftp server.
+    """This class provides a convenient handling of model spectra.
+    
+    For a given set of Teff, logg, Z, and alpha, it downloads the
+    spectrum from the servers mentioned below.
 
+    PHOENIX references:
     Webpage : https://phoenix.astro.physik.uni-goettingen.de/
     Download: http://phoenix.astro.physik.uni-goettingen.de/data/
+    Paper   :
+    NOTE Phoenix NextGen gas phase models are only valid for Teff>2700K
+
+    ATLAS9 references:
+    Webpage : 
+    Download: https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/ck04models/
+    Paper   : 
     """
 
     def __init__(self):
+
+        """Initialize and prepare data structure
         """
-        PURPOSE: Initialize and prepare data structure
-        """
+        
         # Create data directories if they do not exist
 
-        path = Path(__file__).parent.resolve()
+        path    = Path(__file__).parent.resolve()
         dataDir = os.getenv("PLATO_PROJECT_HOME") + '/inputfiles/data_varsim'
         self.path = path.joinpath(dataDir)
         self.path.mkdir(parents=False, exist_ok=True)
+        
+
+
 
 
     def parameter_space(self, library):
-        """
-        PURPOSE: Return parameter space
+
+        """Return parameter space.
         """
 
-        if library == 'Atmos':
+        if library == 'PhoenixAtmos':
             self.valid_t = np.array([*list(range(2300, 7000, 100)),
-                            *list((range(7000, 12200, 200)))])
+                                     *list((range(7000, 12200, 200)))])
             self.valid_g = np.array([*list(np.arange(0, 6, 0.5))])
             self.valid_z = np.array([*list(np.arange(-4, -2, 1)),
-                            *list(np.arange(-2.0, 1.5, 0.5))])
+                                     *list(np.arange(-2.0, 1.5, 0.5))])
             self.valid_a = np.array([-0.2, 0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4])
 
-        if library == 'HiRes':
+        if library == 'PhoenixHiRes':
             self.valid_t = np.array([*list(range(2300, 7000, 100)),
-                            *list((range(7000, 12200, 200)))])
+                                     *list((range(7000, 12200, 200)))])
             self.valid_g = np.array([*list(np.arange(0, 6, 0.5))])
             self.valid_z = np.array([*list(np.arange(-4, -2, 1)),
-                            *list(np.arange(-2.0, 1.5, 0.5))])
+                                     *list(np.arange(-2.0, 1.5, 0.5))])
             self.valid_a = np.array([-0.2, 0., 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4])
 
-        if library == 'MedRes':
+        if library == 'PhoenixMedRes':
             self.valid_t = np.array([*list(range(2300, 7000, 100)),
-                            *list((range(7000, 12200, 200)))])
+                                     *list((range(7000, 12200, 200)))])
             self.valid_g = np.array([*list(np.arange(-5.0, 1.0, 0.5))])
             self.valid_z = np.array([*list(np.arange(-6, 0.5, 0.5))])
             self.valid_a = np.array([0])
 
-        if library == 'SpecInt':
+        if library == 'PhoenixSpecInt':
             self.valid_t = np.array([*list(range(2300, 5000, 100)),
                                      *list(range(5100, 7000, 100)),
                                      *list(range(7000, 12200, 200))])
@@ -79,17 +95,23 @@ class Phoenix(object):
             self.valid_z = np.array([-4.0, -3.0, -2.0, -1.5, -1.0, -0.5, 0.0, 0.5, 1.0])
             self.valid_a = np.array([0])
 
+        if library == 'Atlas9':
+            self.valid_t = np.array([*list(range( 3000, 13000,  250)),
+                                     *list(range(13000, 50000, 1000))])
+            self.valid_g = np.array([*list(np.arange(0.0, 5.0, 0.5))])
+            self.valid_z = np.array([-2.5, -2.0, -1.5, -1.0, -0.5, 0.0, 0.2, 0.5])
+            self.valid_a = np.array([0])
+
 
 
 
             
     def nearest_parameters(self, Teff, logg, Z, alpha, library):
-        """
-        PURPOSE: Return compliant parameter space
+
+        """Return compliant parameter space.
         """
 
         # Find indices for closest valid parameter
-
         self.parameter_space(library)
         dex_t = find_nearest(self.valid_t, Teff)
         dex_g = find_nearest(self.valid_g, logg)
@@ -97,7 +119,6 @@ class Phoenix(object):
         dex_a = find_nearest(self.valid_a, alpha)
 
         # Select valid parameter
-
         Teff  = self.valid_t[dex_t]
         logg  = self.valid_g[dex_g]
         Z     = self.valid_z[dex_z]
@@ -105,40 +126,43 @@ class Phoenix(object):
 
         return Teff, logg, Z, alpha
 
-
+        
 
 
     
     def destructor(self):
+
+        """Destructor.
         """
-        PURPOSE: Destructor
-        """
-        string_1 = 'Invalid parameter space! Valid values are:'
-        string_2 = '\nTeff: {0} \nlogg: {1} \nZ: {2} \nalpha: {3}\n'.format(
-            np.sort(self.valid_t),
-            np.sort(self.valid_g),
-            np.sort(self.valid_z),
-            np.sort(self.valid_a)
-        )
-        errorcode('error', string_1 + string_2)
+        
+        string = ('Invalid parameter space! Valid values are:' +
+                  f'\nTeff: {self.valid_t} ' +
+                  f'\nlogg: {self.valid_g} ' +
+                  f'\nZ: {self.valid_z}\n')
+                    
+        errorcode('error', string)
+        
 
 
 
+
+
+    #--------------------------------------------------------------#
+    #                        PHOENIX MODELS                        #
+    #--------------------------------------------------------------#    
 
         
-    def getAtmosFITS(self, Teff, logg, Z, alpha):
-        """
-        PURPOSE: Download and load PHOENIX atmospheric SED models
+    def getPhoenixAtmosFITS(self, Teff, logg, Z, alpha):
+
+        """Download and load PHOENIX atmospheric SED models.
         """
 
         # Create data folder if it do not exist
-
         dataDir = self.path / 'PHOENIX_AtmosFITS'
         Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
 
         # Make sure code do not crash
-
-        Teff, logg, Z, alpha = self.nearest_parameters(Teff, logg, Z, alpha, 'Atmos')
+        Teff, logg, Z, alpha = self.nearest_parameters(Teff, logg, Z, alpha, 'PhoenixAtmos')
 
         # Accept only valid parameter space
 
@@ -206,9 +230,9 @@ class Phoenix(object):
 
     
 
-    def getHiResFITS(self, Teff, logg, Z, alpha):
-        """
-        PURPOSE: Download and load PHOENIX High Resolution SED models
+    def getPhoenixHiResFITS(self, Teff, logg, Z, alpha):
+
+        """Download and load PHOENIX High Resolution SED models.
         """
 
         # Prepare data structure
@@ -279,19 +303,18 @@ class Phoenix(object):
 
     
 
-    def getSpecIntFITS(self, Teff, logg, Z):
-        """
-        PURPOSE: Download and load PHOENIX spectral intensities
+    def getPhoenixSpecIntFITS(self, Teff, logg, Z):
+
+        """Download and load PHOENIX spectral intensities.
         """
 
         # Create data folder if it do not exist
-
         dataDir = self.path / 'PHOENIX_SpecIntFITS'
         Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
 
         # Make sure that all paramters are valid
 
-        Teff, logg, Z, alpha = self.nearest_parameters(Teff, logg, Z, 0, 'SpecInt')
+        Teff, logg, Z, alpha = self.nearest_parameters(Teff, logg, Z, 0, 'PhoenixSpecInt')
 
         if Teff in self.valid_t and logg in self.valid_g and Z in self.valid_z:
 
@@ -345,3 +368,65 @@ class Phoenix(object):
         # Finito!
 
         return wvl, mu, data
+
+
+
+    
+    #--------------------------------------------------------------#
+    #                         ATLAS9 MODELS                        #
+    #--------------------------------------------------------------#    
+    
+    def getAtlasFITS(self, Teff, logg, Z, alpha):
+
+        """Download and load ATLAS9 SED model.
+        """
+
+        # Prepare data structure        
+        dataDir = self.path / 'ATLAS9_FITS'
+        Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
+
+        # Accept only valid parameter space or raise an error
+        
+        if (Teff in self.valid_t and logg in self.valid_g 
+            and Z in self.valid_z and alpha in self.valid_a):
+
+            # Full download link
+            if Z >= 0: sign = 'p'
+            else: sign = 'm'
+            string_z = str(Z)[0] + str(Z)[2]
+            string_g = str(logg)[0] + str(logg)[2]
+
+            server = "https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/ck04models"
+            url_name = f'ck{sign}{string_z}'
+            url = f"{server}/{url_name}/{url_name}_{Teff}.fits"
+
+            # Download spectrum
+            spectrum_path = self.path.joinpath(dataDir).joinpath(url.split("/")[-1])
+            if not spectrum_path.is_file():
+                print(f"Downloading ATLAS9 spectrum: \n{url}")
+                with urllib.request.urlopen(url) as response, open(spectrum_path, "wb") as out_file:
+                    data = response.read()
+                    out_file.write(data)
+
+            # Fetch spectrum from file
+            hdul = fits.open(spectrum_path)
+            df   = pd.DataFrame(hdul[1].data)
+            wvl  = df.WAVELENGTH.to_numpy()
+
+            # Select column of closest logg
+            flux = df[f'g{string_g}'].to_numpy()
+            dex  = df.columns.tolist().index(f'g{string_g}')
+
+            # Find nearest logg value
+            if flux.sum() == 0:
+                for i in range(dex, len(df.iloc[0,:])):
+                    flux += df.iloc[:,i].to_numpy()
+                    if flux.sum() > 0:
+                        break
+
+        else:
+            self.destructor()
+        
+        # Finito!
+        return wvl, flux
+    

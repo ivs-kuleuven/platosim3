@@ -2105,8 +2105,263 @@ class LightCurve(object):
 
 
 
+    #--------------------------------------------------------------#
+    #                     SIMULATION STATISTICS                    #
+    #--------------------------------------------------------------#
+
+
+    def stat_lcsPerStar(self, quarters=False, ofile=False):
+
+        """Number statistics of light curves per star.
+
+        This function computes the number of simulated light curves
+        per star (and per mission quarter if requested).
+
+        Parameters
+        ----------
+        idir : str
+            Input directory pointing to the location of the simulations: 
+            "</path/to/simulations/>" containing the 9 digit star IDs. 
+        ofile : str
+            Filename of the output file.
+ 
+        Return
+        ------
+        A ascii table is returned.
+        """
         
+        # Fetch star folders
+        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
+
+        # Remove file if exists
+        ofile = pathlib.Path(ofile)
+        if ofile.is_file():
+            ofile.unlink()
+        
+        # Star writing to file
+        
+        with open(ofile, 'a+') as f:
+
+            # Write the column names
+            string = 'star'
+            if quarters:
+                for q in quarters:
+                    string += f',NsimQ{q}'
+            f.write(string + ',NsimAll')
+
+            # Loop over each star folder
+            
+            for folder in tqdm(folders, bar_format=ut.tqdmBar()):
+
+                # Read path
+                starID = int(folder[-9:])
+                sumAll = len(glob.glob(f'{folder}/*.zip'))
+
+                # Move read cursor to the start of file.
+                f.seek(0) 
+                f.write("\n")
+                string = f'{int(starID)}'
+                if quarters:
+                    for q in quarters:
+                        sumQ = len(glob.glob(f'{folder}/**Q{q}**.zip'))
+                        string += f',{sumQ}'
+                f.write(string + f',{sumAll}')
+
+        # Open file and write to feather
+
+        return pd.read_csv(ofile)
+
+
+
+
+    
+    def stat_lcsPerCamera(self, ofile=False):
+
+        """Number statistics of light curves per N-CAM.
+
+        This function computes the number of simulated light curves
+        per star (and per mission quarter if requested).
+
+        Parameters
+        ----------
+        idir : str
+            Input directory pointing to the location of the simulations: 
+            "</path/to/simulations/>" containing the 9 digit star IDs. 
+        ofile : str
+            Filename of the output file.
+ 
+        Return
+        ------
+        A ascii table is returned.
+        """
+
+        # Fetch star folders
+        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
+        
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+        
+        # Loop over each star
+
+        for folder in tqdm(folders, bar_format=ut.tqdmBar()):
+
+            # Fetch all zip files
+            files = glob.glob(f'{folder}/*.zip')
+
+            # Loop over each group and camera
+
+            for f in files:
+
+                # Fetch obs info
+                parts = pathlib.Path(f).stem.split('_')
+                star    = int(parts[-3])
+                group   = int(parts[-2][4])
+                camera  = int(parts[-2][6])
+                quarter = int(parts[-1][1:])
+
+                # Store data in data frame
+                data = {"star":star, "group":group, "camera":camera, "quarter":quarter}
+                df1 = pd.DataFrame(data, index=[0])
+
+                # Add data to data frame
+                df0 = pd.concat([df0, df1])
+
+        # Handle output format
+        #df = df0.astype({"star":int})
+        df = df0.reset_index()
+
+        # If requested save file
+        if ofile: df.to_feather(ofile)
+        
+        return df
+
+
+
+
+        
+    def stat_simInfo(self, idir, ofile, pointing, numStar, unpack=False):
+
+        """Function to create a overview table of the simulated stars.
+
+        TODO under construction!
+        """
+
+        # Configuration file used in simulation
+        sim = Simulation('test')
+        focalLength = float(sim['Camera/FocalLength/ConstantValue']) * 1000.
+        pixelSize   = float(sim["CCD/PixelSize"])
+        
+        # Get platform pointing for simulation
+        alpha, delta, kappa = ut.getPointingField(pointing, unit='rad')
+
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+        
+        # Loop over each star
+
+        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
+
+            # Read path
+            starID = f"{i}".zfill(9)
+            path   = f"{idir}/{starID}"
+            
+            # Initialise object
+            lcs = LightCurve(path, mode="multi")
+
+            # Unpack all files
+            if unpack:
+                lcs.unpack()
+
+            # Fetch all cat files
+            files  = self.files(path=path, suffix='ftr')
+            nfiles = len(files) 
+
+            # Loop over each group and camera
+
+            for f in files:
+
+                # Fetch light curve object
+                try: lc = LightCurve(f)
+                except: pass
+                else:
+
+                    # Get target star information
+                    star = lc.star().iloc[0]
+                    xFP  = star.xfp
+                    yFP  = star.yfp
+                    ccd  = star.ccd
+                    xCCD = star.xccd
+                    yCCD = star.yccd
+
+                    # CCD info 
+                    ccdZeroPointX = sim['CCDPositions/OriginOffsetX'][int(ccd-1)]
+                    ccdZeroPointY = sim['CCDPositions/OriginOffsetY'][int(ccd-1)]
+                    ccdAngle      = np.deg2rad(sim['CCDPositions/Orientation'][int(ccd-1)])
+                    
+                    # Fetch obs info
+                    group, camera, quarter = lc.obs()
+                    
+                    # Set camera-group tilt and azimuth
+                    azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][group-1]))
+                    tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][group-1]))
+                    focalPlaneAngle  = 0.0 #np.deg2rad(float(sim['CCDPositions/Orientation'][int(ccd-1)]))
+                    
+                    # Correct kappa depending on mission quarter                    
+                    kappaQ = math.fmod(quarter * np.pi/2, 2*np.pi) + kappa
+
+                    # Get the focal plane coordinates
+                    
+                    xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
+                    print(xFPmm, yFPmm)
+                    # If required, undistort them
+
+                    inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
+                    xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
+                    
+                    # Stellar coordinates from focal plane coordinates
+                    ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm,
+                                                            alpha, delta, kappaQ,
+                                                            tiltTelescope, azimuthTelescope,
+                                                            focalPlaneAngle, focalLength)
+                    
+                    # Store data in data frame
+                    data = {"id":i, "group":group, "camera":camera, "quarter":quarter,
+                            "ra":np.rad2deg(ra), "dec":np.rad2deg(dec), "xFP":xFP, "yFP":yFP,
+                            "ccd":ccd, "xCCD":xCCD, "yCCD":yCCD}
+                    df1 = pd.DataFrame(data, index=[0])
+                            
+                    # Add data to data frame
+                    df0 = pd.concat([df0, df1])
+
+            # Remove output files again
+            #lcs.remove(path=path)
+                    
+        # Handle output format
+        df = df0.astype({"id":int, "group":int, "camera":int, "quarter":int, "ccd":int})
+
+        # Sort data frame, set new index, and save
+        df = df.reset_index()
+        df.to_feather(ofile)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    #--------------------------------------------------------------------------------------
     #------ Functions below are used for the analysis for the PLATO Performance Team (PPT)
+    #--------------------------------------------------------------------------------------
 
     
     def merge_cameras(self, outputFile, numStar):
@@ -2392,169 +2647,3 @@ class LightCurve(object):
                         os.remove(filepath_cat)
                         try: os.remove(filepath_inv)
                         except: pass
-
-
-
-
-    
-    def statistics_sim_info_table(self, idir, ofile, pointing, numStar, unpack=False):
-
-        """Function to create a overview table of the simulated stars.
-
-        TODO under construction!
-        """
-
-        # Configuration file used in simulation
-        sim = Simulation('test')
-        focalLength = float(sim['Camera/FocalLength/ConstantValue']) * 1000.
-        pixelSize   = float(sim["CCD/PixelSize"])
-        
-        # Get platform pointing for simulation
-        alpha, delta, kappa = ut.getPointingField(pointing, unit='rad')
-
-        # Open a pandas data frame and write to it
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-        
-        # Loop over each star
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
-
-            # Read path
-            starID = f"{i}".zfill(9)
-            path   = f"{idir}/{starID}"
-            
-            # Initialise object
-            lcs = LightCurve(path, mode="multi")
-
-            # Unpack all files
-            if unpack:
-                lcs.unpack()
-
-            # Fetch all cat files
-            files  = self.files(path=path, suffix='ftr')
-            nfiles = len(files) 
-
-            # Loop over each group and camera
-
-            for f in files:
-
-                # Fetch light curve object
-                try: lc = LightCurve(f)
-                except: pass
-                else:
-
-                    # Get target star information
-                    star = lc.star().iloc[0]
-                    xFP  = star.xfp
-                    yFP  = star.yfp
-                    ccd  = star.ccd
-                    xCCD = star.xccd
-                    yCCD = star.yccd
-
-                    # CCD info 
-                    ccdZeroPointX = sim['CCDPositions/OriginOffsetX'][int(ccd-1)]
-                    ccdZeroPointY = sim['CCDPositions/OriginOffsetY'][int(ccd-1)]
-                    ccdAngle      = np.deg2rad(sim['CCDPositions/Orientation'][int(ccd-1)])
-                    
-                    # Fetch obs info
-                    group, camera, quarter = lc.obs()
-                    
-                    # Set camera-group tilt and azimuth
-                    azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][group-1]))
-                    tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][group-1]))
-                    focalPlaneAngle  = 0.0 #np.deg2rad(float(sim['CCDPositions/Orientation'][int(ccd-1)]))
-                    
-                    # Correct kappa depending on mission quarter                    
-                    kappaQ = math.fmod(quarter * np.pi/2, 2*np.pi) + kappa
-
-                    # Get the focal plane coordinates
-                    
-                    xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize, ccdZeroPointX, ccdZeroPointY, ccdAngle)
-                    print(xFPmm, yFPmm)
-                    # If required, undistort them
-
-                    inverseDistortionCoefficients = sim["Camera/FieldDistortion/ConstantInverseCoefficients"]
-                    xFPmm, yFPmm = rf.distortedToUndistortedFocalPlaneCoordinates(xFPmm, yFPmm, inverseDistortionCoefficients, focalLength)
-                    
-                    # Stellar coordinates from focal plane coordinates
-                    ra, dec = rf.focalPlaneToSkyCoordinates(xFPmm, yFPmm,
-                                                            alpha, delta, kappaQ,
-                                                            tiltTelescope, azimuthTelescope,
-                                                            focalPlaneAngle, focalLength)
-                    
-                    # Store data in data frame
-                    data = {"id":i, "group":group, "camera":camera, "quarter":quarter,
-                            "ra":np.rad2deg(ra), "dec":np.rad2deg(dec), "xFP":xFP, "yFP":yFP,
-                            "ccd":ccd, "xCCD":xCCD, "yCCD":yCCD}
-                    df1 = pd.DataFrame(data, index=[0])
-                            
-                    # Add data to data frame
-                    df0 = pd.concat([df0, df1])
-
-            # Remove output files again
-            #lcs.remove(path=path)
-                    
-        # Handle output format
-        df = df0.astype({"id":int, "group":int, "camera":int, "quarter":int, "ccd":int})
-
-        # Sort data frame, set new index, and save
-        df = df.reset_index()
-        df.to_feather(ofile)
-
-
-
-
-
-
-    def statistic_stars_per_ncam(self, idir, ofile, numStar):
-
-        """
-        """
-
-        # Open a pandas data frame and write to it
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-
-        # Loop over each star
-
-        for i in tqdm(range(1, numStar+1), bar_format=ut.tqdmBar()):
-
-            # Read path
-            starID = f"{i}".zfill(9)
-            path   = f"{idir}/{starID}"
-            
-            # Initialise object
-            lcs = LightCurve(path, mode="multi")
-
-            # Fetch all zip files
-            files = lcs.files()
-
-            # Only continue if any files exist
-            try: nfiles = len(files)
-            except: pass
-            else:
-
-                # Loop over each group and camera
-
-                for f in files:
-
-                    # Fetch obs info
-                    parts = pathlib.Path(f).stem.split('_')
-                    group   = int(parts[-2][4])
-                    camera  = int(parts[-2][6])
-                    quarter = int(parts[-1][1:])
-
-                    # Store data in data frame
-                    data = {"id":i, "group":group, "camera":camera, "quarter":quarter}
-                    df1 = pd.DataFrame(data, index=[0])
-
-                    # Add data to data frame
-                    df0 = pd.concat([df0, df1])
-
-        # Handle output format
-        df = df0.astype({"id":int})
-        
-        # Sort data frame, set new index, and save
-        df = df.reset_index()
-        df.to_feather(ofile)

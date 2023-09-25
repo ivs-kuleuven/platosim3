@@ -219,10 +219,12 @@ def timeSeriesFromMeanPSD(freq, psd):
 #--------------------------------------------------------------#
 
 
-def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, plot=False):
+def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=False):
 
     """Pointing Reproducibility Error (PRE) in PLM reference frame.
     
+    TODO finish doc string!
+
     Paramters
     ---------
 
@@ -250,10 +252,13 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
     bb = np.array([np.random.normal(0, b/sigma) for i in range(n)])
 
     # Corresponding yaw, pitch, roll
-    
+
+    # y = tt
+    # z = 3 * y
+    # x = bb - z
     y = tt
-    z = bb - y  #3 * y
-    x = tt  # bb - z
+    z = bb - y
+    x = tt
 
     # ICRS pointing angles
     
@@ -270,20 +275,20 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
     df = pd.DataFrame(PRE, columns=["quarter", "yaw", "pitch", "roll"])
     df = df.astype({"quarter":int, "yaw":np.float64, "pitch":np.float64, "roll":np.float64})
     
+    df0 = df.copy()
+    df0.iloc[:,1:] = df0.iloc[:,1:] * 3600
+        
+    df1 = df.copy()
+    df1.rename(columns={"yaw":"RA", "pitch":"Dec", "roll":"kappa"}, inplace=True)
+    df1.iloc[:,1] = df1.iloc[:,1] + ra
+    df1.iloc[:,2] = df1.iloc[:,2] + dec
+
     # Print generated values
-    
-    if show_table:         
-
+           
+    if table:
         print('\nChange of coordinates [arcsec]')
-        df0 = df.copy()
-        df0.iloc[:,1:] = df0.iloc[:,1:] * 3600
         print(df0)
-
         print('\nNew ICRS coordinates [deg]')
-        df1 = df.copy()
-        df1.rename(columns={"yaw":"RA", "pitch":"Dec", "roll":"kappa"}, inplace=True)
-        df1.iloc[:,1] = df1.iloc[:,1] + ra
-        df1.iloc[:,2] = df1.iloc[:,2] + dec
         print(df1)
 
     # Plot distributions
@@ -327,8 +332,8 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
         
     # Save file with relative pointing errors [deg]
     
-    if outfile:
-        df.to_csv(outfile, sep=" ", header=False, index=False)
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
         if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
@@ -339,45 +344,51 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, outfile=False, show_table=False, pl
 
 
 
-def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False):
+def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
 
     """TODO Finish doc string!
-   
+    
+    Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
+    The mission reuquirements are 4.5 arcmin in X and Y, and 9 arcmin rotation.
+    This gives a RMS value of 1.5 arcsec (6 pixel)
+    
     Paramters
     ---------
 
     Returns
     -------
     """
-    
-    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
-    # The mission reuquirements are 4.5 arcmin in X and Y, and 9 arcmin rotation.
-    # This gives a RMS value of 1.5 arcsec (6 pixel)
+
     t = 4.5/60  # [deg]
     b = 9.0/60  # [deg]
         
     # Find distribution within 3 sigma of req.
+
     tt = np.array([np.random.normal(0, t/sigma) for i in range(26)])
     bb = np.array([np.random.normal(0, t/sigma) for i in range(26)])
 
     # Corresponding yaw, pitch, roll
+
     dy = tt
     dz = 3 * dy
     dx = bb - dz
 
     # Store APE
+    
     APE = np.transpose([tt, bb])
     df  = pd.DataFrame(APE, columns=["tilt", "azimuth"])
 
-    # Plot histogram and data
-    if show_table:
-        # Print generate values
+    # Print distributions to bash
+    
+    if table:
+        
         print(f'\nCamera alignment errors for all 26 cameras [pixel]')
         APE0 = np.transpose([tt, bb, dx, dy, dz]) * 3600 / 15
         df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
         print(df0)
         
     # Plot distribution
+    
     if plot:
         t *= 3600 / ( 15 * sigma * (sigma-1))
         b *= 3600 / ( 15 * sigma * (sigma-1))
@@ -399,7 +410,7 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
         azim = df.azimuth*3600/15
         tilt = df.tilt*3600/15
         ax[1].plot(0, 0, 'r*', alpha=0.7, ms=10)
-        ax[1].plot(azim, tilt, 'o', alpha=0.5)
+        ax[1].plot(azim, tilt, 'o', alpha=0.3)
         ax[1].set_title('Relative offset')
         ax[1].set_xlabel('Azimuth [pixel]')
         ax[1].set_ylabel('Tilt [pixel]')
@@ -416,8 +427,8 @@ def getAPE(ra, dec, kappa, sigma=3, outfile=False, show_table=False, plot=False)
 
     # Save APE camera misalignments
     
-    if outfile:
-        df.to_csv(outfile, sep=" ", header=False, index=False)
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
         if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
