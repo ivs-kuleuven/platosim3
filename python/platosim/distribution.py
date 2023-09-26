@@ -13,6 +13,10 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from numpy.random import default_rng
+
+
+
 
 
 class Distribution(object):
@@ -309,3 +313,55 @@ class Distribution(object):
 #         return distribution_pick(distribution, range)
 
     
+
+class SMBHB(object):
+
+    """Class for distributions of Super Massive Black Hole Binaries (SMBHBs).
+    """
+
+
+    def __init__(self, seed=None):
+
+        """Open the HDF5 output file
+        """
+
+        self.rng = default_rng(seed)
+
+
+
+
+        
+    def __del__(self):
+
+        """Destructor
+        """
+
+        pass
+
+
+
+
+    def randomToyModel(self):
+
+        """Uniform distribution of toy model.
+        """
+        
+        year   = 365.25
+        period = self.rng.uniform(1.5*year, 2.5*year)
+        phase  = self.rng.uniform(0, 2*np.pi)
+        
+        amplitudeBeam  = self.rng.uniform(0, 0.1)
+        amplitudeFlare = 2 * amplitudeBeam
+        timeScaleFlare = self.rng.uniform(5, 12)      # [days]
+
+        return period, phase, amplitudeBeam, amplitudeFlare, timeScaleFlare
+        
+        
+        
+
+
+
+
+
+
+

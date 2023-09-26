@@ -343,8 +343,8 @@ class VarSim(object):
         #                   ut.diff(Teff_upper, Teff_lower), 2)
 
         # Measure passband luminosity amplitude gradient (vs. bolometric luminosity amplitude)
-        dex_wavlMin = ut.find_nearest(wvl, wvl_tele[0])
-        dex_wavlMax = ut.find_nearest(wvl, wvl_tele[-1])
+        dex_wavlMin = ut.findNearestIndex(wvl, wvl_tele[0])
+        dex_wavlMax = ut.findNearestIndex(wvl, wvl_tele[-1])
         if dex_wavlMax-dex_wavlMin == 1:
             Luminosity1_lambda = (4*np.pi * (R.cgs.value)**2 *
                                   ( wvl1_in[dex_wavlMax] -  wvl1_in[dex_wavlMin]) *
@@ -414,7 +414,7 @@ class VarSim(object):
 
         # Start script
         if self.verbose > 0:
-            errorcode('module', '\nStellar Stochastic Oscillations\n')
+            errorcode('module', '\nStochastic Oscillator\n')
 
         # Default scaling relations
         if args.gran is None:
@@ -778,7 +778,7 @@ class VarSim(object):
         """
         # Start script
         if self.verbose > 0:
-            errorcode('module', 'Photometric standard\n')
+            errorcode('module', '\nPhotometric standard\n')
 
         # Convert units of input parameters
         time = self.time.to('d').value
@@ -1020,44 +1020,59 @@ class VarSim(object):
 
         # Start script
         if self.verbose > 0:
-            errorcode('module', 'SMBH binary')
+            errorcode('module', '\nSMBH binary\n')
 
         # Fetch time array
         time = self.time.to('d').value
-            
+
+        # Fetch model parameters
+        self.distribution = 'random'
+        if self.distribution == 'random':
+            from platosim.distribution import SMBHB
+            smbhb = SMBHB()
+            P, phi, Abeam, Aflare, tscale = smbhb.randomToyModel() 
+        
         # Model doppler beaming effect
-        A   = 0.04          # [mag]
-        P   = 2.1 * 365.25  # [days]
-        phi = np.pi #np.random.uniform(low=0, high=2*np.pi) 
-        flux_beam = A * np.cos(2*np.pi * (time/P) + phi) + 1
+        #A   = 0.04          # [mag]
+        #P   = 2 * 365.25  # [days]
+        #phi = 0.1 * np.pi         # [rad] #np.random.uniform(low=0, high=2*np.pi) 
+        flux_beam = Abeam * np.sin(2*np.pi * (time/P) + phi) + 1
 
         # Model the flare event
-        tscale    = 10 #np.ones(len(max)) * 10
-        tmax      = 200
-        amplitude = 0.08
-        asymmetry = 1
-        flux_flare = self.stellar_flare(tscale, tmax, amplitude, asymmetry)
-        
+        #tscale    = 10     # [days] #np.ones(len(max)) * 10
+        #amplitude = 0.08   # [mag]
+
+        tmax = P * (1 - phi/(2*np.pi))
+        flux_flare = np.ones_like(flux_beam)
+
+        for tm in [tmax-P, tmax, tmax+P]:
+            
+            flux_flare += self.stellar_flare(tscale, tm, Aflare, asymmetry=1) - np.ones_like(flux_beam)
+
+        if self.verbose:
+            print(f'Model parameters of toy model:')
+            print(f'Orbital period     : {P} day')
+            print(f'Beaming amplitude  : {Abeam} mag')
+            print(f'Flare time scale   : {tscale} day')
+            print(f'Flare time maximum : {tmax} day')
+            print(f'Flare amplitude    : {Aflare} mag')        
         # Combine model
         flux = flux_beam + flux_flare - 1
         mag  = -2.5 * np.log10(flux)
         
         # plot light curve
         if args.plot:
-            plt.figure(figsize=(10,3.5))
-            plt.plot(time, flux_beam,  'g-')
-            plt.plot(time, flux_flare, 'b-')
-            plt.plot(time, flux, 'm-')
-            plt.xlabel('Time [d]')
-            plt.ylabel(r'Relative flux')
-            plt.tight_layout()
-            plt.show()
-
-        if args.plot:
-            plt.figure(figsize=(10,3.5))
-            plt.plot(time, mag*1e3, 'm-')
-            plt.xlabel('Time [d]')
-            plt.ylabel(r'$\delta m$ [mmag]')
+            fig, ax = plt.subplots(2, 1, figsize=(10,8))
+            ax[0].plot(time, flux_beam,  '-', c='green')
+            ax[0].plot(time, flux_flare, '-', c='orange')
+            ax[0].plot(time, flux,       '-', c='royalblue')
+            ax[0].set_xlabel('Time [d]')
+            ax[0].set_ylabel(r'Relative flux')
+            ax[0].set_xlim(time.min(), time.max())
+            ax[1].plot(time, mag*1e3, '-', c='royalblue')
+            ax[1].set_xlabel('Time [d]')
+            ax[1].set_ylabel(r'$\delta m$ [mmag]')
+            ax[1].set_xlim(time.min(), time.max())            
             plt.tight_layout()
             plt.show()
 
@@ -1583,7 +1598,7 @@ class VarSim(object):
             errorcode('module', '\nPrologue')
             
         # Compute delta magnitude of signal
-        variable = ('std', 'dSct', 'gDor', 'Cep', 'SMBH')
+        variable = ('std', 'dSct', 'gDor', 'Cep', 'SMBHB')
         if args.star in variable:
             dm = self.lc['mag']
         else:
@@ -1693,8 +1708,9 @@ class VarSim(object):
             # Save to ascii
             if out == 'txt':
                 np.savetxt(args.outfile, np.transpose([self.lc['time'], dm]), fmt=['%.1f', '%.8f'])
-                df.to_feather(f'{args.outfile[:-4]}_parameters.ftr')
-                self.lc.to_feather(f'{args.outfile[:-4]}_components.ftr')
+                if not self.star_source in ['SMBHB']:
+                    df.to_feather(f'{args.outfile[:-4]}_parameters.ftr')
+                    self.lc.to_feather(f'{args.outfile[:-4]}_components.ftr')
 
             # Save to numpy binary
             elif out == 'npy':
@@ -1799,10 +1815,10 @@ elif args.star == 'Cep':
     v.classical_pulsator()
 elif args.star == 'EB':
     v.eclipsing_binary()
-elif args.star == 'SMBH':
+elif args.star == 'SMBHB':
     v.smbh_binary()
 else:
-    # TODO include blackbody function for massive stars!
+    # Select star
     v.stellar_source()
     v.stellar_spectrum()
     # Solar-like stars
