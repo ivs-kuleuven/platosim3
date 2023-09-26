@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 """
-Run the PlatoSim functions in parallel.
+Library of functions used for SLURM computations.
 """
 
 # Python standard
 import os
+import math 
 import argparse
 import datetime
-from datetime import datetime
+from textwrap import dedent
 
 # PlatoSim standard
 from pathlib import Path
@@ -16,7 +17,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# PlatoSim functions
+# PlatoSim imports
 from platosim.utilities import errorcode
 
 
@@ -25,6 +26,187 @@ from platosim.utilities import errorcode
 #==============================================================#
 
 
+def getJobScript(ids, groups, cameras, quarters,
+                 nodes=1, cpusPerNode=36, memoryPerCore=184,
+                 memoryPerSim=300, timePerSim=15, timeSafeLimit=1,
+                 ofile=False):
+
+    """Function to create a SLURM job script to be used on the VSC.
+
+    Parameters
+    ----------
+    ids : range()
+        Python range function with IDs (stars or CCDs)
+    groups : range()
+        Python range function with camera group IDs {1, 2, 3, 4}
+    cameras : range()
+        Python range function with camera IDs {1, 2, 3, 4, 5, 6}
+    quarters : range()
+        Python range function with mission quarters {1, 2, ...}
+    ofile : string
+        Absolute path to the output ascii file saved
+    nodes : int
+        Number of nodes
+    cpusPerNode : int
+        Number of node-cores (cpus)
+    memoryPerNode : float
+        Max RAM and storage memory for the node [Gb]
+        NOTE: This should be the maximum memory allowed -8GB.
+    memoryPerSim : float
+        Expected memory consumption by the heaviest job [Mb]
+    timePerSim : float
+        Expected execution time by the slowest job [min]
+    timeSafeLimit : float
+        Overestimation of calculated memory and walltime [%]
+    ofile : string
+        Absolute path to the output ascii file saved
+
+    Returns
+    -------
+    script : string
+        A string containing the requested job script
+    """
+
+    # Number of idividual simulations
+    numSim = ids[-1] * groups[-1] * cameras[-1] * quarters[-1]
+
+    # Estimate number of nodes
+    nodes = int(math.ceil(numSim/float(cpusPerNode)))
+
+    # Estimate number of node-cores
+    if nodes == 1:
+        cores = cpusPerNode
+    elif nodes > nodes:
+        nodes = nodes
+        cores = int(cpusPerNode * nodes)
+    else:
+        cores = int(math.ceil(numSim/nodes))
+
+    # Estimate memory per core-node [Mb]
+    memSim = memoryPerSim / (nodes * cores)
+    mem    = int(math.ceil(memSim + timeSafeLimit/100 * memSim))
+
+    # Check if simulation quarter is larger than 5Gb per node-core
+    if memSim > 5000:
+        errorcode('warning', 'Memory per node-core exceedes 5 GB!')
+
+    # Check if if the total memory exceedes that of the cluster [Gb]
+    memSimPerNode = cpusPerNode * memSim * 1e-3
+
+    if memSimPerNode > (memoryPerCore*cpusPerNode)-8:
+        errorcode('error', 'Simulation node-memory of {int(memPerNode)} GB ' +
+                  'exceedes the cluster node-memory of {pmemCluster}-8 GB!')
+
+    # Estimate wall time given the resources above:
+    walltimeSafe = timePerSim + timeSafeLimit/100 * timePerSim
+    walltime     = str(datetime.timedelta(seconds=int(walltimeSafe)))
+
+    # Generate job script
+
+    script = \
+    f"""
+    #!/bin/bash
+
+    #SBATCH -A <account>           # Account name of cluster (mandatory)
+    #SBATCH -o <stdout>            # Name of standard output
+    #SBATCH -e <stderr>            # Name of standard errors
+    #SBATCH -M <cluster>           # Cluster name (VSC: genius or wice)
+    #SBATCH -p <software>          # Cluster software (VSC: batch_debug,batch,bigmen,etc).
+    #SBATCH --nodes={nodes}             # Number of nodes
+    #SBATCH --ntasks-per-node={cores}   # Number of CPU per node
+    #SBATCH --mem-per-cpu={memSim}M     # Amount of RAM memory per CPU
+    #SBATCH -t {walltime}          # Totoal execution of slurm job 
+
+    cd $SLURM_SUBMIT_DIR
+    module purge
+    module restore <name>      # Name of cluster env with modules 
+
+    # User defined parameters
+    WORKDIR=<workdir_name>     # PLATOnium working directory
+    PROJECT=<project_name>     # PLATOnium project name
+
+    # Export paths
+    export PLATO=$VSC_DATA/plato
+    export PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
+    export PLATO_WORKDIR=$VSC_DATA/$WORKDIR
+    export TEMDIR=$VSC_SCRATCH_NODE
+    export OUTDIR=$VSC_SCRATCH/platosim/$PROJECT
+    export PYTHONPATH=$PLATO:$PLATO_PROJECT_HOME/python
+    export PLATONIUM=$PLATO_PROJECT_HOME/python/platosim/platonium/platonium.py
+    export CONDA=/data/leuven/341/vsc34166/miniconda3/etc/profile.d/conda.sh
+
+    # Activate environment
+    source $CONDA
+    conda activate platonium
+
+    # Run PLATOnium
+    python $PLATONIUM $ids $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress
+    """
+
+    # Save textfile for worker
+    if ofile:
+        with open(ofile, "w") as ofile:
+            ofile.write(dedent(script).strip())
+
+    # Print if simulation will run and if so, with what resources
+    print(f'Suggested SLURM job script for {numSim} individual simulations: ' +
+          f'nodes={nodes}, cores={cores}, mem={mem}Mb, walltime={walltime}')
+
+    return script
+
+
+
+
+
+def getParamFile(ids, groups, cameras, quarters, fcam=False, ofile=False):
+
+    """Function to create a job script to be used on the VSC.
+
+    Parameters
+    ----------
+    ids : range()
+        Python range function with IDs (stars or CCDs)
+    groups : range()
+        Python range function with camera group IDs {1, 2, 3, 4}
+    cameras : range()
+        Python range function with camera IDs {1, 2, 3, 4, 5, 6}
+    quarters : range()
+        Python range function with mission quarters {1, 2, ...}
+    fcam : bool
+        Flag to produce a file for the two F-CAMs instead
+    ofile : string
+        Absolute path to the output ascii file saved
+
+    Returns
+    -------
+    textfile : string
+        A string containing the requested parameter space
+    """
+
+    # Check if F-CAM is requested -> Group 5
+    if fcam:
+        G = range(5,6)
+        C = range(1,3)
+
+    # Add rows in a loop
+    textfile = "id,group,camera,quarter\n"
+    for idNo in ids:
+        for groupNo in groups:
+            for cameraNo in cameras:
+                for quarterNo in quarters:
+                    textfile += f"{idNo},{groupNo},{cameraNo},{quarterNo}\n"
+
+    # Save textfile for worker
+    if ofile:
+        with open(ofile, "w") as ofile:
+            ofile.write(dedent(textfile).strip())
+
+    return textfile
+
+
+
+
+    
 def convertWorkerLog(workerLog):
 
     """Get a pandas data frame of the worker log.
@@ -43,12 +225,12 @@ def convertWorkerLog(workerLog):
     df = df.reset_index()
     df = df.rename(columns={'index':'sim'})
     N = len(df.sim)
-    df['datetime'] = [datetime(df.year.iloc[i],
-                               month_convert[df.month.iloc[i]],
-                               df.date.iloc[i],
-                               int(df.time.iloc[i][0:2]),
-                               int(df.time.iloc[i][3:5]),
-                               int(df.time.iloc[i][6:8])) for i in range(N)]
+    df['datetime'] = [datetime.datetime(df.year.iloc[i],
+                                        month_convert[df.month.iloc[i]],
+                                        df.date.iloc[i],
+                                        int(df.time.iloc[i][0:2]),
+                                        int(df.time.iloc[i][3:5]),
+                                        int(df.time.iloc[i][6:8])) for i in range(N)]
 
     return df.drop(['month', 'date', 'time', 'year'], axis=1)
 
@@ -66,12 +248,14 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
     df = convertWorkerLog(workerLog)
 
     # If requested, plot an overview of start and end times
+
+    unique = df.sim.unique()
     
     if plot:
-        fig, ax = plt.subplots(1, 1, figsize=(8, 10))
+        fig, ax = plt.subplots(1, 1, figsize=(8, int(2.5+0.1*len(unique))))
         dex = []
 
-        for i in df.sim.unique():
+        for i in unique:
 
             df0 = df[df.sim == i]
 
