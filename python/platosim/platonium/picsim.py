@@ -51,7 +51,7 @@ from tqdm import tqdm
 import platosim.plot       as pt
 import platosim.utilities  as ut
 import platosim.starquery as starQuery
-from platosim.utilities  import errorcode, copyInputYAML
+from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
 
 # Disable warnings

@@ -17,7 +17,7 @@ import pandas as pd
 from astropy.io import fits
 
 # PlatoSim functions
-from platosim.utilities import errorcode, find_nearest
+from platosim.utilities import errorcode, findNearestIndex
 
 
 #==============================================================#
@@ -113,10 +113,10 @@ class Spectrum(object):
 
         # Find indices for closest valid parameter
         self.parameter_space(library)
-        dex_t = find_nearest(self.valid_t, Teff)
-        dex_g = find_nearest(self.valid_g, logg)
-        dex_z = find_nearest(self.valid_z, Z)
-        dex_a = find_nearest(self.valid_a, alpha)
+        dex_t = findNearestIndex(self.valid_t, Teff)
+        dex_g = findNearestIndex(self.valid_g, logg)
+        dex_z = findNearestIndex(self.valid_z, Z)
+        dex_a = findNearestIndex(self.valid_a, alpha)
 
         # Select valid parameter
         Teff  = self.valid_t[dex_t]

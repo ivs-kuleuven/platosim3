@@ -334,7 +334,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
     
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
     
@@ -429,7 +429,7 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
     
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
     
@@ -439,7 +439,7 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
 
 
 
-def getTED(quarter, model="poly", outfile=False, show_table=False, plot=False):
+def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
@@ -451,7 +451,7 @@ def getTED(quarter, model="poly", outfile=False, show_table=False, plot=False):
         Range of quarters (e.g. range(1,8) for Q1-Q8).
     model : str
         Model to produce TED: 'linear' or 'poly'.
-    outfile : bool, str
+    ofile : bool, str
         Parse string to save the model to a ascii file.
     plot : bool
         True will make a plot of the models.
@@ -511,12 +511,13 @@ def getTED(quarter, model="poly", outfile=False, show_table=False, plot=False):
         A[Q-quarter[0],1] = df1.yaw.max()   - df1.yaw.min()
         A[Q-quarter[0],2] = df1.pitch.max() - df1.pitch.min()
         A[Q-quarter[0],3] = df1.roll.max()  - df1.roll.min()
-        
+
     # Show amplitudes
-    if show_table:
+    if table:
         print('\nTED model amplitudes [arcsec]')
         names = ['Quarter', 'A_yaw', 'A_pitch', 'A_roll']
         da = pd.DataFrame(A, columns=names)
+        da = da.sort_values(['Quarter'])
         da = da.astype({'Quarter':np.int})
         print(da)
 
@@ -543,15 +544,15 @@ def getTED(quarter, model="poly", outfile=False, show_table=False, plot=False):
         plt.show()
         
     # Save data in one big drift text file for PlatoSim
-    if outfile:
-        df.to_csv(outfile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
+        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
 
 
 
             
-def getACS(time, rms=[0.038, 0.038, 0.040], outfile=False, plot=False):
+def getACS(time, rms=[0.038, 0.038, 0.040], ofile=False, plot=False):
 
     """Generate a Attitude and orbit Control System (ACS) jitter file.
    
@@ -561,7 +562,7 @@ def getACS(time, rms=[0.038, 0.038, 0.040], outfile=False, plot=False):
     ---------
     quarter : range
         Range of quarters (e.g. range(1,8) for Q1-Q8).
-    outfile : bool, str
+    ofile : bool, str
         Parse string to save the model to a ascii file.
     plot : bool
         True will make a plot of the models.
@@ -593,18 +594,18 @@ def getACS(time, rms=[0.038, 0.038, 0.040], outfile=False, plot=False):
         
     # Save data in one jitter file
     
-    if outfile:
-        df.to_csv(outfile, sep=" ", header=False, index=False)
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
         if plot:
-            fig1.savefig(f"{outfile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
-            fig2.savefig(f"{outfile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
+            fig1.savefig(f"{ofile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
+            fig2.savefig(f"{ofile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
         
     
     
 
 
 
-def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
+def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
 
     """Function to create a job script to be used on the VSC.
 
@@ -815,9 +816,9 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
         
     # Save file (and plot) if requested
         
-    if outfile:
-        df.to_csv(outfile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
+        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
     
     # Compute event times
         
@@ -833,7 +834,7 @@ def getDataGaps(time, quarter=range(1,9), outfile=False, plot=False):
 
 
 def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, timeSpan=30,
-                          timeScale=False, amplitude=False, outfile=False, plot=False):
+                          timeScale=False, amplitude=False, ofile=False, plot=False):
 
     """Function to model detector temperature transients.
 
@@ -964,9 +965,9 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
 
     # Save data if requested
 
-    if outfile:
-        np.savetxt(outfile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
-        if plot: fig.savefig(f"{outfile[:-4]}.png", bbox_inches='tight', dpi=200)
+    if ofile:
+        np.savetxt(ofile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
+        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
         
     # That's it!
         

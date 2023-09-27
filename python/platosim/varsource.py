@@ -23,7 +23,7 @@ from matplotlib import pyplot as plt
 from scipy.stats import norm, truncnorm
 
 # PlatoSim
-from platosim.utilities import errorcode, downloadFromFTP, find_nearest
+from platosim.utilities import errorcode, downloadFromFTP
 
 
 #==============================================================#
@@ -376,13 +376,16 @@ class LimbDarkening(funcFit.OneDFit):
 
     def limb_darkening_coefficients(self, bandpass, star_source, plot=False):
  
-        """
+        """Calculate the Limb Darkening (LD) coefficient.
+
         To compute our custom limb-darkening transit duration coefficients that meet
         the PLATO transmission response function. We used the angle-dependent ("MU")
         Specific Intensity Spectra (SIS) from PHOENIX (Goettingen 2018), which exactly
         as above is a library of the stellar effective temperature, surface gravity,
         and metallicity. The limb darkening are naturally calclated for the exact same
-        stellar parameter as used for the granulation and oscialltions. See links:
+        stellar parameter as used for the granulation and oscialltions. 
+
+        See links:
         Webpage : https://phoenix.astro.physik.uni-goettingen.de/
         Download: http://phoenix.astro.physik.uni-goettingen.de/data/
         """
@@ -401,17 +404,8 @@ class LimbDarkening(funcFit.OneDFit):
         if args.ldm: limbDarkModel = args.lmd
         else: limbDarkModel = 'quadratic'
 
-        # plt.plot(wvl_tele, tra_tele, 'ko')
-        # plt.plot(wvl_int,  tra_int, 'r--')
-        # plt.show(); exit()
-
-        # Find nearest Teff
-        # valid_Teff = [*list(range(2300, 7000, 100)), *list((range(7000, 12200, 200)))]
-        # dex_Teff   = ut.find_nearest(valid_Teff, Teff)
-        # Teff       = valid_Teff[dex_Teff]
-        # print(Teff); exit()
-
-        # ANGLE DEPENDENT SIS FROM PHOENIX TODO use proper PHOENIX LD model
+        # ANGLE DEPENDENT SIS FROM PHOENIX
+        # TODO use proper PHOENIX LD model
 
         # Get low resolution angle dependent SIS spectra:
         # - Each row in data is a spectrum
@@ -695,6 +689,7 @@ class GravityOscillations(funcFit.OneDFit):  # TODO test
         seed = random.seed(seed)
 
         # convert the times in days to times in secons (because the time_step is given in seconds)
+        
         self["t_step"] /= 24*60*60.
 
         t = np.arange(time[0], time[-1], self["t_step"], dtype=float)
@@ -702,6 +697,7 @@ class GravityOscillations(funcFit.OneDFit):  # TODO test
 
         # loop over the number of modes and each time pick a period, an amplitude and a phi
         #  at random out of the appropriate range
+        
         for i in range(self["N_modes"]):
 
             phi = random.uniform(0, 2 * np.pi)
@@ -711,10 +707,13 @@ class GravityOscillations(funcFit.OneDFit):  # TODO test
             flux += A * np.sin(2 * np.pi * (1 / P) * t + phi)  # sum of every mode
 
         # normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
+        
         A     = np.amax(np.absolute(flux))
         flux /= A
         flux  = A * (((flux + 1)**self["power"]) - 1)
 
+        # That's it!
+        
         return flux
 
 
@@ -1480,6 +1479,7 @@ class StarSpots():
 
 
 
+    
 class PlanetMRforecast():
     """
     Class to forecast the mass from a planets radius.

@@ -71,7 +71,8 @@ class PLATOnium(object):
         self.varSourceFile = args.varfile
         self.varSourceList = args.varlist
         self.compress      = args.compress
-
+        self.statistics    = args.statistics
+        
         self.cadence      = args.cadence
         self.simTime      = args.tdur
         self.simExposures = args.nexp
@@ -90,7 +91,7 @@ class PLATOnium(object):
         self.tarFluxError    = args.tar_ferr
         self.tarAbsCenError  = args.tar_cerr
         self.jitterDriftOff  = args.jit_off
-
+        
         # Make sure that parsing of mandatory arguments are physical
         
         if self.group == 5:
@@ -112,7 +113,7 @@ class PLATOnium(object):
         # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
         # verbose = 1: Default mode: Print details to bash but do not save log files
         # verbose = 3: Debug mode  : Print details to bash and saves all log files        
-        if args.verbose == 0:
+        if args.verbose == 0 or self.statistics:
             self.verbose = 0
             self.verbose_platosim = 0
             # Bash extention to write no output for the L1 pipeline
@@ -133,7 +134,7 @@ class PLATOnium(object):
             self.devnull = ''
 
         # Overwrite simulation
-        if args.overwrite:
+        if args.overwrite or self.statistics:
             self.overwrite = True
         else:
             self.overwrite = False
@@ -143,10 +144,14 @@ class PLATOnium(object):
             self.animation = True
         else:
             self.animation = False
-            
+
+        # Start software writing
+        if self.verbose > 0:
+            errorcode('software', '\nPLATOnium')
+
             
         # PATHS AND INPUT
-
+        
         # Absolute pwd path
         self.path = Path(__file__).parent.resolve()
 
@@ -385,7 +390,21 @@ class PLATOnium(object):
 
 
         
-        
+
+    def track_statistics(self, flag):
+
+        with open(self.inputDir / 'statistics.txt', 'a+') as f:
+            # Move read cursor to the start of file.
+            f.seek(0)
+            # If file is not empty then append '\n'
+            if len(f.read(100)) > 0: f.write("\n")
+            # Append text at the end of file
+            f.write(f'{int(self.targetNo+1)},{self.group},{self.camera},{self.quarter},{flag}')
+
+
+
+            
+
     def init_sim(self):
         """
         Module to initialize the the PlatoSim simulation object.
@@ -585,8 +604,9 @@ class PLATOnium(object):
                 sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
                 sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
             else:
-                sim["SubField/NumRows"]         = 100 #shieldRows[1] - shieldRows[0]
-                sim["SubField/NumColumns"]      = 100 #shieldCols[1] - shieldCols[0]
+                sim["SubField/NumRows"]         = sim["CCDPositions/NumRows"][0]
+                sim["SubField/NumColumns"]      = sim["CCDPositions/NumColumns"][0]
+
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True
             sim["ControlHDF5Content/WritePixelMaps"]     = True
@@ -615,6 +635,8 @@ class PLATOnium(object):
                             'do not fall on any of the CCDs for ' +
                             f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
+            # If requested keep track on non-observability
+            if self.statistics: self.track_statistics(flag=1)
             exit()
 
         # If the psf is MappedFromFile we need to include mapped field distortion
@@ -680,18 +702,37 @@ class PLATOnium(object):
                                                distortionCoefficients=distortionCoefficients,
                                                pathToPsfFile=pathToPsfFile)
         self.ccdCode, self.xCCD, self.yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
-        
+
+        # Add CCD time-shift to time points
+        # Only continue if ccdCode is found:
+        if self.ccdCode:
+            self.timeStart += float(sim['CCDPositions/TimeShift'][int(self.ccdCode)-1])
+            self.time = np.arange(self.numExposures) * self.cadence + self.timeStart
+        else:
+            if self.verbose > 0:
+                errorcode('warning', 'Star falls within a CCD gap!')
+            # If requested keep track on non-observability
+            if self.statistics: self.track_statistics(flag=2)                
+            exit()
+
         # Calculate radial distance of coordinate away from OA
         self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
                                                                        focalLength));
         if self.rOA > 19.0:
             if self.verbose > 0:
-                message  = (f"PIC {self.df['ID']} (subfield {self.targetNo}) " +
+                message  = (f"PIC {self.df.ID} (subfield {self.targetNo}) " +
                             f'is outside camera FOV (d={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
+            # If requested keep track on non-observability
+            if self.statistics: self.track_statistics(flag=3)
             exit()
 
+        # If requested keep track on non-observability
+        if self.statistics:
+            self.track_statistics(flag=0)
+            exit()
+            
         # Create data frame for printing and saving
         c = ['ID', 'ra [deg]', 'dec [deg]', 'mag',
              'CCD', 'xCCD [pix]', 'yCCD [pix]',
@@ -707,15 +748,6 @@ class PLATOnium(object):
         if self.verbose > 0:
             print('\nInformation about stellar target')
             print(self.df0)
-
-        # Add CCD time-shift to time points
-        # Only continue if ccdCode is found:
-        if self.ccdCode:
-            self.timeStart += float(sim['CCDPositions/TimeShift'][int(self.ccdCode)-1])
-            self.time = np.arange(self.numExposures) * self.cadence + self.timeStart
-        else:
-            errorcode('warning', 'Star falls within a CCD gap!')
-            exit()
 
         # Finito!
         return sim
@@ -971,25 +1003,15 @@ class PLATOnium(object):
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
             f = SimFile(f'{self.outputSimName}.hdf5')
-            ID, yCCD, xCCD, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr) 
+            ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr) 
+            # Select detected stars
             df = self.dx.iloc[ID]
             df = df.reset_index()
-            df['xCCD'] = xCCD - 0.5
-            df['yCCD'] = yCCD - 0.5
+            # Add stellar positions.
+            df['xCCD'] = col - 0.5
+            df['yCCD'] = row - 0.5
             df['xFP']  = xFP
             df['yFP']  = yFP
-            #---------------------------
-            # f = h5py.File(outputFile, "r")
-            # # Select detected stars
-            # ID = f['StarPositions/Exposure000000/starID'][:]
-            # df = self.dx.iloc[ID]
-            # df = df.reset_index()
-            # # Add stellar positions.
-            # df['xCCD'] = f['StarPositions/Exposure000000/colPix'][:] - 0.5
-            # df['yCCD'] = f['StarPositions/Exposure000000/rowPix'][:] - 0.5
-            # df['xFP']  = f['StarPositions/Exposure000000/xFPmm'][:]
-            # df['yFP']  = f['StarPositions/Exposure000000/yFPmm'][:]
-            #------------------------
             # Only keep stars within the rOA FOV
             focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
             df['rOA'] = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP,
@@ -1570,8 +1592,8 @@ class PLATOnium(object):
 #==============================================================#
 
 parser = argparse.ArgumentParser(epilog=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=errorcode('software', '\nPLATOnium'))
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+                                 #description=errorcode('software', '\nPLATOnium'))
 
 parser.add_argument('-p', '--plot',      action='store_true',   help='Flag to plot 1st subfield (this will not save the simulation)')
 parser.add_argument('-w', '--overwrite', action='store_true',   help='Flag to overwrite an existing HDF5 output file that may exist')
@@ -1595,6 +1617,7 @@ out_group.add_argument('--starcat',      metavar='FILE', type=str, help='Path to
 out_group.add_argument('--varfile',      metavar='FILE', type=str, help='Path to variable source file -> see PlatoSim docs')
 out_group.add_argument('--varlist',      metavar='FILE', type=str, help='Path to variable source list -> see PlatoSim docs')
 out_group.add_argument('--compress',     action='store_true',      help='Flag to compress output files')
+out_group.add_argument('--statistics',   action='store_true',      help='Flag to compute the camera observability')
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
 sim_group.add_argument('--cadence', metavar='SEC',  type=float, help='Cadence or cycle time step for each exposure [seconds] (default: 25 s)')

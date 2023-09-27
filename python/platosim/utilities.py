@@ -290,6 +290,23 @@ def pdAddColumn(df, newCol, name):
     return df[cols]
 
 
+
+
+
+def pdMergeRows(df0, df1, identical=True):
+
+    """Merge two data frames and keep (non)identical rows.
+    """
+    
+    dex = df1.set_index(list(df1.columns)).index
+    if identical:
+        return df0.loc[df0.set_index(list(df0.columns)).index.isin(dex)]
+    else:
+        return df0.loc[~df0.set_index(list(df0.columns)).index.isin(dex)]
+
+
+
+        
 #--------------------------------------------------------------#
 #                       NUMPY OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -977,38 +994,54 @@ def votable2pandas(votable):
 #                        VARSIM SPECIFIC                       #
 #--------------------------------------------------------------#
 
-        
-def find_nearest(array, value):
-    a = (np.abs(array - value))
-    index = np.argmin(a)
-    return index
-
 
 def diff(new, old):
-    result = (new - old) / old
-    return result
+
+    """Find the index where a value is nearest the array values. 
+    """
+
+    return (new - old) / old
+
+
+
 
 
 def superLorentzian(nu, b, sigma):
+
+    """Calculate the super Lorentzian function.
+    """
+    
     xi = 2. * np.sqrt(2) / np.pi
+    
     return (xi * sigma**2. / b) / (1+(nu/b)**4.)
 
 
+
+
+
 def rebin3(x, xp, fp):
+
+    """Rebinning method by S. Sarkar.
+    """
+    
     if np.diff(xp).min() < np.diff(x).min():
+
         # Binning
         x_cum = xp[1:]
         c =  cumtrapz(fp,xp)
         x_diff =  np.diff(x)
         b = x[:-1] + x_diff/2.
+
         # Deal with edge points - estimate x diff in the outer directions
         b = np.hstack((x[0] - x_diff[0]/2. , b, x[-1] + x_diff[-1]/2. ))
         c_new = np.interp(b, x_cum, c)
         d = 0.5*(x_diff[:-1] + x_diff[1:])
+
         # Deal with edge points - estimate x diff in the outer directions
         d = np.hstack((x_diff[0] , d, x_diff[-1]))
         new_f = (c_new[1:] - c_new[:-1] ) / d
     else:
         # Interpolate!
         new_f = np.interp(x, xp, fp, left=0.0, right=0.0)
+        
     return x, new_f

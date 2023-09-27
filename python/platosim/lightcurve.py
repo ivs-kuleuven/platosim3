@@ -2175,7 +2175,7 @@ class LightCurve(object):
 
 
     
-    def stat_lcsPerCamera(self, ofile=False):
+    def stat_sims(self, ofile=False):
 
         """Number statistics of light curves per N-CAM.
 
@@ -2228,9 +2228,9 @@ class LightCurve(object):
                 df0 = pd.concat([df0, df1])
 
         # Handle output format
-        #df = df0.astype({"star":int})
         df = df0.reset_index()
-
+        df = df.drop(columns='index')
+        
         # If requested save file
         if ofile: df.to_feather(ofile)
         
