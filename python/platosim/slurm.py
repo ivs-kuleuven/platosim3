@@ -253,21 +253,23 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
     
     if plot:
         fig, ax = plt.subplots(1, 1, figsize=(8, int(2.5+0.1*len(unique))))
-        dex = []
 
-        for i in unique:
+    dex = []
+    for i in unique:
+        df0 = df[df.sim == i]
 
-            df0 = df[df.sim == i]
-
-            if df0.shape[0] == 2:
+        if df0.shape[0] == 2:
+            if plot:
                 ax.hlines(df0.sim.iloc[0], df0.datetime.iloc[0], df0.datetime.iloc[1], color='b', alpha=0.2)
                 ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], 'blue', marker='>', mec='k', ms=6)
                 ax.plot(df0.datetime.iloc[1], df0.sim.iloc[1], 'lime', marker='s', mec='k', ms=6)
-            elif df0.shape[0] == 1:
+        elif df0.shape[0] == 1:
+            dex.append(df0.sim.iloc[0]-1)
+            print(f'Simulation {df0.sim.iloc[0]} did not finish!')
+            if plot:
                 ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], 'r', marker='>', mec='k', ms=6)
-                dex.append(df0.sim.iloc[0]-1)
-                print(f'Simulation {df0.sim.iloc[0]} did not finish!')
 
+    if plot:    
         plt.title('Overview of worker')
         plt.xlabel('Date-time')
         plt.ylabel('Simulation no.')
@@ -286,4 +288,4 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
         if ofile:
             df1.to_csv(ofile)
     else:
-        errorcode('module', 'All simulations finished successfully!')
+        errorcode('message', 'All simulations finished successfully!')
