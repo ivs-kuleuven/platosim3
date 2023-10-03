@@ -198,7 +198,7 @@ if targetQuery:
         
 # Select PIC sample
 bitmask = {'P1': 1,
-           'P2': 3,  # Notice 2 is stated in documentation but 3 is correct..
+           'P2': 3,  # NOTE 2 is stated in documentation but 3 is correct..
            'P4': 4,
            'P5': 8}
 
@@ -253,7 +253,7 @@ if disConLimit is None:
 elif disConLimit not in [30, 45, 60]:
     errorcode('error', 'Not a valid contaminant-to-target distance! ' +
               'Use either 30, 45, or 60 arcsec')
-
+    
 #==============================================================#
 #                       LOAD PIC TARGETS                       #
 #==============================================================#
@@ -832,7 +832,7 @@ if outputDir is not None:
 
     # Only save the catalogs if they don't exist
     if fileFormat != '.txt' and subfield is False:
-
+        
         # We reset the index in order to save to feather
         df  = df.reset_index()
         dfc = dfc.reset_index()
@@ -857,6 +857,9 @@ if outputDir is not None:
                                       np.append(df['mag'].to_numpy(), dfc['mag'].to_numpy())])
         np.savetxt(outputFileFOV, outputConData, fmt=['%.6f', '%.6f', '%.3f'])
 
+    # Copy the YAML file to the project if it doesn't exist
+    ut.copyInputYAML(platoField, outputDir)
+    
 # Finito!
 toc = datetime.datetime.now()
 print('Total execution time: {0} [hh:mm:ss]'.format(toc-tic))
