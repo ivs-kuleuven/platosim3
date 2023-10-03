@@ -1428,7 +1428,7 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
 
     # Secure handling of float, list, and arrays
     
-    if isinstance(xFP, np.float):
+    if isinstance(xFP, float):
         xFP = np.array([xFP])
         yFP = np.array([yFP])
 
