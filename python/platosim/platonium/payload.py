@@ -29,10 +29,11 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from pathlib import Path
 
-# PlatoSim functions
-import platosim.noise as ns
-import platosim.slurm as sm
-from platosim.utilities import errorcode, convertQuarterRange, getPointingField
+# PlatoSim imports
+import platosim.noise     as ns
+import platosim.slurm     as sm
+import platosim.utilities as ut
+from platosim.utilities import errorcode
 
 
 #==============================================================#
@@ -86,7 +87,7 @@ class Payload(object):
 
         # Select pointng field
         self.field = args.field
-        self.ra, self.dec, self.kappa = getPointingField(self.field)
+        self.ra, self.dec, self.kappa = ut.getPointingField(self.field)
         
         # Short-hand definitions 
         N = args.ids
@@ -133,7 +134,7 @@ class Payload(object):
                 C = range(int(C[0]), int(C[2])+1)
 
         if isinstance(Q, str): 
-            Q = convertQuarterRange(Q)
+            Q = ut.convertQuarterRange(Q)
             Q = range(int(Q[0]), int(Q[1])+1)
 
         # Store parameters
@@ -154,73 +155,10 @@ class Payload(object):
     def createInputYAML(self):
 
         """Function to copy and adjust a yaml ready to launch.
-
-        Parameters
-        ----------
-        field : str
-            Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
-        odir : str, pathlib object
-            Absolute output directory
         """
 
         if self.odir:
-            
-            # Get files names of YAML files
-            yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
-            yaml_new = self.odir / "inputfile.yaml"
-
-            # Copy YAML if it doesn't exist already
-            if not yaml_new.is_file():
-
-                #print(f"Copying YAML configuration file : {yaml_new}")
-                shutil.copy(yaml_old, yaml_new)
-
-                # Find and replace a few strings:
-                with open(yaml_new, 'r') as file:
-                    filedata = file.read()
-                    filedata = filedata.replace('inputfiles/starcatalog.txt', self.field)
-                    # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
-                    filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
-                    filedata = filedata.replace( 'NumColumns:                      100',
-                                                f'NumColumns:                      7  ')
-                    filedata = filedata.replace( 'NumRows:                         100',
-                                                f'NumRows:                         7  ')
-                    filedata = filedata.replace('IncludePhotometry:               no ',
-                                                'IncludePhotometry:               yes')
-                    filedata = filedata.replace('MaskUpdateInterval:              14.0',
-                                                'MaskUpdateInterval:              30.0')
-                    filedata = filedata.replace('GroupByExposure:                 yes',
-                                                'GroupByExposure:                 no ')
-                    filedata = filedata.replace('WriteBiasMaps:                   yes',
-                                                'WriteBiasMaps:                   no ')
-                    filedata = filedata.replace('WriteSmearingMaps:               yes',
-                                                'WriteSmearingMaps:               no ')
-                    filedata = filedata.replace('WriteFlatfieldMap:               yes',
-                                                'WriteFlatfieldMap:               no ')
-                    filedata = filedata.replace('WriteThroughputMaps:             yes',
-                                                'WriteThroughputMaps:             no ')
-                    filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
-                                                'WriteTransmissionEfficiency:     no ')
-                    filedata = filedata.replace('WriteBackgroundMap:              yes',
-                                                'WriteBackgroundMap:              no ')
-                    filedata = filedata.replace('WriteCTI:                        yes',
-                                                'WriteCTI:                        no ')
-                    filedata = filedata.replace('WriteACS:                        yes',
-                                                'WriteACS:                        no ')
-                    filedata = filedata.replace('WriteTelescopeACS:               yes',
-                                                'WriteTelescopeACS:               no ')
-                    filedata = filedata.replace('WriteStarCatalog:                yes',
-                                                'WriteStarCatalog:                no ')
-                    filedata = filedata.replace('WriteStarPositions:              yes',
-                                                'WriteStarPositions:              no ')
-                    filedata = filedata.replace('WriteGhostPositions:             yes',
-                                                'WriteGhostPositions:             no ')
-                    filedata = filedata.replace('WriteCosmics:                    yes',
-                                                'WriteCosmics:                    no ')
-                    # Write the file out again
-                    with open(yaml_new, 'w') as file:
-                        file.write(filedata)
-
+            ut.copyInputYAML(self.field, self.odir)
 
 
     

@@ -5,16 +5,18 @@ Python modules that contain some general utilities that are commonly
 used by the PlatoSim and PLATOnium.
 """
 
-# Standard
+# Python standard
 import os
 import sys
 import glob
 import math
 import ftplib
+import shutil
 import inspect
 import fnmatch
+from pathlib import Path
 
-# Extra
+# PlatoSim standard
 import h5py
 import pathlib
 import numpy as np
@@ -26,7 +28,7 @@ from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 from scipy.integrate import cumtrapz
 
-# PlatoSim
+# PlatoSim imports
 import platosim.referenceFrames as rf
 
 
@@ -1045,3 +1047,79 @@ def rebin3(x, xp, fp):
         new_f = np.interp(x, xp, fp, left=0.0, right=0.0)
         
     return x, new_f
+
+
+
+
+
+#--------------------------------------------------------------#
+#                        VARSIM SPECIFIC                       #
+#--------------------------------------------------------------#
+
+def copyInputYAML(field, odir):
+
+    """Function to copy and adjust a yaml ready to launch.
+
+    Parameters
+    ----------
+    field : str
+        Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
+    odir : str, pathlib object
+        Absolute output directory (pathlib object)
+    """
+
+    # Get files names of YAML files
+    yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+    yaml_new = odir / "inputfile.yaml"
+
+    # Copy YAML if it doesn't exist already
+    if not yaml_new.is_file():
+
+        print(f"Copying YAML configuration file: {yaml_new}")
+        shutil.copy(yaml_old, yaml_new)
+
+        # Find and replace a few strings:
+        with open(yaml_new, 'r') as file:
+            filedata = file.read()
+            filedata = filedata.replace('inputfiles/starcatalog.txt', field)
+            # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
+            filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+            filedata = filedata.replace( 'NumColumns:                      100',
+                                        f'NumColumns:                      7  ')
+            filedata = filedata.replace( 'NumRows:                         100',
+                                        f'NumRows:                         7  ')
+            filedata = filedata.replace('IncludePhotometry:               no ',
+                                        'IncludePhotometry:               yes')
+            filedata = filedata.replace('MaskUpdateInterval:              14.0',
+                                        'MaskUpdateInterval:              30.0')
+            filedata = filedata.replace('GroupByExposure:                 yes',
+                                        'GroupByExposure:                 no ')
+            filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                        'WriteBiasMaps:                   no ')
+            filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                        'WriteSmearingMaps:               no ')
+            filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                        'WriteFlatfieldMap:               no ')
+            filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                        'WriteThroughputMaps:             no ')
+            filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                        'WriteTransmissionEfficiency:     no ')
+            filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                        'WriteBackgroundMap:              no ')
+            filedata = filedata.replace('WriteCTI:                        yes',
+                                        'WriteCTI:                        no ')
+            filedata = filedata.replace('WriteACS:                        yes',
+                                        'WriteACS:                        no ')
+            filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                        'WriteTelescopeACS:               no ')
+            filedata = filedata.replace('WriteStarCatalog:                yes',
+                                        'WriteStarCatalog:                no ')
+            filedata = filedata.replace('WriteStarPositions:              yes',
+                                        'WriteStarPositions:              no ')
+            filedata = filedata.replace('WriteGhostPositions:             yes',
+                                        'WriteGhostPositions:             no ')
+            filedata = filedata.replace('WriteCosmics:                    yes',
+                                        'WriteCosmics:                    no ')
+            # Write the file out again
+            with open(yaml_new, 'w') as file:
+                file.write(filedata)
