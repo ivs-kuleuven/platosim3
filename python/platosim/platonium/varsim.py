@@ -138,18 +138,20 @@ class VarSim(object):
 
         
         # DOWNLOAD DATA
-        if not Path(self.datapath + '/response_plato.txt').is_file():
+        if not Path(self.datapath + '/passband_plato.txt').is_file():
             errorcode('message', 'Inuaguration: Welcome to the Variable Source Simulator!')
-            print(f'Downloading a few prerequisite files..')
-            ut.downloadFromFTP(filename='response_plato.txt',
+            print(f'Downloading a few prerequisite files..\n')
+            ut.downloadFromFTP(filename='passband_plato.txt',
                                outputDir=self.datapath, server='plato')
-            ut.downloadFromFTP(filename='response_tess.txt',
+            ut.downloadFromFTP(filename='passband_cheops.txt',
                                outputDir=self.datapath, server='plato')
-            ut.downloadFromFTP(filename='response_kepler.txt',
+            ut.downloadFromFTP(filename='passband_tess.txt',
                                outputDir=self.datapath, server='plato')
-            ut.downloadFromFTP(filename='meunier_19a_t1.txt',
+            ut.downloadFromFTP(filename='passband_kepler.txt',
                                outputDir=self.datapath, server='plato')
-            ut.downloadFromFTP(filename='Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.txt',
+            ut.downloadFromFTP(filename='varsim_meunier19a_t1.txt',
+                               outputDir=self.datapath, server='plato')
+            ut.downloadFromFTP(filename='varsim_mainFitsBiSON_8640d_lbest_UseInSolarCycle.txt',
                                outputDir=self.datapath, server='plato')
 
             
@@ -194,9 +196,9 @@ class VarSim(object):
         # Load the instrument passband
         if args.inst: self.intrument = args.inst
         else: self.instrument = 'plato'
-        passband = np.loadtxt(self.datapath + '/response_{0}.txt'.format(self.instrument))
-        self.wvl_tele = passband[:,0] * u.nm  # Wavelengths [nm]
-        self.tra_tele = passband[:,1]         # Normalized transmission
+        passband = pd.read_csv(self.datapath + f'/passband_{self.instrument}.txt', comment='#')
+        self.wvl_tele = passband.wavelength.to_numpy() * u.nm  # Wavelengths [nm]
+        self.tra_tele = passband.passband.to_numpy()           # Normalized transmission
         
         # Define pandas data frame to store all signals
         self.lc = pd.DataFrame(data=self.time.to('s').value, columns=['time'])
@@ -223,7 +225,7 @@ class VarSim(object):
             self.star_source = args.star
         else:
             self.star_source = 'Sun'
-        
+
         if args.star_params:
             # If star parameters are given
             star = args.star_params[0]
@@ -443,7 +445,7 @@ class VarSim(object):
         cadence = self.cadence.to('Ms').value
 
         # Solar frequency spectrum: mode line-widths and frequencies
-        data = np.loadtxt(self.datapath + '/Main_Fits_BiSON_8640d_lbest_UseInSolarCycle.txt')
+        data = np.loadtxt(self.datapath + '/varsim_mainFitsBiSON_8640d_lbest_UseInSolarCycle.txt')
         eta  = np.exp(data[:,6])*np.pi  # From Chaplin et al. (2009) Eq. 1
         freq = data[:,2]                # frequencies of 96 modes
 
@@ -1022,6 +1024,9 @@ class VarSim(object):
         if self.verbose > 0:
             errorcode('module', '\nSMBH binary\n')
 
+        # Set the stellar source entry
+        self.star_source = 'SMBHB'
+            
         # Fetch time array
         time = self.time.to('d').value
 
@@ -1702,8 +1707,9 @@ class VarSim(object):
         
         if args.outfile:
 
-            print(f'\nSaving output files')
             out = args.outfile[-3:]
+            if self.verbose:
+                print(f'\nSaving output file: {args.outfile}')
 
             # Save to ascii
             if out == 'txt':
@@ -1742,6 +1748,7 @@ software = '\nVariable Source Simulator\n'
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=errorcode('software', software))
+
 
 parser.add_argument('-p', '--plot',    action='store_true', help='Flag to plot the synthetic models')
 parser.add_argument('-v', '--verbose', metavar='NUM',  type=int, help='Verbosity level [0, 1, 2] (Default: 1)')
