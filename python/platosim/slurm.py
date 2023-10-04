@@ -218,7 +218,7 @@ def convertWorkerLog(workerLog):
     month_convert = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 
                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
 
-    df = pd.read_csv(workerLog, sep=' ', 
+    df = pd.read_csv(workerLog, sep='\s+|\t+|\s+\t+|\t+\s+', engine='python'
                      names=['state', 'a', 'core', 'b', 'c',
                             'month', 'date', 'time', 'year'])
     df = df.drop(['a', 'b', 'c'], axis=1)
