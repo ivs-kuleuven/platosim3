@@ -1397,7 +1397,7 @@ class PLATOnium(object):
 
 
         # Write PlatoSim info to a table
-        filename = self.outputDir / f'{self.outputSimName}.ftr'
+        filename = self.outputDir / f'{self.outputSimName}_table.ftr'
         data = {"ID":   self.targetNo+1,
                 "PIC":  self.df.PIC,
                 "ra":   self.df.ra,
@@ -1414,27 +1414,8 @@ class PLATOnium(object):
                 "ncon": self.numCon}
         df1 = pd.DataFrame(data, index=[0])
         df1.to_feather(filename)
+        os.system(f'chmod 755 {filename}')
         return
-        # Check of file exist or create it
-        try:
-            df0 = pd.read_feather(filename)
-        except: 
-            df1.to_feather(filename)
-        else:
-
-            # Remove index column
-            try: df0.drop(columns='index', inplace=True)
-            except: pass
-            
-            # Add data to data frame
-            df0 = pd.concat([df0, df1])
-
-            # Handle output format
-            df = df0.astype({"ID":int, "PIC":int, "G":int, "C":int, "Q":int, "ccd":int, "ncon":int})
-
-            # Set new index, and save
-            df.reset_index(inplace=True)
-            df.to_feather(filename)
 
             
             
