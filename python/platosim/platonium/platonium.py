@@ -1394,7 +1394,6 @@ class PLATOnium(object):
                 "PIC":  self.df.ID,
                 "ra":   self.df.ra,
                 "dec":  self.df.dec,
-                "ncon": self.numCon,
                 "G":    self.group,
                 "C":    self.camera,
                 "Q":    self.quarter,
@@ -1403,7 +1402,8 @@ class PLATOnium(object):
                 "yFP":  self.yFP,
                 "ccd":  self.ccdCode,
                 "xCCD": self.xCCD,
-                "yCCD": self.yCCD}
+                "yCCD": self.yCCD,
+                "ncon": self.numCon}
         df1 = pd.DataFrame(data, index=[0])
         df1.to_feather(filename)
         return
@@ -1434,9 +1434,13 @@ class PLATOnium(object):
 
     def sort_output_normal(self):
 
+        # Add sim info to table
+        if not self.fullFrame:
+            self.create_sim_table()
+
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}.*')
-            
+                    
         # Compress files
         if self.compress and os.path.isfile(self.outputSimName + '.hdf5') and not self.sample:
             if self.verbose > 0:
@@ -1453,10 +1457,6 @@ class PLATOnium(object):
         # If requested move file to final output directory (for cluster)
         if self.hpcDir:
             os.system(f'mv {self.outputSimName}.* {self.hpcDir}')
-
-        # Add sim info to table
-        if not self.fullFrame:
-            self.create_sim_table()
             
         # Execution time of module
         if self.verbose > 0:

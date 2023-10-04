@@ -39,13 +39,14 @@ class HPC(object):
         # Global variables
         self.cpus    = cpus
         self.backend = backend
-        
-        
+
         # Absolute pwd path
         self.path = Path(__file__).parent.resolve()
-        self.platoInputDir  = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
-        self.platoPythonDir = self.path
-        
+        self.platoInputDir   = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
+
+
+
+
 
     def run(self, script, project, paramFile):
 
@@ -53,7 +54,8 @@ class HPC(object):
         """
 
         # Fetch parameterisation file
-        params = pd.read_csv(paramFile).to_numpy()
+        projectDir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), project)
+        params     = pd.read_csv(paramFile).to_numpy()
 
         # Configure parallel computing
         
@@ -65,21 +67,31 @@ class HPC(object):
                 C = params[:,2]
                 Q = params[:,3]
                 N = len(S)
-                Parallel()(delayed(self.run_platonium)(i,N,S[i],G[i],C[i],Q[i],project)
+                Parallel()(delayed(self.run_platonium)
+                           (i, N, S[i], G[i], C[i], Q[i], project)
                            for i in range(N))
 
             if script == 'varsim':
-                Parallel()(delayed(function)(i,S[i],G[i],C[i],Q[i],project) for i in range(N))
+                S = params[:,0].astype(int)
+                N = len(S)
+                odir = f'{projectDir}/varsource'
+                Parallel()(delayed(self.run_varsim)
+                           (i, N, S[i], odir)
+                           for i in range(N))
+
+            # Print when script is done
+            errorcode('message', 'Parallel simulations are done!')
 
 
+                
                 
             
     def run_platonium(self, i, N, S, G, C, Q, project):
 
         """Function to run the parallelisation.
         """
-
-        print(f'Simulation {i}/{N} -> ({round(i/N*100,2)}%)', end='\r')
+        
+        print(f'Simulation {i+1}/{N} -> ({round(i/N*100,2)}%)', end='\r')
         PLATOnium = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
 
         #if mode == 'normal':
@@ -87,3 +99,18 @@ class HPC(object):
         #elif mode == 'statistics':
         os.system(f'{PLATOnium} {S} {G} {C} {Q} --project {project} --statistics')
 
+
+
+
+
+    def run_varsim(self, i, N, S, odir):
+
+        """Function to run the parallelisation.
+        """
+
+        print(f'Simulation {i+1}/{N} -> ({round(i/N*100,2)}%)', end='\r')
+        VARSIM = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/varsim.py'
+        starID = f'{i+1}'.zfill(9)
+        ofile  = f'{odir}/varsource_{starID}.txt'
+        os.system(f'{VARSIM} --star SMBHB --quarter 1-8 -o {ofile} -v 0')
+        
