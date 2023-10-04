@@ -242,11 +242,11 @@ class PLATOnium(object):
 
         if self.starcatFile is not None:
             
-            df = pd.read_csv(self.starcatFile, sep=' ', names=['ID', 'ra', 'dec', 'mag', 'dis'])
+            df = pd.read_csv(self.starcatFile, sep=' ', names=['PIC', 'ra', 'dec', 'mag', 'dis'])
             
             # Change IDs all to be the target
-            df.ID = np.ones(len(df))
-            df.ID = df.ID.astype('int')
+            df.PIC = np.ones(len(df))
+            df.PIC = df.PIC.astype('int')
             
             # Define data frames
             self.df = df.loc[0]
@@ -274,7 +274,7 @@ class PLATOnium(object):
                 errorcode('error', 'Star ID indicing starts from 1 and not 0!')
             elif self.picID is not None:
                 try:
-                    self.targetNo = np.where(df['ID'] == self.picID)[0][0]
+                    self.targetNo = np.where(df['PIC'] == self.picID)[0][0]
                 except IndexError:
                     errorcode('error', f'PIC {self.picID} star does not exist in catalogue:' +
                               f'\n{picTarFile}')
@@ -292,10 +292,10 @@ class PLATOnium(object):
             # If requested select only the target or including contaminants
             if self.noCon:
                 self.numCon = 0
-                self.dc = dc[dc['ID'] == self.numCon]
+                self.dc = dc[dc['PIC'] == self.numCon]
             else:
-                self.dc = dc[dc['ID'] == self.df['ID']]
-                self.numCon = len(self.dc['ID'])
+                self.dc = dc[dc['PIC'] == self.df['PIC']]
+                self.numCon = len(self.dc['PIC'])
                 # Sort contaminants after their distance
                 self.dc = self.dc.sort_values(by=['dis'])
 
@@ -322,13 +322,21 @@ class PLATOnium(object):
         # Final destination on the cluster
         if self.hpcDir:
             self.hpcDir = Path(self.hpcDir).resolve()
-
+            # Create directory
+            if not self.hpcDir.is_dir():
+                self.hpcDir.mkdir(parents=True, exist_ok=True)
+                os.system(f'chmod 755 {self.hpcDir}')
+            
         # Default output path
-        if self.outputDir is None: self.outputDir = self.simDir.joinpath('output')
-        else: self.outputDir = Path(self.outputDir).resolve()
-        try: os.mkdir(self.outputDir)
-        except: pass
-        
+        if self.outputDir is None:
+            self.outputDir = self.simDir.joinpath('output')
+        else:
+            self.outputDir = Path(self.outputDir).resolve()
+        # Create directory
+        if not self.outputDir.is_dir():
+            self.outputDir.mkdir(parents=True, exist_ok=True)
+            os.system(f'chmod 755 {self.outputDir}')
+            
         # Custom prefix
         if self.simPrefix is not None:
             self.simPrefix = f'{self.simPrefix}_'
@@ -631,7 +639,7 @@ class PLATOnium(object):
                                                                    normal=normal)
         if self.subfieldIsOnCCD is False:
             if self.verbose > 0:
-                message  = (f"PIC {self.df.ID} (subfield {self.targetNo}) " +
+                message  = (f"PIC {self.df.PIC} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
                             f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -720,7 +728,7 @@ class PLATOnium(object):
                                                                        focalLength));
         if self.rOA > 19.0:
             if self.verbose > 0:
-                message  = (f"PIC {self.df.ID} (subfield {self.targetNo}) " +
+                message  = (f"PIC {self.df.PIC} (subfield {self.targetNo}) " +
                             f'is outside camera FOV (d={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -734,10 +742,10 @@ class PLATOnium(object):
             exit()
             
         # Create data frame for printing and saving
-        c = ['ID', 'ra [deg]', 'dec [deg]', 'mag',
+        c = ['PIC', 'ra [deg]', 'dec [deg]', 'mag',
              'CCD', 'xCCD [pix]', 'yCCD [pix]',
              'rOA [deg]', 'xFP [mm]', 'yFP [mm]', 'Ncon']
-        d = {'ID': [self.df['ID']], 'mag': [self.df['mag']],
+        d = {'PIC': [self.df['PIC']], 'mag': [self.df['mag']],
              'ra [deg]': [self.df['ra']], 'dec [deg]': [self.df['dec']],
              'CCD': [self.ccdCode], 'xCCD [pix]': [self.xCCD], 'yCCD [pix]': [self.yCCD],
              'rOA [deg]': [self.rOA], 'xFP [mm]': [self.xFP], 'yFP [mm]': [self.yFP],
@@ -926,7 +934,7 @@ class PLATOnium(object):
             figsize = (6,6)
             showStarPositions = 'PIC'
             showMaskOfStarID  = '1'
-            title = f'Imagette of PIC {int(self.df.ID)} ({float(self.df.mag):.2f} mag)'
+            title = f'Imagette of PIC {int(self.df.PIC)} ({float(self.df.mag):.2f} mag)'
             clipPercentile    = 2
             imgScale          = "auto"
             showGrid          = True
@@ -1003,9 +1011,9 @@ class PLATOnium(object):
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
             f = SimFile(f'{self.outputSimName}.hdf5')
-            ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr) 
+            PIC, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr) 
             # Select detected stars
-            df = self.dx.iloc[ID]
+            df = self.dx.iloc[PIC]
             df = df.reset_index()
             # Add stellar positions.
             df['xCCD'] = col - 0.5
@@ -1391,10 +1399,9 @@ class PLATOnium(object):
         # Write PlatoSim info to a table
         filename = self.outputDir / f'{self.outputSimName}.ftr'
         data = {"ID":   self.targetNo+1,
-                "PIC":  self.df.ID,
+                "PIC":  self.df.PIC,
                 "ra":   self.df.ra,
                 "dec":  self.df.dec,
-                "ncon": self.numCon,
                 "G":    self.group,
                 "C":    self.camera,
                 "Q":    self.quarter,
@@ -1403,7 +1410,8 @@ class PLATOnium(object):
                 "yFP":  self.yFP,
                 "ccd":  self.ccdCode,
                 "xCCD": self.xCCD,
-                "yCCD": self.yCCD}
+                "yCCD": self.yCCD,
+                "ncon": self.numCon}
         df1 = pd.DataFrame(data, index=[0])
         df1.to_feather(filename)
         return
@@ -1434,9 +1442,13 @@ class PLATOnium(object):
 
     def sort_output_normal(self):
 
+        # Add sim info to table
+        if not self.fullFrame:
+            self.create_sim_table()
+
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}.*')
-            
+                    
         # Compress files
         if self.compress and os.path.isfile(self.outputSimName + '.hdf5') and not self.sample:
             if self.verbose > 0:
@@ -1453,10 +1465,6 @@ class PLATOnium(object):
         # If requested move file to final output directory (for cluster)
         if self.hpcDir:
             os.system(f'mv {self.outputSimName}.* {self.hpcDir}')
-
-        # Add sim info to table
-        if not self.fullFrame:
-            self.create_sim_table()
             
         # Execution time of module
         if self.verbose > 0:

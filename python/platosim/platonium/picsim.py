@@ -266,7 +266,7 @@ def load_targets(pic_tar):
     Function to load target catalogue. 
     Also needed for more efficient script speed
     """
-    ID     = pic_tar[:,0].astype(float).astype(int)  # PICidDR1: PIC-ID-DR1 from Gaia DR2
+    PIC    = pic_tar[:,0].astype(float).astype(int)  # PICidDR1: PIC-ID-DR1 from Gaia DR2
     ra     = pic_tar[:,1].astype(np.float64)  # ra: ICRS RA
     dec    = pic_tar[:,2].astype(np.float64)  # decl: ICRS Dec
     mag    = pic_tar[:,3].astype(np.float64)  # gaiaV: De-reddened V mag from Gaia colour photometry
@@ -276,7 +276,7 @@ def load_targets(pic_tar):
     M      = pic_tar[:,7].astype(np.float64)  # mass: Stellar mass [M_sun]
     ncams  = pic_tar[:,8].astype(float).astype(int) # nCameraObs: EOL number of cameras seeing the star
     field  = pic_tar[:,9].astype(str)
-    return ID, ra, dec, mag, sample, Teff, R, M, ncams, field
+    return PIC, ra, dec, mag, sample, Teff, R, M, ncams, field
 
 # Fetch PIC catalogue from FTP server
 try:
@@ -321,7 +321,7 @@ except:
     # Load ascii catalogue
     data = np.genfromtxt(inputFileTar.with_suffix('.csv'), delimiter=',',
                         usecols=[0, 3, 5, 53, 55, 56, 58, 60, 71])
-    ID     = data[:,0]
+    PIC    = data[:,0]
     ra     = data[:,1]
     dec    = data[:,2]
     mag    = data[:,3]
@@ -334,8 +334,8 @@ except:
     field = np.loadtxt(inputFileTar.with_suffix('.csv'), delimiter=',',
                        usecols=[68], dtype=str)
     # Load catalogue
-    pic_tar = np.transpose([ID, ra, dec, mag, sample, Teff, R, M, ncams, field])
-    ID, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
+    pic_tar = np.transpose([PIC, ra, dec, mag, sample, Teff, R, M, ncams, field])
+    PIC, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
     # TODO for PIC2.0.0
     #----------------------------------------
     # Convert V Jonhson-Cousin to P passband
@@ -346,16 +346,16 @@ except:
     print('PIC catalogue is saved to binary format for optimised performance!')
     inuaguration = True
     output_file_tar = inputFileTar.with_suffix('.npy')
-    output_data_tar = np.transpose([ID, ra, dec, mag, sample, Teff, R, M, ncams, field])
+    output_data_tar = np.transpose([PIC, ra, dec, mag, sample, Teff, R, M, ncams, field])
     np.save(output_file_tar, output_data_tar)
 else:
     # If saved open binary table
-    ID, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
+    PIC, ra, dec, mag, sample, Teff, R, M, ncams, field = load_targets(pic_tar)
 
 # Create pandas data array
-d = {'ID': ID,  'ra': ra, 'dec': dec, 'mag': mag, 'sample': sample,
+d = {'PIC': PIC,  'ra': ra, 'dec': dec, 'mag': mag, 'sample': sample,
      'Teff': Teff, 'R': R, 'M': M, 'ncams': ncams, 'field': field}
-df = pd.DataFrame(d, columns=['ID', 'ra', 'dec', 'mag', 'sample',
+df = pd.DataFrame(d, columns=['PIC', 'ra', 'dec', 'mag', 'sample',
                               'Teff', 'R', 'M', 'ncams', 'field'])
 
 # Replace EOL N-CAM visibility with BOL
@@ -411,7 +411,7 @@ if fileFormat != '.txt':
     df = df.dropna()
 
     # Removing dublicate stars (if any)
-    df = df.drop_duplicates(subset=['ID'])
+    df = df.drop_duplicates(subset=['PIC'])
 
     # Check pointing field
     if platoField is not None:
@@ -428,7 +428,7 @@ if fileFormat != '.txt':
         except:
             errorcode('error', 'Old picsim target catalogue do not exist!')
         else:
-            cond = df['ID'].isin(df_old['ID']) # Boolen
+            cond = df['PIC'].isin(df_old['PIC']) # Boolen
             df   = df.drop(df[cond].index)
 
     # Seperate dwarf (MS) and sub-gaint (post MS) stars
@@ -491,9 +491,9 @@ if fileFormat != '.txt':
 
 
     # Check if too many stars are selected
-    if len(df['ID']) > numTargetsTotalInPIC:
+    if len(df['PIC']) > numTargetsTotalInPIC:
         errorcode('error', 'More stars selected than available in the PIC! See -h for sample notes')
-    elif numTargets > len(df['ID']) and samplePIC is None and args.stars != 'all':
+    elif numTargets > len(df['PIC']) and samplePIC is None and args.stars != 'all':
         errorcode('error', 'More stars selected than available from chosen PIC sample and/or PLATO field! See -h for sample notes')
 
     # CHECK OBSERVABILITY BY EACH CAMERA
@@ -568,7 +568,7 @@ if fileFormat != '.txt':
 
         # Remove stars that are not observable at all
         dex = dexGroup1 + dexGroup2 + dexGroup3 + dexGroup4
-        ID    = ID[dex].astype(int)
+        PIC   = PIC[dex].astype(int)
         ra    = ra[dex]
         dec   = dec[dex]
         mag   = mag[dex]
@@ -580,7 +580,7 @@ if fileFormat != '.txt':
         # Again choose stars from N-Cam visibility
         if ncamVisible:
             dex = ncams == int(ncamVisible)
-            ID    = ID[dex].astype(int)
+            PIC   = PIC[dex].astype(int)
             ra    = ra[dex]
             dec   = dec[dex]
             mag   = mag[dex]
@@ -592,7 +592,7 @@ if fileFormat != '.txt':
         # Allow to select only one cam-group
         if camGroup:
             dex = starsWithinCamGroup(camGroup, raPF, decPF, ra, dec)
-            ID    = ID[dex].astype(int)
+            PIC   = PIC[dex].astype(int)
             ra    = ra[dex]
             dec   = dec[dex]
             mag   = mag[dex]
@@ -613,8 +613,15 @@ if fileFormat != '.txt':
         df = df.sample(n = numTargets)
 
     # Redefine the number fo targets
-    numTargets = len(df['ID'])
+    numTargets = len(df['PIC'])
 
+    # Add ID column to df
+    df  = df.reset_index()
+    df  = df.drop(columns=['index'])
+    ids = np.arange(1, len(df.ra)+1)
+    IDs = [f'{i}'.zfill(9) for i in ids]
+    df  = ut.pdAddColumn(df, IDs, 'ID')
+    
     # Randomly choose sample until the number of timeseries are met
     if numTimeseries:
         numImagettes = 0
@@ -668,7 +675,7 @@ if platoField is None:
     exit()
 
 # Plot Zoom-in on FOV
-if len(df['ID']) > 200: plotmag = None
+if len(df['PIC']) > 200: plotmag = None
 else: plotmag = df['mag'].to_numpy()
 title = f'{platoField} {starSample} sample'
 fig1, ax = pt.plotPlatoFOV(platoField, df['ra'].to_numpy(), df['dec'].to_numpy(), magStars=plotmag, showGroups=True, showLegend=True, title=title)
@@ -683,6 +690,7 @@ if plot: plt.show()
 
 # Stop here when flag -t
 if onlyTargets: exit()
+
 
 # NOTE use this to save target catalogue only!
 #---------------------------------
@@ -707,12 +715,12 @@ def load_contaminants(pic_con):
     Function to load target catalogue. 
     Also needed for more efficient script speed
     """
-    ID_con   = pic_con[:,0].astype(float).astype(int)
+    PIC_con  = pic_con[:,0].astype(float).astype(int)
     ra_con   = pic_con[:,1].astype(float)
     dec_con  = pic_con[:,2].astype(float)
     distance = pic_con[:,3].astype(float)
     mag_con  = pic_con[:,4].astype(float)
-    return ID_con, ra_con, dec_con, distance, mag_con
+    return PIC_con, ra_con, dec_con, distance, mag_con
 
 # We here allow to load in an already existing txt file for the creation of new plots
 if inputFiles is not None and fileFormat == '.ftr':
@@ -729,7 +737,7 @@ else:
         print('Be patient, this will take around 1 min the first time only!')
         # Load ascii catalogue
         pic_con = np.loadtxt(inputFileCon.with_suffix('.csv'), delimiter=',', skiprows=1, usecols=[2, 6, 8, 5, 19])
-        ID_con, ra_con, dec_con, distance, mag_con = load_contaminants(pic_con)
+        PIC_con, ra_con, dec_con, distance, mag_con = load_contaminants(pic_con)
         # TODO for PIC2.0.0
         #----------------------------------------
         # Convert to PLATO passband
@@ -737,28 +745,28 @@ else:
         #----------------------------------------
         # Save dataset to binary file:
         output_file_con = inputFileCon.with_suffix('.npy')
-        output_data_con = np.transpose([ID_con, ra_con, dec_con, distance, mag_con])
+        output_data_con = np.transpose([PIC_con, ra_con, dec_con, distance, mag_con])
         np.save(output_file_con, output_data_con)
     else:
         # If saved open binary table
-        ID_con, ra_con, dec_con, distance, mag_con = load_contaminants(pic_con)
+        PIC_con, ra_con, dec_con, distance, mag_con = load_contaminants(pic_con)
 
     # Create pandas data array
-    dd = {'ID': ID_con,  'ra': ra_con, 'dec': dec_con, 'mag': mag_con, 'dis': distance}
-    dc = pd.DataFrame(dd, columns=['ID', 'ra', 'dec', 'mag', 'dis'])
+    dd = {'PIC': PIC_con,  'ra': ra_con, 'dec': dec_con, 'mag': mag_con, 'dis': distance}
+    dc = pd.DataFrame(dd, columns=['PIC', 'ra', 'dec', 'mag', 'dis'])
 
     # FETCH STELLAR CONTAMINANTS FOR EACH TARGET STAR
 
     print('Fetching contaminants within {0} arcsec from each target'.format(disConLimit))
 
     # Create empty data-frame to append to 
-    dfc = pd.DataFrame(columns=['ID', 'ra', 'dec', 'mag', 'dis'])
+    dfc = pd.DataFrame(columns=['PIC', 'ra', 'dec', 'mag', 'dis'])
     numConPerTar = []
 
     for starNo in tqdm(range(numTargets), bar_format=ut.tqdmBar()):
 
         # Find corresponding contaminants to our target
-        dcc = dc[dc['ID'] == df['ID'].iloc[starNo]]
+        dcc = dc[dc['PIC'] == df['PIC'].iloc[starNo]]
 
         # We will only add stars within a user-defined distance of our target
         dcc = dcc[dcc['dis'] < disConLimit]
@@ -844,11 +852,11 @@ if outputDir is not None:
         # Output file name of HPC data
         outputVarFileName = f'{outputDir}/cluster_{outputPrefix}.txt'
         print(f'Saving file {outputVarFileName}')
-        headerVar = 'PIC, M, R, Teff'
-        outputVarData = np.transpose([df['ID'].to_numpy(), df['M'].to_numpy(),
+        headerVar = 'ID,PIC,M,R,Teff'
+        outputVarData = np.transpose([df['ID'].to_numpy(), df['PIC'].to_numpy(), df['M'].to_numpy(),
                                       df['R'].to_numpy(),  df['Teff'].to_numpy()])
         np.savetxt(outputVarFileName, outputVarData, header=headerVar, comments='',
-                   fmt=['%i', '%0.3f', '%0.3f', '%i'], delimiter=',')
+                   fmt=['%s', '%i', '%0.3f', '%0.3f', '%i'], delimiter=',')
 
     if fileFormat == '.csv' and subfield is True:
         print(f'Saving file {outputFileFOV}')
