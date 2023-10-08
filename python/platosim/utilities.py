@@ -117,8 +117,9 @@ def getFunctions(script):
     names = inspect.getmembers(script, inspect.isfunction)
     funcs = [item[0] for item in names]
     t = PrettyTable()
-    
-    return t.add_column(f"{script.__name__} functions", funcs)
+    t.add_column(f"{script.__name__} functions", funcs)
+
+    return t
     
 
 
