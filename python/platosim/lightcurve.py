@@ -106,8 +106,8 @@ class LightCurve(object):
                 simfile = SimFile(filename)
 
                 # Fetch light curve
-                self.df = simfile.getLightCurve(1)
-                
+                self.df = simfile.getLightCurve(1, df=True)
+
                 # Add time column if not found
                 if not 'time' in self.df:
                     exptime  = simfile.getExposureTime()
@@ -211,12 +211,11 @@ class LightCurve(object):
         
         if not filename:
             file_ftr = pathlib.Path(self.filename)
-            filename = file_ftr.parents[0] / f'{file_ftr.stem}.cat'
+            filename = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
         
         # Fetch info about target star
         
-        cols = ["id", "ra", "dec", "x", "y", "mag", "ccd", "xccd", "yccd", "xfp", "yfp"]
-        return pd.read_csv(filename, delimiter=' ', skiprows=1, names=cols)
+        return pd.read_feather(filename).squeeze()
 
 
 
@@ -317,10 +316,15 @@ class LightCurve(object):
         filename = pathlib.Path(self.filename)
         starID   = filename.stem[:9]
         path     = filename.parents[2]
-        filename = f"varsource_{starID}_components.ftr"
+        filename = f"varsource_{starID}.txt"
         varpath  = path / "varsource" / filename
 
-        return pd.read_feather(varpath)
+        # Read file and add flux column
+        
+        df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
+        df['flux'] = (10**(-df.mag/2.5) - 1) * 1e3
+
+        return df
 
 
 
@@ -779,7 +783,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     
     
-    def stitch(self, column='flux', gapsize=0.1, medpoint=100, plot=False):
+    def stitch(self, column='flux', gapsize=0.1, medpoint=1000, plot=False):
 
         """Function to stitct a light curve.
 
@@ -840,7 +844,7 @@ class LightCurve(object):
         
         # Plot simulation and trend
         flux_raw_median = median_filter(df.flux, medfilt)
-        ax[0].plot(time, df.flux, '.', c='k', ms=1, alpha=0.2, label='Raw data')
+        ax[0].plot(time, df.flux, '.', c='k', ms=1, alpha=0.2, label='Before')
         ax[0].plot(time, flux_raw_median, '-', c='deeppink', lw=0.5, label="1h median")
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
         ax[0].set_ylabel(r"Flux [as input]")
@@ -849,7 +853,7 @@ class LightCurve(object):
 
         # Plot detrend and median
         flux_median = median_filter(df.flux_stitch, medfilt)
-        ax[1].plot(time, df.flux_stitch, '.', c='k',ms=1,alpha=0.2,label="Stitched data")
+        ax[1].plot(time, df.flux_stitch, '.', c='k',ms=1,alpha=0.2,label="After")
         ax[1].plot(time, flux_median, '-', c='orange', lw=0.5, label="1h median")
         ax[1].set_xlim(time.iloc[0], time.iloc[-1])
         ax[1].set_ylabel('Flux [as input]')
@@ -865,8 +869,8 @@ class LightCurve(object):
 
     
     def detrend(self, column='flux', model="poly", plot=False,
-                degree=2, gradient=False,                    # Polynomial parameters
-                method="biweight", window=0.5, mask=False):  # Wotan parameters
+                degree=2, gradient=False,                       # Model: Polynomial
+                method="biweight", window=0.5, mask=False):     # Model: Wotan
                 
         """Detrend time series.
 
@@ -948,8 +952,6 @@ class LightCurve(object):
                 
 
 
-
-        
 
     
     def plot_detrend(self, df, column='flux', figsize=(9,8)):
@@ -1735,6 +1737,55 @@ class LightCurve(object):
 
 
 
+    def merge_star(self):
+
+        # Prepare master df
+        
+        df  = pd.DataFrame()
+        Q = 8
+
+        # Loop over each camera
+        
+        for g in range(1,5):
+
+            df2 = pd.DataFrame()
+            
+            # Combine light curves of same camera
+            
+            for c in range(1,7):
+
+                df1 = pd.DataFrame()
+                df0 = pd.DataFrame()
+                files = self.files('hdf5', group=g, camera=c)
+                
+                for f in files:
+                    
+                    lc = LightCurve(f)
+                    df1['time'] = lc.time()
+                    df1['flux'] = lc.flux(unit='ppt')
+                    df0 = pd.concat([df0, df1])
+
+            # Stitch each camera individually
+            
+            lc = LightCurve(df0, mode="multi")
+            ds = lc.stitch() 
+
+            # Or same just a merged one
+            
+            df2['time'] = ds.time
+            df2['flux'] = ds.flux_stitch
+            df = pd.concat([df, df2])
+
+        # Reorder after time
+
+        df = df.sort_values(by=['time'])
+            
+        # That's it!
+            
+        return df
+
+
+    
     def reduce_star(self, flux_group_mean=False, ofile=False, suffix="ftr",
                     model_detrend="poly", degree=2, window=0.5, mask=False,
                     model_clip="scipy", low=3, high=3):
