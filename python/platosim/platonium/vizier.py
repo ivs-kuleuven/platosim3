@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 
 """
+This script creates a coherent PLATO catalogue that covers the
+FoV of each camera group. It uses the Gaia DR3 catalogue and
+makes query of 9 grid points distribution around the requested
+PLATO pointing field. The output catalogues (one for each group)
+is to be used directly by "platonium", either for the generation
+of full-frame CCD images or for exploitation of the PLATO-CS.
 """
 
 # Python standard
@@ -34,7 +40,7 @@ latex()
 #==============================================================#
 
 
-class StarQuery(object):
+class Vizier(object):
 
     """Class to generate a Gaia DR3 catalogue.
     
@@ -50,12 +56,13 @@ class StarQuery(object):
         self.maglim  = args.maglim
         self.plot    = args.plot
         self.verbose = args.verbose
+        self.bright  = args.bright
 
         if not self.field:
             self.field = 'LOPS2'
             
         if not self.maglim:
-            self.maglim = 17
+            self.maglim = 21
 
         # Output directory
         if args.outdir:
@@ -177,10 +184,14 @@ class StarQuery(object):
 
         df = df.drop(columns='dist')
 
-        # Rename ID column
+        # Rename columns
 
         df = df.rename(columns={'designation': 'gaiaDR3',
-                                'phot_g_mean_mag': 'mag'})
+                                'phot_g_mean_mag': 'mag',
+                                'parallax': 'plx',
+                                'parallax_error': 'plxe',
+                                'teff_gspphot': 'teff',
+                                'logg_gspphot': 'logg'})
 
         # Keep digit ID only
 
@@ -188,10 +199,10 @@ class StarQuery(object):
 
         # Add brightest stars not available in Gaia
 
-        if self.field == 'LOPS':
-            sirius  = {'gaiaDR3':'Sirius',  'ra': 101.2871667, 'dec': -16.7161167, 'mag': -1.46}
-            canopus = {'gaiaDR3':'Canopus', 'ra':  95.9879167, 'dec': -52.6956611, 'mag': -0.72}
-            epscma  = {'gaiaDR3':'epsCMa',  'ra': 104.6564583, 'dec': -28.9720861, 'mag':  1.50}
+        if self.bright:
+            sirius  = {'gaiaDR3':'Sirius',  'ra':101.2871667, 'dec':-16.7161167, 'mag':-1.46}
+            canopus = {'gaiaDR3':'Canopus', 'ra': 95.9879167, 'dec':-52.6956611, 'mag':-0.72}
+            epscma  = {'gaiaDR3':'epsCMa',  'ra':104.6564583, 'dec':-28.9720861, 'mag': 1.50}
             df = df.append([sirius, canopus, epscma], ignore_index=True)
 
         # Keep only stars within the camera group FOV
@@ -294,21 +305,22 @@ class StarQuery(object):
 
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=errorcode('software', '\nStar Query'))
+                                 description=errorcode('software', '\nPLATO FoV Catalogue Query'))
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-p', '--plot',    action='store_true', help='Flag for plotting')
-out_group.add_argument('-v', '--verbose', action='store_true', help='Flag for verbosity')
-out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory')
-out_group.add_argument('--project',      metavar='NAME', type=str, help='PLATOnium project')
+out_group.add_argument('-p', '--plot',    action='store_true',      help='Flag for plotting')
+out_group.add_argument('-v', '--verbose', action='store_true',      help='Flag for verbosity')
+out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output directory')
+out_group.add_argument('--project',       metavar='NAME', type=str, help='PLATOnium project (overwrites --odir)')
 
 que_group = parser.add_argument_group('QUERY PARAMETERS')
 que_group.add_argument('--field',  metavar='NAME', type=str,   help='LOP (SPF, NPF, LOPS2, LOPN)')
 que_group.add_argument('--maglim', metavar='MAG',  type=float, help='Maximum magnitude to query (default: 17)')
+que_group.add_argument('--bright', action='store_true',        help='Flag add Yale bright stars catalogue')
 
 
 # Initialize instance of class
 args = parser.parse_args()
-x = StarQuery(args)
+x = Vizier(args)
 x.queryGaiaDR3()
 print('')

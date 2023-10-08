@@ -105,42 +105,50 @@ def getJobScript(ids, groups, cameras, quarters,
 
     script = \
     f"""
-    #!/bin/bash
+    #!/bin/bash -l
 
-    #SBATCH -A <account>           # Account name of cluster (mandatory)
-    #SBATCH -o <stdout>            # Name of standard output
-    #SBATCH -e <stderr>            # Name of standard errors
-    #SBATCH -M <cluster>           # Cluster name (VSC: genius or wice)
-    #SBATCH -p <software>          # Cluster software (VSC: batch_debug,batch,bigmen,etc).
-    #SBATCH --nodes={nodes}             # Number of nodes
-    #SBATCH --ntasks-per-node={cores}   # Number of CPU per node
-    #SBATCH --mem-per-cpu={memSim}M     # Amount of RAM memory per CPU
-    #SBATCH -t {walltime}          # Totoal execution of slurm job 
+    #SBATCH -A <account>               # Account name of cluster (mandatory)
+    #SBATCH --mail-user=<email>        # User email
+    #SBATCH --mail-type=END            # Get notified by email if script ends successfuly
+    #SBATCH --mail-type=FAIL           # Get notified by email if script fails
+    #SBATCH -o <stdout>                # Name of standard output
+    #SBATCH -e <stderr>                # Name of standard errors
+    #SBATCH -M <cluster>               # Cluster name (VSC: genius or wice)
+    #SBATCH -p <partition>             # Cluster software (VSC: batch_debug,batch,bigmen,etc).
+    #SBATCH --nodes={nodes}            # Number of nodes
+    #SBATCH --ntasks-per-node={cores}  # Number of CPU per node
+    #SBATCH --mem-per-cpu={memSim}M    # Amount of RAM memory per CPU
+    #SBATCH -t {walltime}              # Totoal execution of slurm job 
 
     cd $SLURM_SUBMIT_DIR
-    module purge
-    module restore <name>      # Name of cluster env with modules 
+    module purge                       # Pruge and refresh modules
+    module restore <module_env>        # Name of cluster module environment
 
     # User defined parameters
-    WORKDIR=<workdir_name>     # PLATOnium working directory
-    PROJECT=<project_name>     # PLATOnium project name
+    WORKDIR=<workdir_name>             # PLATOnium working directory
+    PROJECT=<project_name>             # PLATOnium project directory
+    SIMDIR=<storage_name>              # Directory to store output
+    starID=$(printf "%09d" $id)        # 9-digit star ID to include varsource
 
     # Export paths
-    export PLATO=$VSC_DATA/plato
-    export PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
-    export PLATO_WORKDIR=$VSC_DATA/$WORKDIR
     export TEMDIR=$VSC_SCRATCH_NODE
-    export OUTDIR=$VSC_SCRATCH/platosim/$PROJECT
+    export VARDIR=$VSC_SCRATCH/platosim/$PROJECT/varsource
+    export OUTDIR=$VSC_SCRATCH/platosim/$PROJECT/$SIMDIR/$starID
+    export PLATO=$VSC_DATA/plato
+    export PLATO_WORKDIR=$VSC_DATA/$WORKDIR
+    export PLATO_PROJECT_HOME=$VSC_DATA/PlatoSim3
     export PYTHONPATH=$PLATO:$PLATO_PROJECT_HOME/python
     export PLATONIUM=$PLATO_PROJECT_HOME/python/platosim/platonium/platonium.py
-    export CONDA=/data/leuven/341/vsc34166/miniconda3/etc/profile.d/conda.sh
+    export PATH=$VSC_DATA/miniconda3/bin:$PATH    
 
     # Activate environment
-    source $CONDA
-    conda activate platonium
+    source activate platonium
+
+    # Secure only 1 thread/cpu
+    export OMP_NUM_THREADS=1
 
     # Run PLATOnium
-    python $PLATONIUM $ids $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress
+    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --varfile $VARDIR/varsource_${starID}.txt --compress -v 0 -w
     """
 
     # Save textfile for worker
@@ -218,7 +226,7 @@ def convertWorkerLog(workerLog):
     month_convert = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6, 
                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
 
-    df = pd.read_csv(workerLog, sep='\s+|\t+|\s+\t+|\t+\s+', engine='python'
+    df = pd.read_csv(workerLog, sep='\s+|\t+|\s+\t+|\t+\s+', engine='python',
                      names=['state', 'a', 'core', 'b', 'c',
                             'month', 'date', 'time', 'year'])
     df = df.drop(['a', 'b', 'c'], axis=1)
