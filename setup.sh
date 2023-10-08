@@ -102,9 +102,6 @@ else
 
     # Lastly, try to install L1 pipeline
     if [ -f "$PLATO_PIPELINE/algorithms/Makefile" ]; then
-    	echo "----------------------------"
-    	echo " Installing the L1 pipeline "
-    	echo "----------------------------"
     	#cd $PLATO_PIPELINE/algorithms 
     	#sudo make install
 	# The following is needed (bug?) to locate these two files
