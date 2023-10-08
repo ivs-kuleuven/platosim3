@@ -267,7 +267,7 @@ def starQuery(star, radius=45):
 
 
 
-def gaiaRegionQuery(ra, dec, radius=19, maglim=17, ofile=False):
+def gaiaRegionQuery(ra, dec, radius=19, maglim=21, ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
     
@@ -331,23 +331,25 @@ v        File name (without file extension) to be saved
     # Create job to be parsed
     
     params = urllib.urlencode({\
-                               "REQUEST"        : "doQuery",
-                               "LANG"           : "ADQL",
-                               "FORMAT"         : "votable_plain",
-                               "PHASE"          : "RUN",
-                               "JOBNAME"        : "PLATO catalog",
-                               "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
-                               "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}), " +
-                                                   "POINT(ra,dec)) " +
-                                                   "AS dist, designation, ra, dec, " +
-                                                   "parallax, parallax_error, pmra, pmdec, ruwe, " +
-                                                   "phot_g_mean_mag, bp_rp " +
-                                                   "teff_gspphot, logg_gspphot, " + 
-                                                  f"FROM {catalogue} AS cat " +
-                                                  f"WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}), " +
-                                                  f"CIRCLE(cat.ra,cat.dec,{radius})) " +
-                                                  f"AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
+            "REQUEST"        : "doQuery",
+            "LANG"           : "ADQL",
+            "FORMAT"         : "votable_plain",
+            "PHASE"          : "RUN",
+            "JOBNAME"        : "PLATO catalog",
+            "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
+            "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}), " +
+                               "POINT(ra,dec)) " +
+                               "AS dist, designation, ra, dec, " +
+                               "parallax, parallax_error, " +
+                               "pmra, pmdec, ruwe, " +
+                               "phot_g_mean_mag, bp_rp, " +
+                               "teff_gspphot, logg_gspphot " +
+                               f"FROM {catalogue} AS cat " +
+                               f"WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}), " +
+                               f"CIRCLE(cat.ra,cat.dec,{radius})) " +
+                               f"AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
 
+    
     headers = {"Content-type": "application/x-www-form-urlencoded",
                "Accept"      : "text/plain"}
 
