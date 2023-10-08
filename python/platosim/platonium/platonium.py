@@ -261,10 +261,13 @@ class PLATOnium(object):
                 extra_str = ''
 
             # Fetch PIC targets and contaminants
-            picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
-            picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
-            df = pd.read_feather(picTarFile)
-            dc = pd.read_feather(picConFile)
+            try:
+                picTarFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**targets.ftr')[0]
+                picConFile = glob.glob(str(self.inputDir) + f'/starcat{extra_str}**contaminants.ftr')[0]
+                df = pd.read_feather(picTarFile)
+                dc = pd.read_feather(picConFile)
+            except IndexError:
+                errorcode('error', f'Stellar catalogue for {self.sample} sample do not exist!')
 
             # Merge for full frame
             self.dx = pd.concat([df, dc])
@@ -1080,25 +1083,25 @@ class PLATOnium(object):
         Module to control HDF5 content for L1 pipeline.
         """
 
-        # Exclude photometry
-        #sim["Photometry/IncludePhotometry"] = 'no'
-
         # Include HDF5 content
+        sim["ControlHDF5Content/GroupByExposure"]             = True
         sim["ControlHDF5Content/WritePixelMaps"]              = True
-        sim["ControlHDF5Content/WriteSmearingMaps"]           = True
-        sim["ControlHDF5Content/WriteThroughputMaps"]         = True
-        sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
-        sim["ControlHDF5Content/WriteStarPositions"]          = True
-        sim["ControlHDF5Content/WriteACS"]                    = True
-        sim["ControlHDF5Content/WriteCosmics"]                = True
-        sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
-        sim["ControlHDF5Content/WriteStarCatalog"]            = True
-        sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
         sim["ControlHDF5Content/WriteBiasMaps"]               = False
+        sim["ControlHDF5Content/WriteSmearingMaps"]           = True
+        sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
+        sim["ControlHDF5Content/WriteThroughputMaps"]         = True
+        sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
+        sim["ControlHDF5Content/WriteBackgroundMap"]          = False
+        sim["ControlHDF5Content/WriteCTI"]                    = False        
         sim["ControlHDF5Content/WriteSubPixelImages"]         = False
+        sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
+        sim["ControlHDF5Content/WriteACS"]                    = True
         sim["ControlHDF5Content/WriteTelescopeACS"]           = False
-        sim["ControlHDF5Content/WriteCTI"]                    = False
-
+        sim["ControlHDF5Content/WriteStarCatalog"]            = True
+        sim["ControlHDF5Content/WriteStarPositions"]          = True
+        sim["ControlHDF5Content/WriteGhostPositions"]         = False
+        sim["ControlHDF5Content/WriteCosmics"]                = True
+        
         # Check for high res mapped PSF
         if sim["PSF/Model"] == 'MappedFromFile':
             sim["ControlHDF5Content/WriteDiffusedPSF"] = True
@@ -1398,24 +1401,23 @@ class PLATOnium(object):
 
         # Write PlatoSim info to a table
         filename = self.outputDir / f'{self.outputSimName}_table.ftr'
-        data = {"ID":   self.targetNo+1,
-                "PIC":  self.df.PIC,
-                "ra":   self.df.ra,
-                "dec":  self.df.dec,
-                "G":    self.group,
-                "C":    self.camera,
-                "Q":    self.quarter,
-                "rOA":  self.rOA,
-                "xFP":  self.xFP,
-                "yFP":  self.yFP,
-                "ccd":  self.ccdCode,
-                "xCCD": self.xCCD,
-                "yCCD": self.yCCD,
-                "ncon": self.numCon}
+        data = {"ID":      self.targetNo+1,
+                "PIC":     self.df.PIC,
+                "ra":      self.df.ra,
+                "dec":     self.df.dec,
+                "mag":     self.df.mag,
+                "group":   self.group,
+                "camera":  self.camera,
+                "quarter": self.quarter,
+                "rOA":     self.rOA,
+                "xFP":     self.xFP,
+                "yFP":     self.yFP,
+                "ccd":     self.ccdCode,
+                "xCCD":    self.xCCD,
+                "yCCD":    self.yCCD,
+                "ncon":    self.numCon}
         df1 = pd.DataFrame(data, index=[0])
         df1.to_feather(filename)
-        os.system(f'chmod 755 {filename}')
-        return
 
             
             
@@ -1423,25 +1425,26 @@ class PLATOnium(object):
 
     def sort_output_normal(self):
 
-        # Add sim info to table
+        # Create a info table of simulation
         if not self.fullFrame:
             self.create_sim_table()
 
         # Give full read and write access to output files
-        os.system(f'chmod 755 {self.outputSimName}.*')
+        os.system(f'chmod 755 {self.outputSimName}*')
                     
         # Compress files
         if self.compress and os.path.isfile(self.outputSimName + '.hdf5') and not self.sample:
             if self.verbose > 0:
                 errorcode('module', '\nRestructuring data output\n')
                 print('Compressing files')
-            os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}*')
+            os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}* ' +
+                      f'{self.devnull}')
             # Give read and write access to file
             os.system(f'chmod 755 {self.outputSimName}.zip')
             # Remove non-compressed files
             os.remove(self.outputSimName + '.hdf5')
-            if self.fullFrame:
-                os.remove(self.outputSimName + '.ftr')
+            if not self.fullFrame:
+                os.remove(self.outputSimName + '_table.ftr')
 
         # If requested move file to final output directory (for cluster)
         if self.hpcDir:
@@ -1540,9 +1543,6 @@ class PLATOnium(object):
         # If requested move file to final output directory (for cluster)
         if self.hpcDir:
             os.system(f'mv {prefixStarIDnew}.* {self.hpcDir}')
-
-        # Add sim info to table
-        self.create_sim_table()
             
         # Execution time of module
         if self.verbose > 0:
