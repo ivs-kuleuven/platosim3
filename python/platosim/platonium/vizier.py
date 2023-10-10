@@ -62,7 +62,7 @@ class Vizier(object):
             self.field = 'LOPS2'
             
         if not self.maglim:
-            self.maglim = 21
+            self.maglim = 17
 
         # Output directory
         if args.outdir:

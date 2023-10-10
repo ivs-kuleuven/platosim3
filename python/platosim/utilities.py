@@ -27,6 +27,7 @@ from pylab import MaxNLocator
 from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 from scipy.integrate import cumtrapz
+from scipy.stats import gaussian_kde
 
 # PlatoSim imports
 import platosim.referenceFrames as rf
@@ -371,6 +372,40 @@ def normalize(signal, factor=1e6, length=-1):
     relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
     return relative_signal
+
+
+
+
+
+def sortAfterDensity(x, y): 
+
+    """Enable the usage of a slider to show multiple images.
+
+    Parameters
+    ----------
+    x, y : ndarray
+        (x,y) variables to generate density map from.
+    
+    Return
+    ------
+    x', y', z' : ndarray
+        Sorted arrays after density map, z.
+
+    Example
+    -------
+    >> plt.scatter(x, y, c=z, cmap='jet')
+    """
+
+    # Calculate the point density
+    
+    xy = np.vstack([x,y])
+    z = gaussian_kde(xy)(xy)
+
+    # Sort the points by density with densest points last
+
+    dex = z.argsort()
+
+    return x[dex], y[dex], z[dex]
 
 
 

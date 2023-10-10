@@ -16,7 +16,6 @@ import descartes
 from tqdm import tqdm
 from ipywidgets import interact
 import numpy as np
-
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.animation as animation
@@ -26,12 +25,10 @@ from matplotlib.path import Path
 import matplotlib.ticker as mticker
 from matplotlib.ticker import MaxNLocator, ScalarFormatter, LogLocator
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
-
 from scipy import constants as c
 from scipy.ndimage import median_filter
 from scipy.interpolate import make_interp_spline
 from scipy.signal import periodogram
-
 from astropy.coordinates import SkyCoord, Angle
 import astropy.units as u
 
@@ -116,7 +113,7 @@ def discretizeColorbar(cbins, cmap="coolwarm"):
 
     return norm
 
-
+    
 
 
 

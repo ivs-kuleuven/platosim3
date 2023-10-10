@@ -503,7 +503,7 @@ class PLATOnium(object):
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
-        sim["Telescope/GroupID"]      = self.groupID
+        sim["Telescope/GroupID"]      = 'Custom'
         sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
         sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
 
@@ -532,7 +532,7 @@ class PLATOnium(object):
                 sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
 
         # Absolute Pointing Error (APE) due to camera misalignments
-        # NOTE: only be included if "instrumentAPE.txt" is available in the input folder
+        # NOTE: included if "instrumentAPE.txt" is available in the input
         inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
         if inputFileAPE.is_file():
             if self.verbose > 0 :
@@ -543,8 +543,9 @@ class PLATOnium(object):
             sim["Telescope/AzimuthAngle"] += APE[dex, 1]
 
         # Thermo-Elastic Distortion (TED)
-        # NOTE: The camera(s) drift due to the thermal gradient of
-        # the interface between the camera and the optical bench
+        # The camera(s) drift due to the thermal gradient of the interface between
+        # the camera and the optical bench
+        # NOTE: included if "instrumentTED.txt" is available in input
         inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
         if inputFileTED.is_file():
             sim["Telescope/UseDrift"]      = True
@@ -559,11 +560,13 @@ class PLATOnium(object):
 
         # Attitude Orbit Control System (AOCS) jitter
         # First check if file from payload is present
+        # NOTE: included if "instrumentACS.txt" is available in input
         inputFileAOCS = self.inputDir.joinpath('instrumentACS.txt')
         if inputFileAOCS.is_file():
             sim["Platform/UseJitter"]      = True
             sim["Platform/JitterSource"]   = 'FromFile'
             sim["Platform/JitterFileName"] = inputFileAOCS
+            
         # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters
         elif self.reuseJitter:
             sim["Platform/UseJitter"]    = True
@@ -594,8 +597,8 @@ class PLATOnium(object):
             else:
                 source = 'RedNoise'
             print(f'Applying platform jitter     (ACS {source})')
-            
 
+            
         # FULL-FRAME SIMULATION
 
         if self.fullFrame:
@@ -604,7 +607,7 @@ class PLATOnium(object):
             sim['Photometry/IncludePhotometry'] = False
 
             # Set CCD parameters
-            self.subfieldIsOnCCD = True
+            self.isOnCCD         = True
             sim["CCD/Position"]  = str(self.ccdCode)
 
             if self.groupID == 'Fast':
@@ -624,7 +627,6 @@ class PLATOnium(object):
             sim["ControlHDF5Content/WriteStarPositions"] = True
 
             return sim
-
         
         # SUBFIELD SIMULATION
         
@@ -637,10 +639,10 @@ class PLATOnium(object):
         raTargetRad    = np.deg2rad(self.df['ra'])
         decTargetRad   = np.deg2rad(self.df['dec'])
         
-        self.subfieldIsOnCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
-                                                                   numColSubfield, numRowSubfield,
-                                                                   normal=normal)
-        if self.subfieldIsOnCCD is False:
+        self.isOnCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
+                                                           numColSubfield, numRowSubfield,
+                                                           normal=normal)
+        if self.isOnCCD is False:
             if self.verbose > 0:
                 message  = (f"PIC {self.df.PIC} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
@@ -717,6 +719,8 @@ class PLATOnium(object):
         # Add CCD time-shift to time points
         # Only continue if ccdCode is found:
         if self.ccdCode:
+            # Check if string is F-CAM
+            if self.ccdCode[1] == 'F': self.ccdCode = self.ccdCode[0]
             self.timeStart += float(sim['CCDPositions/TimeShift'][int(self.ccdCode)-1])
             self.time = np.arange(self.numExposures) * self.cadence + self.timeStart
         else:
@@ -919,9 +923,11 @@ class PLATOnium(object):
         # Plot star in CCD focal plane
         if not self.fullFrame:
             fig = plt.figure(figsize=(12,10))
-            drawStarInCCDfocalPlane(fig, sim, self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
+            drawStarInCCDfocalPlane(fig, sim,
+                                    self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
                                     self.df0['CCD'][0], self.group,
-                                    self.raPlatformDeg, self.decPlatformDeg, self.solarPanelOrientationDeg)
+                                    self.raPlatformDeg, self.decPlatformDeg,
+                                    self.solarPanelOrientationDeg)
 
         # Show subfield for first cadence
         if self.fullFrame:
@@ -930,7 +936,8 @@ class PLATOnium(object):
             showMaskOfStarID  = False
             showGrid          = False
             title             = False
-            imgScale          = "clip"
+            imgScale          = "auto"
+            cmap              = 'cubehelix'
             clipPercentile    = 1
             
         else:
@@ -940,6 +947,7 @@ class PLATOnium(object):
             title = f'Imagette of PIC {int(self.df.PIC)} ({float(self.df.mag):.2f} mag)'
             clipPercentile    = 2
             imgScale          = "auto"
+            cmap              = 'gist_stern'
             showGrid          = True
             
         # Check that if any stars are detected
@@ -955,7 +963,7 @@ class PLATOnium(object):
                     clip=clipPercentile,
                     showMaskOfStarID=mask,
                     useTitle=title,
-                    colorMap='gist_stern',
+                    colorMap=cmap,
                     colorBar=True,
                     imgScale=imgScale,
                     showGrid=showGrid,
@@ -997,7 +1005,7 @@ class PLATOnium(object):
         simFile = sim.run(removeOutputFile=self.overwrite, logLevel=self.verbose_platosim)
         
         # Common files to always remove (unless debug mode)
-        if self.subfieldIsOnCCD:
+        if self.isOnCCD:
             if self.varSourceFile:
                 os.remove(self.varSourceList)
             if self.sample is None and self.verbose < 3:
