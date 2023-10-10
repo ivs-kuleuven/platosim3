@@ -148,7 +148,7 @@ def getJobScript(ids, groups, cameras, quarters,
     export OMP_NUM_THREADS=1
 
     # Run PLATOnium
-    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --varfile $VARDIR/varsource_${starID}.txt --compress -v 0 -w
+    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress -v 0 -w
     """
 
     # Save textfile for worker

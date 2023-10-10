@@ -618,8 +618,8 @@ class PLATOnium(object):
                 sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
                 sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
             else:
-                sim["SubField/NumRows"]         = 100 #sim["CCDPositions/NumRows"][0]
-                sim["SubField/NumColumns"]      = 100 #sim["CCDPositions/NumColumns"][0]
+                sim["SubField/NumRows"]         = sim["CCDPositions/NumRows"][0]
+                sim["SubField/NumColumns"]      = sim["CCDPositions/NumColumns"][0]
 
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True

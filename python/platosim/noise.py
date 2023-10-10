@@ -314,13 +314,14 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
         ax[0].set_xlim(xx[0], xx[-1])
         ax[0].legend()
 
-        ax[1].plot(ra0, dec0, 'o',  alpha=0.3)
-        ax[1].plot(0,   0,    'r*', alpha=0.7, ms=10)
+        ax[1].grid(zorder=0)
+        ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
+        for i in range(len(ra0)):
+            ax[1].scatter(ra0[i], dec0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
         ax[1].set_title('Distribution on Sky')
         ax[1].set_xlabel('RA [pixel]')
         ax[1].set_ylabel('Dec [pixel]')
         ax[1].set_aspect('equal', adjustable='box')
-        ax[1].grid()
         
         lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
         lim += lim/10.
@@ -397,7 +398,7 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
         # x = np.abs(b/sigma - z)
         xx = np.linspace(-10*t, 10*t, 1000)
 
-        fig, ax = plt.subplots(1, 2, figsize=(9,4))
+        fig, ax = plt.subplots(1, 2, figsize=(10,5))
         
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Trans.')
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rot.')
@@ -409,13 +410,17 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
 
         azim = df.azimuth*3600/15
         tilt = df.tilt*3600/15
-        ax[1].plot(0, 0, 'r*', alpha=0.7, ms=10)
-        ax[1].plot(azim, tilt, 'o', alpha=0.3)
+        ax[1].grid(zorder=0)
+        ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
+        for i in range(24):
+            if i < 6: ax[1].scatter(azim[i], tilt[i], marker=rf'${i+1}$', s=50, c='g', alpha=0.8, zorder=2)
+            else:     ax[1].scatter(azim[i], tilt[i], marker=rf'${i+1}$', s=70, c='g', alpha=0.8, zorder=2)
+        ax[1].scatter(azim[24], tilt[24], marker=r'$1$', s=50, c='b', alpha=0.8, zorder=3)
+        ax[1].scatter(azim[25], tilt[25], marker=r'$2$', s=50, c='r', alpha=0.8, zorder=3)
         ax[1].set_title('Relative offset')
         ax[1].set_xlabel('Azimuth [pixel]')
         ax[1].set_ylabel('Tilt [pixel]')
         ax[1].set_aspect('equal', adjustable='box')
-        ax[1].grid()
         
         lim = np.max([np.max(np.abs(azim)), np.max(np.abs(tilt))])
         lim += lim/10.
