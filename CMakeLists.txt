@@ -2,7 +2,7 @@
 #
 # Usage: ($ mkdir build)
 #        $ cd build
-#        $ cmake ..  (alternatively: cmake -D CMAKE_CXX_COMPILER=/usr/bin/clang++ .. on mac OSX)
+#        $ cmake ..  (alternatively: cmake -D CMAKE_EXPORT_COMPILE_COMMANDS=1 -D CMAKE_CXX_COMPILER=/usr/bin/clang++ .. on mac OSX)
 #        ($ make clean)
 #        $ make -j 4
 #        $ make install
@@ -15,13 +15,12 @@
 #   - To create a `compile_commands.json` file for clangd integration:
 #        $ cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
 
-
-project(PlatoSim)
-
-
 # cmake version shouldn't be too old
 
 cmake_minimum_required(VERSION 3.0)
+
+
+project(PlatoSim)
 
 # Find out which version of the software is being compiled (through git commit hash)
 # so that we can include it in the output HDF5 file.
@@ -141,15 +140,16 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 # Set the compiler flags
 # First those common to both gcc and clang:
-# -O3   = level 3 optimization;
-# -Wall = enable all compiler's warning messages
+# -O3       : level 3 optimization;
+# -Wall     : enable all compiler's warning messages
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wno-deprecated-register -Wno-unused-variable -Wno-return-type")
-
 
 # Then those specific for the compiler for using C++11 support.
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++14")
+elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++14")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
