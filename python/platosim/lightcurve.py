@@ -57,11 +57,11 @@ class LightCurve(object):
     This class provides the Python interface to an Feather file generated
     by the PLATO Photometric Pipeline that comes with the PlatoSim software.
 
-    Usage example for a single feather file
-        >>> lc1 = LightCurve("000000001_Ncam1.1_Q1.ftr")
+    Usage example for a single feather file:
+        >>> lc = LightCurve("000000001_Ncam1.1_Q1.ftr")
 
     Usage example for a batch of feather files:
-        >>> phot = LightCurve("</path/to/files>", "multi")
+        >>> lcs = LightCurve("</path/to/files>", "multi")
     """
 
     def __init__(self, filename, mode="single", ncam=False, base='e/s'):
@@ -323,7 +323,7 @@ class LightCurve(object):
         
         df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
         df['flux'] = (10**(-df.mag/2.5) - 1) * 1e3
-
+        df.flux -= df.flux.median()
         return df
 
 
@@ -815,14 +815,43 @@ class LightCurve(object):
 
         # Move the data when a jump
         for i,j in zip(time_dex[:-1], time_dex[1:]):
+
+            # Data chunk before and after each gap
+            flux_chunk_before = self.df.flux_stitch.iloc[i-medpoint:i]
+            flux_chunk_after  = self.df.flux_stitch.iloc[i:i+medpoint]
+
+            # Use smaller data chunk if rate of change is large
+
+            # Rate of change for data chunks before and after each gap
+            diff_chunk_before = np.abs(flux_chunk_before.iloc[0] /
+                                       flux_chunk_before.iloc[-1])
+            diff_chunk_after  = np.abs(flux_chunk_after.iloc[0] /
+                                       flux_chunk_after.iloc[-1])
+            # Index for smaller fraction of chunk before and after each gap
+            d = 10
+            dex_frac_before = int(len(flux_chunk_before)/d)
+            dex_frac_after  = int(len(flux_chunk_after)/d)
+            # Smaller fractions of each data chunk beofre and after each gap
+            diff_frac_before = np.abs(flux_chunk_before.iloc[0] /
+                                      flux_chunk_before.iloc[dex_frac_before])
+            diff_frac_after  = np.abs(flux_chunk_after.iloc[0] /
+                                      flux_chunk_after.iloc[dex_frac_after])
+            # If rate of change is large
+            if diff_chunk_before > 10 * diff_frac_before:
+                flux_chunk_before = flux_chunk_before.iloc[dex_frac_before:]
+            if diff_chunk_after > 10 * diff_frac_after:
+                flux_chunk_after = flux_chunk_after.iloc[:dex_frac_after]
             
             # Use median value on either side to stitch
-            flux_median_before = np.median(self.df.flux_stitch.iloc[i-medpoint:i])
-            flux_median_after  = np.median(self.df.flux_stitch.iloc[i:i+medpoint])
+            flux_median_before = np.median(flux_chunk_before)
+            flux_median_after  = np.median(flux_chunk_after)
             flux_jump = flux_median_before - flux_median_after
             # Correct each flux chunk
             self.df.flux_stitch.iloc[i:j] += flux_jump
 
+        # Recenter data after median value
+        self.df.flux_stitch -= self.df.flux_stitch.median()
+        
         # Plot result of requested
         if plot:
             self.plot_stitch(self.df)
@@ -1177,7 +1206,7 @@ class LightCurve(object):
 
 
                 
-    def plot_varsource(self, figsize=(9, 8)):
+    def plot_varsource(self, figsize=(9,8)):
 
         """Plot the noise-less light curve.
         """
@@ -1195,7 +1224,9 @@ class LightCurve(object):
 
     
     def plot(self, time_unit="d", flux_unit="e/s",
-             errorbar=False, median_filter=False, binsize=False,
+             errorbar=False, input_model=False,
+             median_filter=False,
+             binsize=False,
              ncam=False, quarter=False,
              legend=True, alpha=0.2, figsize=(9,5)):
 
@@ -1268,6 +1299,13 @@ class LightCurve(object):
             ax.plot(df["time"], df["flux"], 'o', c='r', ms=8, mec='k',
                     label=f'{binsize}{time_unit} bins', zorder=3)
 
+        # Show input model if requested
+        # TODO needs to work for both modes: single and multi!
+        # if input_model:            
+        #     lv = LightCurve(lcs.files('hdf5')[0])
+        #     dv = lv.varsource()
+        #     ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=2, label='Input model')
+            
         # If any plot mask-update events
         if self.mask_updates.any():
             updates = self.mask_updates * self.cadence / c.day
@@ -1608,10 +1646,14 @@ class LightCurve(object):
 
 
     
-    #--------------------------------------------------------------#
+    #==============================================================#
     #                      MULTI CAMERA/QUARTER                    #
-    #--------------------------------------------------------------#
+    #==============================================================#
 
+    #--------------------------------------------------------------#
+    #                        Post-processing                       #
+    #--------------------------------------------------------------#
+    
 
     def merge(self, quarter=False, flux_group_mean=False, ofile=False, suffix="ftr"):
 
@@ -1721,11 +1763,13 @@ class LightCurve(object):
 
         # If requested mean fluxes from same group (i.e. same time stamp)
         
-        if flux_group_mean: df0 = df0.groupby('time').mean().reset_index()
+        if flux_group_mean:
+            df0 = df0.groupby('time').mean().reset_index()
         
         # If requested save output file
         
-        if ofile: df0.to_feather(ofile)
+        if ofile:
+            df0.to_feather(ofile)
         
         # Set a global light curve object
 
@@ -1737,7 +1781,7 @@ class LightCurve(object):
 
 
 
-    def merge_star(self):
+    def merge_star(self, medpoint=1000):
 
         # Prepare master df
         
@@ -1753,7 +1797,7 @@ class LightCurve(object):
             # Combine light curves of same camera
             
             for c in range(1,7):
-
+                
                 df1 = pd.DataFrame()
                 df0 = pd.DataFrame()
                 files = self.files('hdf5', group=g, camera=c)
@@ -1768,7 +1812,7 @@ class LightCurve(object):
             # Stitch each camera individually
             
             lc = LightCurve(df0, mode="multi")
-            ds = lc.stitch() 
+            ds = lc.stitch(medpoint=medpoint) 
 
             # Or same just a merged one
             
@@ -1776,13 +1820,20 @@ class LightCurve(object):
             df2['flux'] = ds.flux_stitch
             df = pd.concat([df, df2])
 
+
+        # Mean time points from the same group
+        
+        df = df.groupby('time').mean().reset_index()
+         
         # Reorder after time
 
         df = df.sort_values(by=['time'])
-            
+        
         # That's it!
             
         return df
+
+
 
 
     
@@ -1791,7 +1842,7 @@ class LightCurve(object):
                     model_clip="scipy", low=3, high=3):
                
         """Detrend and correct light curve of multi-camera observation.
-
+v
         Function to merge multi-cameras and multi-quarter light curves into
         a single pandas data frame. If requested each of light curve can be
         detrended prior to the merge and as default it uses the Wotan is 
@@ -1885,8 +1936,149 @@ class LightCurve(object):
 
         return LightCurve(df0, mode="multi", ncam=False)
 
-    
 
+
+
+    
+    #--------------------------------------------------------------#
+    #                     SIMULATION STATISTICS                    #
+    #--------------------------------------------------------------#
+
+
+    def stat_lcs_per_star(self, quarters=False, ofile=False):
+
+        """Number statistics of light curves per star.
+
+        This function computes the number of simulated light curves
+        per star (and per mission quarter if requested).
+
+        Parameters
+        ----------
+        idir : str
+            Input directory pointing to the location of the simulations: 
+            "</path/to/simulations/>" containing the 9 digit star IDs. 
+        ofile : str
+            Filename of the output file.
+ 
+        Return
+        ------
+        A ascii table is returned.
+        """
+        
+        # Fetch star folders
+        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
+
+        # Remove file if exists
+        ofile = pathlib.Path(ofile)
+        if ofile.is_file():
+            ofile.unlink()
+        
+        # Star writing to file
+        
+        with open(ofile, 'a+') as f:
+
+            # Write the column names
+            string = 'star'
+            if quarters:
+                for q in quarters:
+                    string += f',NsimQ{q}'
+            f.write(string + ',NsimAll')
+
+            # Loop over each star folder
+            
+            for folder in tqdm(folders, bar_format=ut.tqdmBar()):
+
+                # Read path
+                starID = int(folder[-9:])
+                sumAll = len(glob.glob(f'{folder}/*.zip'))
+
+                # Move read cursor to the start of file.
+                f.seek(0) 
+                f.write("\n")
+                string = f'{int(starID)}'
+                if quarters:
+                    for q in quarters:
+                        sumQ = len(glob.glob(f'{folder}/**Q{q}**.zip'))
+                        string += f',{sumQ}'
+                f.write(string + f',{sumAll}')
+
+        # Open file and write to feather
+
+        return pd.read_csv(ofile)
+
+
+
+
+    
+    def stat_sim_table(self, ofile=False):
+
+        """Generate a overview simulation table.
+
+        This creates a combined table for a set of simulations using all the 
+        '*_table.ftr' files saved for each (star, group, camera, quarter)
+        configuration.
+
+        Parameters
+        ----------
+        ofile : str
+            Filename of the output file.
+ 
+        Return
+        ------
+        A pandas table in feather format is returned (and saved if requested).
+
+        Example
+        -------
+        >> lcs = LightCurve(</path/to/simulations>, mode='multi')
+        >> df = lcs.stat_sim_table()
+        """
+
+        # Fetch star folders
+        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
+        
+        # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        
+        # Loop over each star
+
+        for folder in tqdm(folders, bar_format=ut.tqdmBar()):
+
+            lcs = LightCurve(folder, 'multi')
+            
+            # Check wheather files are compressed or not
+            files_zip = lcs.files('zip') #glob.glob(f'{folder}/*.zip')
+            files_ftr = lcs.files('ftr', name='table') #glob.glob(f'{folder}/*_table.ftr')
+            
+            # If compressed the unpack all files for that star
+            if len(files_zip) != len(files_ftr):                
+                lcs.unpack()
+
+            # Loop over each (star, group, camera, quarter) file
+
+            for f in files_ftr:
+                
+                # Add data to data frame
+                df1 = pd.read_feather(f)
+                df0 = pd.concat([df0, df1])
+
+        # Handle output format
+        df = df0.reset_index()
+        df = df.drop(columns='index')
+        
+        # If requested save file
+        if ofile:
+            df.to_feather(ofile)
+            os.system(f'chmod 755 {ofile}')
+        
+        return df
+
+
+
+
+
+    #--------------------------------------------------------------#
+    #                      Performance analysis                    #
+    #--------------------------------------------------------------#
     
 
     def run_NSRvsMag_analysis_perStar(self, outputFile, numStar, quarters=1, suffix="ftr"):
@@ -2155,142 +2347,14 @@ class LightCurve(object):
 
 
 
-
-    #--------------------------------------------------------------#
-    #                     SIMULATION STATISTICS                    #
-    #--------------------------------------------------------------#
-
-
-    def stat_lcsPerStar(self, quarters=False, ofile=False):
-
-        """Number statistics of light curves per star.
-
-        This function computes the number of simulated light curves
-        per star (and per mission quarter if requested).
-
-        Parameters
-        ----------
-        idir : str
-            Input directory pointing to the location of the simulations: 
-            "</path/to/simulations/>" containing the 9 digit star IDs. 
-        ofile : str
-            Filename of the output file.
- 
-        Return
-        ------
-        A ascii table is returned.
-        """
-        
-        # Fetch star folders
-        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
-
-        # Remove file if exists
-        ofile = pathlib.Path(ofile)
-        if ofile.is_file():
-            ofile.unlink()
-        
-        # Star writing to file
-        
-        with open(ofile, 'a+') as f:
-
-            # Write the column names
-            string = 'star'
-            if quarters:
-                for q in quarters:
-                    string += f',NsimQ{q}'
-            f.write(string + ',NsimAll')
-
-            # Loop over each star folder
             
-            for folder in tqdm(folders, bar_format=ut.tqdmBar()):
-
-                # Read path
-                starID = int(folder[-9:])
-                sumAll = len(glob.glob(f'{folder}/*.zip'))
-
-                # Move read cursor to the start of file.
-                f.seek(0) 
-                f.write("\n")
-                string = f'{int(starID)}'
-                if quarters:
-                    for q in quarters:
-                        sumQ = len(glob.glob(f'{folder}/**Q{q}**.zip'))
-                        string += f',{sumQ}'
-                f.write(string + f',{sumAll}')
-
-        # Open file and write to feather
-
-        return pd.read_csv(ofile)
+    #--------------------------------------------------------------------------------------
+    #------ Functions below are used for the analysis for the PLATO Performance Team (PPT)
+    #--------------------------------------------------------------------------------------
 
 
 
 
-    
-    def stat_sims(self, ofile=False):
-
-        """Number statistics of light curves per N-CAM.
-
-        This function computes the number of simulated light curves
-        per star (and per mission quarter if requested).
-
-        Parameters
-        ----------
-        idir : str
-            Input directory pointing to the location of the simulations: 
-            "</path/to/simulations/>" containing the 9 digit star IDs. 
-        ofile : str
-            Filename of the output file.
- 
-        Return
-        ------
-        A ascii table is returned.
-        """
-
-        # Fetch star folders
-        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
-        
-        # Open a pandas data frame and write to it
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-        
-        # Loop over each star
-
-        for folder in tqdm(folders, bar_format=ut.tqdmBar()):
-
-            # Fetch all zip files
-            files = glob.glob(f'{folder}/*.zip')
-
-            # Loop over each group and camera
-
-            for f in files:
-
-                # Fetch obs info
-                parts = pathlib.Path(f).stem.split('_')
-                star    = int(parts[-3])
-                group   = int(parts[-2][4])
-                camera  = int(parts[-2][6])
-                quarter = int(parts[-1][1:])
-
-                # Store data in data frame
-                data = {"star":star, "group":group, "camera":camera, "quarter":quarter}
-                df1 = pd.DataFrame(data, index=[0])
-
-                # Add data to data frame
-                df0 = pd.concat([df0, df1])
-
-        # Handle output format
-        df = df0.reset_index()
-        df = df.drop(columns='index')
-        
-        # If requested save file
-        if ofile: df.to_feather(ofile)
-        
-        return df
-
-
-
-
-        
     def stat_simInfo(self, idir, ofile, pointing, numStar, unpack=False):
 
         """Function to create a overview table of the simulated stars.
@@ -2396,23 +2460,8 @@ class LightCurve(object):
         df = df.reset_index()
         df.to_feather(ofile)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
         
-    #--------------------------------------------------------------------------------------
-    #------ Functions below are used for the analysis for the PLATO Performance Team (PPT)
-    #--------------------------------------------------------------------------------------
+
 
     
     def merge_cameras(self, outputFile, numStar):
