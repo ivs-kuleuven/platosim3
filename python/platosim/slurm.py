@@ -16,10 +16,11 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # PlatoSim imports
+import platosim.utilities as ut
 from platosim.utilities import errorcode
-
 
 #==============================================================#
 #                        SLURM UTILITIES                       #
@@ -253,28 +254,32 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
 
     # Load data frame and manipulate worker log 
 
-    df = convertWorkerLog(workerLog)
-
-    # If requested, plot an overview of start and end times
-
+    df = convertWorkerLog(workerLog)        
     unique = df.sim.unique()
+    umax = len(unique)
+    imax = 72
+    
+    # If requested, plot an overview of start and end times
     
     if plot:
-        fig, ax = plt.subplots(1, 1, figsize=(8, int(2.5+0.1*len(unique))))
+        if umax < imax: nmax = umax
+        else: nmax = imax
+        fig, ax = plt.subplots(1, 1, figsize=(8, int(2.5+0.1*nmax)))
 
-    dex = []
-    for i in unique:
+    dex, walltime = [], []
+    for i in tqdm(unique, bar_format=ut.tqdmBar()):
         df0 = df[df.sim == i]
-
         if df0.shape[0] == 2:
-            if plot:
+            walltime.append(df0.datetime.iloc[1].timestamp() - df0.datetime.iloc[0].timestamp())
+            if plot and i < imax:
                 ax.hlines(df0.sim.iloc[0], df0.datetime.iloc[0], df0.datetime.iloc[1], color='b', alpha=0.2)
                 ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], 'blue', marker='>', mec='k', ms=6)
                 ax.plot(df0.datetime.iloc[1], df0.sim.iloc[1], 'lime', marker='s', mec='k', ms=6)
+                
         elif df0.shape[0] == 1:
             dex.append(df0.sim.iloc[0]-1)
             print(f'Simulation {df0.sim.iloc[0]} did not finish!')
-            if plot:
+            if plot and i < imax:
                 ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], 'r', marker='>', mec='k', ms=6)
 
     if plot:    
@@ -282,6 +287,7 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
         plt.xlabel('Date-time')
         plt.ylabel('Simulation no.')
         plt.xticks(rotation=30)
+        plt.ylim(0, nmax+1)
         plt.tight_layout()
         plt.show()
 
@@ -297,3 +303,8 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
             df1.to_csv(ofile)
     else:
         errorcode('message', 'All simulations finished successfully!')
+        print(f'Average walltime per cpu  : {np.mean(walltime)/60:.3f} h')
+        print(f'Fastest walltime for cpus : {np.min(walltime)/60:.3f} h')
+        print(f'Slowest walltime for cpus : {np.max(walltime)/60:.3f} h')
+        
+    return df
