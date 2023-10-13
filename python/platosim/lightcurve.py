@@ -883,7 +883,7 @@ class LightCurve(object):
         # Plot detrend and median
         flux_median = median_filter(df.flux_stitch, medfilt)
         ax[1].plot(time, df.flux_stitch, '.', c='k',ms=1,alpha=0.2,label="After")
-        ax[1].plot(time, flux_median, '-', c='orange', lw=0.5, label="1h median")
+        ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5, label="1h median")
         ax[1].set_xlim(time.iloc[0], time.iloc[-1])
         ax[1].set_ylabel('Flux [as input]')
         ax[1].set_xlabel('Time [days]')
@@ -1944,71 +1944,6 @@ v
     #                     SIMULATION STATISTICS                    #
     #--------------------------------------------------------------#
 
-
-    def stat_lcs_per_star(self, quarters=False, ofile=False):
-
-        """Number statistics of light curves per star.
-
-        This function computes the number of simulated light curves
-        per star (and per mission quarter if requested).
-
-        Parameters
-        ----------
-        idir : str
-            Input directory pointing to the location of the simulations: 
-            "</path/to/simulations/>" containing the 9 digit star IDs. 
-        ofile : str
-            Filename of the output file.
- 
-        Return
-        ------
-        A ascii table is returned.
-        """
-        
-        # Fetch star folders
-        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
-
-        # Remove file if exists
-        ofile = pathlib.Path(ofile)
-        if ofile.is_file():
-            ofile.unlink()
-        
-        # Star writing to file
-        
-        with open(ofile, 'a+') as f:
-
-            # Write the column names
-            string = 'star'
-            if quarters:
-                for q in quarters:
-                    string += f',NsimQ{q}'
-            f.write(string + ',NsimAll')
-
-            # Loop over each star folder
-            
-            for folder in tqdm(folders, bar_format=ut.tqdmBar()):
-
-                # Read path
-                starID = int(folder[-9:])
-                sumAll = len(glob.glob(f'{folder}/*.zip'))
-
-                # Move read cursor to the start of file.
-                f.seek(0) 
-                f.write("\n")
-                string = f'{int(starID)}'
-                if quarters:
-                    for q in quarters:
-                        sumQ = len(glob.glob(f'{folder}/**Q{q}**.zip'))
-                        string += f',{sumQ}'
-                f.write(string + f',{sumAll}')
-
-        # Open file and write to feather
-
-        return pd.read_csv(ofile)
-
-
-
-
     
     def stat_sim_table(self, ofile=False):
 
@@ -2075,7 +2010,73 @@ v
 
 
 
+    
+    def stat_lcs_per_star(self, quarters=False, ofile=False):
 
+        """Number statistics of light curves per star.
+
+        This function computes the number of simulated light curves
+        per star (and per mission quarter if requested).
+
+        Parameters
+        ----------
+        idir : str
+            Input directory pointing to the location of the simulations: 
+            "</path/to/simulations/>" containing the 9 digit star IDs. 
+        ofile : str
+            Filename of the output file.
+ 
+        Return
+        ------
+        A ascii table is returned.
+
+        Example
+        -------
+        >> lcs = LightCurve(</path/to/simulations>, mode='multi')
+        >> df = lcs.stat_lcs_per_star()
+
+        """
+        
+        # Fetch star folders
+        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
+        
+        # Star writing to file
+        
+        with open(ofile, 'a+') as f:
+
+            # Write the column names
+            string = 'star'
+            if quarters:
+                for q in quarters:
+                    string += f',NsimQ{q}'
+            f.write(string + ',NsimAll')
+
+            # Loop over each star folder
+            
+            for folder in tqdm(folders, bar_format=ut.tqdmBar()):
+
+                # Read path
+                starID = int(folder[-9:])
+                sumAll = len(glob.glob(f'{folder}/*.zip'))
+
+                # Move read cursor to the start of file.
+                f.seek(0) 
+                f.write("\n")
+                string = f'{int(starID)}'
+                if quarters:
+                    for q in quarters:
+                        sumQ = len(glob.glob(f'{folder}/**Q{q}**.zip'))
+                        string += f',{sumQ}'
+                f.write(string + f',{sumAll}')
+
+        # Open file and write to feather
+
+        return pd.read_csv(ofile)
+
+
+
+
+    
     #--------------------------------------------------------------#
     #                      Performance analysis                    #
     #--------------------------------------------------------------#

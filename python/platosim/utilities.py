@@ -34,6 +34,19 @@ import platosim.referenceFrames as rf
 
 
 #--------------------------------------------------------------#
+#                        UNIT FUNCTIONS                        #
+#--------------------------------------------------------------#
+
+
+def year():
+
+    """Return 1 year in seconds.
+    """
+    
+    return 31556926
+
+
+#--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
 #--------------------------------------------------------------#
 
@@ -372,6 +385,19 @@ def normalize(signal, factor=1e6, length=-1):
     relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
     return relative_signal
+
+
+
+
+
+def evalLinReg(x, y, x0):
+
+    """Evaluate a simple linear regresion in point x0.
+    """
+    
+    coeff = np.polyfit(x, y, 1)
+
+    return coeff[0] * x0 + coeff[1]
 
 
 
@@ -973,7 +999,8 @@ def getPointingField(name, unit='deg'):
           'SPF':   [ 86.79870508, -46.39594703,  10.0000+180],  # PIC 1.1
           'LOPN':  [277.18023,     52.85952,    -13.9947+180],  # PIC 2.0
           'LOPS2': [ 95.31043,    -47.88693,     13.9947+180],  # PIC 2.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0]}          # TN of KUL20
+          'KUL20': [ 86.79870508, -46.39594703,  0.0],          # TN of KUL20
+          'JUAN':  [ 86.79870,    -46.395950,    2.74]}  # Test for Juan
 
     # Check data field exists
     

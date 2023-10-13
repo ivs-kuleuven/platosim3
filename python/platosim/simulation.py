@@ -694,9 +694,88 @@ class Simulation(object):
 
 
 
+
+
+    def useDetectorGain(self, performance="required"):
+
+        """Change the detector gain.
+
+        These basic input parameters are from the technical note: 
+        PLATO-DLR-PL-LI-0015 i.4.2
         
+        NOTE: Total gain = 1/ (FFE gain * CCD gain) = 25 e-/ADU
+        """
         
-    def useNominalCamera(self):
+        if performance == 'required':
+            self.__setitem__("CCD/Gain/RefValueLeft",  "1.8")
+            self.__setitem__("CCD/Gain/RefValueRight", "1.8")
+            self.__setitem__("FEE/Gain/RefValueLeft",  "0.0222")
+            self.__setitem__("FEE/Gain/RefValueRight", "0.0222")
+
+        elif performance == 'expected':
+            self.__setitem__("CCD/Gain/RefValueLeft",  "2.2")
+            self.__setitem__("CCD/Gain/RefValueRight", "2.2")
+            self.__setitem__("FEE/Gain/RefValueLeft",  "0.0182")
+            self.__setitem__("FEE/Gain/RefValueRight", "0.0182")
+
+        elif performance != False:
+            raise ValueError("Not valid entry! Use either 'required' or 'expected'")
+        
+        return
+
+
+
+
+
+
+    def useTimeDependentDetectorNoise(self, performance="required", timeFromBOL=0,
+                                      camera="Normal"):
+
+        """Change noise properties of CCD/FEE.
+        
+        Notes
+        -----
+        These basic input parameters are from the technical note: 
+        PLATO-DLR-PL-LI-0015 i.4.2
+        
+        NOTE: Only 'required' EOL values exist for F-CAMs.
+        """
+        
+        times = [0, self["ObservingParameters/MissionDuration"]*ut.year()]
+
+        if camera == "Normal": readNoiseRangeFEE = np.array([ 32.0,  37.0])
+        elif camera == "Fast": readNoiseRangeFEE = np.array([180.0, 200.0])
+
+        if performance == "required":
+                
+            darkCurrent  = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
+            readNoiseCCD = ut.evalLinReg(times, np.array([38.7, 44.3]), timeFromBOL)
+            readNoiseFEE = ut.evalLinReg(times, readNoiseRangeFEE,      timeFromBOL)
+            
+            self.__setitem__("CCD/DarkSignal/DarkCurrent", f"{darkCurrent}")
+            self.__setitem__("CCD/DarkSignal/Stability",   "0.5")
+            self.__setitem__("CCD/DarkSignal/DSNU",        "15.0")
+            self.__setitem__("CCD/ReadoutNoise",           f"{readNoiseCCD}")
+
+        if performance == "expected":
+
+            darkCurrent  = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
+            readNoiseCCD = ut.evalLinReg(times, np.array([33.7, 39.3]), timeFromBOL)
+            readNoiseFEE = ut.evalLinReg(times, readNoiseRangeFEE,      timeFromBOL)
+            
+            self.__setitem__("CCD/DarkSignal/DarkCurrent", f"{darkCurrent}")
+            self.__setitem__("CCD/DarkSignal/Stability",   "0.7")
+            self.__setitem__("CCD/DarkSignal/DSNU",        "10.0")
+            self.__setitem__("CCD/ReadoutNoise",           f"{readNoiseCCD}")
+            self.__setitem__("FEE/ReadoutNoise",           f"{readNoiseFEE}")
+
+        return
+    
+
+
+
+    
+    def useNormalCamera(self, performance=False, timeFromBOL=0):
 
         """Change the input parameters to use the nominal camera's.
 
@@ -705,19 +784,30 @@ class Simulation(object):
             CCD/NumColumns = 4510
             CCD/NumRows    = 4510
             ObservingParameters/CycleTime = 25
+        
+        Notes
+        -----
+        These basic input parameters are from the technical note: 
+        PLATO-DLR-PL-LI-0015 i.4.2
         """
 
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "4510")
         self.__setitem__("ObservingParameters/CycleTime", "25")
 
+        # If requested, select basic input parameters
+
+        if performance in ["required", "expected"]:
+            self.useDetectorGain(performance)
+            self.useTimeDependentDetectorNoise(performance, timeFromBOL)
+            
         return
 
 
 
 
 
-    def useFastCamera(self):
+    def useFastCamera(self, passband=False, performance=False, timeFromBOL=0):
 
         """Change the input parameters to use the fast camera's.
 
@@ -727,18 +817,68 @@ class Simulation(object):
             CCD/NumRows    = 2255
             ObservingParameters/CycleTime    = 2.5
             ObservingParameters/ExposureTime = 2.3
+
+        Notes
+        -----
+        These basic input parameters are from the technical note: 
+        PLATO-DLR-PL-LI-0015 i.4.2. 
+
+        Effects that are unique for F-CAMs:
+        - FEE overshoot/undershoot (TODO not working properly yet)
+
+        The following parameters are wavelenght dependent:
+        - Photometric reference flux (and irradiance -> only PIS)
+        - Tranmission efficiency
+        - Throughput bandwidth
+        - Central wavelength of the throughput passband
+        - Quantum efficiency
         """
 
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
 
+        # If requested, select basic input parameters
+        
+        if performance in ["required", "expected"]:
+
+            # Select noise properties for CCD and FEE
+            
+            self.useDetectorGain(performance)
+            self.useTimeDependentDetectorNoise(performance, timeFromBOL, camera="Fast")
+
+            # Select time and wavelength dependent parameters
+
+            if passband == "blue":
+
+                #self.__setitem__("ObservingParameters/Fluxm0",           "")
+                self.__setitem__("Camera/ThroughputBandwidth",           "200")
+                self.__setitem__("Camera/ThroughputLambdaC",             "600")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
+
+                # Tranmission efficiency already depends on a linear model
+                
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "")
+                
+            if passband == "red":
+
+                #self.__setitem__("ObservingParameters/Fluxm0",           "")
+                self.__setitem__("Camera/ThroughputBandwidth",           "380")
+                self.__setitem__("Camera/ThroughputLambdaC",             "860")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
+
+                # Tranmission efficiency already depends on a linear model
+
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "")
+
         return
 
 
 
 
-
+    
     def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel,
                                           subfieldSizeX, subfieldSizeY, normal=True):
 
@@ -1591,7 +1731,7 @@ class Simulation(object):
         ra : list, array
             Right ascension of stars to be checked against [deg]
         dec : list, tuple, array
-            Declination of stars to be checked against [deg]
+2            Declination of stars to be checked against [deg]
 
         Return
         ------

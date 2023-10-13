@@ -81,6 +81,8 @@ class PLATOnium(object):
         self.maskUpdate   = args.mask
         self.seed         = args.seed
         self.mag          = args.mag
+        self.performance  = args.performance
+        
         self.noCon        = args.nocon
         self.reuseJitter  = args.reusejitter
         self.fullFrame    = args.fullframe
@@ -91,24 +93,33 @@ class PLATOnium(object):
         self.tarFluxError    = args.tar_ferr
         self.tarAbsCenError  = args.tar_cerr
         self.jitterDriftOff  = args.jit_off
-        
+
         # Make sure that parsing of mandatory arguments are physical
-        
-        if self.group == 5:
+
+        # Normal cameras
+        if self.group in [1, 2, 3, 4]:
+            if self.camera in [1, 2, 3, 4, 5, 6]:
+                self.groupID = self.group
+            else:
+                errorcode('error', 'Camera can only be [1, 2, 3, 4, 5, 6]')
+        # Fast cameras
+        elif self.group == 5:
             self.groupID = 'Fast'
-        elif self.group in [1, 2, 3, 4]:
-            self.groupID = self.group
+            if self.camera == 1:
+                self.cameraID = 'blue'
+            elif self.camera == 2:
+                self.cameraID = 'red'
+            else:
+                errorcode('error', 'Fast camera can only be [1, 2] = [blue, red]')
         else:
-            errorcode('error', 'Camera-group can only be [1, 2, 3, 4, Fast]')
-            
-        if not self.camera in [1, 2, 3, 4, 5, 6]:
-            errorcode('error', 'Camera can only be [1, 2, 3, 4, 5, 6]')
-            
+            errorcode('error', 'Camera-group can only be [1, 2, 3, 4, 5] (Fast = 5)')
+
+        # Select full-frame CCD
         if self.fullFrame:
             self.ccdCode = self.targetNo
             if not self.ccdCode in [1, 2, 3, 4]:
                 errorcode('error', 'CCD code can only be [1, 2, 3, 4]')
-            
+        
         # VERBOSITY (a.k.a log level) -> Identical to PlatoSim usage
         # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
         # verbose = 1: Default mode: Print details to bash but do not save log files
@@ -238,10 +249,11 @@ class PLATOnium(object):
 
 
         # SUBFIELD
-        # Fetch stars either from custum catalogue are the default PIC setup
 
+        # Fetch stars either from custum catalogue are the default PIC setup
+        
         if self.starcatFile is not None:
-            
+
             df = pd.read_csv(self.starcatFile, sep=' ', names=['PIC', 'ra', 'dec', 'mag', 'dis'])
             
             # Change IDs all to be the target
@@ -417,8 +429,8 @@ class PLATOnium(object):
             
 
     def init_sim(self):
-        """
-        Module to initialize the the PlatoSim simulation object.
+
+        """Module to initialize the the PlatoSim simulation object.
         """
         
         # INITIALIZE SIMULATION
@@ -430,21 +442,27 @@ class PLATOnium(object):
         # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
 
+        # Start time of simulation
+        self.timeStart = round(ut.year()/86400/4 * (self.quarter - 1) * 86400.)
 
-        # CHOOSE CAMERA TYPE
+        
+        # CONFIGURE CAMERA
 
         # NOTE these function sets the correct CCD configuration and cadence
+        #      and if requested also performance and time conditions
+        
         if self.groupID == 'Fast':
+            # Parameter "normal" used in subfield selection
             normal = False
-            sim.useFastCamera()
+            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
         else:
             normal = True
-            sim.useNominalCamera()
-
+            sim.useNormalCamera(self.performance, self.timeStart)
+            
         
         # CONFIGURE TIMING
 
-        # NOTE the CCD offset is automatically set while using setSubfieldAroundCoordinates!
+        # NOTE: CCD offset is automatically set by setSubfieldAroundCoordinates()
         
         # Cadence of time series [s]
         if self.cadence:
@@ -452,9 +470,6 @@ class PLATOnium(object):
         else:
             self.cadence = sim['ObservingParameters/CycleTime']
             
-        # Start time of simulation
-        self.timeStart = round(90. * (self.quarter - 1) * 86400.)
-
         # Check of begin exposure number is parsed
         if not self.simBeginExp:
             self.simBeginExp = 0
@@ -715,12 +730,16 @@ class PLATOnium(object):
                                                distortionCoefficients=distortionCoefficients,
                                                pathToPsfFile=pathToPsfFile)
         self.ccdCode, self.xCCD, self.yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
-
-        # Add CCD time-shift to time points
-        # Only continue if ccdCode is found:
+        
+        # Only continue if ccdCode is found
+        
         if self.ccdCode:
+
             # Check if string is F-CAM
-            if self.ccdCode[1] == 'F': self.ccdCode = self.ccdCode[0]
+            if len(self.ccdCode) == 2:
+                self.ccdCode = self.ccdCode[0]
+
+            # Add CCD time-shift to time points
             self.timeStart += float(sim['CCDPositions/TimeShift'][int(self.ccdCode)-1])
             self.time = np.arange(self.numExposures) * self.cadence + self.timeStart
         else:
@@ -947,7 +966,7 @@ class PLATOnium(object):
             title = f'Imagette of PIC {int(self.df.PIC)} ({float(self.df.mag):.2f} mag)'
             clipPercentile    = 2
             imgScale          = "auto"
-            cmap              = 'gist_stern'
+            cmap              = 'magma' #'gist_stern'
             showGrid          = True
             
         # Check that if any stars are detected
@@ -1625,9 +1644,11 @@ sim_group.add_argument('--pic',     metavar='ID',   type=int,   help='ID from th
 sim_group.add_argument('--seed',    metavar='INT',  type=int,   help='Option to bootstrap seeds in order to reproduce results')
 sim_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to alter/overwrite the mask-update in inputfile [days]')
 sim_group.add_argument('--mag',     metavar='PMAG', type=float, help='Option to change target magnitude (overwrites catalogue magnitude)')
+sim_group.add_argument('--performance', metavar='MODE', type=str, help='Option to set basic input parameters (required, expected)')
 sim_group.add_argument('--nocon',       action='store_true',    help='Flag ignore all stellar contaminants')
 sim_group.add_argument('--reusejitter', action='store_true',    help='Flag to re-use AOCS jitter file across all quarters')
 sim_group.add_argument('--fullframe',   action='store_true',    help='Flag to simulate full-frame CCD -> CCDcode = starID')
+
 
 pip_group = parser.add_argument_group('L1 PIPELINE PARAMETERS')
 pip_group.add_argument('--sample',   metavar='PIC',     type=str,   help='PIC sample to activate the correct L0-L1 pipeline chain [P1, P5]')
