@@ -2109,7 +2109,7 @@ void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
 
-    myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
+    myStream << "throughputMap" << setfill('0') << setw(7) << exposureNr;
     string throughputMapName = myStream.str();
 
     // Add the throughput map to the "ThroughputMaps" group
@@ -2137,7 +2137,7 @@ void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuant
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
 
-    myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
+    myStream << "smearingMap" << setfill('0') << setw(7) << exposureNr;
     string smearingMapName = myStream.str();
 
     // Add the smearing map to the "SmearingMaps" group
@@ -2237,7 +2237,7 @@ void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<d
       // Make the sub-group
 
       stringstream myStream;
-      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+      myStream << "Exposure" << setfill('0') << setw(7) << beginExposureNr + n;
       const string exposureGroupName = "/StarPositions/" + myStream.str();
       createGroup(exposureGroupName);
 
@@ -2359,7 +2359,7 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
       {
         // Make the sub-group
         stringstream myStream;
-        myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
+        myStream << "starID" << setfill('0') << setw(7) << 0 + starIDs[n];
         const string exposureGroupName = "/StarPositions/" + myStream.str();
         createGroup(exposureGroupName);
         //writeArray(exposureGroupName, "time",   times.data(),   times.size());	
@@ -2416,7 +2416,7 @@ void HDF5File::writePointlikeGhostByExposure(map<double, map<unsigned int, array
     for (int n = 0; n < time.size(); n++)
     {
       stringstream myStream;
-      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+      myStream << "Exposure" << setfill('0') << setw(7) << beginExposureNr + n;
 
 
       vector<unsigned int> starIDs;
@@ -2558,7 +2558,7 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
       {
           // Make the subgroup
           stringstream myStream;
-          myStream << "StarID" << setfill('0') << setw(6) << 0 + starIDs[n];
+          myStream << "StarID" << setfill('0') << setw(7) << 0 + starIDs[n];
           const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
           createGroup(pointLikeGhostGroupName);
           //writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());  
@@ -2618,7 +2618,7 @@ void HDF5File::writeExtendedGhostByExposure(map<double, map<unsigned int, array<
   for (int n = 0; n < time.size(); n++)
   {
     stringstream myStream;
-    myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+    myStream << "Exposure" << setfill('0') << setw(7) << beginExposureNr + n;
 
     // Write the info for the extended ghost star positions to HDF5
 
@@ -2759,7 +2759,7 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
     {
       // Make the subgroup
       stringstream myStream;
-      myStream << "Exposure" << setfill('0') << setw(6) << 0 + starIDs[n];
+      myStream << "Exposure" << setfill('0') << setw(7) << 0 + starIDs[n];
       const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
       createGroup(extendedGhostGroupName);
       //writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());      
@@ -2814,7 +2814,7 @@ void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vec
     // Define the name of sub group for every exposure.
 
     stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
+    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
     imageName = "/Cosmics/" + field + myStream.str();
 
     // add the columns vector
@@ -2880,7 +2880,7 @@ void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field,
     // Define the name of sub group for every exposure.
 
     stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
+    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
     imageGroup = "/Cosmics/" + field + subgroupStream.str();
     imageName  = imageGroup + myStream.str();
     

@@ -993,7 +993,7 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
                 const unsigned int exposureNumber = iter->first;
 
                 stringstream myStream;
-                myStream << "Exposure" << setfill('0') << setw(6) << exposureNumber;
+                myStream << "Exposure" << setfill('0') << setw(7) << exposureNumber;
                 groupName = "/Photometry/Masks/starID" + starName + "/" + myStream.str();
                 hdf5File.createGroup(groupName);
 

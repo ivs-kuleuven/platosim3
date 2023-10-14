@@ -986,7 +986,7 @@ void DetectorWithMappedPSF::initHDF5Groups()
 void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 {
     stringstream myStream;
-    myStream << "subPixelImage" << setfill('0') << setw(6) << exposureNr;
+    myStream << "subPixelImage" << setfill('0') << setw(7) << exposureNr;
     string imageName = myStream.str();
 
     // Add the image to the "SubPixelImages" group
