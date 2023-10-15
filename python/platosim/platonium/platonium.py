@@ -1426,9 +1426,6 @@ class PLATOnium(object):
         """
 
         # Write PlatoSim info to a table
-        print(odir)
-        print(self.outputFileName)
-
         filename = f'{odir}/{self.outputFileName}_table.ftr'
         data = {"ID":      self.targetNo+1,
                 "PIC":     self.df.PIC,
