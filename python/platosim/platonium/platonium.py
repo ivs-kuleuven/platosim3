@@ -200,9 +200,6 @@ class PLATOnium(object):
         # Inclusion thresholds for contaminants [delta mag]
         if not self.conDeltaMag: self.conDeltaMag = 5
         
-        # TODO include varsource limit?
-        #self.varStarLimit = 50
-        
         # Defualt L1 pipeline parameters
         self.bsres           = 10   # [subpixel]
         self.prnuError       = 0.1  # [%]
@@ -1328,7 +1325,7 @@ class PLATOnium(object):
             errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
         # Change directory needed to execute scripts
 
-        path = self.path / '../pipeline'
+        #path = self.path / '../pipeline'
         cmd = os.system(f'{self.platoLib}/psffit.py ' +
                         f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
                         f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
@@ -1423,11 +1420,16 @@ class PLATOnium(object):
     #                            OUTPUTS                           #
     #--------------------------------------------------------------#
 
-    def create_sim_table(self):
+    def create_sim_table(self, odir):
 
+        """Module to create a overview table of the simulation.
+        """
 
         # Write PlatoSim info to a table
-        filename = self.outputDir / f'{self.outputSimName}_table.ftr'
+        print(odir)
+        print(self.outputFileName)
+
+        filename = f'{odir}/{self.outputFileName}_table.ftr'
         data = {"ID":      self.targetNo+1,
                 "PIC":     self.df.PIC,
                 "ra":      self.df.ra,
@@ -1454,7 +1456,7 @@ class PLATOnium(object):
 
         # Create a info table of simulation
         if not self.fullFrame:
-            self.create_sim_table()
+            self.create_sim_table(self.outputDir)
 
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
@@ -1476,6 +1478,7 @@ class PLATOnium(object):
         # If requested move file to final output directory (for cluster)
         if self.hpcDir:
             os.system(f'mv {self.outputSimName}.* {self.hpcDir}')
+
             
         # Execution time of module
         if self.verbose > 0:
@@ -1499,18 +1502,22 @@ class PLATOnium(object):
             print(f'L1 light curve is saved to {self.outputDirStarIDnew}')
 
         # Select prefix-files
+        self.outputFileName = f'/{self.starID}_{self.obsPrefix}'
         prefixInversion = self.microscanDirInvers + f'/{self.starID}'
         prefixStarIDtar = self.outputDirStarIDsim + f'/000000001'
         prefixStarIDsim = self.outputDirStarIDsim + f'/{self.starID}'
-        prefixStarIDnew = self.outputDirStarIDnew + f'/{self.starID}_{self.obsPrefix}'
+        prefixStarIDnew = self.outputDirStarIDnew + self.outputFileName
 
-        
+        # Create a info table of simulation
+        self.create_sim_table(self.outputDirStarIDnew)
+
         # Rewrite data time series
         if args.sample == 'P1':
             cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'cy_err', 'bg_err',
                     'chi2', 'iter', 'lamb']
             try:
-                df = pd.read_csv(prefixStarIDtar + '.dat', delimiter=' ', comment='#', names=cols, usecols=np.arange(0,len(cols), 1))
+                df = pd.read_csv(prefixStarIDtar + '.dat', delimiter=' ', comment='#',
+                                 names=cols, usecols=np.arange(0, len(cols), 1))
             except:
                 # Open the file in append & read mode ('a+')
                 with open(self.inputDir / 'failed.txt', 'a+') as f:
@@ -1526,9 +1533,11 @@ class PLATOnium(object):
             cols = ['flux', 'xc', 'yc', 'flux_cor']
             # If jitter/drift correction is not applied no JC correction neither
             if self.jitterDriftOff:
-                df = pd.read_csv(prefixStarIDtar + '.dat', delimiter=' ', comment='#', names=cols[:3], usecols=cols[:3])
+                df = pd.read_csv(prefixStarIDtar + '.dat', delimiter=' ', comment='#',
+                                 names=cols[:3], usecols=cols[:3])
             else:
-                df = pd.read_csv(prefixStarIDtar + '-jc.dat', delimiter=' ', comment='#', names=cols, usecols=cols)
+                df = pd.read_csv(prefixStarIDtar + '-jc.dat', delimiter=' ', comment='#',
+                                 names=cols, usecols=cols)
             # Move the SPR file
             shutil.move(prefixStarIDtar + '-sprtot.dat', prefixStarIDnew + '.spr')
             # Move mask files number after mask update exposure
@@ -1545,11 +1554,10 @@ class PLATOnium(object):
             df = df.reset_index()
             # Save new data frame
             df.to_feather(prefixStarIDnew + '.ftr')
-
             # Move files to new data directory
             shutil.move(prefixInversion + f'_PRLS_invert.log', prefixStarIDnew + '.invert')
-            shutil.move(prefixStarIDsim + f'_starcoord.dat',   prefixStarIDnew + '.cat')
-        
+
+            
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose != 3:
             shutil.rmtree(self.microscanDirStarID)
