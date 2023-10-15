@@ -500,7 +500,7 @@ class DopplerBeaming(funcFit.OneDFit):
         wvl_c = self['wvl_c'].to('m')
         Ms    = self['Ms'].to('kg')
         Mp    = self['Mp'].to('kg')
-        Teff  = self['Teff'].to('K')
+        #Teff  = self['Teff'].to('K')
 
         # Correction factor (alpha) between true bolmetric flux and finite flux:
         # We use Sphorer (2017) Eq.5 analytical expression obtained approximating a blackbody spectrum.

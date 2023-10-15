@@ -3371,7 +3371,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
     {
         // Compose the image name
 
-        myStream << "image" << setfill('0') << setw(6) << exposureNr;
+        myStream << "image" << setfill('0') << setw(7) << exposureNr;
         string imageName = myStream.str();
 
         // Add the image to the "Images" group
@@ -3415,7 +3415,7 @@ void Detector::writePixelMapsToHDF5(int exposureNr)
         myStream.str(string());      // insert empty string
         myStream.clear();            // clear eof bit
 
-        myStream << "biasMap" << setfill('0') << setw(6) << exposureNr;
+        myStream << "biasMap" << setfill('0') << setw(7) << exposureNr;
         string biasMapName = myStream.str();
 
         // Add the bias map to the "BiasMaps" group

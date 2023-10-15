@@ -378,12 +378,12 @@ class SimFile (object):
                 "diffusedPSF":     "diffusedPSF",
                 "PRNU":            "PRNU",
                 "BackgroundMap":   "skyBackground",
-                "ThroughputMaps": f"throughputMap{imageNr:06d}",
-                "SmearingMaps":   f"smearingMap{imageNr:06d}",
-                "BiasMapsLeft":   f"biasMap{imageNr:06d}",
-                "BiasMapsRight":  f"biasMap{imageNr:06d}",
-                "Images":         f"image{imageNr:06d}",
-                "SubPixelImages": f"subPixelImage{imageNr:06d}"}
+                "ThroughputMaps": f"throughputMap{imageNr:07d}",
+                "SmearingMaps":   f"smearingMap{imageNr:07d}",
+                "BiasMapsLeft":   f"biasMap{imageNr:07d}",
+                "BiasMapsRight":  f"biasMap{imageNr:07d}",
+                "Images":         f"image{imageNr:07d}",
+                "SubPixelImages": f"subPixelImage{imageNr:07d}"}
 
         datasetName = data[imageMap]
 
@@ -568,7 +568,7 @@ class SimFile (object):
 
         # Construct the image name that was used to store the image
 
-        imageName = f"image{imageNr:06d}"
+        imageName = f"image{imageNr:07d}"
 
         # Check if the image is in the file
 
@@ -643,7 +643,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(0, Nimages):
             
-            imageName = "image{0:06d}".format(imageNr)
+            imageName = "image{0:07d}".format(imageNr)
             image = self.getImage(imageNr)
             
             if imageNr == 0:
@@ -672,7 +672,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(Nimages):
             image = self.getSmearingMap(imageNr)
-            imageName = "smearingMap{0:06d}".format(imageNr)
+            imageName = "smearingMap{0:07d}".format(imageNr)
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -699,7 +699,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(Nimages):
             image = self.getBiasMapLeft(imageNr)
-            imageName = "biasMap{0:06d}".format(imageNr)
+            imageName = "biasMap{0:07d}".format(imageNr)
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -726,7 +726,7 @@ class SimFile (object):
         Nimages = self.getInputParameter("ObservingParameters", "NumExposures")
         for imageNr in range(Nimages):
             image = self.getBiasMapRight(imageNr)
-            imageName = "biasMap{0:06d}".format(imageNr)
+            imageName = "biasMap{0:07d}".format(imageNr)
             if imageNr == 0:
                 hdu = fits.PrimaryHDU(image)
             else:
@@ -1091,7 +1091,7 @@ class SimFile (object):
 
             # Construct the exposure name that was used to store the image
 
-            exposureGroupName = "Exposure{0:06d}".format(imageNr)
+            exposureGroupName = "Exposure{0:07d}".format(imageNr)
 
             # Check if the arrays are in the file:
             # If not: complain, if yes: copy the contents into a numpy array.
@@ -1325,7 +1325,7 @@ class SimFile (object):
 
         elif not groupByExposure:
             
-            star = f"starID{starID:06d}"
+            star = f"starID{starID:07d}"
             row = self.hdf5file[groupName][star]["rowPix"][:]
             col = self.hdf5file[groupName][star]["colPix"][:]
 
@@ -1415,7 +1415,7 @@ class SimFile (object):
 
         # Construct the exposure name that was used to store the image
 
-        exposureGroupName = "Exposure{0:06d}".format(imageNr)
+        exposureGroupName = "Exposure{0:07d}".format(imageNr)
         
         # Extract information depending of HDF5 structure
         
@@ -1513,7 +1513,7 @@ class SimFile (object):
         
         # Construct the exposure name that was used to store the image
 
-        exposureGroupName = "Exposure{0:06d}".format(imageNr)
+        exposureGroupName = "Exposure{0:07d}".format(imageNr)
 
         # Extract information depending of HDF5 structure
         
@@ -1858,7 +1858,7 @@ class SimFile (object):
 
             # Extract the indices of the proper mask
 
-            exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate)
+            exposureGroupName = "Exposure{0:07d}".format(exposureNrOfMaskUpdate)
             rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
             colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
 
@@ -1876,7 +1876,7 @@ class SimFile (object):
             rowIndices = []
             colIndices = []
             for i in range(numMaskUpdates):
-                exposureGroupName = "Exposure{0:06d}".format(exposureNrOfMaskUpdate[i])
+                exposureGroupName = "Exposure{0:07d}".format(exposureNrOfMaskUpdate[i])
                 rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
                 colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
             rowIndices = np.array(rowIndices)
@@ -2206,7 +2206,7 @@ class SimFile (object):
         # Or use default .hdf5 image nr
         elif useTitle is True:
             fileBasename = os.path.splitext(self.filename)[0]
-            title = fileBasename + " - image{0:06d}".format(imageNr)
+            title = fileBasename + " - image{0:07d}".format(imageNr)
             plt.title(title, fontsize=fontSize)
 
         # By default, matplotlib only shows the (x,y) coordinates of each pixel,
