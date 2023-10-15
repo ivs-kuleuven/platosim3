@@ -712,14 +712,14 @@ class Simulation(object):
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.0222")
             self.__setitem__("FEE/Gain/RefValueRight", "0.0222")
 
-        elif performance == 'expected':
+        elif performance == 'designed':
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.2")
             self.__setitem__("CCD/Gain/RefValueRight", "2.2")
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.0182")
             self.__setitem__("FEE/Gain/RefValueRight", "0.0182")
 
         elif performance != False:
-            raise ValueError("Not valid entry! Use either 'required' or 'expected'")
+            raise ValueError("Not valid entry! Use either 'required' or 'designed'")
         
         return
 
@@ -736,38 +736,48 @@ class Simulation(object):
         Notes
         -----
         These basic input parameters are from the technical note: 
-        PLATO-DLR-PL-LI-0015 i.4.2
-        
-        NOTE: Only 'required' EOL values exist for F-CAMs.
         """
         
         times = [0, self["ObservingParameters/MissionDuration"]*ut.year()]
 
-        if camera == "Normal": readNoiseRangeFEE = np.array([ 32.0,  37.0])
-        elif camera == "Fast": readNoiseRangeFEE = np.array([180.0, 200.0])
+        # NOTE No 'designed' values for FEE readout noise
+        if camera == "Normal":
+            readNoiseFEE = ut.evalLinReg(times, np.array([32.8, 37.7]), timeFromBOL)
+        elif camera == "Fast":
+            readNoiseFEE = 200.0
+        else:
+            raise ValueError("Not valid entry! Use either 'Normal' or 'Fast'")
+        
+        if performance =="required":
 
-        if performance == "required":
-                
-            darkCurrent  = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
-            readNoiseCCD = ut.evalLinReg(times, np.array([38.7, 44.3]), timeFromBOL)
-            readNoiseFEE = ut.evalLinReg(times, readNoiseRangeFEE,      timeFromBOL)
-            
-            self.__setitem__("CCD/DarkSignal/DarkCurrent", f"{darkCurrent}")
-            self.__setitem__("CCD/DarkSignal/Stability",   "0.5")
-            self.__setitem__("CCD/DarkSignal/DSNU",        "15.0")
-            self.__setitem__("CCD/ReadoutNoise",           f"{readNoiseCCD}")
+            # NOTE We use the dark current from PLATO-DLR-PL-LI-0015 i.4.2, since:
+            # N-CAM: Dark current -> BOL(E,F) = (1.2,   4.5), no EOL values
+            # F-CAM: Dark current -> BOL(E,F) = (0.544, 4.0), no EOL values
+            readNoiseCCD  = ut.evalLinReg(times, np.array([24.5, 28.0]), timeFromBOL)
+            darkCurrent   = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
+            darkStability = 5.0
+            DSNU          = 15.0
+                                        
+        elif performance == "designed":
 
-        if performance == "expected":
+            # NOTE We use the dark current from PLATO-DLR-PL-LI-0015 i.4.2, since:
+            # N-CAM: Dark current -> BOL(E,F) = (0.572, 4.0), no EOL values
+            # F-CAM: Dark current -> BOL(E,F) = (0.544, 4.0), no EOL values            
+            readNoiseCCD  = ut.evalLinReg(times, np.array([23.3, 25.0]), timeFromBOL)
+            darkCurrent   = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
+            darkStability = 0.7
+            DSNU          = 11.5
+                            
+        else:
+            raise ValueError("Not valid entry! Use either 'required' or 'designed'")
 
-            darkCurrent  = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
-            readNoiseCCD = ut.evalLinReg(times, np.array([33.7, 39.3]), timeFromBOL)
-            readNoiseFEE = ut.evalLinReg(times, readNoiseRangeFEE,      timeFromBOL)
-            
-            self.__setitem__("CCD/DarkSignal/DarkCurrent", f"{darkCurrent}")
-            self.__setitem__("CCD/DarkSignal/Stability",   "0.7")
-            self.__setitem__("CCD/DarkSignal/DSNU",        "10.0")
-            self.__setitem__("CCD/ReadoutNoise",           f"{readNoiseCCD}")
-            self.__setitem__("FEE/ReadoutNoise",           f"{readNoiseFEE}")
+        # Set all parameters from above
+        
+        self.__setitem__("CCD/DarkSignal/DarkCurrent", f"{darkCurrent}")
+        self.__setitem__("CCD/DarkSignal/Stability",   f"{darkStability}")
+        self.__setitem__("CCD/DarkSignal/DSNU",        f"{DSNU}")
+        self.__setitem__("CCD/ReadoutNoise",           f"{readNoiseCCD}")
+        self.__setitem__("FEE/ReadoutNoise",           f"{readNoiseFEE}")
 
         return
     
@@ -797,7 +807,7 @@ class Simulation(object):
 
         # If requested, select basic input parameters
 
-        if performance in ["required", "expected"]:
+        if performance in ["required", "designed"]:
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL)
             
@@ -840,7 +850,7 @@ class Simulation(object):
 
         # If requested, select basic input parameters
         
-        if performance in ["required", "expected"]:
+        if performance in ["required", "designed"]:
 
             # Select noise properties for CCD and FEE
             
