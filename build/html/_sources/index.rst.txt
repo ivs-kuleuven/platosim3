@@ -57,6 +57,7 @@ Table of Content
 
    platonium_overview
    platonium_tutorials
+   platonium_pipeline
    ..
       platonium_cluster
 

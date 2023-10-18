@@ -113,8 +113,12 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#setup-platonium">Setup PLATOnium</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
 </ul>
 
             
@@ -189,9 +193,26 @@
   <div class="section" id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
 <p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilizing Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the (often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
-<div class="admonition-setup-script-for-platonium admonition">
-<p class="admonition-title">Setup script for PLATOnium</p>
-<p><strong>For now, PLATOnium is only available for developers.</strong> Before using this toolkit, first make sure that you have installed the <a class="reference internal" href="install_source.html#install-source-python"><span class="std std-ref">required Python packages</span></a> (with Poetry this is simply: <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span> <span class="pre">--with</span> <span class="pre">platonium</span></code>). Next you need to go to the PlatoSim base directory and run:</p>
+<div class="admonition attention">
+<p class="admonition-title">Attention</p>
+<p>PLATOnium is only available when cloning the PlatoSim GitHub repository. We strongly recommend to use <strong>Python 3.9</strong>, Conda as your environment manager, and Poetry as your package manager (as we will do in the following) Also note that the setup of PLATOnium and the LESIA pipeline is only tested for Linux users, since these tools should be used on a computing cluster where Linux is the standard. Mac users may have to adapt especially the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script.</p>
+</div>
+<hr><div class="section" id="setup-platonium">
+<span id="platonium-overview-setup"></span><h2>Setup PLATOnium<a class="headerlink" href="#setup-platonium" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic">
+<li><p>First create a new Conda environment and activate it:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>platonium<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.9
+conda<span class="w"> </span>activate<span class="w"> </span>platonium
+</pre></div>
+</div>
+</li>
+<li><p>Install all Python dependencies using Poetry from within the <strong>PlatoSim3</strong> folder:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>platonium
+</pre></div>
+</div>
+<p>If all packages are installed successful, then Poetry will report that <code class="docutils literal notranslate"><span class="pre">platosim</span> <span class="pre">3.6.0</span></code> is installed. You can also verify this by listing the installed packages either using Poetry (<code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">show</span></code>) or Conda (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">list</span></code>).</p>
+</li>
+<li><p>Lastly, from within the <strong>PlatoSim3</strong> folder run:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./setup<span class="w"> </span>&lt;path/to/plato_workdir&gt;
 </pre></div>
 </div>
@@ -201,13 +222,15 @@
 <li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code></p></li>
 <li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PYTHONPATH</span></code></p></li>
 <li><p>Make all the PLATOnium scripts globally executable (see <a class="reference internal" href="platonium_tutorials.html"><span class="doc">Tutorials</span></a>)</p></li>
-<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file within your <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code> directory</p></li>
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file within your <strong>PlatoSim3</strong> folder</p></li>
 </ul>
-<p>If you want to change your working directory at a later stage, simply remove the <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file and run above command again.</p>
-</div>
+<p>If you want to change your working directory at a later stage, simply run <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> again.</p>
+</li>
+</ol>
 <div class="admonition-acronym-fun-fact admonition">
 <p class="admonition-title">Acronym fun fact</p>
 <p><em>Platonium, named after the Ancient Greek philosopher Plato, is a hypothetical element with atomic number of 1030. Like all elements after lead (excluding stable isotopium), Platonium (Pto) has no stable isotopes, but its most stable isotope is supposedly 2576Pto.</em></p>
+</div>
 </div>
 </div>
 
