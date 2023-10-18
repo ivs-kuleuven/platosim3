@@ -1,0 +1,5 @@
+/lhome/nicholas/software/PlatoSim3/build/CMakeFiles/rebuild_cache.dir
+/lhome/nicholas/software/PlatoSim3/build/CMakeFiles/edit_cache.dir
+/lhome/nicholas/software/PlatoSim3/build/CMakeFiles/connectionTest.dir
+/lhome/nicholas/software/PlatoSim3/build/CMakeFiles/platosim.dir
+/lhome/nicholas/software/PlatoSim3/build/CMakeFiles/platosimLibrary.dir

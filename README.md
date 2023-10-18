@@ -30,6 +30,7 @@ When you're happy with the changes simply run:
 
 This will both create the html files and copy them to root. Now commit your changes:
 
+	git add *.html *.js *.inv build/ source/ _sources/
 	git commit -m "<message-of-update>
 
 Note that the above command add all files that have changed. Now push it to your fork:
