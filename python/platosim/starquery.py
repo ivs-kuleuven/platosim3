@@ -167,8 +167,8 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
 
 
 def gaiaQuery(star):
-    """
-    Query Gaia for a named star and return the Gaia DR2 ID.
+
+    """Query Gaia for a named star and return the Gaia DR2 ID.
 
     Parameters
     ----------
@@ -198,9 +198,9 @@ def gaiaQuery(star):
 
 
 
-def starQuery(star, radius=45):
-    """
-    Query Gaia for a named star and return the Gaia DR2 ID.
+def simbadQuery(star, radius=45, maglim=21):
+
+    """Query Gaia for a named star and return the Gaia DR2 ID.
 
     Parameters
     ----------
@@ -232,36 +232,62 @@ def starQuery(star, radius=45):
     # Convert radius to from arcsec to deg
     radius /= 3600.
 
-    # Gaia radius querymetric
     query_cone = f"""SELECT 
-    TOP 10 
-    source_id, ra, dec, phot_g_mean_mag
-    FROM gaiadr2.gaia_source
-    WHERE 1=CONTAINS(POINT(ra, dec), CIRCLE({raStar}, {decStar}, {radius}))
+    DISTANCE( POINT({raStar},{decStar}), POINT(ra,dec) )
+    AS dist, source_id, ra, dec,
+    phot_g_mean_mag, bp_rp,
+    parallax, parallax_error,
+    pmra, pmdec, ruwe,
+    teff_gspphot, logg_gspphot
+    FROM gaiadr3.gaia_source AS cat
+    WHERE 1=CONTAINS(POINT({raStar}, {decStar}),
+    CIRCLE(cat.ra, cat.dec, {radius}))
+    AND cat.phot_g_mean_mag < {maglim} 
+    ORDER BY dist ASC
     """
 
     # Launch Gaia query 
+
     job     = Gaia.launch_job(query_cone)
     results = job.get_results()
 
     # Convert astropy results table into pandas df
+
     df = results.to_pandas()
 
-    # Make sure that target is the first entry
-    for row in result_table:
-        if 'Gaia DR2' in row['ID']:
-            gaia_id = int(row['ID'][9:])            
-    row = df.index[df['source_id'] == gaia_id].tolist()
-    dex = row + [i for i in range(len(df)) if i != row[0]]
-    df = df.iloc[dex].reset_index(drop=True)
+    # Rename columns
     
-    # Calculate radial distance
-    dist = np.sqrt( (df.ra - df.ra.iloc[0])**2 + (df.dec - df.dec.iloc[0])**2 ) * 3600
-    df['dis'] = dist
-    df = df.sort_values(by=['dis'])
+    df = df.rename(columns={'source_id': 'gaiaDR3',
+                            'phot_g_mean_mag': 'mag',
+                            'bp_rp': 'BP_RP',
+                            'parallax': 'plx',
+                            'parallax_error': 'plxe',
+                            'teff_gspphot': 'teff',
+                            'logg_gspphot': 'logg'})
 
-    # Return data frame
-    return df
+    
+    # Make sure that target is the first entry    
+    # for row in result_table:
+    #     if 'source_id' in row['ID']:
+    #         gaia_id = int(row['ID'][9:])            
+    # row = df.index[df['source_id'] == gaia_id].tolist()
+    # dex = row + [i for i in range(len(df)) if i != row[0]]
+    # df = df.iloc[dex].reset_index(drop=True)
+
+    # Convert Gmag to Pmag
+
+    df['Pmag'] = ut.passbandConversionG2P(df.mag, df.BP_RP)
+    
+    # Relocate distance column [arcsec]
+    
+    df.dist = (df.dist-df.dist.iloc[0]) * 3600.
+    col = df.dist.values.tolist()
+    df  = df.drop(columns=['dist'])
+    df.insert(5, 'dist', col)
+
+    # Sort and return
+    
+    return df.sort_values(by=['dist'])
 
 
 
@@ -358,15 +384,15 @@ v        File name (without file extension) to be saved
 
     # Get status
     response = connection.getresponse()
-    print ("Status: " +str(response.status), "Reason: " + str(response.reason))
+    print("Status: " +str(response.status), "Reason: " + str(response.reason))
 
     # Server job location (URL)
     location = response.getheader("location")
-    print ("Location: " + location)
+    print("Location: " + location)
 
     # Job ID
     jobid = location[location.rfind('/')+1:]
-    print ("Job id: " + jobid)
+    print("Job id: " + jobid)
 
     connection.close()
 
