@@ -1093,7 +1093,7 @@ class PLATOnium(object):
             self.memRamPlatoSim = round(tracemalloc.get_traced_memory()[1]/1e3)
             tracemalloc.stop()
             # Storage memory of HDF5 file [Mb]
-            self.memDiskPlatoSim = round(Path(outputFile).stat().st_size/1e3)
+            self.memDiskPlatoSim = round(Path(outputFile).stat().st_size/1e6)
 
         
 
