@@ -456,9 +456,9 @@ arma::mat Telescope::getUndriftedTelescopeToPlatformRotationMatrix()
     // Rotating over a tilt angle around the Y-axis of the telescope
 
     arma::mat rotTilt;
-    rotTilt <<  cos(originalTiltAngle)   << 0 << sin(originalTiltAngle)  << arma::endr
-            <<            0              << 1 <<            0            << arma::endr
-            <<  -sin(originalTiltAngle)  << 0 << cos(originalTiltAngle)  << arma::endr;
+    rotTilt <<  cos(originalTiltAngle)  << 0 << -sin(originalTiltAngle)  << arma::endr
+            <<            0             << 1 <<             0            << arma::endr
+            <<  sin(originalTiltAngle)  << 0 <<  cos(originalTiltAngle)  << arma::endr;
 
     return rotAzimuth.t() * rotTilt.t() * rotAzimuth;
 }
