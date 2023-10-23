@@ -251,7 +251,8 @@ class PLATOnium(object):
         
         if self.starcatFile is not None:
 
-            df = pd.read_csv(self.starcatFile, sep=' ', names=['PIC', 'ra', 'dec', 'mag', 'dis'])
+            df = pd.read_csv(self.starcatFile, sep=' ',
+                             names=['PIC', 'ra', 'dec', 'mag', 'dis'])
             
             # Change IDs all to be the target
             df.PIC = np.ones(len(df))
@@ -440,7 +441,8 @@ class PLATOnium(object):
         sim = Simulation(self.outputFileName, self.inputFile)
 
         # Start time of simulation
-        self.timeStart = round(ut.year()/86400/4 * (self.quarter - 1) * 86400.)
+        timeQuarter = ut.year()/86400/4  # [days]
+        self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
         
         # CONFIGURE CAMERA
@@ -488,7 +490,7 @@ class PLATOnium(object):
             # downlink, microscanning, etc.
             # TODO make configurable/flag option to change inter-quarter downtime
             # (normal distributed?)
-            self.numExposures = round( (90. - 2.) * 86400. / self.cadence )
+            self.numExposures = round((timeQuarter - 2.) * 86400. / self.cadence)
             
 
         # PHOTOMETRY ALA MARCHIORI
@@ -504,6 +506,9 @@ class PLATOnium(object):
             
         # CONFIGURE PAYLOAD
 
+        if sim["Platform/Orientation/Source"] == "Quaternion":
+            print('Using Quaternion to setup platform!')
+        
         # Select PLATO pointing field from inputfile
         self.pointingField = sim['ObservingParameters/StarCatalogFile']
         alpha, delta, kappa = getPointingField(self.pointingField)
@@ -523,7 +528,7 @@ class PLATOnium(object):
         # POINTING ERRORS
         
         # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
-        # NOTE: Will only be included if the file "PRE.txt" is available in the input folder
+        # NOTE: Included if the file "instrumentPRE.txt" is available in the input folder
         inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
         if inputFilePRE.is_file():
             PRE = np.loadtxt(inputFilePRE)
@@ -544,7 +549,7 @@ class PLATOnium(object):
                 sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
 
         # Absolute Pointing Error (APE) due to camera misalignments
-        # NOTE: included if "instrumentAPE.txt" is available in the input
+        # NOTE: Included if "instrumentAPE.txt" is available in the input
         inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
         if inputFileAPE.is_file():
             if self.verbose > 0 :
@@ -555,9 +560,9 @@ class PLATOnium(object):
             sim["Telescope/AzimuthAngle"] += APE[dex, 1]
 
         # Thermo-Elastic Distortion (TED)
-        # The camera(s) drift due to the thermal gradient of the interface between
-        # the camera and the optical bench
-        # NOTE: included if "instrumentTED.txt" is available in input
+        # The camera(s) drift due to the thermal gradient of
+        # the interface between the camera and the optical bench.
+        # NOTE: Included if "instrumentTED.txt" is available in input
         inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
         if inputFileTED.is_file():
             sim["Telescope/UseDrift"]      = True
@@ -572,7 +577,7 @@ class PLATOnium(object):
 
         # Attitude Orbit Control System (AOCS) jitter
         # First check if file from payload is present
-        # NOTE: included if "instrumentACS.txt" is available in input
+        # NOTE: Included if "instrumentACS.txt" is available in input
         inputFileAOCS = self.inputDir.joinpath('instrumentACS.txt')
         if inputFileAOCS.is_file():
             sim["Platform/UseJitter"]      = True
@@ -580,6 +585,7 @@ class PLATOnium(object):
             sim["Platform/JitterFileName"] = inputFileAOCS
             
         # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters
+        # NOTE: Not recommended but used for PLATO-KUL-PL-TN-0023
         elif self.reuseJitter:
             sim["Platform/UseJitter"]    = True
             sim["Platform/JitterSource"] = 'FromFile'
@@ -609,6 +615,14 @@ class PLATOnium(object):
             else:
                 source = 'RedNoise'
             print(f'Applying platform jitter     (ACS {source})')
+
+        # Thermal transients from data gaps
+        # NOTE: Included if "instrumentCCD.txt" is available in input
+        inputFileCCD = self.inputDir.joinpath('instrumentCCD.txt')
+        if inputFileCCD.is_file():
+            sim["CCD/Temperature"]         = "FromFile"
+            sim["CCD/TemperatureFileName"] = inputFileCCD
+            print(f'Applying gain transients     (CCD FromFile)')
 
             
         # FULL-FRAME SIMULATION
@@ -1001,12 +1015,18 @@ class PLATOnium(object):
         # Print to bash
         if self.verbose > 0:
             tracemalloc.start()
-            if self.groupID == 'Fast':
-                errorcode('message', f'\n[PlatoSim]: Simulating F-CAM {self.camera} ' +
-                          f'Q{self.quarter} for {self.numExposures} exposures')
+            if self.fullFrame:
+                ccdID = f' CCD {self.ccdCode}'
             else:
-                errorcode('message', f'\n[PlatoSim]: Simulating N-CAM {self.group}.{self.camera} ' +
-                          f'Q{self.quarter} for {self.numExposures} exposures')
+                ccdID = ''
+            if self.groupID == 'Fast':
+                errorcode('message', '\n[PlatoSim]: Simulating' +
+                          f'{ccdID} F-CAM {self.camera} Q{self.quarter} ' + 
+                          f'for {self.numExposures} exposures')
+            else:
+                errorcode('message', f'\n[PlatoSim]: Simulating' +
+                          f'{ccdID} N-CAM {self.group}.{self.camera} Q{self.quarter} '
+                          f'for {self.numExposures} exposures')
 
         # Select the number of exposures
         sim["ObservingParameters/NumExposures"] = self.numExposures
