@@ -610,6 +610,64 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 
 
 #--------------------------------------------------------------#
+#                       GENERAL ASTRONOMY                      #
+#--------------------------------------------------------------#
+
+
+def radialDistance(alpha1, delta1, alpha2, delta2):
+
+    """Radial distance between two equatorial coordinates.
+
+    The shortest angular distance between two points on the 
+    celestial sphere is measured along a great circle that passes
+    through both of them.
+
+    Parameters
+    ----------
+    (alpha1, delta1) : ndarray, pdframe
+        Equatorial coordinates of point 1 [deg]
+    (alpha2, delta2) : ndarray, pdframe
+        Equatorial coordinates of point 2 [deg]
+    
+    Return
+    ------
+    Radial distance between coordinates [deg]
+    """
+    
+    alpha1 = np.deg2rad(alpha1)
+    alpha2 = np.deg2rad(alpha2)
+    delta1 = np.deg2rad(delta1)
+    delta2 = np.deg2rad(delta2)
+    
+    cosR = (np.sin(delta1) * np.sin(delta2) +
+            np.cos(delta1) * np.cos(delta2) * np.cos(alpha1-alpha2))
+    
+    return np.rad2deg(np.arccos(cosR))
+
+
+    
+
+
+    def massLuminosityRelation(R, Teff):
+
+        """Calculate mass using M-L relation.
+
+        Using the Teff in the mass-luminosity relation, one can find
+        the stellar mass for a main sequence dwarf star. Method valid
+        for (0.43 < M/Msun < 2)
+
+        Notes
+        -----
+        Reference from:
+        https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+        """
+        return R**(1/2) * Teff[i]/5778.
+
+
+
+
+    
+#--------------------------------------------------------------#
 #                        PLATO SPECIFIC                        #
 #--------------------------------------------------------------#
 
@@ -645,9 +703,8 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
     photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
                   lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-    electronFlux = photonFlux * quantumEfficiency
 
-    return electronFlux
+    return photonFlux * quantumEfficiency
 
 
 
@@ -722,9 +779,9 @@ def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
 def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
 
-    """Coversion from Gaia G magnitude to the PLATO passband.
+    """Conversion from Gaia G magnitude to the PLATO passband.
     
-    The calibration relation is derived in PLATO-UPD-SCI-TN-0019.
+    The calibration relation is derived in PLATO-UPD-SCI-TN-0019, Sect. 6.
     NOTE only valid for (4000K < Teff < 15000K), hence, not for M-dwarfs.
 
     Parameters
@@ -749,18 +806,19 @@ def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
     elif camera == 'fast_red':
         coeff = [-0.6795686, 0.0539941, 0.0331913, -0.0123407, 0.0019006, -0.0001174]
 
-    color = np.sum([coeff[i-1] * BP_RP**i for i in range(1,7)])
+    color = np.sum([coeff[i-1] * BP_RP**i for i in range(1,7)], axis=0)
 
     # From G to P (or P to G if inverse=True)
-
+    
     if inverse:
-        return mag + color 
+        return mag - color 
     else:
-        return mag - color
+        return mag + color
  
     
 
 
+    
 def getPointingField(name, unit='deg'):
 
     """Function to fetch pointing field coordinates.

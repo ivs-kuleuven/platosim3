@@ -2,37 +2,39 @@
 
 """
 This script is an integrated part of PlatoSim's toolkit PLATOnium.
- takes the PIC input catalog and fetch the 
-correct entries for target stars and their contaminants. Notice that
-the catalog will only be saved if an ouput directory and prefix (-o)
-are given as input. This script can also be used to re-plot a old 
-output ascii catalog produced by this software. Note that the PIC
- contaminant catalog is complete up to 20 mag.
+The usage consist of three main query methods:
+  1) Create a customized PIC catalogue
+  2) Create a single-star catalogue quering Simbad
+  3) Create a PLATO pointing field catalogue for each camera FOV
 
-Notes on PLATO fields:
-  Number of stars in PIC200 LOPS2: (t:179,564, c:105,865,120)
-  Number of stars in PIC200 LOPN1: (t:175,597, c:112,917,958)
-  Number of stars in PIC110 SPF  : (t:163,772, c: )
-  Number of stars in PIC110 NPF  : (t:156,971, c: )
+General information:
+- One of the three query methods needs to be used to run this script.
+- All output files are directly useable by PALTOnium.
 
-Note on Sample flag:
-  Number of targets in P1:  15,094 (SPF:   6,817, NPF:   6,892)
-  Number of targets in P2:   1,385 (SPF:     717, NPF:     668)
-  Number of targets in P4:  33,032 (SPF:  16,866, NPF:  16,166)
-  Number of targets in P5: 272,617 (SPF: 132,571, NPF: 140,046)
-  Note that P2 is a bright sub-sample of P1.
-  Note that P5 is on-board processed lightcures only.
+Customized PIC catalogue (--pic):
+---------------------------------
+This option uses the PIC input catalog to create a smaller custimized
+stellar catalogue both for the PIC targets and contaminants. Moreover,
+this script can also be used to re-plot a old "--pic" catalog produced
+by this software. Usage example:
+  >> picsim --pic 100 P1 LOPS2 --project <project_name> -p
 
-Notes on Calibration methods:
-  PIC110 uses the de-reddened Gaia V magnitude obtained from Gaia
-  photometry using a calibration technique being valid for:
-  0.5 < Bp-Rp < 5.17
-  PIC200
+Single-star cataloge (--simbad):
+--------------------------------
+This option can be used to feth a single target star by name, which
+is recognizable by the CDS Simbad query. By default is select stars
+within 45 arcsec (2 pixel) from the target star: Usage examples:
+  >> picsim --simbad TOI-100 --project <project_name> -p
 
-Usage examples:
-  >> picsim 100 P1 SPF -p
-  >> picsim 1000 P5 NPF --ncams 24 --project <project_name>
-  >> picsim all all SPF --ncams 6 --group 1 --mag 9.5-12.2 -o </path/to/outdir>
+PLATO pointing field catalogue (--vizier):
+------------------------------------------
+This option creates a coherent PLATO catalogue that covers the
+FoV of each camera group. It uses the Gaia DR3 catalogue and
+makes query of 16 grid points distribution around the requested
+PLATO pointing field. The output catalogues (one for each group)
+is recognized be by "platonium --fullframe" for the generation
+ of full-frame CCD images. Usage examples:
+  >> picsim --vizier LOPS2 --project <project_name> --maglim 17 -p
 """
 
 # Python standard
@@ -48,13 +50,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from astropy.coordinates import SkyCoord
+from astropy import units as u
 from prettytable import PrettyTable
 from tqdm import tqdm
+import ligo.skymap.plot
 
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
 import platosim.starquery as sq
+import platosim.referenceFrames as rf
 from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
 
@@ -71,113 +77,11 @@ class PicSim(object):
     
     def __init__(self, args):
 
-        # Arguments for PIC query
-        self.plot          = args.plot
-        self.saveAscii     = args.save
-        self.inputFiles    = args.incat
-        self.oldCatalogue  = args.unique
-        self.numTimeseries = args.ntime
-
-        # Arguments for GaiaDR3 star query
-        self.simbad = args.simbad
-
-        
-        # MANDATOEY PARAMETERS
-        
-        # Check if sample is correct
-        self.sample = args.sample
-        if self.sample == 'all':
-            self.samplePIC = None
-        elif self.sample in ['P1', 'P2', 'P4', 'P5']:
-            self.samplePIC = self.sample
-        elif self.simbad:
-            pass
-        else:
-            errorcode('error', 'Not a valid PIC sample! Use {P1, P2, P4, P5}')
-
-        # Check the PLATO field
-        self.field  = args.field
-        if self.field in ['SPF', 'NPF']:
-            self.pic = 'PIC110'
-            if self.field == 'SPF': self.numPIC = 137052
-            if self.field == 'NPF': self.numPIC = 144507
-        elif self.field in ['LOPS2', 'LOPN1']:
-            self.pic  = 'PIC200'
-            if self.field == 'LOPS2': self.numPIC = 179564
-            if self.field == 'LOPN1': self.numPIC = 175325 # Original: 175,597            
-        else:
-            errorcode('error', 'Not valid pointing! Use {LOPS2, LOPN1, SPF, NPF}')
-
-        # Check number of stars
-        if args.stars[0].isdigit():
-            self.numTargets = int(args.stars)
-            if self.numTargets > self.numPIC:
-                errorcode('error', 'More stars selected than available in the PIC! ' +
-                          'See -h for PIC notes')
-        elif args.stars == 'all':
-            if self.numTimeseries is not None:
-                self.numTargets = int(self.numTimeseries/6.) + 1
-            else:
-                self.numTargets = self.numPIC
-
-            
-        # OBS PARAMETERS            
-            
-        # Select magnitude range or select all stars
-        if args.mag is None:
-            self.magRange = [0, 21]
-        else:
-            self.magRange = ut.convertMagnitudeRange(magRange)
-
-        # Visibility by N-cams
-        if args.ncams in [None, 6, 12, 18, 24]:
-            self.ncamVisible = args.ncams
-        else:
-            errorcode('Not valid N-CAM visibility! Use {6, 12, 18, 24}')
-
-        # Check cam-group entry
-        if args.group in [None, 1, 2, 3, 4]:
-            self.camGroup = args.group
-        else:
-            errorcode('error', 'Not valid group number! Use {1, 2, 3, 4}')
-
-        # Contaminant magnitude limit
-        if args.dmag is None:
-            self.dmagConLimit = 5
-        elif args.dmag > 21:
-            errorcode('warning', 'PIC (Gaia) is only complete to G < 21 mag!')
-
-        # Contaminant distance limit (default 2 pixel)
-        if args.dist is None:
-            self.disConLimit = 45
-        elif args.dist in [30, 45, 60]:
-            self.disConLimit = args.dist
-        else:
-            errorcode('error', 'Not a valid contaminant-to-target distance! ' +
-                      'Use {30, 45, 60} arcsec')
-
-        # Check evolutionary stage 
-        if args.lum in [None, 'V', 'IV']:
-            self.lumClass = args.lum
-        else:
-            errorcode('error', 'Not valid evolutionary stage! Use {V, IV}')
-
-        # Check spectral type
-        if args.spec in [None, 'F', 'G', 'K']:
-            self.specType = args.spec
-        else:
-            errorcode('error', 'Not valid spectral type! Use {F, G, K}')
-
-            
         # I/O PARAMETERS
 
-        # Activate plot if `-t` is parsed
-        if args.targ:
-            self.preview = True
-            self.plot    = True
-        else:
-            self.preview = False
-        
+        # Plotting flag
+        self.plot = args.plot
+
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
         # verbose = 0: Cluster mode: Disabling print, warnings, and saving of logs
         # verbose = 1: Default mode: Print details to bash but do not save log files
@@ -190,29 +94,10 @@ class PicSim(object):
             warnings.filterwarnings("ignore")
         else:
             self.verbose = 3
-        
-        # Input directory        
-        self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'    
-        if not self.inputDir.is_dir():
-            errorcode('message', 'Inuaguration: Welcome to PIC of Destiny!')
-        
-        # Prefix name of output files
-        self.outputPrefix = 'starcat'
-        if args.sample: self.outputPrefix += '_' + args.sample
-        if args.field:  self.outputPrefix += '_' + args.field
-        if args.group:  self.outputPrefix += '_Group' + str(args.group)
-        if args.ncams:  self.outputPrefix += '_Ncam'  + str(args.ncams)
-        if self.inputFiles is not None: self.outputPrefix += '_NewCat'
-        self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
-        self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
 
-        # Name space for output files
-        # Default is to use the latest PIC catalog saved
-        # Else several old catalogs can be parsed for replotting
-        # E.g. use: --intar starcat**targets.txt --incon starcat**contaminants.txt
+        # Output directory
         if (args.outdir is not None) or (args.project is not None):
 
-            # Resolve absolute output directory
             # NOTE "--outdir" overwrites "--project"
             if args.outdir is not None:
                 self.outputDir = Path(args.outdir).resolve()
@@ -221,20 +106,202 @@ class PicSim(object):
 
             # Create directory if is doesn't exist
             self.outputDir.mkdir(parents=True, exist_ok=True)
-                
-            # Save either a PlatoSim (ascii) or a PLATOnium (feather) calogue
-            if self.saveAscii:
-                self.outputFileCat = self.outputDir / self.outputPrefix/ '.txt'
-            else:
-                self.outputFileTar = self.outputDir / self.outputPrefixTar
-                self.outputFileCon = self.outputDir / self.outputPrefixCon
         else:
             self.outputDir = args.outdir
 
-        # PLOT PARAMETERS
+            
+        # GENERIC INPUT PARAMETERS
+        
+        # Contaminant magnitude limit
+        if args.dmag is None:
+            self.dmagConLimit = 5
+        elif args.dmag > 21:
+            errorcode('warning', 'PIC (Gaia) is only complete to G < 21 mag!')
 
+        # Contaminant distance limit (default 2 pixel)
+        if args.dist is None:
+            self.disConLimit = 45
+        elif args.simbad or (args.pic is not None) and (args.dist in [30, 45, 60]):
+            self.disConLimit = args.dist
+        else:
+            errorcode('warning', 'Not a valid contaminant-to-target distance! ' +
+                      'Use {30, 45, 60} arcsec')
+        
+
+        
+
+        
+    #--------------------------------------------------------------#
+    #                        PIC OF DESTINY                        #
+    #--------------------------------------------------------------#            
+
+
+    def getNotesPIC(self):
+
+        """Function to show the notes about the PIC.
+        """
+
+        return """
+        Notes on parsed argument "--pic":
+          "star"   : Number of targets saved in catalog (Select "all" for all stars)
+          "sample" : PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)
+          "field"  : PLATO pointing field [LOPS2, LOPN1, SPF, NPF]
+
+        Notes on PLATO fields:
+          Number of stars in PIC200 LOPS2: (t:179,564, c:105,865,120)
+          Number of stars in PIC200 LOPN1: (t:175,597, c:112,917,958)
+          Number of stars in PIC110 SPF  : (t:163,772, c: )
+          Number of stars in PIC110 NPF  : (t:156,971, c: )
+
+        Note on Sample flag:
+          Number of targets in P1:  15,094 (SPF:   6,817, NPF:   6,892)
+          Number of targets in P2:   1,385 (SPF:     717, NPF:     668)
+          Number of targets in P4:  33,032 (SPF:  16,866, NPF:  16,166)
+          Number of targets in P5: 272,617 (SPF: 132,571, NPF: 140,046)
+          Note that P2 is a bright sub-sample of P1.
+          Note that P5 is on-board processed lightcures only.
+
+        Notes on Calibration methods:
+          PIC110 uses the de-reddened Gaia V magnitude obtained from Gaia
+          photometry using a calibration technique being valid for:
+          0.5 < Bp-Rp < 5.17
+          PIC200
+
+        Note that the PIC contaminant catalog is complete up to 20 mag.
+        """
+
+
+
+
+    
+    def initPIC(self):
+
+        """Initialise the PIC input parameters.
+        """
+
+        if self.verbose > 0:
+            errorcode('software', '\nPIC of Destiny')
+
+        # Optinal parameters without checks
+        self.saveAscii     = args.save
+        self.inputFiles    = args.incat
+        self.oldCatalogue  = args.unique
+        self.numTimeseries = args.ntime
+            
+        # MANDATORY PARAMETERS
+            
+        # Mandatory parameters
+        self.stars, self.sample, self.field = args.pic[0]
+            
+        # Check if sample is correct
+        if self.sample == 'all':
+            self.samplePIC = None
+        elif self.sample in ['P1', 'P2', 'P4', 'P5']:
+            self.samplePIC = self.sample
+        else:
+            errorcode('error', 'Not a valid PIC sample! Use {P1, P2, P4, P5}')
+
+        # Check the PLATO field
+        if self.field in ['SPF', 'NPF']:
+            self.pic = 'PIC110'
+            if self.field == 'SPF': self.numPIC = 137052
+            if self.field == 'NPF': self.numPIC = 144507
+        elif self.field in ['LOPS2', 'LOPN1']:
+            self.pic  = 'PIC200'
+            if self.field == 'LOPS2': self.numPIC = 179564
+            if self.field == 'LOPN1': self.numPIC = 175325 # Original: 175,597            
+        else:
+            errorcode('error', 'Not valid pointing! Use {LOPS2, LOPN1, SPF, NPF}')        
+
+        # Check number of stars
+        self.numTargets = self.stars
+        if self.numTargets[0].isdigit():
+            self.numTargets = int(self.numTargets)
+            if self.numTargets > self.numPIC:
+                errorcode('error', 'More stars selected than available in the PIC! ' +
+                          'See -h for PIC notes')
+        elif self.stars == 'all':
+            if self.numTimeseries is not None:
+                self.numTargets = int(self.numTimeseries/6.) + 1
+            else:
+                self.numTargets = self.numPIC
+
+
+        # OBSERVATIONAL PARAMETERS
+        
+        # Select magnitude range or select all stars
+        if args.mag is None:
+            self.magRange = [0, 21]
+        else:
+            self.magRange = ut.convertMagnitudeRange(magRange)
+        
+        # Visibility by N-cams
+        if args.ncams in [None, 6, 12, 18, 24]:
+            self.ncams = args.ncams
+        else:
+            errorcode('Not valid N-CAM visibility! Use {6, 12, 18, 24}')
+
+        # Check cam-group entry
+        if args.group in [None, 1, 2, 3, 4]:
+            self.group = args.group
+        else:
+            errorcode('error', 'Not valid group number! Use {1, 2, 3, 4}')
+
+        # Check evolutionary stage 
+        if args.lum in [None, 'V', 'IV']:
+            self.lumClass = args.lum
+        else:
+            errorcode('error', 'Not valid evolutionary stage! Use {V, IV}')
+
+        # Check spectral type
+        if args.spec in [None, 'F', 'G', 'K']:
+            self.specType = args.spec
+        else:
+            errorcode('error', 'Not valid spectral type! Use {F, G, K}')
+                                
+
+        # EXTRA I/O PARAMETERS
+        
+        # Input directory        
+        self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'    
+        if not self.inputDir.is_dir():
+            errorcode('message', 'Inuaguration: Welcome to PIC of Destiny!')
+
+        # Name space for output files
+        # Default is to use the latest PIC catalog saved
+        # Else several old catalogs can be parsed for replotting
+        # E.g. use: --intar starcat**targets.txt --incon starcat**contaminants.txt
+        if self.outputDir:
+
+            # Prefix name of output files
+            self.outputPrefix = 'starcat'
+            if self.sample: self.outputPrefix += '_'      + self.sample
+            if self.field:  self.outputPrefix += '_'      + self.field
+            if self.group:  self.outputPrefix += '_Group' + str(self.group)
+            if self.ncams:  self.outputPrefix += '_Ncam'  + str(self.ncams)
+            if self.inputFiles is not None: self.outputPrefix += '_NewCat'
+            self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
+            self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
+
+            # Save either a PlatoSim (ascii) or a PLATOnium (feather) calogue
+            if self.saveAscii:
+                self.outputFileCat = self.outputDir / self.outputPrefix / '.txt'
+            else:
+                self.outputFileTar = self.outputDir / self.outputPrefixTar
+                self.outputFileCon = self.outputDir / self.outputPrefixCon
+                
+
+        # PLOT PARAMETERS
+            
         # Generic title to use for plotting
         self.title = f'{self.pic}, {self.field}, {self.sample} sample'
+
+        # Activate plot if `-t` is parsed
+        if args.targ:
+            self.preview = True
+            self.plot    = True
+        else:
+            self.preview = False
         
         # Add latex font if catalogue is saved
         if self.outputDir is None:
@@ -243,15 +310,9 @@ class PicSim(object):
         else:
             from platosim.matplotlibrc import latex
             latex()
+         
 
             
-        # OBS PARAMETERS
-
-        # Fetch PLATO pointing field [deg]
-        self.alpha, self.delta, self.kappa = ut.getPointingField(self.field, unit='deg')
-
-            
-
 
             
     def loadPIC(self):
@@ -265,6 +326,7 @@ class PicSim(object):
 
         # Fetch PIC catalogue from FTP server
         if not inputFileTar.is_file() or not inputFileCon.is_file():
+            errorcode('message', '\nInuaguration! Welcome to PIC of Destiny!')
             print(f'Downloading {self.pic} catalogue..')
             ut.downloadFromFTP(inputFileTar.name, self.inputDir, 'plato')
             ut.downloadFromFTP(inputFileCon.name, self.inputDir, 'plato')
@@ -286,7 +348,6 @@ class PicSim(object):
 
     
 
-        
     def loadOldPIC(self):
 
         """Load old PIC catalog to re-plot it.
@@ -314,8 +375,7 @@ class PicSim(object):
 
 
 
-
-    
+                
     def getStellarClass(self, df):
 
         """Classifier of spectral type and luminosity class.
@@ -364,6 +424,9 @@ class PicSim(object):
         else:
             df = self.df0
 
+            
+        # QUERY CUTS
+            
         # Fetch stellar classifications
         df, ds, sg, dK, dG, dF, sgK, sgG, sgF = self.getStellarClass(df)
                 
@@ -383,15 +446,17 @@ class PicSim(object):
         # Select stars depending on camera visibility
         # NOTE this will be done properly later but here it is done to catch
         #      the failure when the stars requested are larger than catalogue
-        if self.ncamVisible is not None:
-            df = df[df['ncams'] == int(self.ncamVisible)]
+        if self.ncams is not None:
+            df = df[df['ncams'] == int(self.ncams)]
 
         # Allow to select only one cam-group
-        if self.camGroup:
+        if self.group:
             sim = Simulation('picsim')
+            # Fetch PLATO pointing field [deg]
+            alpha, delta, kappa = ut.getPointingField(self.field, unit='deg')
             dex = sim.getStarsWithinCameraGroup(df.ra.to_numpy(), df.dec.to_numpy(),
-                                                self.alpha, self.delta, self.kappa,
-                                                self.camGroup)
+                                                alpha, delta, kappa,
+                                                self.group)
 
             # Select max number of stars if too many is requested
             max_stars = np.sum(dex[0])
@@ -415,7 +480,7 @@ class PicSim(object):
         # Use random.choices(data, weights=some weight, k=numTargets) if a weigthing is needed
         # NOTE args.stars being a string is needed to select "all" in one of the samples too
         # NOTE we need to shuffle the sample if a specific number of timeseries are needed
-        if args.stars != 'all' or self.numTimeseries is not None:
+        if (self.stars != 'all') or (self.numTimeseries is not None):
             df = df.sample(n = self.numTargets)
 
         # Redefine the number fo targets
@@ -440,6 +505,7 @@ class PicSim(object):
                     df = df.drop(df.index[:i])
                     break
 
+                
         # MAKE AN OVERVIEW TABLE
 
         cameras = [6, 12, 18, 24]
@@ -513,7 +579,7 @@ class PicSim(object):
 
         
             
-    def plotsTargetsPIC(self):
+    def plotTargetsPIC(self):
 
         """Plot function for PIC targets.
         """
@@ -544,7 +610,7 @@ class PicSim(object):
         
 
         
-    def plotsContaminantsPIC(self):
+    def plotContaminantsPIC(self):
 
         """Plot function for PIC contaminants.
         """
@@ -564,7 +630,7 @@ class PicSim(object):
 
 
         
-    def prologuePIC(self, tictoc):
+    def prologuePIC(self):
 
         if self.verbose > 0:
             errorcode('module', '\nPrologue')
@@ -581,7 +647,7 @@ class PicSim(object):
                    f'Catalogue            : {self.pic}\n' +
                    f'PLATO field          : {self.field}\n' +
                    f'PLATO sample         : {self.sample}\n' +
-                   f'PLATO camera-group   : {self.camGroup}\n' +
+                   f'PLATO camera-group   : {self.group}\n' +
                    f'Magnitude range      : {self.magRange[0]:.2f}-{self.magRange[1]:.2f} \n' +
                    f'Luminosity class     : {self.lumClass}\n' +
                    f'Spectral type        : {self.specType}\n' +
@@ -642,32 +708,7 @@ class PicSim(object):
 
 
     #--------------------------------------------------------------#
-    #                   SINGLE GAIA STAR QUERY                     #
-    #--------------------------------------------------------------#            
-
-    def queryStar(self):
-
-        """Function to query a Gaia DR3 star and its contaminants.
-        """
-
-        # Query Gaia DR3 star
-        df = sq.simbadQuery(self.simbad, radius=self.disConLimit)
-        if self.verbose > 0:
-            print(f'\nCatalogue for {self.simbad}:')
-            print(df)
-            
-        # Save output catalogue
-        if self.outputDir is not None:
-            da = df.loc[:, ['ra', 'dec', 'mag']]
-            da.to_csv(self.outputDir / f"starcat_{self.simbad}.txt", sep=' ', header=False)
-            df.to_feather(self.outputDir / f"starcat_{self.simbad}.ftr")
-
-
-
-
-
-    #--------------------------------------------------------------#
-    #                      PIC-VARSIM CATALOGS                     #
+    #        FUNCTIONS TO GENERATE THE PIC-VARSIM CATALOGS         #
     #--------------------------------------------------------------#
 
 
@@ -684,6 +725,10 @@ class PicSim(object):
         radius     : Stellar radius [R_sun]
         mass       : Stellar mass [M_sun]
         nCameraObs : EOL number of cameras seeing the star
+
+        Example
+        -------
+        import pandas as pd
         """
         df = pd.DataFrame()
         pic_tar = np.load(inputFileTar)
@@ -726,7 +771,7 @@ class PicSim(object):
 
     def convertPIC110(path):
 
-        """Function to create PIC110 target file.
+        """Function to create PIC110 target feather file.
 
         This function loads the original PIC110 ascii file
         containing the PIC targets, selects the right columns
@@ -745,7 +790,7 @@ class PicSim(object):
         df['mag']    = data[:,3].astype(np.float64)
         df['Teff']   = data[:,5].astype(np.float64)
         df['R']      = data[:,6].astype(np.float64)
-        df['M']      = data[:,7].astype(np.float64)
+        df['M']      = data[:,7].astype(np.float64)]
         df['ncams']  = data[:,8].astype(float).astype(int)
         df['sample'] = data[:,4].astype(float).astype(int)
 
@@ -822,24 +867,26 @@ class PicSim(object):
     def createPIC200(path, field):
 
         import pandas as pd
+        from tqdm import tqdm
         from astropy.io.votable import parse
-        from platosim.utilities import votable2pandas
+        import platosim.utilities as ut
         
         # TARGETS
             
         # Load targets
+        print('Loading PIC targets')
         tfile = f'p{field}PICtarget2.0.0.1-t.vot'
         votable = parse(f'{path}/{tfile}')
-        df0 = votable2pandas(votable)
+        df0 = ut.votable2pandas(votable)
 
         # Write relevant columns to df
         df = pd.DataFrame()
         df['PIC']   = df0.PICid
         df['ra']    = df0.RAdeg
         df['dec']   = df0.DEdeg
-        df['mag']   = df0.PlatoMagNCAM
-        df['BPmag'] = df0.PlatoMagFCAMb
-        df['RPmag'] = df0.PlatoMagFCAMr
+        df['Pmag']  = df0.PlatoMagNCAM
+        df['PBmag'] = df0.PlatoMagFCAMb
+        df['PRmag'] = df0.PlatoMagFCAMr
         df['Teff']  = df0.Teff
         df['R']     = df0.Radius
         df['M']     = df0.Mass
@@ -854,32 +901,59 @@ class PicSim(object):
         # Save to feather files
         df = df.reset_index(drop=True)
         df.to_feather(f'PIC200_{field}_targets.ftr')
-
+        print('Done with PIC targets')
+        
         # CONTAMINANTS
 
         # File is huge hence read only one column at the time
+        print('Loading PIC contaminants')
         cfile = f'p{field}PICcontaminant2001t.csv'
 
         # Create data frame
-        dc = pd.DataFrame()
+        dc  = pd.DataFrame()
         dc['PIC']   = pd.read_csv(f'{path}/{cfile}', usecols=['PICcontaminantId'])
         dc['ra']    = pd.read_csv(f'{path}/{cfile}', usecols=['RAdeg'])
         dc['dec']   = pd.read_csv(f'{path}/{cfile}', usecols=['DEdeg'])
-        dc['mag']   = pd.read_csv(f'{path}/{cfile}', usecols=['Gmag'])
+        dc['Gmag']  = pd.read_csv(f'{path}/{cfile}', usecols=['Gmag'])
         dc['BPmag'] = pd.read_csv(f'{path}/{cfile}', usecols=['BPmag'])
         dc['RPmag'] = pd.read_csv(f'{path}/{cfile}', usecols=['RPmag'])
 
         # Remove NaNs
         dc = dc.dropna()
 
-        # Use colour proxy for bandpass conversion
-        #Teff = 
-        #df['mag'] = ut.passbandConversionV2P(df.mag, Teff)
-        
-        # Save to feather files
-        dc = dc.reset_index(drop=True)
-        dc.to_feather(f'PIC200_{field}_contaminants.ftr')
+        # Use Gaia colours to convert to PLATO bandpass
+        print('Covert Gmag to Pmag')
+        dc['Pmag']  = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag)
+        dc['PBmag'] = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag, camera='fast_blue')
+        dc['PRmag'] = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag, camera='fast_red')
 
+        # Remove Gaia filters again
+        dc = dc.drop(columns=['Gmag', 'BPmag', 'RPmag'])
+
+        # Fetch all contaminants within 45 arcsec from target
+        print('Sorting PIC contaminants after PIC targets')
+        for i in tqdm(range(df.shape[0]), bar_format=ut.tqdmBar()):
+            df_i = df.iloc[i]
+            # Fetch smaller region around target
+            x = 45/3600.
+            dc_i = dc[(dc.ra  > df_i.ra  - x) & (dc.ra  < df_i.ra  + x) &
+                      (dc.dec > df_i.dec - x) & (dc.dec < df_i.dec + x)]
+            # Remove target star if present
+            dc_i = dc_i.drop(dc_i[dc_i.PIC == df_i.PIC].index)
+            # Find radial distance
+            dc_i['dis'] = ut.radialDistance(df_i.ra, df_i.dec,
+                                          dc_i.ra.to_numpy(), dc_i.dec.to_numpy()) * 3600.
+            dc_i = dc_i.sort_values(by=['dis'])
+            # Save to a new df
+            if i == 0:
+                dc0 = dc_i
+            else:
+                dc0 = pd.concat([dc0, dc_i])
+                
+        # Save to feather files
+        dc0 = dc0.reset_index(drop=True)
+        dc0.to_feather(f'PIC200_{field}_contaminants.ftr')
+        print('Done with PIC contaminants')
 
 
 
@@ -891,8 +965,8 @@ class PicSim(object):
         # Since the PIC are bigger than actual FOV (18.89 deg radius) we need to
         # Loop over each camera-group and avoid stars that are close to the FOV edge
         # NOTE the following also checks if the subfield can be placed on a CCD
-        camGroup = False
-        if camGroup:
+        group = False
+        if group:
 
             # CONFIGURE SPACECRAFT
 
@@ -968,8 +1042,8 @@ class PicSim(object):
             ncams = ncams[dex]
 
             # Again choose stars from N-Cam visibility
-            if ncamVisible:
-                dex = ncams == int(ncamVisible)
+            if ncams:
+                dex = ncams == int(ncams)
                 PIC   = PIC[dex].astype(int)
                 ra    = ra[dex]
                 dec   = dec[dex]
@@ -980,8 +1054,8 @@ class PicSim(object):
                 ncams = ncams[dex]
 
             # Allow to select only one cam-group
-            if camGroup:
-                dex = starsWithinCamGroup(camGroup, raPF, decPF, ra, dec)
+            if group:
+                dex = starsWithinCamGroup(group, raPF, decPF, ra, dec)
                 PIC   = PIC[dex].astype(int)
                 ra    = ra[dex]
                 dec   = dec[dex]
@@ -994,55 +1068,301 @@ class PicSim(object):
 
 
 
-                
-    def massLuminosityRelation(R, Teff):
+    #--------------------------------------------------------------#
+    #                   SINGLE GAIA STAR QUERY                     #
+    #--------------------------------------------------------------#            
 
-        """Calculate mass from proxy luminosity.
+    
+    def initSimbad(self):
 
-        Correct for missing masses using mass-luminosity relation.
-        Method valid for (0.43 < M/Msun < 2) and reference from:
-        https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+        """Initialise the Simbad input parameters.
         """
-        return R**(1/2) * Teff[i]/5778.
+
+        if self.verbose > 0:
+            errorcode('software', '\nSimbad target query')
+        
+        # Arguments for GaiaDR3 star query
+        self.simbad = args.simbad
 
 
+
+
+        
+    def querySimbad(self):
+
+        """Function to query a Gaia DR3 star and its contaminants.
+        """
+
+        # Query Gaia DR3 star
+        df = sq.simbadQuery(self.simbad, radius=self.disConLimit)
+        if self.verbose > 0:
+            print(f'\nCatalogue for {self.simbad}:')
+            print(df)
+            
+        # Save output catalogue
+        if self.outputDir is not None:
+            da = df.loc[:, ['ra', 'dec', 'mag']]
+            da.to_csv(self.outputDir / f"starcat_{self.simbad}.txt", sep=' ', header=False)
+            df.to_feather(self.outputDir / f"starcat_{self.simbad}.ftr")
+
+
+    
+    #--------------------------------------------------------------#
+    #                       PLATO CAMERA FOV                       #
+    #--------------------------------------------------------------#            
+
+
+    def initVizier(self):
+
+        """Initialise the Simbad input parameters.
+        """
+
+        if self.verbose > 0:
+            errorcode('software', '\nVizier PLATO FOV query')
+
+        # Arguments for GaiaDR3 star query        
+        self.field  = args.vizier
+        self.bright = args.bright
+        
+        if args.maglim is None:
+            self.maglim = 21
+        else:
+            self.maglim = args.maglim
+            
+        # Constants [deg]
+        self.rGroup = 19.0                       # Max radius to query stars within a group
+        self.cGroup = 9.2                        # Diagonal opening angle of groups
+        self.aGroup = np.sqrt(self.cGroup**2/2)  # Horizontal/vertical opening angle of group
+        
+        # Get pointing of platform [rad] 
+        self.alpha, self.delta, self.kappa = ut.getPointingField(self.field, unit='rad')
+
+        # Find the camera group pointings [rad]
+        raGroups, decGroups = rf.getCameraGroupCoordinates(self.alpha, self.delta, self.kappa)
+        self.raGroups  = np.append(raGroups,  self.alpha)
+        self.decGroups = np.append(decGroups, self.delta)
+
+        # Make a grid in azimuth and tilt angles and find the sky coordinates [deg]
+
+        # Grid constants [deg]
+        r = 7.2                    # Radius of grid point search
+        a = 10.182                 # Distance between equidistant grid points
+        c = np.sqrt(2*a**2)        # Diagonal distance of grid points
+        b = np.sqrt(a**2+(2*a)**2) # Semi-diagonal distance of grid points
+              
+        gridCC = [(-2*a, +2*a), (-1*a, +2*a), (0, +2*a), (+1*a, +2*a), (+2*a, +2*a),
+                  (-2*a, +1*a), (-1*a, +1*a), (0, +1*a), (+1*a, +1*a), (+2*a, +1*a),
+                  (-2*a, +0*a), (-1*a, +0*a), (0, +0*a), (+1*a, +0*a), (+2*a, +0*a),
+                  (-2*a, -1*a), (-1*a, -1*a), (0, -1*a), (+1*a, -1*a), (+2*a, -1*a),
+                  (-2*a, -2*a), (-1*a, -2*a), (0, -2*a), (+1*a, -2*a), (+2*a, -2*a)]
+        
+        gridEQ = [( -45.0, 2*c), ( -22.5, b), (  0, 2*a), ( 67.5, b), ( 45.5, 2*c),
+                  ( -67.5,   b), ( -45.0, c), (  0,   a), ( 45.0, c), ( 22.5,   b),
+                  ( -90.0, 2*a), ( -90.0, a), (  0,   0), ( 90.0, a), ( 90.0, 2*a),
+                  (-112.5,   b), (-135.0, c), (180,   a), (135.0, c), (112.5,   b), 
+                  (-135.0, 2*c), (-157.5, b), (180, 2*a), (157.5, b), (135.0, 2*c)]
+
+        # Get grid points in sky coordinates [deg]   
+        x = np.zeros(len(gridEQ))
+        y = np.zeros(len(gridEQ))
+        for i in range(len(gridEQ)):
+            x[i], y[i] = rf.platformToTelescopePointingCoordinates(self.alpha,
+                                                                   self.delta,
+                                                                   self.kappa,
+                                                                   np.deg2rad(gridEQ[i][0]),
+                                                                   np.deg2rad(gridEQ[i][1]))
+        self.raGrid  = np.rad2deg(x)
+        self.decGrid = np.rad2deg(y)
+
+        # Shorten names
+        self.r, self.a, self.c = r, a, c
+        self.gridCC, self.gridEQ = gridCC, gridEQ
+
+        # Plot grid used for query
+        if self.plot:
+            self.plotVizier()
+        
+        
+
+
+
+    def plotVizier(self):
+
+        # PLOT GRID IN CARTESIAN COORDINATES
+        
+        # Shorten names
+        r, a, c = self.r, self.a, self.c
+        rg, ag  = self.rGroup, self.aGroup
+        gridCC = self.gridCC
+        gridEQ = self.gridEQ
+        
+        # Plot the grid in cartesian coordinates
+        fig, ax = plt.subplots(figsize=(7,7))
+        for i in range(len(gridCC)):
+            ax.add_artist(plt.Circle((gridCC[i][0], gridCC[i][1]), r, color='k', alpha=.2))
+        ax.add_artist(plt.Circle(( ag, ag), rg, color='b', alpha=.2))
+        ax.add_artist(plt.Circle(( ag,-ag), rg, color='b', alpha=.2))
+        ax.add_artist(plt.Circle((-ag,-ag), rg, color='b', alpha=.2))
+        ax.add_artist(plt.Circle((-ag, ag), rg, color='b', alpha=.2))
+
+        # Settings
+        ax.set_title('Cartesian query grid')
+        ax.set_xlabel('x [deg]')
+        ax.set_ylabel('y [deg]')
+        ax.set_xlim(-30, 30)
+        ax.set_ylim(-30, 30)
+        ax.set_aspect('equal')
+        plt.show()
+
+        # PLOT GRID IN EQUATORIAL COORDINATES        
+        
+        fig = plt.figure(figsize=(7,7))
+
+        # Plot the grid points on the sky
+        alpha = np.rad2deg(self.alpha)
+        delta = np.rad2deg(self.delta)
+        platform = SkyCoord(alpha, delta, frame='icrs', unit=u.deg)
+        ax = plt.axes(projection='astro degrees zoom', center=platform,
+                      radius='35 deg', rotate='180 deg')
+
+        # Plot pointing of platform
+        ax.plot(platform.ra.deg, platform.dec.deg, '*', c='k', mfc='magenta', ms=25,
+                    transform=ax.get_transform('world'))
+
+        # Plot the pointing of each camera group
+        colors = ['b', 'limegreen', 'yellow', 'r']
+        for i, c in zip(range(4), colors):
+            ax.plot(np.rad2deg(self.raGroups[i]), np.rad2deg(self.decGroups[i]),
+                    'o', ms=13, c=c, mec='k', transform=ax.get_transform('world'))
+
+        # Plot grid points
+        grid = SkyCoord(self.raGrid, self.decGrid, frame='icrs', unit=u.deg)
+        ax.plot(grid.ra.deg, grid.dec.deg, 'o', ms=10, c='k',mec='k',
+                transform=ax.get_transform('world'))      
+
+        # Settings
+        ax.scalebar((0.05, 0.05), 10 * u.deg).label()
+        ax.compass(0.95, 0.05, 0.1)
+        ax.grid(color='gray')
+        ax.set_xlabel('RA [deg]')
+        ax.set_ylabel('Dec [deg]')
+        plt.show()
+
+
+
+
+        
+    def queryVizier(self):
+
+        """Query function for Gaia DR3.
+
+        This function query a circular area from the Gaia DR3 given a
+        equatorial pointing of the PLATO spacecraft. It uses a grid of 
+        9 circular regions to search for stars (in order not to exceed
+        the RAM memory) and concatenates these grids into a final Gaia
+        custom catalogue spanning each of the camera groups.
+
+        Created on Mon Oct 17, 2022
+        Authors: Juan Cabrera & Nicholas Jannsen
+        Adapted from:
+        https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access
+        """
                 
+        # Query stars within each grid point FOV
+        if self.verbose > 0:
+            print('\nStart Gaia DR3 query')
+
+        filename = self.outputDir / f'starcat_GaiaDR3_{self.field}'
+        N = len(self.raGrid)
+        for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+            df0 = sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i],
+                                     radius=self.r, maglim=self.maglim,
+                                     ofile=f'{filename}.vot')
+            if i == 0:
+                df = df0
+            else:
+                df = pd.concat([df, df0])
+
+        # Remove duplicates
+        df = df.drop_duplicates()
+                
+        # Convert Gmag to Pmag
+        #df['Pmag'] = ut.passbandConversionG2P(df.mag, df.BP_RP)
+
+        # If requested, add bright stars not available in the Gaia catalogue
+        if self.bright:
+            sirius  = {'gaiaDR3':'Sirius',  'ra':101.2871667, 'dec':-16.7161167, 'mag':-1.46}
+            canopus = {'gaiaDR3':'Canopus', 'ra': 95.9879167, 'dec':-52.6956611, 'mag':-0.72}
+            epscma  = {'gaiaDR3':'epsCMa',  'ra':104.6564583, 'dec':-28.9720861, 'mag': 1.50}
+            df = df.append([sirius, canopus, epscma], ignore_index=True)
+
+        # Keep only stars within the camera group FOV
+
+        if self.verbose > 0:
+            print(f'\nCreating catalogue for:')
+
+        for i in range(5):
+
+            if self.verbose > 0:
+                print(f'Camera group {i+1}')
+
+            raStars  = np.deg2rad(df.ra.to_numpy())
+            decStars = np.deg2rad(df.dec.to_numpy())
+
+            # Calculate angular distance
+            dOA = np.arccos(np.sin(self.decGroups[i]) * np.sin(decStars) +
+                            np.cos(self.decGroups[i]) * np.cos(decStars) *
+                            np.cos(self.raGroups[i] - raStars))
+            df0 = df[np.rad2deg(dOA) < 19]
+            
+            # Select output filename
+            ofile = f'{filename}_group{i+1}.ftr'
+
+            # Save new catalogue
+            df0.reset_index(inplace=True)
+            df0.to_feather(ofile)
+
+            
+
+        
         
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
 
 parser = argparse.ArgumentParser(epilog=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=errorcode('software', '\nPIC of Destiny'))
-
-pic_group = parser.add_argument_group('PIC INFO (required)')
-pic_group.add_argument('stars',  type=str, help='Number of targets saved in catalog (Select "all" for all stars)')
-pic_group.add_argument('sample', type=str, help='PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)')
-pic_group.add_argument('field',  type=str, help='PLATO fields [LOPS2, LOPN1, SPF, NPF]')
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-p', '--plot', action='store_true', help='Flag to plot target and contaminant catalog creation')
-out_group.add_argument('-t', '--targ', action='store_true', help='Flag to only show catalogue illustration (mainly testing)')
-parser.add_argument('-v', '--verbose', metavar='NUM',  type=int, help='Verbosity level [0, 1, 2] (Default: 1)')
-out_group.add_argument('-s', '--save', action='store_true', help='Flag to save target and contaminant catalog into a PlatoSim like starcatalog format')
-out_group.add_argument('-o', '--outdir', type=str, metavar='STR', help='Output directory to save catalogue and plots')
-out_group.add_argument('--project',     type=str, metavar='NAME', help='Name project folder within $PLATO_WORKDIR')
-out_group.add_argument('-i', '--incat',  type=str, nargs='*',     help='PIC input target- and contaminant files (Format: csv, txt, ftr)')
-out_group.add_argument('-u', '--unique', type=str, metavar='STR', help='Parse old picsim target catalogue to select new unique stars (Format: ftr)')
+out_group.add_argument('-p', '--plot',    action='store_true',      help='Flag to plot each step of the software')
+out_group.add_argument('-v', '--verbose', type=int, metavar='INT',  help='Verbosity level [0, 1, 3] (Default: 1)')
+out_group.add_argument('-o', '--outdir',  type=str, metavar='STR',  help='Output directory to save catalogue and plots')
+out_group.add_argument('--project',       type=str, metavar='NAME', help='Name of project folder within $PLATO_WORKDIR')
 
-que_group = parser.add_argument_group('QUERY OPTIONS (optional)')
-que_group.add_argument('--simbad', type=str, metavar='NAME',  help='Simbad target for query using Gaia DR2')
-que_group.add_argument('--dmag',  type=int, metavar='MAG',    help='Delta magnitude inclusion threhold of target-to-contaminatn (Default: 5 mag)')
-que_group.add_argument('--dist',  type=int, metavar='ARCSEC', help='Radial distance to fecth contaminants [30, 45, 60] (Default: 45 arcsec)')
+pic_group = parser.add_argument_group('PIC QUERY (PLATO FIELDS)')
+pic_group.add_argument('--pic',    type=str, nargs=3, metavar=('STARS', 'SAMPLE', 'FIELD'), action="append", help='Mandatory arguments (See "-h" for notes)')
+pic_group.add_argument('--ncams',  type=int, metavar='INT',   help='N-CAM visibility [6, 12, 18, 24]')
+pic_group.add_argument('--group',  type=int, metavar='INT',   help='Camera-group visibility [1, 2, 3, 4]')
+pic_group.add_argument('--mag',    type=str, metavar='RANGE', help='P magnitude range of PIC targets (float or dash-range)')
+pic_group.add_argument('--spec',   type=str, metavar='STR',   help='Spectral type [F, G, K]')
+pic_group.add_argument('--lum',    type=str, metavar='STR',   help='Luminosity class [V, IV]')
+pic_group.add_argument('--ntime',  type=int, metavar='INT',   help='Number of individual timeseries to be generated')
+pic_group.add_argument('--incat',  type=str, nargs='*',       help='PIC target and contaminant input files (*.ftr, *.txt)')
+pic_group.add_argument('--unique', type=str, metavar='STR',   help='Parse old picsim target catalogue to select new unique stars (Format: ftr)')
+pic_group.add_argument('--save',   action='store_true',       help='Flag to save stars into ascii PlatoSim-like catalogue')
+pic_group.add_argument('--targ',   action='store_true',       help='Flag to only show PIC target catalogue (e.g. for testing)')
 
-obs_group = parser.add_argument_group('OBSERVABLES (optional)')
-obs_group.add_argument('--ncams', metavar='NUM',   type=int, help='N-CAM visibility [6, 12, 18, 24]')
-obs_group.add_argument('--group', metavar='NUM',   type=int, help='Camera-group visibility [1, 2, 3, 4]')
-obs_group.add_argument('--mag',   metavar='RANGE', type=str, help='P magnitude range of PIC targets (float or dash-range)')
-obs_group.add_argument('--spec',  metavar='TYPE',  type=str, help='Spectral type [F, G, K]')
-obs_group.add_argument('--lum',   metavar='CLASS', type=str, help='Luminosity class [V, IV]')
-obs_group.add_argument('--ntime', metavar='NUM',   type=int, help='Number of individual timeseries to be generated')
+bad_group = parser.add_argument_group('SIMBAD QUERY (SINGLE STAR)')
+bad_group.add_argument('--simbad', type=str, metavar='NAME',  help='Simbad target name')
+
+viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
+viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
+viz_group.add_argument('--maglim', type=float, metavar='MAG',  help='Max magnitude to query (Default: 17 mag)')
+viz_group.add_argument('--bright', action='store_true',        help='Flag add the Yale bright stars catalogue')
+
+que_group = parser.add_argument_group('GENERIC QUERY OPTIONS')
+que_group.add_argument('--dmag', type=int, metavar='MAG',    help='Delta magnitude target-to-contaminant limit (Default: 5 mag)')
+que_group.add_argument('--dist', type=int, metavar='ARCSEC', help='Radial distance target-to-contaminant limit [30, 45, 60] arcsec (Default: 45 arcsec)')
 
 args = parser.parse_args()
 
@@ -1058,26 +1378,37 @@ p = PicSim(args)
 
 # Query single star using Simbad
 if args.simbad:
-    p.queryStar()
+    p.initSimbad()
+    p.querySimbad()
 
-# Old picsim catalogue
-elif args.incat:
-    p.loadOldPIC()
-    p.plotsTargetsPIC()
-    p.plotsContaminantsPIC()
-    p.prologuePIC()
+# Query a PLATO pointing field
+elif args.vizier:
+    p.initVizier()
+    p.queryVizier()
     
-# New picsim catalogue
-else:
-    p.loadPIC()
-    p.queryTargetsPIC()
-    p.plotsTargetsPIC()
-    p.queryContaminantsPIC()
-    p.plotsContaminantsPIC()
-    p.prologuePIC()
+# Query stars from the PIC     
+elif args.pic:
+    
+    # Old picsim catalogue    
+    if args.incat:
+        p.loadOldPIC()
+        p.plotTargetsPIC()
+        p.plotContaminantsPIC()
+        p.prologuePIC()
+        
+    # New picsim catalogue
+    else:
+        p.initPIC()
+        p.loadPIC()
+        p.queryTargetsPIC()
+        p.plotTargetsPIC()
+        p.queryContaminantsPIC()
+        p.plotContaminantsPIC()
+        p.prologuePIC()
     
 # Finish with output
-toc = datetime.datetime.now()
-print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
-print('')
+if (args.verbose is None) or (args.verbose >0):
+    toc = datetime.datetime.now()
+    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
+    print('')
 
