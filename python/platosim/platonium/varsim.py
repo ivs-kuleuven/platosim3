@@ -894,6 +894,32 @@ class VarSim(object):
 
 
 
+
+    def gravity(self):
+
+        """Gravity mode pulsator.
+        """
+
+        time = self.time.to('d').value
+        
+        # Initialize and prepare model input
+        model = GravityOscillator(time, power=2.2, seed=False)
+        
+        # Check if a file with pulsations are parsed
+        if args.pulslist:
+            model.modelGang2020(time, args.pulslist)
+        else:
+            nmodes = int(rng.normal(50, 5))
+            model.modelToyModel(nmodes, [0.8, 3], [0.5, 2.5])
+            
+        model_gmode.plot(time)
+        
+        # Combine models
+        #self.lc[''] = 
+
+
+    
+
     
     def gamma_doradus(self):
 
@@ -1013,11 +1039,11 @@ class VarSim(object):
 
         """Function to generate a SMBH binary light curve.
 
-        A Super Massive Black Hole (SMBH) binary system consist of several components,
-        for which this model includes two of the effects:
+        A Super Massive Black Hole (SMBH) binary system consist of several 
+        components, for which this model includes two of the effects:
         - The doppler boosting
         - The gravitational lensing effect
-
+        - The stochastic quasar variability
         """
 
         # Start script
@@ -1031,6 +1057,7 @@ class VarSim(object):
         time = self.time.to('d').value
 
         # Fetch model parameters
+        # TODO add self.distribution to args
         self.distribution = 'random'
         if self.distribution == 'random':
             from platosim.distribution import SMBHB

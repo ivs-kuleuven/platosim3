@@ -1290,7 +1290,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
     if pointingField in ['SPF', 'NPF']:
         catalogName  = 'PIC110'
-    elif platoField in ['LOPS2', 'LOPN1']:
+    elif pointingField in ['LOPS2', 'LOPN1']:
         catalogName = 'PIC200'
     else:
         errorcode('error', 'Not valid pointing! Choose [LOPS2, LOPN1, SPF, NPF]')
