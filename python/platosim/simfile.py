@@ -26,7 +26,7 @@ import ipywidgets as widgets
 from astropy.io import fits
 
 # PlatoSim imports
-from platosim.utilities import imageClip, normalize
+from platosim.utilities import imageClip, normalize, errorcode
 
 
 #==============================================================#
@@ -1080,7 +1080,7 @@ class SimFile (object):
 
         if groupName not in self.hdf5file["/"].keys():
 
-            self.errorcode("warning", f"No group '{groupName}' in the HDF5 file.")
+            errorcode("warning", f"No group '{groupName}' in the HDF5 file.")
             return None, None, None, None, None, None
 
         # Extract information depending of HDF5 structure
@@ -1102,7 +1102,7 @@ class SimFile (object):
                 if groupName == "PointLikeGhostPositions": func = "getPointLikeGhostCoordinates()" 
                 if groupName == "ExtendedGhostPositions":  func = "getExtendedGhostCoordinates()"
                 
-                self.errorcode("warning", f"SimfFile.{func}: {exposureGroupName} not in hdf5 file")
+                errorcode("warning", f"SimFile.{func}: {exposureGroupName} not in hdf5 file")
 
                 if groupName == "ExtendedGhostPositions":
                     return None, None, None, None, None, None, None
@@ -1291,7 +1291,7 @@ class SimFile (object):
         groupName = "StarPositions"
         
         if groupName not in self.hdf5file["/"].keys():
-            self.errorcode("warning", f"No group '{groupName}' in the HDF5 file.")
+            errorcode("warning", f"No group '{groupName}' in the HDF5 file.")
             return None, None
 
         # Extract information depending of HDF5 structure
@@ -2388,7 +2388,7 @@ class SimFile (object):
         elif fluxUnit == 'ppm':
             df.flux = normalize(df.flux, factor=1e6)
         else:
-            fluxUnit = r'e- s$^{-1}$'
+            fluxUnit = r'e$^-$ s$^{-1}$'
             
         # Create matplotlib object
 
@@ -2403,17 +2403,6 @@ class SimFile (object):
         else:
             ax.plot(df.time, df.flux, 'k.', ms=5, alpha=0.2, label="Raw flux", zorder=1)
 
-        # Plot a median filter
-
-        # if "flux_med" in df.columns:
-        #     ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw, label='1h mdeian')
-
-        # Show binned mean points if requested
-
-        # if "flux_bin" in df.columns:
-        #     binsize = 1
-        #     ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k', label=f'{binsize}h bins', zorder=3)
-
         # Settings
 
         ax.set_xlim(df.time.iloc[0], df.time.iloc[-1])
@@ -2425,7 +2414,3 @@ class SimFile (object):
         # That's it!
 
         return fig, ax
-
-
-
-    
