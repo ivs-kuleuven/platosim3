@@ -543,9 +543,9 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
                            [-np.sin(azimuthAngle), np.cos(azimuthAngle), 0],
                            [            0        ,            0,         1]])
 
-    rotTilt = np.array([[np.cos(tiltAngle),  0, np.sin(tiltAngle)],
-                        [        0        ,  1,           0      ],
-                        [-np.sin(tiltAngle), 0, np.cos(tiltAngle)]])
+    rotTilt = np.array([[np.cos(tiltAngle),  0, -np.sin(tiltAngle)],
+                        [        0        ,  1,            0      ],
+                        [np.sin(tiltAngle),  0,  np.cos(tiltAngle)]])
 
     rotPLM2CAM = np.dot(rotAzimuth.T, np.dot(rotTilt, rotAzimuth))
 
@@ -643,9 +643,9 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
                            [-np.sin(azimuthAngle),  np.cos(azimuthAngle), 0],
                            [            0        ,             0,         1]])
 
-    rotTilt = np.array([[ np.cos(tiltAngle), 0, np.sin(tiltAngle)],
-                        [        0         , 1,           0      ],
-                        [-np.sin(tiltAngle), 0, np.cos(tiltAngle)]])
+    rotTilt = np.array([[ np.cos(tiltAngle), 0, -np.sin(tiltAngle)],
+                        [        0         , 1,            0      ],
+                        [+np.sin(tiltAngle), 0,  np.cos(tiltAngle)]])
 
     rotPLM2CAM = np.dot(rotAzimuth.T, np.dot(rotTilt, rotAzimuth))
     rotCAM2PLM = rotPLM2CAM.T
@@ -1715,9 +1715,9 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOr
                            [-np.sin(azimuthAngle),  np.cos(azimuthAngle), 0],
                            [            0        ,             0        , 1]])
 
-    rotTilt = np.array([[ np.cos(tiltAngle), 0, np.sin(tiltAngle)],
-                        [         0        , 1,        0         ],
-                        [-np.sin(tiltAngle), 0, np.cos(tiltAngle)]])
+    rotTilt = np.array([[ np.cos(tiltAngle), 0, -np.sin(tiltAngle)],
+                        [         0        , 1,         0         ],
+                        [+np.sin(tiltAngle), 0,  np.cos(tiltAngle)]])
 
     rotCAM2PLM = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
 

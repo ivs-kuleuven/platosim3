@@ -28,8 +28,8 @@ We welcome new users and encourage contributions. Simply contact one of the foll
 
 PlatoSim has the following installation procedures:
 
-* [conda installation procedure](https://ivs-kuleuven.github.io/PlatoSim3/user-install.html) (recommended)
-* [straight from GitHub](https://ivs-kuleuven.github.io/PlatoSim3/dev-fork-clone.html)
+* [conda installation procedure](https://ivs-kuleuven.github.io/PlatoSim3/install_conda.html) (recommended)
+* [straight from GitHub](https://ivs-kuleuven.github.io/PlatoSim3/install_source.html)
 
 ## Getting Started
 
@@ -38,7 +38,7 @@ In order to provide a smooth start of your PlatoSim journey, we suggest that you
 
 ## Reference
 
-Please cite *Jannsen et al. (subm.)* if you use PlatoSim in your research. The ADS BibTex entry for this paper will be available soon.
+Please cite [Jannsen et al. (2023)](https://arxiv.org/abs/2310.06985) if you use PlatoSim in your research. The ADS BibTex entry for this paper will be available soon.
 
 <!-- The BibTeX entry for the paper is: -->
 
