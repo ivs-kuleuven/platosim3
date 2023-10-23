@@ -444,6 +444,84 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
 
 
 
+def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
+
+    """ointing Reproducibility Error (PRE) in PLM reference frame.
+    
+    TODO under construction!
+
+    Paramters
+    ---------
+
+    Return
+    ------
+    """
+
+    # Total number of CCD x 2 halves
+
+    nCCD = 104
+    
+    # Find distribution within 3 sigma of req.
+
+    if not gain0CCD: gain0CCD = 1.8
+    gainRef = gain0CCD / sigma
+    deltaGainF = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
+    deltaGainE = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
+    
+    # Plot distributions
+    
+    if plot:
+        t *= 3600
+        b *= 3600
+        y = t/sigma
+        z = 3 * y
+        x = np.abs(b/sigma - z)
+        xx = np.linspace(-10*x, 10*x, 1000)
+
+        ra0  = (df1.RA-ra)   * 3600 / 18
+        dec0 = (df1.Dec-dec) * 3600 / 18
+        
+        fig, ax = plt.subplots(1, 2, figsize=(9,4))
+        
+        ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
+        ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
+        ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
+        ax[0].set_ylabel('Probability (PDF) [\%]')
+        ax[0].set_xlim(xx[0], xx[-1])
+        ax[0].legend()
+
+        ax[1].grid(zorder=0)
+        ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
+        for i in range(len(ra0)):
+            ax[1].scatter(ra0[i], dec0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
+        ax[1].set_title('Distribution on Sky')
+        ax[1].set_xlabel('RA [pixel]')
+        ax[1].set_ylabel('Dec [pixel]')
+        ax[1].set_aspect('equal', adjustable='box')
+        
+        lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
+        lim += lim/10.
+        ax[1].set_xlim(-lim, +lim)
+        ax[1].set_ylim(-lim, +lim)
+        
+        plt.tight_layout()
+        plt.show()
+        
+    # Save file with relative pointing errors [deg]
+    
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
+        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+
+    # That's it!
+    
+    return PRE
+
+
+
+
+
 def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.

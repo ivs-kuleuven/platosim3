@@ -56,7 +56,7 @@ class Payload(object):
         # Global parameters
         self.day2sec = 86400.
         self.prefix  = 'cluster'
-
+        
         # Flags
         self.plot = args.plot
         self.fcam = args.fcam
@@ -83,7 +83,7 @@ class Payload(object):
             self.fileNameGap = self.fileNameCCD = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
         # Number of images in a quarter
-        self.nimg = (60 * 60 * 24 * 90) / 25.
+        self.nimg = round(ut.year() / 4 / 25)
 
         # Select pointng field
         self.field = args.field
@@ -144,8 +144,9 @@ class Payload(object):
         self.Q = Q
 
         # Time column
-        t0 = round(90. * (self.Q[0]  - 1) * self.day2sec)
-        t1 = round(90. * (self.Q[-1])     * self.day2sec)
+        tQ = ut.year() / self.day2sec / 4
+        t0 = round(tQ * (self.Q[0]  - 1) * self.day2sec)
+        t1 = round(tQ * (self.Q[-1])     * self.day2sec)
         self.time = np.arange(t0, t1, 25)
 
 
@@ -227,6 +228,23 @@ class Payload(object):
         
 
 
+    def createGain(self):
+
+        """Function to create a gain variation file.
+        Used to realistically include gain variations for CCD and FEE.
+        TODO under struction!
+        """
+
+        # Generete APE file
+        errorcode('module', '\nCCD and FEE gain variations')
+        ns.getGain(gain0CCD=, gain0FEE=, sigma=3,
+                   ofile=self.fileNameAPE, table=True, plot=self.plot)
+        if self.odir: print(f"File saved: {self.fileNameAPE}")
+
+
+
+
+        
     def createGap(self):
 
         """Function to create a time columns including Data Gaps.
