@@ -2213,17 +2213,13 @@ void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<d
     vector<double> time;
     for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
 
-    // TODO Remove
-    // if (!time.empty())
-    // {
-    //   writeArray("StarPositions/", "time", time.data(), time.size());
-    // }
-    // else
-    // {
-    //   Log.warning("HDF5File: No star positions to write to HDF5 file.");
-    // }
+    // TODO Remove this and replace with more genric time column in a new release
 
-    if (time.empty())
+    if (!time.empty())
+    {
+      writeArray("StarPositions/", "time", time.data(), time.size());
+    }
+    else
     {
       Log.warning("HDF5File: No star positions to write to HDF5 file.");
     }
