@@ -644,8 +644,8 @@ class PLATOnium(object):
                 sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
                 sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
             else:
-                sim["SubField/NumRows"]         = 500 #sim["CCDPositions/NumRows"][0]
-                sim["SubField/NumColumns"]      = 500 #sim["CCDPositions/NumColumns"][0]
+                sim["SubField/NumRows"]         = sim["CCDPositions/NumRows"][0]
+                sim["SubField/NumColumns"]      = sim["CCDPositions/NumColumns"][0]
 
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True
@@ -653,6 +653,7 @@ class PLATOnium(object):
             sim["ControlHDF5Content/WriteStarPositions"] = True
 
             return sim
+        
         
         # SUBFIELD SIMULATION
         
@@ -1638,8 +1639,8 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 parser.add_argument('-p', '--plot',      action='store_true',   help='Flag to plot 1st subfield (this will not save the simulation)')
 parser.add_argument('-w', '--overwrite', action='store_true',   help='Flag to overwrite an existing HDF5 output file that may exist')
-parser.add_argument('-a', '--animation', action='store_true',   help='Flag to generate a animation of the subfield simulation')
-parser.add_argument('-v', '--verbose', metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
+parser.add_argument('-a', '--animation', action='store_true',   help='Flag to generate an animation of the subfield simulation')
+parser.add_argument('-v', '--verbose', metavar='NR', type=int, help='Verbosity level {0, 1, 3} (Default: 1)')
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID',   type=int, help='Star ID in target list (or for --fullframe CCD in [1,2,3,4])')
