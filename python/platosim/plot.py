@@ -16,6 +16,7 @@ import descartes
 from tqdm import tqdm
 from ipywidgets import interact
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.animation as animation
@@ -1284,7 +1285,16 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     # NOTE ligo skymap is only usable with "poetry install --with platonium"
 
     import ligo.skymap.plot
-    
+
+    # Fetch PIC catalogue
+
+    if pointingField in ['SPF', 'NPF']:
+        catalogName  = 'PIC110'
+    elif pointingField in ['LOPS2', 'LOPN1']:
+        catalogName = 'PIC200'
+    else:
+        errorcode('error', 'Not valid pointing! Choose [LOPS2, LOPN1, SPF, NPF]')
+        
     # Select field [deg]
 
     alpha, delta, kappa = ut.getPointingField(pointingField) 
@@ -1307,15 +1317,16 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     if ncamStars:
 
         idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-        PF06 = np.load(f'{idir}/{pointingField}-NCAM06.npy')
-        PF12 = np.load(f'{idir}/{pointingField}-NCAM12.npy')
-        PF18 = np.load(f'{idir}/{pointingField}-NCAM18.npy')
-        PF24 = np.load(f'{idir}/{pointingField}-NCAM24.npy')
+        df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+        PF06 = df[df['ncams'] == 6]
+        PF12 = df[df['ncams'] == 12]
+        PF18 = df[df['ncams'] == 18]
+        PF24 = df[df['ncams'] == 24]
 
-        starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
-        starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
-        starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
-        starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
+        starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame=system, unit='deg')
+        starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame=system, unit='deg')
+        starPF18 = SkyCoord(PF18.ra*u.deg, PF18.dec*u.deg, frame=system, unit='deg')
+        starPF24 = SkyCoord(PF24.ra*u.deg, PF24.dec*u.deg, frame=system, unit='deg')
 
         if system == "icrs":
             x06, y06 = starPF06.ra.deg, starPF06.dec.deg
@@ -1338,18 +1349,19 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     # Plot stars and add legend scaled to the stellar magnitudes
     
     if magStars is not None and len(magStars) > 0:
+        print('nice')
         maxMarkerSize = 30
         dm = (max(magStars) - magStars) * maxMarkerSize
         mag_range = np.arange(min(magStars), max(magStars)).astype(int)
         dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
-        mark, color = 'o', 'gold'
+        mark, color = 'o', 'orange'
         handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0]
                   for i in range(len(dm_range))]
         ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
                   title=r"P [mag]", fontsize=16, title_fontsize=16)
     else:
         dm, mark, color = 20, '*', 'none'
-
+        
     # Plot all stars
 
     starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
@@ -1371,7 +1383,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
             ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
                     mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
-
+        
         # Plot pointing F-CAM group (i.e. platform pointing)
         
         ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=25,
@@ -1402,11 +1414,11 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     ax.grid(color='gray')
     
     # Settings
-    
+
+    if showLegend and showGroups:
+        ax.legend(loc='upper right')    
     if title is not None:
-        ax.set_title(title, fontsize=fs+2)
-    if showLegend:
-        plt.legend(loc='upper right')    
+        ax.set_title(title, fontsize=fs+2)        
     ax.set_xlabel('RA',  fontsize=fs)
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)
@@ -2408,7 +2420,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
 
 def plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
                      sg, df_sgK, df_sgG, df_sgF,
-                     df, ms_limit, title, figsize=(8,6)):
+                     df, title, figsize=(8,6)):
 
     """Distribution of Teff vs. Radius.
 
@@ -2436,9 +2448,6 @@ def plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
         Pandas data frame with all F sub-giants from PIC sample.
     df : ndarray
         Pandas data frame with all selected stars for the given PIC sample.
-    ms_limit : func
-        Function defined the devision between dwarfs and sub-giants.
-        We use the limit defined by: Pecaut and Mamajek (2013)
     title : str
        Add a title string to figure.
     figsize : list
@@ -2479,7 +2488,7 @@ def plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
     # Compute main sequence devision
     
     dt = np.arange(np.min(ds['Teff']), np.max(ds['Teff']), 10)
-    ax.plot(dt, ms_limit(dt), 'k-')
+    ax.plot(dt, ut.getMainSequenceLimit(dt), 'k-')
 
     # Settings
     
@@ -2489,11 +2498,11 @@ def plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
 
     # Legend
     
-    order = [3, 4, 5, 0, 1, 2]
+    order = [0, 3, 1, 4, 2, 5]
     handles, labels = plt.gca().get_legend_handles_labels()
     h = [handles[idx] for idx in order]
     l = [labels[idx] for idx in order]
-    ax.legend(h, l, ncol=2, loc='upper left', prop={'size':12},
+    ax.legend(h, l, ncol=3, loc='upper left', prop={'size':12},
                columnspacing=0.5, handletextpad=0)
 
     # That's it!
@@ -2504,7 +2513,7 @@ def plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
 
 
 
-def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, distCon):
+def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, distCon):
 
     """Plot sample distribution of used stellar catalogue.
 
@@ -2544,7 +2553,7 @@ def plotStellarSampleDistributions(fig, mag, magCon, magRange, numConPerTar, dis
     binsizeTar = int((magRange[1] - magRange[0]) / magbinTar) + 1
     binlistTar = np.linspace(magRange[0], magRange[1], binsizeTar)
 
-    axes[0,0].hist(mag, binlistTar, facecolor='b', edgecolor='b', fill=True, alpha=0.3)
+    axes[0,0].hist(magTar, binlistTar, facecolor='b', edgecolor='b', fill=True, alpha=0.3)
     axes[0,0].set_title('Magnitude distribution of PIC targets')
     axes[0,0].set_xlabel(r'$P$ passband')
     #axes[0,0].set_xlabel(r'$V$ Johnson-Cousin')

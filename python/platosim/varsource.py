@@ -672,7 +672,8 @@ class StellarFlares(funcFit.OneDFit):  # TODO test
 
 
 
-class GravityOscillations(funcFit.OneDFit):  # TODO test
+class GravityOscillator(self):
+
     """
     time_start and time_end are given in days and define the time interval over which to simulate the flare
     the sampling should be given in exposures or data-points per day
@@ -681,40 +682,109 @@ class GravityOscillations(funcFit.OneDFit):  # TODO test
     power is the power to which the sum of every mode is raised, it introduces an asymmetry in the signal
 
     """
-    def __init__(self):
-        funcFit.OneDFit.__init__(self, ["P_range", "A_range", "N_modes", "power", "t_step"])
 
-    def evaluate(self, time):
+    def __init__(self, time, power, seed=False):
 
-        seed = random.seed(seed)
+        self.time  = time
+        self.power = power
 
-        # convert the times in days to times in secons (because the time_step is given in seconds)
+        if not seed:
+            self.rng = np.random.default_rng()
+        else:
+            self.rng = np.random.default_rng(seed)
+    
+
         
-        self["t_step"] /= 24*60*60.
+    def initToyModel(self, nmodes, period_range, amplitude_range):
 
-        t = np.arange(time[0], time[-1], self["t_step"], dtype=float)
-        flux = np.zeros_like(t)
+        # Randomly generate pulsations if not from file
+        self.period    = self.rng.uniform(0, 2*np.pi, size=nmodes)
+        self.amplitude = self.rng.uniform(period_range[0], period_range[1], size=nmodes)
+        self.phase     = self.rng.uniform(amplitude_range[0], amplitude_range[1], size=nmodes)
 
-        # loop over the number of modes and each time pick a period, an amplitude and a phi
-        #  at random out of the appropriate range
+
         
-        for i in range(self["N_modes"]):
+    def initGang2020(self, filename):
 
-            phi = random.uniform(0, 2 * np.pi)
-            P   = random.uniform(self["P_range"][0], self["P_range"][1])
-            A   = random.uniform(self["A_range"][0], self["A_range"][1])
+        # Load file containing columns
+        f = Path(filename).resolve()
+        if not f.is_file():
+            errorcode('error', 'File do not exist, check filepath again!')
+        else:
+            data = np.loadtxt(f)
+                
+        # Else load the data
+        self.period    = data[:,0]
+        self.amplitude = data[:,1]
+        self.phase     = data[:,2]
 
-            flux += A * np.sin(2 * np.pi * (1 / P) * t + phi)  # sum of every mode
 
-        # normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
+            
+            
+    def evaluate(self, plot=False):
+
+        nmodes = len(self.period)
         
-        A     = np.amax(np.absolute(flux))
-        flux /= A
-        flux  = A * (((flux + 1)**self["power"]) - 1)
+        # Loop over the number of modes and sum of every mode
+        mag = np.zeros_like(self.time)
+        for i in range(nmodes):
+            mag += self.amplitude[i] * np.sin(2 * np.pi * (1 / self.period[i]) * time + self.phase[i])
 
-        # That's it!
+        # Normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
+        # Then add 1, raise the power and substract 1
+        A = np.amax(np.absolute(mag))
+        mag /= A
+        mag = A * ( ( (1 + mag)**self.power ) - 1)
+
+        # Create a table with value
+        df = pd.DataFrame()
+        df['period [days]']    = self.period 
+        df['amplitude [mmag]'] = self.amplitude
+        df['phase [rad]']      = self.phase
+
+        # Plot if requested
+        if plot:
+            print(df)
+            plt.figure(figsize=(9, 5))
+            plt.plot(time, mag, 'm-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'$\delta m$ [mmag]')
+            plt.xlim(np.min(time), np.max(time))
+            plt.tight_layout()
+            plt.show()
+
+        return mag * 1e-3 
+
         
-        return flux
+        # seed = random.seed(seed)
+
+        # # convert the times in days to times in secons (because the time_step is given in seconds)
+        
+        # self["t_step"] /= 24*60*60.
+
+        # t = np.arange(time[0], time[-1], self["t_step"], dtype=float)
+        # flux = np.zeros_like(t)
+
+        # # loop over the number of modes and each time pick a period, an amplitude and a phi
+        # #  at random out of the appropriate range
+        
+        # for i in range(self["N_modes"]):
+
+        #     phi = random.uniform(0, 2 * np.pi)
+        #     P   = random.uniform(self["P_range"][0], self["P_range"][1])
+        #     A   = random.uniform(self["A_range"][0], self["A_range"][1])
+
+        #     flux += A * np.sin(2 * np.pi * (1 / P) * t + phi)  # sum of every mode
+
+        # # normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
+        
+        # A     = np.amax(np.absolute(flux))
+        # flux /= A
+        # flux  = A * (((flux + 1)**self["power"]) - 1)
+
+        # # That's it!
+        
+        # return flux
 
 
 
