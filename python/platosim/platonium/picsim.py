@@ -1407,7 +1407,7 @@ elif args.pic:
         p.prologuePIC()
     
 # Finish with output
-if (args.verbose is None) or (args.verbose >0):
+if (args.verbose is None) or (args.verbose > 0):
     toc = datetime.datetime.now()
     print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
     print('')
