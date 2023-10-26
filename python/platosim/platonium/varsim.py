@@ -68,7 +68,7 @@ from platosim.varsource import (LimbDarkening,
                                 PlanetMRforecast,
                                 StellarActivity,
                                 StellarFlares,
-                                GravityOscillations,
+                                GravityOscillator,
                                 solarosc)
 
 
@@ -893,31 +893,6 @@ class VarSim(object):
 
 
 
-
-
-    def gravity(self):
-
-        """Gravity mode pulsator.
-        """
-
-        time = self.time.to('d').value
-        
-        # Initialize and prepare model input
-        model = GravityOscillator(time, power=2.2, seed=False)
-        
-        # Check if a file with pulsations are parsed
-        if args.pulslist:
-            model.modelGang2020(time, args.pulslist)
-        else:
-            nmodes = int(rng.normal(50, 5))
-            model.modelToyModel(nmodes, [0.8, 3], [0.5, 2.5])
-            
-        model_gmode.plot(time)
-        
-        # Combine models
-        #self.lc[''] = 
-
-
     
 
     
@@ -935,15 +910,47 @@ class VarSim(object):
         if self.verbose > 0:
             errorcode('module', '\ngamma-Dor g-modes\n')
 
-        # Draw number of pulsation from uniform distribution
-        npuls = int(rng.normal(50, 5))
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = GravityOscillator(time, power=2.2, seed=False)
+        
+        # Check if a file with pulsations are parsed
+        #args.puls = 'gang2020'
+        if args.puls == 'gang2020':
 
-        # Model gravity modes
-        flux = self.gravity_oscill([0.8, 3], [0.5, 2.5], nmodes=npuls, power=2.2, seed=0)
-        self.lc['mag'] = flux.tolist()
-        #self.std_params = [P, dphi*180/np.pi, a1, a2, scale]
+            # Select a random object from the list and load Fourier data
+            filename = 'varsource_gdor_gang2020'
+            try:
+                filenames = glob.glob(f'{self.datapath}/{filename}/*.dat')
+                starfile  = random.choice(filenames)
+            except:
+                zipfile = f'{filename}.zip'
+                if self.verbose > 0:
+                    print(f'Downloading {zipfile} files..')
+                    
+                downloadFromFTP(filename=zipfile, outputDir=self.datapath, server='plato')
+                os.system(f'unzip {self.datapath}/{zipfile} -d {self.datapath}')
+                os.system(f'rm {self.datapath}/{zipfile}')
+
+            # Load file with harmonics
+            filenames = glob.glob(f'{self.datapath}/{filename}/*.dat')
+            starfile  = random.choice(filenames)
+            if self.verbose > 0:
+                print(f'Using file: {starfile}')
+            model.initGang2020(starfile)
+        else:
+            # Draw number of pulsation from uniform distribution
+            nmodes = int(rng.normal(50, 5))
+            model.initToyModel(nmodes, [0.8, 3], [0.5, 2.5])
+
+        # Return model
+        self.lc['mag'] = model.evaluate(plot=args.plot)
+            
+        exit()
 
 
+
+        
     
         
 

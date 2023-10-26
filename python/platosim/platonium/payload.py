@@ -22,6 +22,7 @@ and used when running "platonium".
 import os
 import shutil
 import argparse
+import datetime
 
 # PlatoSim standard
 import numpy as np
@@ -165,6 +166,26 @@ class Payload(object):
     
 
 
+    def createParamFile(self):
+
+        """Function to create a job script to be used on the VSC.
+        """
+        
+        if self.odir:
+            filename = f"{self.odir}/{self.prefix}_ncams.data"
+            print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, self.G, self.C, self.Q,
+                            fcam=False, ofile=filename)
+            
+            if self.fcam:
+                filename = f"{self.odir}/{self.prefix}_fcams.data"
+                print(f"Creating HPC parameterization file  : {filename}")
+                sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
+                                fcam=True, ofile=filename)
+
+
+
+
     def createJobScript(self):
 
         """Function to create a job script to be used on the VSC.
@@ -180,22 +201,7 @@ class Payload(object):
 
 
 
-            
-    def createParamFile(self):
-
-        """Function to create a job script to be used on the VSC.
-        """
-        
-        if self.odir:
-            filename = f"{self.odir}/{self.prefix}.data"
-            print(f"Creating HPC parameterization file  : {filename}")
-            sm.getParamFile(self.N, self.G, self.C, self.Q,
-                            fcam=self.fcam, ofile=filename)
-
-
-
-
-        
+                            
     def createPRE(self):
 
         """Function to create a Pointing Repeatability Error (PRE) file.
@@ -237,8 +243,8 @@ class Payload(object):
 
         # Generete APE file
         errorcode('module', '\nCCD and FEE gain variations')
-        ns.getGain(gain0CCD=, gain0FEE=, sigma=3,
-                   ofile=self.fileNameAPE, table=True, plot=self.plot)
+        #ns.getGain(gain0CCD=, gain0FEE=, sigma=3,
+        #           ofile=self.fileNameAPE, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
 
@@ -290,14 +296,15 @@ class Payload(object):
         """
         
         # Generate ACS file
-        if not self.aocs: return
-        errorcode('module', '\nAttitude Control System (ACS)\n')
-        ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameACS}")
+        if self.aocs and self.odir:
+            errorcode('module', '\nAttitude Control System (ACS)\n')
+            ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
+            if self.odir: print(f"File saved: {self.fileNameACS}")
 
 
 
-        
+
+            
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
@@ -311,6 +318,12 @@ man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('ids',   type=str, help='Number of IDs (stars or CCDs=4)')
 man_group.add_argument('field', type=str, help='LOP (SPF, NPF)')
 
+out_group = parser.add_argument_group('I/O PARAMETERS')
+out_group.add_argument('-p', '--plot',    action='store_true',      help='Flag to plot each action')
+out_group.add_argument('-v', '--verbose', metavar='INT',  type=int, help='Verbosity level {0, 1, 3} (Default: 1)')
+out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output directory to save')
+out_group.add_argument('--project',       metavar='NAME', type=str, help='Name of PLATOnium project')
+
 obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
 obs_group.add_argument('--group',   metavar='NO.', type=str, help='Group   no.: 1, 2, .. (Default: 1-4 = all)')
 obs_group.add_argument('--camera',  metavar='NO.', type=str, help='Camera  no.: 1, 2, .. (Default: 1-6 = all)')
@@ -318,22 +331,31 @@ obs_group.add_argument('--quarter', metavar='NO.', type=str, help='Quarter no.: 
 obs_group.add_argument('--fcam',    action='store_true', help='Flag to generate files for the F-CAMs')
 obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate AOCS jitter file')
 
-out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-p', '--plot',   action='store_true',      help='Flag to plot each action')
-out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory to save')
-out_group.add_argument('--project',      metavar='NAME', type=str, help='Name of PLATOnium project')
+args = parser.parse_args()
+
+#--------------------------------------------------------------#
+#                            WORKFLOW                          #
+#--------------------------------------------------------------#
+
+# Start time tracking
+tic = datetime.datetime.now()
 
 # Initialize instance of class
-args = parser.parse_args()
 x = Payload(args)
 
 # Run each module
 x.createInputYAML()
-x.createJobScript()
 x.createParamFile()
+x.createJobScript()
 x.createPRE()
 x.createAPE()
 x.createGap()
 x.createTED()
-#x.createACS()
+x.createACS()
 print('')
+
+# Finish with output
+if (args.verbose is None) or (args.verbose > 0):
+    toc = datetime.datetime.now()
+    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
+    print('')

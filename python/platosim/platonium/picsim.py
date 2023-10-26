@@ -790,7 +790,7 @@ class PicSim(object):
         df['mag']    = data[:,3].astype(np.float64)
         df['Teff']   = data[:,5].astype(np.float64)
         df['R']      = data[:,6].astype(np.float64)
-        df['M']      = data[:,7].astype(np.float64)]
+        df['M']      = data[:,7].astype(np.float64)
         df['ncams']  = data[:,8].astype(float).astype(int)
         df['sample'] = data[:,4].astype(float).astype(int)
 
@@ -1283,17 +1283,31 @@ class PicSim(object):
             else:
                 df = pd.concat([df, df0])
 
-        # Remove duplicates
-        df = df.drop_duplicates()
+        # Remove duplicate stars
+        df = df.drop_duplicates(subset=['gaiaDR3'])
                 
         # Convert Gmag to Pmag
-        #df['Pmag'] = ut.passbandConversionG2P(df.mag, df.BP_RP)
+        df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
+        df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
+        df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
 
+        # Remove Gaia filters again
+        df = df.drop(columns=['Gmag', 'BP_RP'])        
+        
         # If requested, add bright stars not available in the Gaia catalogue
         if self.bright:
-            sirius  = {'gaiaDR3':'Sirius',  'ra':101.2871667, 'dec':-16.7161167, 'mag':-1.46}
-            canopus = {'gaiaDR3':'Canopus', 'ra': 95.9879167, 'dec':-52.6956611, 'mag':-0.72}
-            epscma  = {'gaiaDR3':'epsCMa',  'ra':104.6564583, 'dec':-28.9720861, 'mag': 1.50}
+            sirius  = {'gaiaDR3':'Sirius',  'ra':101.2871667, 'dec':-16.7161167,
+                       'Pmag':  ut.passbandConversionV2P(-1.46, 9940),
+                       'PBmag': ut.passbandConversionV2P(-1.46, 9940),
+                       'PRmag': ut.passbandConversionV2P(-1.46, 9940)}
+            canopus = {'gaiaDR3':'Canopus', 'ra': 95.9879167, 'dec':-52.6956611,
+                       'Pmag':  ut.passbandConversionV2P(-0.72, 7400),
+                       'PBmag': ut.passbandConversionV2P(-0.59, 7400),
+                       'PRmag': ut.passbandConversionV2P(-0.96, 7400)}
+            epscma  = {'gaiaDR3':'epsCMa',  'ra':104.6564583, 'dec':-28.9720861,
+                       'Pmag':  ut.passbandConversionV2P(1.50, 22900),
+                       'PBmag': ut.passbandConversionV2P(1.29, 22900),
+                       'PRmag': ut.passbandConversionV2P(1.59, 22900)}
             df = df.append([sirius, canopus, epscma], ignore_index=True)
 
         # Keep only stars within the camera group FOV
@@ -1407,7 +1421,7 @@ elif args.pic:
         p.prologuePIC()
     
 # Finish with output
-if (args.verbose is None) or (args.verbose >0):
+if (args.verbose is None) or (args.verbose > 0):
     toc = datetime.datetime.now()
     print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
     print('')

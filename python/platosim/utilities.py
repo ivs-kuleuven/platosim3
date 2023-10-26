@@ -840,18 +840,18 @@ def getPointingField(name, unit='deg'):
     Sky coordinates (alpha, delta, kappa) [deg]
     """
 
-    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000+180],  # PIC 1.1
-          'SPF':   [ 86.79870508, -46.39594703,  10.0000+180],  # PIC 1.1
-          'LOPN':  [277.18023,     52.85952,    -13.9947+180],  # PIC 2.0
-          'LOPS2': [ 95.31043,    -47.88693,     13.9947+180],  # PIC 2.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0],          # TN of KUL20
-          'JUAN':  [ 86.79870,    -46.395950,    2.74]}  # Test for Juan
+    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000],  # PIC 1.1
+          'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
+          'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
+          'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
+          'KUL20': [ 86.79870508, -46.39594703,  0.0],      # TN of KUL20
+          'JUAN':  [ 86.79870,    -46.395950,    2.74]}     # Test for Juan
 
     # Check data field exists
     
     try: p = PF[name]
     except KeyError: errorcode('error', 'Not valid PLATO field!' +
-                               'Options: NPF, SFP, LOPN, LOPS2')
+                               'Options: {LOPS2, LOPN1, SFP, NPF}')
 
     # Convert units and return
     
