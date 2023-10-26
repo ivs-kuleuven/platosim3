@@ -14,6 +14,7 @@ import urllib.request
 
 import pathlib
 import numpy as np
+import pandas as pd
 from numba import njit
 from astropy.io import fits
 from astropy import units as u
@@ -35,8 +36,10 @@ def create_star(spectype, spectypes_datafile=None):
 
 
     if spectype in spectype_names: 
-        spectype_names = list(np.genfromtxt(spectypes_datafile, dtype='str', delimiter='', usecols=(0), unpack=True))
-        teffs, luminosities, radii,masses = np.genfromtxt(spectypes_datafile, delimiter='', usecols=(1,2,3,4), unpack=True)
+        spectype_names = list(np.genfromtxt(spectypes_datafile, dtype='str',
+                                            delimiter='', usecols=(0), unpack=True))
+        teffs, luminosities, radii,masses = np.genfromtxt(spectypes_datafile, delimiter='',
+                                                          usecols=(1,2,3,4), unpack=True)
 
     else:
         raise ValueError("SpType {} not one of {}".format(spectype,spectype_names))
@@ -672,7 +675,7 @@ class StellarFlares(funcFit.OneDFit):  # TODO test
 
 
 
-class GravityOscillator(self):
+class GravityOscillator(object):
 
     """
     time_start and time_end are given in days and define the time interval over which to simulate the flare
@@ -688,6 +691,7 @@ class GravityOscillator(self):
         self.time  = time
         self.power = power
 
+        # Choose seed for randomness
         if not seed:
             self.rng = np.random.default_rng()
         else:
@@ -705,30 +709,29 @@ class GravityOscillator(self):
 
         
     def initGang2020(self, filename):
-
+        
         # Load file containing columns
-        f = Path(filename).resolve()
-        if not f.is_file():
-            errorcode('error', 'File do not exist, check filepath again!')
-        else:
-            data = np.loadtxt(f)
-                
+        df = pd.read_csv(filename, sep=' ', comment='#',
+                         names=['freq', 'ampl', 'phase', 'snr'])
+
         # Else load the data
-        self.period    = data[:,0]
-        self.amplitude = data[:,1]
-        self.phase     = data[:,2]
+        self.period    = df.freq
+        self.amplitude = df.ampl
+        self.phase     = df.phase
 
 
             
             
     def evaluate(self, plot=False):
 
+        # Number of pulsation modes
         nmodes = len(self.period)
         
         # Loop over the number of modes and sum of every mode
         mag = np.zeros_like(self.time)
         for i in range(nmodes):
-            mag += self.amplitude[i] * np.sin(2 * np.pi * (1 / self.period[i]) * time + self.phase[i])
+            mag += (self.amplitude[i] *
+                    np.sin(2 * np.pi * (1 / self.period[i]) * self.time + self.phase[i]))
 
         # Normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
         # Then add 1, raise the power and substract 1
@@ -736,56 +739,19 @@ class GravityOscillator(self):
         mag /= A
         mag = A * ( ( (1 + mag)**self.power ) - 1)
 
-        # Create a table with value
-        df = pd.DataFrame()
-        df['period [days]']    = self.period 
-        df['amplitude [mmag]'] = self.amplitude
-        df['phase [rad]']      = self.phase
-
         # Plot if requested
         if plot:
-            print(df)
             plt.figure(figsize=(9, 5))
-            plt.plot(time, mag, 'm-')
+            plt.plot(self.time, mag, 'm-')
             plt.xlabel('Time [d]')
             plt.ylabel(r'$\delta m$ [mmag]')
-            plt.xlim(np.min(time), np.max(time))
+            plt.xlim(np.min(self.time), np.max(self.time))
             plt.tight_layout()
             plt.show()
 
         return mag * 1e-3 
 
         
-        # seed = random.seed(seed)
-
-        # # convert the times in days to times in secons (because the time_step is given in seconds)
-        
-        # self["t_step"] /= 24*60*60.
-
-        # t = np.arange(time[0], time[-1], self["t_step"], dtype=float)
-        # flux = np.zeros_like(t)
-
-        # # loop over the number of modes and each time pick a period, an amplitude and a phi
-        # #  at random out of the appropriate range
-        
-        # for i in range(self["N_modes"]):
-
-        #     phi = random.uniform(0, 2 * np.pi)
-        #     P   = random.uniform(self["P_range"][0], self["P_range"][1])
-        #     A   = random.uniform(self["A_range"][0], self["A_range"][1])
-
-        #     flux += A * np.sin(2 * np.pi * (1 / P) * t + phi)  # sum of every mode
-
-        # # normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
-        
-        # A     = np.amax(np.absolute(flux))
-        # flux /= A
-        # flux  = A * (((flux + 1)**self["power"]) - 1)
-
-        # # That's it!
-        
-        # return flux
-
 
 
 

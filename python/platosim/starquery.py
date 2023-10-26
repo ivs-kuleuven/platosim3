@@ -363,7 +363,8 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
 
 
-def gaiaRegionQuery(ra, dec, radius=19, maglim=21, ofile=False):
+def gaiaRegionQuery(ra, dec, radius=19, maglim=21,
+                    full=False, ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
     
@@ -392,23 +393,31 @@ v        File name (without file extension) to be saved
 
     # Fetcj columns from catalogues
     # NOTE we join with the astrophysical table below!
-    
-    colname = ['gaia.source_id',
-               'gaia.ra',
-               'gaia.dec',
-               'gaia.phot_g_mean_mag',
-               'gaia.bp_rp',
-               'gaia.ag_gspphot',
-               'gaia.parallax', 'gaia.parallax_error',
-               'gaia.pmra',
-               'gaia.pmdec',
-               'gaia.ruwe',
-               'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-               'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
-               'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
-               'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
-               'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
-               'astro.spectraltype_esphs']
+
+    if full:
+        colname = ['gaia.source_id',
+                   'gaia.ra',
+                   'gaia.dec',
+                   'gaia.phot_g_mean_mag',
+                   'gaia.bp_rp',
+                   'gaia.ag_gspphot',
+                   'gaia.parallax', 'gaia.parallax_error',
+                   'gaia.pmra',
+                   'gaia.pmdec',
+                   'gaia.ruwe',
+                   'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
+                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
+                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
+                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
+                   'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
+                   'astro.spectraltype_esphs']
+    else:
+        colname = ['gaia.source_id',
+                   'gaia.ra',
+                   'gaia.dec',
+                   'gaia.phot_g_mean_mag',
+                   'gaia.bp_rp']
+        
     columns = ', '.join(colname)
     
     query_base = f"""SELECT
@@ -498,32 +507,39 @@ v        File name (without file extension) to be saved
     os.remove(ofile)
     
     # Rename columns
-    
-    df = df.rename(columns={'source_id': 'gaiaDR3',
-                            'phot_g_mean_mag': 'mag',
-                            'ag_gspphot': 'ag',
-                            'parallax': 'plx',
-                            'parallax_error': 'plx_err',
-                            'teff_gspphot': 'teff',
-                            'teff_gspphot_lower': 'teff_low',
-                            'teff_gspphot_upper': 'teff_upp',
-                            'logg_gspphot': 'logg',
-                            'logg_gspphot_lower': 'logg_low',
-                            'logg_gspphot_upper': 'logg_upp',
-                            'lum_flame': 'lum',
-                            'lum_flame_lower': 'lum_low',
-                            'lum_flame_upper': 'lum_upp',
-                            'radius_flame': 'radius',
-                            'radius_flame_lower': 'radius_low',
-                            'radius_flame_upper': 'radius_upp',
-                            'mass_flame': 'mass',
-                            'mass_flame_lower': 'mass_low',
-                            'mass_flame_upper': 'mass_upp',
-                            'spectraltype_esphs': 'spec'})
-    
-    # Sort and return
-    
-    df = df.sort_values(by=['spec', 'teff'])
-    df = df.reset_index(drop=True)
 
-    return df
+    if full:
+        df = df.rename(columns={'source_id': 'gaiaDR3',
+                                'phot_g_mean_mag': 'Gmag',
+                                'bp_rp': 'BP_RP',
+                                'ag_gspphot': 'Ag',
+                                'parallax': 'plx',
+                                'parallax_error': 'plx_err',
+                                'teff_gspphot': 'Teff',
+                                'teff_gspphot_lower': 'Teff_low',
+                                'teff_gspphot_upper': 'Teff_upp',
+                                'logg_gspphot': 'logg',
+                                'logg_gspphot_lower': 'logg_low',
+                                'logg_gspphot_upper': 'logg_upp',
+                                'lum_flame': 'lum',
+                                'lum_flame_lower': 'L_low',
+                                'lum_flame_upper': 'L_upp',
+                                'radius_flame': 'R',
+                                'radius_flame_lower': 'R_low',
+                                'radius_flame_upper': 'R_upp',
+                                'mass_flame': 'mass',
+                                'mass_flame_lower': 'M_low',
+                                'mass_flame_upper': 'M_upp',
+                                'spectraltype_esphs': 'spec'})
+        df = df.sort_values(by=['spec', 'teff'])
+    else:
+        df = df.rename(columns={'source_id': 'gaiaDR3',
+                                'phot_g_mean_mag': 'Gmag',
+                                'bp_rp': 'BP_RP'})
+
+    # Convert names to string
+    df.gaiaDR3 = df.gaiaDR3.astype(str)
+        
+    # Reset index and return
+    
+    return df.reset_index(drop=True)
