@@ -411,26 +411,33 @@ v        File name (without file extension) to be saved
                    'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
                    'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
                    'astro.spectraltype_esphs']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag < {maglim}
+        """
     else:
         colname = ['gaia.source_id',
                    'gaia.ra',
                    'gaia.dec',
                    'gaia.phot_g_mean_mag',
                    'gaia.bp_rp']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag < {maglim}
+        """
         
-    columns = ', '.join(colname)
-    
-    query_base = f"""SELECT
-    {columns}
-    FROM gaiadr3.gaia_source AS gaia
-    JOIN gaiadr3.astrophysical_parameters AS astro
-      ON gaia.source_id = astro.source_id
-    WHERE 1=CONTAINS(
-      POINT(gaia.ra, gaia.dec),
-      CIRCLE({ra}, {dec}, {radius}))
-      AND gaia.phot_g_mean_mag < {maglim}
-    """
-
     # We use the urllib to keep the connection open because
     # the sky regions are huge which fails with Gaia.lunch_job
     
@@ -538,6 +545,7 @@ v        File name (without file extension) to be saved
                                 'bp_rp': 'BP_RP'})
 
     # Convert names to string
+    
     df.gaiaDR3 = df.gaiaDR3.astype(str)
         
     # Reset index and return
