@@ -363,7 +363,7 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
 
 
-def gaiaRegionQuery(ra, dec, radius=19, maglim=21,
+def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=21,
                     full=False, ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
@@ -435,7 +435,8 @@ v        File name (without file extension) to be saved
         WHERE 1=CONTAINS(
           POINT(gaia.ra, gaia.dec),
           CIRCLE({ra}, {dec}, {radius}))
-          AND gaia.phot_g_mean_mag < {maglim}
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}        
         """
         
     # We use the urllib to keep the connection open because
@@ -549,5 +550,9 @@ v        File name (without file extension) to be saved
     df.gaiaDR3 = df.gaiaDR3.astype(str)
         
     # Reset index and return
+
+    df = df.reset_index(drop=True)
+
+    df.to_feather(ofile[:-3]+'ftr')
     
-    return df.reset_index(drop=True)
+    return df
