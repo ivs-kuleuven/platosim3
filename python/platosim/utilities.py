@@ -793,7 +793,9 @@ def fromMagToRelativeFlux(mag, norm=1e6):
         Relative flux scaled after the normalisation constant.
     """
     
-    return (fromMagToFlux(mag) / np.nanmedian(flux) - 1) * norm
+    flux = fromMagToFlux(mag)
+
+    return (flux / np.nanmedian(flux) - 1) * norm
 
 
 
