@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "platosim"
 version = "3.6.0"
-description = "PlatoSim: A end-to-end PLATO camera simulator"
+description = "PlatoSim: An end-to-end PLATO camera simulator"
 authors = ["KU Leuven and the PlatoSim team <nicholas.jannsen@kuleuven.be>"]
 readme = "README.md"
 packages = [{include = "python/platosim"}]
@@ -24,16 +24,11 @@ scikit-image = "^0.19.2"
 astropy = "^5.0.2"
 matplotlib = "^3.5.1"
 ipywidgets = "^8.0.2"
-# NOTE: jupyter is extremely slow if not jupyter-client and tornado are the versions from below!
+# NOTE: jupyter is extremely slow if not jupyter-client
+#and tornado are the versions from below!
 notebook = ">=6.4.6,<6.4.7"
 jupyter-client = "7.3.2"
 tornado = "6.1.0"
-
-[tool.poetry.group.docs]
-optional = true
-[tool.poetry.group.docs.dependencies]
-Sphinx = "^4.5.0"
-renku-sphinx-theme = "^0.2.2"
 
 [tool.poetry.group.platonium]
 optional = true
@@ -56,15 +51,18 @@ lmfit = "^1.2.2"
 [tool.poetry.group.pipeline]
 optional = true
 [tool.poetry.group.pipeline.dependencies]
-ipython = "^8.3.0"
 Cython = "^0.29.28"
-numba = "^0.56.4"
 llvmlite = "0.39.1"
 mpi4py = "^3.1.3"
 PyQt5 = "^5.15.6"
 #PyMT64 = "^1.9"
 
-# The following group is only used for the PlatoSim paper
+[tool.poetry.group.docs]
+optional = true
+[tool.poetry.group.docs.dependencies]
+Sphinx = "^4.5.0"
+renku-sphinx-theme = "^0.2.2"
+
 [tool.poetry.group.pyxel]
 optional = true
 [tool.poetry.group.pyxel.dependencies]

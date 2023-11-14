@@ -39,12 +39,14 @@ out_group.add_argument('-i', '--idir', metavar='PATH', type=str, help='Input dir
 out_group.add_argument('-o', '--odir', metavar='PATH', type=str, help='Output directory')
 
 args = parser.parse_args()
+
 idir    = args.idir
 odir    = args.odir
 starid  = args.star
 group   = args.group
 camera  = args.camera
 quarter = args.quarter
+
 P  = args.P
 t0 = args.t0
 R  = args.R

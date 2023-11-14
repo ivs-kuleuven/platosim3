@@ -2,6 +2,9 @@
 
 """
 Library of functions used for SLURM computations.
+
+NOTE This class needs the Poetry install: 
+     >> poetry install --with platonium 
 """
 
 # Python standard
