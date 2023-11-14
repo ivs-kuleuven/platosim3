@@ -74,12 +74,12 @@ class Payload(object):
 
         # File names
         if self.odir:
-            self.fileNameGap = f"{self.odir}/instrumentGap.txt"
-            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
             self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
             self.fileNameACS = f"{self.odir}/instrumentACS.txt"
+            self.fileNameGap = f"{self.odir}/instrumentGap.ftr"
+            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
         else:
             self.fileNameGap = self.fileNameCCD = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
@@ -88,8 +88,8 @@ class Payload(object):
 
         # Select pointng field
         self.field = args.field
-        self.ra, self.dec, self.kappa = ut.getPointingField(self.field)
-        
+        self.alpha, self.delta, self.kappa = ut.getPointingField(self.field)
+
         # Short-hand definitions 
         N = args.ids
         G = args.group
@@ -210,7 +210,7 @@ class Payload(object):
 
         # Generete PRE file
         errorcode('module', '\nPointing repeatability error (PRE)')
-        ns.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
+        ns.getPRE(self.alpha, self.delta, self.kappa, self.Q, sigma=3,
                   ofile=self.fileNamePRE, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNamePRE}")
 
@@ -226,7 +226,7 @@ class Payload(object):
 
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
-        ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+        ns.getAPE(self.alpha, self.delta, self.kappa, sigma=3,
                   ofile=self.fileNameAPE, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
@@ -282,7 +282,7 @@ class Payload(object):
         """
         
         # Generate TED file
-        errorcode('module', '\nThermo-Elastic Distortion (TED)')
+        errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
         ns.getTED(self.Q, ofile=self.fileNameTED, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameTED}")
 
@@ -316,7 +316,7 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('ids',   type=str, help='Number of IDs (stars or CCDs=4)')
-man_group.add_argument('field', type=str, help='LOP (SPF, NPF)')
+man_group.add_argument('field', type=str, help='PLATO LOP field [LOPS2, LOPN1, SPF, NPF]')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
 out_group.add_argument('-p', '--plot',    action='store_true',      help='Flag to plot each action')
@@ -325,11 +325,11 @@ out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output
 out_group.add_argument('--project',       metavar='NAME', type=str, help='Name of PLATOnium project')
 
 obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
-obs_group.add_argument('--group',   metavar='NO.', type=str, help='Group   no.: 1, 2, .. (Default: 1-4 = all)')
-obs_group.add_argument('--camera',  metavar='NO.', type=str, help='Camera  no.: 1, 2, .. (Default: 1-6 = all)')
-obs_group.add_argument('--quarter', metavar='NO.', type=str, help='Quarter no.: 1, 2, .. (Default: 1-8 = 2yr)')
+obs_group.add_argument('--group',   metavar='INT', type=str, help='Group   number: 1, 2, .... (Default: 1-4 = all)')
+obs_group.add_argument('--camera',  metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
+obs_group.add_argument('--quarter', metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
 obs_group.add_argument('--fcam',    action='store_true', help='Flag to generate files for the F-CAMs')
-obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate AOCS jitter file')
+obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate a red noise AOCS jitter file')
 
 args = parser.parse_args()
 
@@ -352,10 +352,8 @@ x.createAPE()
 x.createGap()
 x.createTED()
 x.createACS()
-print('')
 
 # Finish with output
 if (args.verbose is None) or (args.verbose > 0):
     toc = datetime.datetime.now()
-    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
-    print('')
+    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]\n')

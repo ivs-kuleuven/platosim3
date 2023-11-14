@@ -605,7 +605,7 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     # Show amplitudes
     
     if table:
-        print('\nTED model amplitudes [arcsec]')
+        print('TED model amplitudes [arcsec]')
         names = ['Quarter', 'A_yaw', 'A_pitch', 'A_roll']
         da = pd.DataFrame(A, columns=names)
         da = da.sort_values(['Quarter'])
