@@ -2,33 +2,36 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is an integrated part of PlatoSim's toolkit PLATOnium. Given a star and exoplent
+This script is an integrated part of PlatoSim's toolkit PLATOnium. Given a star and planet
 this script creates a synthetic stellar and exoplanet variability model that can be used
 directly as input for PlatoSim. A bolometric PLATO passband correction is applied to each 
-photometric amplitude signal using synthetic high-resolution PHOENIX spectra (FGKM stars) or 
-medium-resolution ATLAS9 spectra (OBAF stars). The current implemented models are:
+photometric amplitude signal using synthetic high-resolution PHOENIX spectra (FGKM stars) 
+or medium-resolution ATLAS9 spectra (OBAF stars). The current implemented models are:
 
 Solar-like stars (F5-K7 dwarf and subgiants):
   - Granulation noise 
-  - Convection driven oscillations (p-modes)
-  - Stellar activity (spot modulations)
+  - Convection driven oscillations (analytic)
+  - Solar spot modulated activity  (analytic)
 
 Other types of stars:
-  - Cepheids/RR Lyrae  (fromFile)
+  - roAp star          (analytic)
   - gamma-Doradus star (analytic, fromFile)
   - delta-Scuti star   (analytic)
 
 Exoplanet phase curve variations:
-  - Transits               (using BATMAN)
-  - Occultations           (using SPIDERMAN)
-  - Limb Darkening         (using LDTk)
-  - Doppler beaming        (using PyAstronomy)
-  - Ellipsoidal distortion (using PyAstronomy)
+  - Transits           (using BATMAN)
 
 User examples:
   $ varsim --star Sun --planet hotJupiter --quarter 1-8 -p
   $ varsim --star_params 1 1 5800 4.5 0 --planet_params 1 10 0 90 0 1 1 -o </path/to/varsource.txt>
 """
+
+# TODO
+  # - Occultations           (using SPIDERMAN)
+  # - Limb Darkening         (using LDTk)
+  # - Doppler beaming        (using PyAstronomy)
+  # - Ellipsoidal distortion (using PyAstronomy)
+#   - Cepheids/RR Lyrae  (fromFile)
 
 # Built-in
 import os
