@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """
 Auxiliary scripts to facilitate the validation and verification of PlatoSim:
     - switch off all effects for the PlatoSim simulations
@@ -5,10 +7,15 @@ Auxiliary scripts to facilitate the validation and verification of PlatoSim:
     - absolute stellar aberration
 """
 
-from astropy.coordinates import SkyCoord
+# Built-in
 from math import sin, cos, radians, pow
+
+# PlatoSim standard
 import numpy as np
 from scipy import optimize
+from astropy.coordinates import SkyCoord
+
+
 
 def switchOffAllEffects(sim):
 

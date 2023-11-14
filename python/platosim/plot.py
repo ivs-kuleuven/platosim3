@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 """
-This python module is part of minimal platosim installation.
-It contains general
-NOTE: these utilities needs the Poetry install!
+This python module contains plot utilities used in the minimal 
+PlatoSim installation and in the extra PLATOnium installation.
 """
 
-# Python standard
+# Built-in
 import os
 
 # PlatoSim standard
@@ -37,8 +36,8 @@ import astropy.units as u
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
-from platosim.matplotlibrc import setup_notebook
-setup_notebook()
+from platosim.matplotlibrc import setup
+setup()
 
 # Hard-code values
 aa = 0.5  # Alpha transparency
@@ -58,7 +57,7 @@ colors_new = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
 #--------------------------------------------------------------#
 
 
-def axes_minmax(x=None, y=None, pt=0.02):
+def getAxesMinMax(x=None, y=None, percentage=2):
 
     """Automatically adjust min and max limits in plot.
 
@@ -66,6 +65,8 @@ def axes_minmax(x=None, y=None, pt=0.02):
     using a default spacing in percentage (pt). The user need only to
     specify which axis a min and max limit should be returned from.
     """
+
+    pt = percentage / 100.
     
     if x is not None:
         axmin = x[0]  - (x[-1]-x[0])*pt
@@ -524,7 +525,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
     focalPlaneAngle       = np.radians(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-    focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
+    focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0 # [m]->[mm]
     ccdZeroPointX         = float(sim["CCD/OriginOffsetX"])
     ccdZeroPointY         = float(sim["CCD/OriginOffsetY"])
     ccdAngle              = np.radians(float(sim["CCD/Orientation"]))
@@ -537,13 +538,12 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     if includeFieldDistortion:
         if isMapped:
             xFPmm, yFPmm = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                                pathToPsfFile, focalLength)
+                                                                                pathToPsfFile,
+                                                                                focalLength)
         else:
             xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
                                                                           distortionCoefficients)
 
-    #ccdCode, xCCD, yCCD = getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, tiltTelescope, azimuthTelescope,  \
-    #                                                focalPlaneAngle, focalLength, pixelSize, includeFieldDistortion, FIELD_DISTORTION["Coeff"], normal)
     ccdCode, xCCD, yCCD = rf.getCCDandPixelCoordinates(raStar, decStar,
                                                        raPlatform, decPlatform,
                                                        solarPanelOrientation,
@@ -1244,7 +1244,7 @@ def compass(ax, x, y, size):
             
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
                  showGroups=False, showLegend=True, ncamStars=True, title=None,
-                 fovSize=30, fs=20, figsize=(9,9)):
+                 fovSize=30, fs=20, ms=1, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1341,15 +1341,14 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     
         # Plot PIC1.1.0 stars after N-CAM visibility
         t = ax.get_transform(system)
-        ax.plot(x06, y06, '.', c='skyblue',     transform=t, ms=1, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=t, ms=1, zorder=2)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=t, ms=1, zorder=3)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=t, ms=1, zorder=4)
+        ax.plot(x06, y06, '.', c='skyblue',     transform=t, ms=ms, zorder=1)
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=t, ms=ms, zorder=2)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=t, ms=ms, zorder=3)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=t, ms=ms, zorder=4)
     
     # Plot stars and add legend scaled to the stellar magnitudes
     
     if magStars is not None and len(magStars) > 0:
-        print('nice')
         maxMarkerSize = 30
         dm = (max(magStars) - magStars) * maxMarkerSize
         mag_range = np.arange(min(magStars), max(magStars)).astype(int)
@@ -1437,7 +1436,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
                  showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
 
-    # Under development!
+    # TODO Under development! Attempt to remove ligo.skymap.plot package
     # https://github.com/lpsinger/ligo.skymap/blob/main/ligo/skymap/plot/allsky.py
     
     import numpy as np
@@ -2632,47 +2631,57 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 #                        VARSIM PLOTS                          #
 #--------------------------------------------------------------#
 
-def plot_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
-             flux, flux1_in, flux2_in, flux_equi,
-             Teff, Teff_upper, Teff_lower):
+def plotSED(wvl, wvl1_in, wvl2_in, wvl_equi,
+            flux, flux1_in, flux2_in, flux_equi,
+            Teff, Teff_upper, Teff_lower):
 
     """Plot synthetic SED for best model fit.
     """
 
-    fig, ax = plt.subplots(2, 1, figsize=(9,7))
+    fig, ax = plt.subplots(2, 1, figsize=(8,7))
 
+    # Teff labels
+    Teff0 = r'$T_{\mathrm{eff}}$' + f' = {int(Teff_upper)} K'
+    Teff1 = r'$T_{\mathrm{eff}}$' + f' = {int(Teff)} K'
+    Teff2 = r'$T_{\mathrm{eff}}$' + f' = {int(Teff_lower)} K'
+    ymax0 = flux2_in.max() + flux2_in.max() * 0.1
+    cc = ['tomato', 'k', 'orange', 'royalblue']
+    
     # Plot the interpolation of the grid
 
-    ymax0 = flux2_in.max() + flux2_in.max() * 0.1
-    ax[0].plot(wvl2_in, flux2_in, c='blue', lw=1, alpha=0.8,
-               label=r'$T_{\mathrm{eff}}$' + f' = {int(Teff_upper)} K')
-    ax[0].plot(wvl, flux, c='k', lw=1, alpha=0.8,
-               label=r'$T_{\mathrm{eff}}$' + f' = {int(Teff)} K')
-    ax[0].plot(wvl1_in, flux1_in, c='green', lw=1, alpha=0.8,
-               label=r'$T_{\mathrm{eff}}$' + f' = {int(Teff_lower)} K')
-    ax[0].fill_between((wvl_equi[0], wvl_equi[-1]), 0, ymax0, facecolor='r', alpha=0.2)
+    ax[0].plot(wvl2_in, flux2_in, c=cc[0], lw=1, alpha=1.0, label=Teff0)
+    ax[0].plot(wvl,     flux,     c=cc[1], lw=1, alpha=1.0, label=Teff1)
+    ax[0].plot(wvl1_in, flux1_in, c=cc[2], lw=1, alpha=1.0, label=Teff2)
+    ax[0].fill_between((0,      wvl_equi[0]), 0, ymax0, facecolor='gray', alpha=0.2)
+    ax[0].fill_between((wvl_equi[-1], 13000), 0, ymax0, facecolor='gray', alpha=0.2)
     ax[0].set_xlim(1000, 13000)
     ax[0].set_ylim(0, ymax0)
-    ax[0].legend(fontsize=14)
+    ax[0].legend()
 
     # Plot the final equidistant grid used for further calculations
 
     ymax1 = flux_equi.max() + flux_equi.max() * 0.3
-    ax[1].plot(wvl, flux, 'k', lw=1, alpha=0.8,
-               label='Zoom-in on original grid')
-    ax[1].plot(wvl_equi, flux_equi, 'r', lw=2, alpha=0.5,
-               label=r'Equidis. grid method by S. Sarkar')
+    ax[1].plot(wvl,      flux,      c=cc[1], lw=0.5, alpha=0.9, label='Interpolated grid: '+Teff1)
+    ax[1].plot(wvl_equi, flux_equi, c=cc[3], lw=2.0, alpha=1.0, label=r'Equidistant grid in passband')
+    ax[1].fill_between((0,      wvl_equi[0]), 0, ymax0, facecolor='gray', alpha=0.2)
+    ax[1].fill_between((wvl_equi[-1], 13000), 0, ymax0, facecolor='gray', alpha=0.2)
     ax[1].set_xlim(wvl_equi[0]-1000, wvl_equi[-1]+1000)
     ax[1].set_ylim(0, ymax1)
-    ax[1].legend(fontsize=14)
+    ax[1].legend()
 
     # Settings
 
-    ax[1].set_xlabel('$\lambda$ [AA]')
-    fig.supylabel(r'Flux [ergs sec$^{-1}$ cm$^{-2}$ AA$^{-1}$ sr$^{-1}$]')
-    plt.tight_layout()
+    ax[1].set_xlabel(r'Wavelength, $\lambda$ [\AA]')
+    laby = r'Flux, $F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ \AA$^{-1}$ sr$^{-1}$]'
+    fig.text(-0.01, 0.5, laby, va='center', rotation='vertical')
+    plt.tight_layout(h_pad=0.15)
     plt.show()
-    
+
+    # from platosim.matplotlibrc import setup_paper
+    # setup_paper()    
+    #odir = '/lhome/nicholas/Nextcloud/paperPlatoGmode/figures'
+    #fig.savefig(f'{odir}/BolometricCorrection.png', bbox_inches='tight', dpi=200)
+
     # Finito!
     
     return fig, ax
@@ -2681,34 +2690,34 @@ def plot_sed(wvl, wvl1_in, wvl2_in, wvl_equi,
 
     
 
-def plot_amplitude_time_series(time, signal_gran, signal_puls, signal_total, star):
+def plot_amplitude_time_series(time, signal_gran, signal_puls):
 
     """Plot bolometric luminosity amplitude timeseries.
-
-    
     """
+
+    signal_total = signal_gran + signal_puls
 
     # Correct time points from Ms to days
 
     time = time * 1e6 / 86400.
-
+    
     # Plot
 
-    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(12, 12), sharex=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, figsize=(10, 10), sharex=True)
     ax1.plot(time, signal_gran,  colors_hot[0], linewidth=lw, label = 'Granulation')
     ax2.plot(time, signal_puls,  colors_hot[1], linewidth=lw, label = 'Pulsations')
-    ax3.plot(time, signal_total, 'k',           linewidth=lw, label = 'Total Aemplitude')
+    ax3.plot(time, signal_total, 'k',           linewidth=lw, label = 'Combined')
 
     # Limits
 
     ax1.set_xlim(0, time[-1])
-    ax1.set_ylim(signal_gran.min()  - signal_gran.std(),  signal_gran.max()  + signal_gran.std())
-    ax2.set_ylim(signal_puls.min()  - signal_puls.std(),  signal_puls.max()  + signal_puls.std())
-    ax3.set_ylim(signal_total.min() - signal_total.std(), signal_total.max() + signal_total.std())
+    ax1.set_ylim(signal_gran.min() - signal_gran.std(), signal_gran.max() + signal_gran.std())
+    ax2.set_ylim(signal_puls.min() - signal_puls.std(), signal_puls.max() + signal_puls.std())
+    ax3.set_ylim(signal_total.min()-signal_total.std(), signal_total.max()+ signal_total.std())
 
     # Labels
 
-    ax1.set_title('Bolometric luminosity amplitude time series of ' + star, fontsize = fs)
+    ax1.set_title('Bolometric amplitude time series', fontsize = fs)
     ax3.set_xlabel('Time [days]',           fontsize = fs-2)
     ax1.set_ylabel('Granulation [ppm]',     fontsize = fs-2)
     ax2.set_ylabel('Pulsation [ppm]',       fontsize = fs-2)
@@ -2719,90 +2728,73 @@ def plot_amplitude_time_series(time, signal_gran, signal_puls, signal_total, sta
     fig.subplots_adjust(hspace=0)
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
     plt.tight_layout()
-
-    # Finito!
-
     plt.show()
 
 
 
 
 
-def plot_amplitude_spectrum(time, signals, sampling, freqlim=1e-2, title=False, save=False):
+def plot_amplitude_spectrum(df, numax, title=False):
 
-    """Plot Power Spectral Density (PSD).
+    """Plot Power Spectral Density (PSD) for solar-like star.
 
     Parameters
     ----------
     time : narray
-        Time points
-    datasets : narray, list-narray
-        Either single signal array or a list of signal arrays
+        Time points [s]
+    signal_gran : ndarray, pdseries 
+        Amplitudes for granulation noise [ppm]
+    signal_puls : ndarray, pdseries 
+        Amplitudes for stochastic oscillations [ppm]
     title : str (optional)
         Title for plot
-    labels : list-str (optinal)
-        List of string labels where the first is the xlabel and the rest is ylabels
 
     Return
     ------
-    Plot or/and saved plot to PNG.
+    matplotlib figure handles
     """
 
     # Compute frequencies uptil the Nyquist frequency
 
-    medfilt = 144  # [hour for N-Cams]
-    Nfreq   = int(len(time)/2.+1)
+    sampling = np.diff(df.time)[0]
 
-    PSD  = np.zeros((3, Nfreq))
-    med  = np.zeros((3, Nfreq))
-
-    for i in range(3):
-        freq, PSD[i,:] = powerDensityFFT(signals[i], sampling)
-        med[i,:] = scipy.ndimage.median_filter(PSD[i,:], medfilt)
+    # Compute PSD of granulation and oscillations
+    freq_gran, psd_gran = periodogram(df.gran, 1/sampling, scaling='density')
+    freq_puls, psd_puls = periodogram(df.puls, 1/sampling, scaling='density')
+    freq_gran *= 1e6  # [muHz]
+    freq_puls *= 1e6  # [muHz]
 
     # PLOT SEPERATE
 
-    fig, ax = plt.subplots(3,1, figsize=(12,12))
+    fig, ax = plt.subplots(2, 1, figsize=(9,8))
 
-    # Plot subplots
+    # Plot global model
 
-    ax[0].plot(freq, PSD[0], '-', color='gold',   linewidth=lw)
-    ax[1].plot(freq, PSD[1], '-', color='tomato', linewidth=lw)
-    ax[2].plot(freq, PSD[2], '-', color='gray',   linewidth=lw)
+    ax[0].plot(freq_gran, psd_gran, "-", c='royalblue', lw=0.3, label="Granulation")
+    ax[0].plot(freq_puls, psd_puls, "-", c='orange', lw=0.3, label="Pulsations")
+    ax[0].set_xlim(1e2, np.max(freq_gran))
+    ax[0].set_ylim(1e0, 1e8)
+    ax[0].set_xscale('log')
+    ax[0].set_yscale('log')
+    ax[0].set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
+    ax[0].set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
+    ax[0].legend(ncol=1, loc='upper right', fontsize=16)
 
-    ax[0].plot(freq, med[0], '-', color='darkorange', linewidth=lw+2)
-    ax[1].plot(freq, med[1], '-', color='r',          linewidth=lw+2)
-    ax[2].plot(freq, med[2], '-', color='k',          linewidth=lw+2)
+    # Plot zoom in on p-modes
 
-    # Limits
-
-    ax[0].set_ylim(PSD[0].min(), PSD[0].max())
-    ax[1].set_ylim(PSD[1].min(), PSD[1].max())
-    ax[2].set_ylim(PSD[2].min(), PSD[2].max())
-
-    # Common settings
-
-    for plot in range(3):
-        ax[plot].set_xlim(100, max(freq)+100)
-        ax[plot].set_xscale("log")
-        ax[plot].set_yscale("log")
-
-    # Labels
-
-    if title is False: ax[0].set_title('Amplitude spectrum - log scale', fontsize=fs)
-    else: ax[0].set_title(title, fontsize=fs)
-    ax[2].set_xlabel(r'Frequency [$\mu$Hz] ',  fontsize=fs-2)
-    ax[0].set_ylabel(r'Granulation [ppm$^2$ $\mu$Hz$^{-1}$]', fontsize=fs-2)
-    ax[1].set_ylabel(r'Pulsation [ppm$^2$ $\mu$Hz$^{-1}$]',   fontsize=fs-2)
-    ax[2].set_ylabel(r'Total Power [ppm$^2$ $\mu$Hz$^{-1}$]', fontsize=fs-2)
+    lab1 = "Stochastic oscillations" 
+    ax[1].plot(freq_puls, psd_gran+psd_puls, "-", c='k', lw=0.3, label=lab1)
+    ax[1].set_xlim(numax-500, numax+500)
+    ax[1].set_ylim(1e5, 0.5e8)
+    ax[1].set_yscale('log')
+    ax[1].set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
+    ax[1].set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
+    ax[1].legend(ncol=1, loc='upper right', fontsize=16)
 
     # Settings
-
-    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-    fig.subplots_adjust(hspace=0)
+    
     plt.tight_layout()
     plt.show()
-
 
 
 
@@ -2910,7 +2902,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     # Axes
     ax0.xaxis.set_label_position('top')
     ax0.xaxis.tick_top()
-    ymin, ymax = axes_minmax(y=lc_final/1e6+1)
+    ymin, ymax = getAxesMinMax(y=lc_final/1e6+1)
     ax0.set_ylim(ymin, ymax)
     ax0.set_xlim(time[0], time[-1])
     # Color fill areas of interest
@@ -2933,7 +2925,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax1.text(x_pos, y_pos, r'$\delta_{\mathrm{tra}}=%.1f$ ppm' % delta_tra, fontsize=fs-4)
     # Axes
     ax1.set_xlim(time[dex_tra][0], time[dex_tra][-1])
-    ax1.set_ylim(axes_minmax(y=lc_tra))
+    ax1.set_ylim(getAxesMinMax(y=lc_tra))
     ax1.xaxis.set_label_position('top')
     ax1.xaxis.tick_top()
 
@@ -2950,7 +2942,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax2.text(x_pos, y_pos, r'$\delta_{\mathrm{occ}}=%.1f$ ppm' % delta_occ, fontsize=fs-4)
     # Axes
     ax2.set_xlim(time[dex_occ][0], time[dex_occ][-1])
-    ax2.set_ylim(axes_minmax(y=lc_occ))
+    ax2.set_ylim(getAxesMinMax(y=lc_occ))
     ax2.xaxis.set_label_position('top')
     ax2.xaxis.tick_top()
 
@@ -2989,7 +2981,7 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax4.axvline(0.75, color='gray', linestyle=':',  zorder=3)
     ax4.axvline(1.00, color='gray', linestyle='--', zorder=4)
     # Text labels
-    ymin, ymax = axes_minmax(y=lc_final - lc_tra)
+    ymin, ymax = getAxesMinMax(y=lc_final - lc_tra)
     ydif = (ymax-ymin)*pp
     ypos_text = ymax + ydif + ymax*pt
     ax4.text(0.00-0.02, ypos_text, 'Transit',     fontsize=fs-5)
@@ -3020,28 +3012,30 @@ def plot_final_lc(lc, figsize=(9,8)):
     """
 
     # Fetch component or set to zero
+    
     zeros = np.zeros(len(lc['time']))
-    if 'spot' not in lc: lc['spot'] = zeros.tolist()
-    if 'gran' not in lc: lc['gran'] = zeros.tolist()
-    if 'puls' not in lc: lc['puls'] = zeros.tolist()
-    if 'tran' not in lc: lc['tran'] = zeros.tolist()
+    if 'gran' not in lc: lc.gran = zeros.tolist()
+    if 'puls' not in lc: lc.puls = zeros.tolist()
+    if 'spot' not in lc: lc.spot = zeros.tolist()    
+    if 'tran' not in lc: lc.tran = zeros.tolist()
 
     # Handle time units
-    time = lc['time']/86400.
-
+    
+    time    = lc.time / 86400.
+    p_modes = lc.gran + lc.puls
+    
     # Start plotting
     
     fig, ax = plt.subplots(4, 1, figsize=figsize, sharex=True)
 
-    ax[0].plot(time, lc['gran'] + lc['puls'], 'g-', label='Gran + Puls')
-    ax[1].plot(time, lc['spot'], 'b-', label='Spots')
-    ax[2].plot(time, lc['tran'], 'r-', label='Transits')
-    try: ax[3].plot(time, lc['comb'], 'm-', label='Combined')
-    except: ax[3].plot(time, lc['sum'], 'm-', label='Combined')
+    ax[0].plot(time, p_modes, '-', c=colors_sea[0], label='Gran + Puls')
+    ax[1].plot(time, lc.spot, '-', c=colors_sea[1], label='Spots')
+    ax[2].plot(time, lc.tran, '-', c=colors_sea[2], label='Transits')
+    ax[3].plot(time, lc.flux, '-', c='k',           label='Combined')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[i].legend(loc="lower left")
+        ax[i].legend(loc="lower right")
 
     plt.xlabel('Time [days]')
     fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')    
@@ -3325,7 +3319,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                           showStarIDs=False, showMaskOfStarID=None,
                           useTitle=True, showGrid=True, figsize=(6,6)):
 
-    """Create and plot an animation of a set of imagettes.
+    """Create and plot an animation of a set of subfields.
 
     Parameters
     ----------
@@ -3440,8 +3434,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                 if len(col) > 1:
                     conMarkerSize = (tarMarkerSize /
                                      (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
-                    coor_con = ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
-                                          edgecolor='k', linewidth=1, zorder=4)
+                    coor_con = ax.scatter(col[1:], row[1:], s=conMarkerSize, linewidth=1,
+                                          marker='o', c='gold', edgecolor='k', zorder=4)
 
             # Or hightligth all stars the same
             
@@ -3529,9 +3523,3 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     
     plt.draw()
     plt.plot()
-
-
-
-
-
-

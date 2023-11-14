@@ -5,7 +5,7 @@ Python modules that contain some general utilities that are commonly
 used by the PlatoSim and PLATOnium.
 """
 
-# Python standard
+# Built-in
 import os
 import sys
 import glob
@@ -18,7 +18,6 @@ from pathlib import Path
 
 # PlatoSim standard
 import h5py
-import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
@@ -29,7 +28,7 @@ from scipy.ndimage import median_filter
 from scipy.integrate import cumtrapz
 from scipy.stats import gaussian_kde
 
-# PlatoSim imports
+# PlatoSim functions
 import platosim.referenceFrames as rf
 
 
@@ -43,9 +42,37 @@ def year():
     """Return 1 year in seconds.
     """
     
-    return 31556926
+    return 31556926.
 
 
+
+
+
+def quarter():
+
+    """Return 1 mission quarter in days.
+    """
+    
+    return year() / (4 * 86400)
+
+
+
+
+
+def rng(seed=None):
+
+    """Choose seed for randomness
+    """
+
+    if seed is None:
+        return np.random.default_rng()
+    else:
+        return np.random.default_rng(seed)        
+
+
+
+
+    
 #--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
 #--------------------------------------------------------------#
@@ -218,7 +245,7 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
     # If true then download folder and it entire content
     # If flase simply download the requested file
     
-    ftp_filename = pathlib.Path(filename)
+    ftp_filename = Path(filename)
 
     if ftp_filename.suffix:
         ftp_subpath = ftp_filename.parents[0]
@@ -268,7 +295,7 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
         
         # Only try to save file if is doesn't exists
 
-        local_file = pathlib.Path(outputDir) / filename
+        local_file = Path(outputDir) / filename
 
         if not local_file.is_file():
             ftp_file   = open(local_file, 'wb')
@@ -307,6 +334,24 @@ def pdAddColumn(df, newCol, name):
     return df[cols]
 
 
+
+
+
+def pdMoveRowToFirst(df, target_row, reset_index=True):
+
+    """ Move target row to first element of list.
+
+    NOTE: Only works for df with a reset index.
+    """
+
+    dex = [target_row] + [i for i in range(df.shape[0]) if i != target_row]
+
+    if reset_index:
+        return df.iloc[dex].reset_index(drop=True)
+    else:
+        return df.iloc[dex]
+
+    
 
 
 
@@ -444,7 +489,7 @@ def sortAfterDensity(x, y):
 
     dex = z.argsort()
 
-    return x[dex], y[dex], z[dex]
+    return x[dex], y[dex], z[dex], dex
 
 
 
@@ -661,7 +706,7 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
         Reference from:
         https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
         """
-        return R**(1/2) * Teff[i]/5778.
+        return R**(1/2) * Teff[i]/5777.
 
 
 
@@ -710,6 +755,27 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
 
 
+def fromMagToFlux(mag):
+
+    """Convert magnitude to relative flux
+
+    Parameters
+    ----------
+    mag : float
+        Input magnitude
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux
+    """
+
+    return 10**(-0.4*mag)
+
+
+
+
+
 def fromMagToRelativeFlux(mag, norm=1e6):
 
     """Convert magnitude to relative flux
@@ -726,7 +792,9 @@ def fromMagToRelativeFlux(mag, norm=1e6):
     flux : ndarray
         Relative flux scaled after the normalisation constant.
     """
-    flux = 10**(-0.4*mag)
+    
+    flux = fromMagToFlux(mag)
+
     return (flux / np.nanmedian(flux) - 1) * norm
 
 

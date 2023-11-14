@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Run the PlatoSim functions in parallel.
+Run the PLATOnium functions in parallel (CPUs).
 """
 
 # Python standard
@@ -10,77 +10,102 @@ import shutil
 import random
 import argparse
 import datetime
-from joblib import Parallel, delayed, parallel_config
+from pathlib import Path
 
 # PlatoSim standard
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# PLATOnium standard
+from tqdm import tqdm
+from joblib import Parallel, delayed, parallel_config
+
 # PlatoSim imports
+import platosim.utilities as ut
 from platosim.utilities import errorcode
 
-# Disable warnings
-#warnings.simplefilter("ignore")
-
 
 #==============================================================#
-#                        PLATOnium CLASS                       #
+#                   HIGH PERFORMANCE COMPUTING                 #
 #==============================================================#
+
 
 class HPC(object):
 
     """Class for parallisation of PLATOnium functions.
     """
     
-    def __init__(self, cpus=8, backend='threading'):
+    def __init__(self, project, cpus=8, backend='threading'):
 
          # PATHS AND INPUT
 
         # Global variables
         self.cpus    = cpus
         self.backend = backend
-
+        self.project = project
+        
         # Absolute pwd path
         self.path = Path(__file__).parent.resolve()
-        self.platoInputDir   = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
+        self.idir = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
+        self.pdir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), project)
+
+        # Software
+        self.VARSIM    = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/varsim.py'
+        self.PLATONIUM = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
+
+
+
 
         
-
-
-
-    def run(self, script, project, paramFile):
+    def run(self, script, odir, param_file=False, sim_range=False):
 
         """Function to run the parallelisation.
         """
 
-        # Fetch parameterisation file
-        projectDir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), project)
-        params     = pd.read_csv(paramFile).to_numpy()
-
+        # Output folder
+        self.odir = self.pdir / odir
+        
+        # Parsing of parameters
+        if param_file:
+            params = pd.read_csv(param_file).to_numpy()
+            N, M = params.shape
+            sim_range = range(N)
+        elif sim_range:
+            sim_range = range(sim_range[0]-1, sim_range[1])
+        else:
+            errorcode('error', 'Use either "param_file" or "sim_range"!')
+            
         # Configure parallel computing
         
         with parallel_config(backend=self.backend, n_jobs=self.cpus):
 
+            # RUN PLATONIUM
+            
             if script == 'platonium':
-                N, M = params.shape
-                Parallel()(delayed(self.run_platonium)
-                           (i, N, M, params, project)
-                           for i in range(N))
+                Parallel()(delayed(self.run_platonium)(i, N, M, params, project)
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
 
-            if script == 'varsim':
-                S = params[:,0].astype(int)
-                N = len(S)
-                odir = f'{projectDir}/varsource'
-                Parallel()(delayed(self.run_varsim)
-                           (i, N, S[i], odir)
-                           for i in range(N))
+            # RUN VARSIM
+                
+            if script == 'varsim' and self.project == 'cs-smbhb':
+                Parallel()(delayed(self.run_varsim_smbhb)(i)
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
+                
+            elif script == 'varsim' and self.project == 'mocka':
+                Parallel()(delayed(self.run_varsim_mocka)(i, N, project, projectDir)
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
+                
+            elif script == 'varsim':
+                Parallel()(delayed(self.run_varsim)(i, N, params[i])
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
 
-            # Print when script is done
-            errorcode('message', 'All simulations finished successfully!')
 
 
+            
+    #--------------------------------------------------------------#
+    #                        HPC FOR PLATONIUM                     #
+    #--------------------------------------------------------------#
 
             
     #def set_compress(self, compress=False): return compress
@@ -89,14 +114,14 @@ class HPC(object):
     def set_cadence(self, cadence = ''):  self.cadence  = cadence
     def set_vardir(self,  vardir  = ''):  self.vardir   = vardir
 
-        
+
+
+
+    
     def run_platonium(self, i, N, M, params, project):
 
         """Function to run the PLATOnium in parallel.
         """
-        
-        print(f'Simulation {i+1}/{N} -> ({round(i/N*100,2)}%)', end='\r')
-        platonium = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
         
         S = int(params[i,0])
         G = int(params[i,1])
@@ -123,15 +148,29 @@ class HPC(object):
 
 
 
-        
-    def run_varsim(self, i, N, S, odir):
+
+    #--------------------------------------------------------------#
+    #                         HPC FOR VARSIM                       #
+    #--------------------------------------------------------------#                
+
+
+    def run_varsim_smbhb(self, i):
 
         """Function to run the parallelisation.
         """
 
-        print(f'Simulation {i+1}/{N} -> ({round(i/N*100,2)}%)', end='\r')
-        VARSIM = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/varsim.py'
         starID = f'{i+1}'.zfill(9)
-        ofile  = f'{odir}/varsource_{starID}.txt'
-        os.system(f'{VARSIM} --star SMBHB --quarter 1-8 -o {ofile} -v 0')
+        ofile  = f'{self.odir}/varsource_{starID}.txt'
+        os.system(f'{self.VARSIM} --binary SMBH --quarter 1-8 -o {ofile} -v 0')
         
+
+
+
+
+    def run_varsim_mocka(self, i, N, project, projectDir):
+
+        """Function to run the parallelisation.
+        """
+        
+        os.system(f'{self.VARSIM} --mocka {project} gdor {i+1} no {self.odir} ' +
+                  '--puls gang2020 --quarter 1-16 -v 0' )

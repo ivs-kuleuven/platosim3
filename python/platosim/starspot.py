@@ -325,6 +325,7 @@ class spots():
                  dur = None, threshold = 0.1):
         '''Generate initial parameter set for spots (emergence times
         and initial locations are p[)'''
+
         # set global stellar parameters which are the same for all spots
         # inclination (in degrees)
         if incl == None:

@@ -5,7 +5,7 @@ This class contains functions relevant for downloading SEDs from
 the PHOENIX and ATLAS9 library of synthetic spectra.
 """
 
-# Python default
+# Built-in
 import os
 import zipfile
 import urllib.request
@@ -43,7 +43,7 @@ class Spectrum(object):
     Paper   : 
     """
 
-    def __init__(self):
+    def __init__(self, verbose=1):
 
         """Initialize and prepare data structure
         """
@@ -54,7 +54,7 @@ class Spectrum(object):
         dataDir = os.getenv("PLATO_PROJECT_HOME") + '/inputfiles/data_varsim'
         self.path = path.joinpath(dataDir)
         self.path.mkdir(parents=False, exist_ok=True)
-        
+        self.verbose = verbose
 
 
 
@@ -201,7 +201,7 @@ class Spectrum(object):
             # Download zip file
             phoenix_zip_file = self.path.joinpath(dataDir).joinpath(url_zip.split('/')[-1])
             if not phoenix_zip_file.is_file():
-                print(f"Download Phoenix spectrum from {url_zip}")
+                if self.verbose > 0: print(f"Downloading Phoenix spectrum from {url_zip}")
                 with urllib.request.urlopen(url_zip) as response, open(phoenix_zip_file, "wb") as out_file:
                     data = response.read()
                     out_file.write(data)
@@ -209,7 +209,7 @@ class Spectrum(object):
             # Extract only requested spectrum from zip
             phoenix_file = self.path.joinpath(dataDir).joinpath(lte_file)
             if not phoenix_file.is_file():
-                print(f'Extracting file from zip {lte_file}')
+                if self.verbose > 0: print(f'Extracting file from zip {lte_file}')
                 with zipfile.ZipFile(phoenix_zip_file, 'r') as zip:
                     # Extract all files
                     zip.extractall(self.path.joinpath(dataDir))
@@ -247,7 +247,7 @@ class Spectrum(object):
             # FETCH WAVELENGTH DATA
 
             if not phoenix_path.is_file():
-                print("Download PHOENIX wavelength file...")
+                if self.verbose > 0: print("Downloading PHOENIX wavelength file")
                 url = "ftp://phoenix.astro.physik.uni-goettingen.de/HiResFITS/WAVE_PHOENIX-ACES-AGSS-COND-2011.fits"
                 with urllib.request.urlopen(url) as response, open(phoenix_path, "wb") as out_file:
                     data = response.read()
@@ -281,11 +281,12 @@ class Spectrum(object):
 
             # Fix url
             url = url.replace("--", "-")
+            url = url.replace("-+", "+")
 
             # Download spectrum
             spectrum_path = self.path.joinpath(dataDir).joinpath(url.split("/")[-1])
             if not spectrum_path.is_file():
-                print(f"Download Phoenix spectrum from {url}")
+                if self.verbose > 0: print(f"Downloading Phoenix spectrum: {url}")
                 with urllib.request.urlopen(url) as response, open(spectrum_path, "wb") as out_file:
                     data = response.read()
                     out_file.write(data)
@@ -313,7 +314,6 @@ class Spectrum(object):
         Path(self.path.joinpath(dataDir)).mkdir(parents=False, exist_ok=True)
 
         # Make sure that all paramters are valid
-
         Teff, logg, Z, alpha = self.nearest_parameters(Teff, logg, Z, 0, 'PhoenixSpecInt')
 
         if Teff in self.valid_t and logg in self.valid_g and Z in self.valid_z:
@@ -341,16 +341,15 @@ class Spectrum(object):
             )
 
             # Fix url
-
             url = url.replace("--", "-")
-
+            url = url.replace("-+", "+")
+            
             # Download spectrum
-
             phoenix_file = self.path.joinpath(dataDir).joinpath(url.split("/")[-1])
 
             if not phoenix_file.is_file():
 
-                print(f"Download Phoenix spectrum from {url}")
+                if self.verbose > 0: print(f"Downloading Phoenix spectrum: {url}")
                 with urllib.request.urlopen(url) as response, open(phoenix_file, "wb") as out_file:
                     data = response.read()
                     out_file.write(data)
@@ -371,14 +370,20 @@ class Spectrum(object):
 
 
 
+
     
     #--------------------------------------------------------------#
     #                         ATLAS9 MODELS                        #
     #--------------------------------------------------------------#    
+
     
     def getAtlasFITS(self, Teff, logg, Z, alpha):
 
-        """Download and load ATLAS9 SED model.
+        """Download and load an ATLAS9 LTE SED model.
+
+        These LTE models are from Castelli & Kurucz (2003). The models
+        do not include convective overshooting, but have improved 
+        opacities and abundances upon previously used by Kurucz (1990).
         """
 
         # Prepare data structure        
@@ -390,12 +395,16 @@ class Spectrum(object):
         if (Teff in self.valid_t and logg in self.valid_g 
             and Z in self.valid_z and alpha in self.valid_a):
 
-            # Full download link
-            if Z >= 0: sign = 'p'
-            else: sign = 'm'
-            string_z = str(Z)[0] + str(Z)[2]
+            # Sort filename string
+            if Z >= 0:
+                sign = 'p'
+            else:
+                sign = 'm'
+                Z    = np.abs(Z)
+            string_z = str(Z)[0]    + str(Z)[2]
             string_g = str(logg)[0] + str(logg)[2]
 
+            # Full download link
             server = "https://archive.stsci.edu/hlsps/reference-atlases/cdbs/grid/ck04models"
             url_name = f'ck{sign}{string_z}'
             url = f"{server}/{url_name}/{url_name}_{Teff}.fits"
@@ -403,7 +412,7 @@ class Spectrum(object):
             # Download spectrum
             spectrum_path = self.path.joinpath(dataDir).joinpath(url.split("/")[-1])
             if not spectrum_path.is_file():
-                print(f"Downloading ATLAS9 spectrum: \n{url}")
+                if self.verbose > 0: print(f"Downloading ATLAS9 spectrum: \n{url}")
                 with urllib.request.urlopen(url) as response, open(spectrum_path, "wb") as out_file:
                     data = response.read()
                     out_file.write(data)
@@ -429,4 +438,3 @@ class Spectrum(object):
         
         # Finito!
         return wvl, flux
-    

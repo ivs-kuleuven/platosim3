@@ -1,34 +1,38 @@
 #!/usr/bin/env python3
 
 """
-Python module to with astro query functions used by "picsim".
+Python module to with astro query functions used by picsim.py.
+
+NOTE This class needs the Poetry install: 
+     >> poetry install --with platonium 
 """
 
+# Built-in
 import os
 import sys
 import glob
 import math
 import time
 import inspect
-
-import h5py
 import pathlib
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 import http.client as httplib
 import urllib.parse as urllib
 from xml.dom.minidom import parseString
 
+# PlatoSim standard
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+import astropy.units as u
+from astropy.io.votable  import parse
+from astropy.coordinates import SkyCoord
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pylab import MaxNLocator
 from colorama import Fore, Style
 from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 
-import astropy.units as u
-from astropy.io.votable  import parse
-from astropy.coordinates import SkyCoord
+# PLATOnium extra
 from astroquery.simbad   import Simbad
 from astroquery.mast     import Catalogs
 from astroquery.gaia     import Gaia
@@ -258,7 +262,7 @@ def simbadQuery(star, radius=45, maglim=21):
     # Rename columns
     
     df = df.rename(columns={'source_id': 'gaiaDR3',
-                            'phot_g_mean_mag': 'mag',
+                            'phot_g_mean_mag': 'Gmag',
                             'bp_rp': 'BP_RP',
                             'parallax': 'plx',
                             'parallax_error': 'plxe',
@@ -276,14 +280,14 @@ def simbadQuery(star, radius=45, maglim=21):
 
     # Convert Gmag to Pmag
 
-    df['Pmag'] = ut.passbandConversionG2P(df.mag, df.BP_RP)
+    df['Pmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
     
     # Relocate distance column [arcsec]
     
     df.dist = (df.dist-df.dist.iloc[0]) * 3600.
-    col = df.dist.values.tolist()
-    df  = df.drop(columns=['dist'])
-    df.insert(5, 'dist', col)
+    #col = df.dist.values.tolist()
+    #df  = df.drop(columns=['dist'])
+    #df.insert(5, 'dist', col)
 
     # Sort and return
     
@@ -363,8 +367,8 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
 
 
-def gaiaRegionQuery(ra, dec, radius=19, maglim=21,
-                    full=False, ofile=False):
+def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
+                    flag_astro=False, ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
     
@@ -379,7 +383,7 @@ def gaiaRegionQuery(ra, dec, radius=19, maglim=21,
     maglim : int, float
         Magitude limit to search for stars below
     ofile : str
-v        File name (without file extension) to be saved
+        File name (without file extension) to be saved
 
     Return
     ------
@@ -389,12 +393,14 @@ v        File name (without file extension) to be saved
     -----
     Columns can be found at: https://gea.esac.esa.int/archive/
     See: "Search" -> "Advanced (ADQL)" -> "Gaia Data Release 3"
+
+    NOTE Query only valid for Gmag < 17, else gaps are intoduced!
+    Use additional queries e.g. in bins of 1 mag for Gmah > 17.
     """
 
-    # Fetcj columns from catalogues
-    # NOTE we join with the astrophysical table below!
+    # Fetch columns from catalogues
 
-    if full:
+    if flag_astro:
         colname = ['gaia.source_id',
                    'gaia.ra',
                    'gaia.dec',
@@ -405,32 +411,43 @@ v        File name (without file extension) to be saved
                    'gaia.pmra',
                    'gaia.pmdec',
                    'gaia.ruwe',
+                   'gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
+                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',                   
                    'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
-                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
                    'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
                    'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
+                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
                    'astro.spectraltype_esphs']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}        
+        """
+
     else:
         colname = ['gaia.source_id',
                    'gaia.ra',
                    'gaia.dec',
                    'gaia.phot_g_mean_mag',
                    'gaia.bp_rp']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}        
+        """
         
-    columns = ', '.join(colname)
-    
-    query_base = f"""SELECT
-    {columns}
-    FROM gaiadr3.gaia_source AS gaia
-    JOIN gaiadr3.astrophysical_parameters AS astro
-      ON gaia.source_id = astro.source_id
-    WHERE 1=CONTAINS(
-      POINT(gaia.ra, gaia.dec),
-      CIRCLE({ra}, {dec}, {radius}))
-      AND gaia.phot_g_mean_mag < {maglim}
-    """
-
     # We use the urllib to keep the connection open because
     # the sky regions are huge which fails with Gaia.lunch_job
     
@@ -508,38 +525,48 @@ v        File name (without file extension) to be saved
     
     # Rename columns
 
-    if full:
+    if flag_astro:
         df = df.rename(columns={'source_id': 'gaiaDR3',
                                 'phot_g_mean_mag': 'Gmag',
                                 'bp_rp': 'BP_RP',
                                 'ag_gspphot': 'Ag',
                                 'parallax': 'plx',
                                 'parallax_error': 'plx_err',
-                                'teff_gspphot': 'Teff',
-                                'teff_gspphot_lower': 'Teff_low',
-                                'teff_gspphot_upper': 'Teff_upp',
+                                'mh_gspphot': 'Z',
+                                'mh_gspphot_lower': 'Z_low',
+                                'mh_gspphot_upper': 'Z_upp',
                                 'logg_gspphot': 'logg',
                                 'logg_gspphot_lower': 'logg_low',
                                 'logg_gspphot_upper': 'logg_upp',
-                                'lum_flame': 'lum',
-                                'lum_flame_lower': 'L_low',
-                                'lum_flame_upper': 'L_upp',
+                                'teff_gspphot': 'Teff',
+                                'teff_gspphot_lower': 'Teff_low',
+                                'teff_gspphot_upper': 'Teff_upp',
                                 'radius_flame': 'R',
                                 'radius_flame_lower': 'R_low',
                                 'radius_flame_upper': 'R_upp',
-                                'mass_flame': 'mass',
+                                'mass_flame': 'M',
                                 'mass_flame_lower': 'M_low',
                                 'mass_flame_upper': 'M_upp',
+                                'lum_flame': 'L',
+                                'lum_flame_lower': 'L_low',
+                                'lum_flame_upper': 'L_upp',                                
                                 'spectraltype_esphs': 'spec'})
-        df = df.sort_values(by=['spec', 'teff'])
+        df = df.sort_values(by=['BP_RP'])
+        # Round Teff column
+        df = df.fillna(-1)
+        df = df.astype({'Teff':int,
+                        'Teff_low':int,
+                        'Teff_upp':int})
+        df = df.replace({-1:np.nan})
     else:
         df = df.rename(columns={'source_id': 'gaiaDR3',
                                 'phot_g_mean_mag': 'Gmag',
                                 'bp_rp': 'BP_RP'})
 
     # Convert names to string
+    
     df.gaiaDR3 = df.gaiaDR3.astype(str)
         
     # Reset index and return
-    
+
     return df.reset_index(drop=True)
