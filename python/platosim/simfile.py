@@ -1298,9 +1298,10 @@ class SimFile (object):
         if groupByExposure:
 
             # Get all Exposure00.. strings and avoid the time array being the last entry
-
+            # TODO the "-1" from Nexp when time column time has its own group!
+            
             exp       = np.array(self.hdf5file[groupName])[:]
-            Nexp      = len(exp)
+            Nexp      = len(exp) - 1 
             starIDs   = self.hdf5file[groupName][exp[0]]["starID"][:]
             starIndex = np.where(starIDs == starID)
             star      = starIndex[0]
@@ -1315,10 +1316,9 @@ class SimFile (object):
             
             row = np.zeros(Nexp)
             col = np.zeros(Nexp)
-            
             for i in range(Nexp):
-                row[i] = np.array(self.hdf5file[groupName][exp[i]]['rowPix'][star])
-                col[i] = np.array(self.hdf5file[groupName][exp[i]]['colPix'][star])
+                row[i] = self.hdf5file[groupName][exp[i]]['rowPix'][star]
+                col[i] = self.hdf5file[groupName][exp[i]]['colPix'][star]
 
         elif not groupByExposure:
             
