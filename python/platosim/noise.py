@@ -219,7 +219,8 @@ def timeSeriesFromMeanPSD(freq, psd):
 #--------------------------------------------------------------#
 
 
-def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=False):
+def getPRE(alpha, delta, kappa, quarter, sigma=3,
+           ofile=False, table=False, plot=False):
 
     """Pointing Reproducibility Error (PRE) in PLM reference frame.
     
@@ -235,11 +236,7 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
     # Sort input quarters
     
     n = len(quarter)
-    
-    # Coordinates
-    
-    ICRS = np.array([ra, dec, kappa])
-    
+        
     # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]
     
@@ -262,8 +259,8 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
 
     # ICRS pointing angles
     
-    phi   = np.deg2rad(ra)
-    theta = np.deg2rad(dec)
+    phi   = np.deg2rad(alpha)
+    theta = np.deg2rad(delta)
 
     # Find change of pointing for each quarter
     
@@ -279,9 +276,10 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
     df0.iloc[:,1:] = df0.iloc[:,1:] * 3600
         
     df1 = df.copy()
-    df1.rename(columns={"yaw":"RA", "pitch":"Dec", "roll":"kappa"}, inplace=True)
-    df1.iloc[:,1] = df1.iloc[:,1] + ra
-    df1.iloc[:,2] = df1.iloc[:,2] + dec
+    df1.rename(columns={"yaw":"alpha", "pitch":"delta", "roll":"kappa"}, inplace=True)
+    df1.iloc[:,1] = df1.iloc[:,1] + alpha
+    df1.iloc[:,2] = df1.iloc[:,2] + delta
+    df1.iloc[:,3] = df1.iloc[:,3] + kappa
 
     # Print generated values
            
@@ -293,19 +291,19 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
 
     # Plot distributions
     
-    if plot:
+    if ofile:
         t *= 3600
         b *= 3600
         y = t/sigma
         z = 3 * y
         x = np.abs(b/sigma - z)
         xx = np.linspace(-10*x, 10*x, 1000)
-
-        ra0  = (df1.RA-ra)   * 3600 / 18
-        dec0 = (df1.Dec-dec) * 3600 / 18
+        alpha0 = (df1.alpha - alpha) * 3600 / 18
+        delta0 = (df1.delta - delta) * 3600 / 18
         
         fig, ax = plt.subplots(1, 2, figsize=(9,4))
-        
+
+        # Plot PDF
         ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
@@ -314,28 +312,32 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
         ax[0].set_xlim(xx[0], xx[-1])
         ax[0].legend()
 
+        # Show distribution on sky 
         ax[1].grid(zorder=0)
         ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
-        for i in range(len(ra0)):
-            ax[1].scatter(ra0[i], dec0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
+        for i in range(len(alpha0)):
+            ax[1].scatter(alpha0[i], delta0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
         ax[1].set_title('Distribution on Sky')
         ax[1].set_xlabel('RA [pixel]')
         ax[1].set_ylabel('Dec [pixel]')
         ax[1].set_aspect('equal', adjustable='box')
-        
-        lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
+
+        # Settings
+        lim = np.max([np.max(np.abs(alpha0)), np.max(np.abs(delta0))])
         lim += lim/10.
         ax[1].set_xlim(-lim, +lim)
-        ax[1].set_ylim(-lim, +lim)
-        
+        ax[1].set_ylim(-lim, +lim)    
         plt.tight_layout()
-        plt.show()
         
+    # Plot figure above
+
+    if plot: plt.show()
+    
     # Save file with relative pointing errors [deg]
     
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
     
@@ -345,7 +347,8 @@ def getPRE(ra, dec, kappa, quarter, sigma=3, ofile=False, table=False, plot=Fals
 
 
 
-def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
+def getAPE(alpha, delta, kappa, sigma=3,
+           ofile=False, table=False, plot=False):
 
     """TODO Finish doc string!
     
@@ -388,18 +391,16 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
         df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
         print(df0)
         
-    # Plot distribution
+    # Create figure object
     
-    if plot:
+    if ofile:
         t *= 3600 / ( 15 * sigma * (sigma-1))
         b *= 3600 / ( 15 * sigma * (sigma-1))
-        # y = t/sigma
-        # z = 3 * y
-        # x = np.abs(b/sigma - z)
         xx = np.linspace(-10*t, 10*t, 1000)
 
         fig, ax = plt.subplots(1, 2, figsize=(10,5))
-        
+
+        # Plot PDF
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, t)*100, '-', c='b', label='Trans.')
         ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, b)*100, '-', c='m', label='Rot.')
         ax[0].set_title(f'APE distributions at {sigma}$\sigma$')
@@ -408,6 +409,7 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
         ax[0].set_xlim(xx[0], xx[-1])
         ax[0].legend()
 
+        # Plot distribution on sky
         azim = df.azimuth*3600/15
         tilt = df.tilt*3600/15
         ax[1].grid(zorder=0)
@@ -421,20 +423,23 @@ def getAPE(ra, dec, kappa, sigma=3, ofile=False, table=False, plot=False):
         ax[1].set_xlabel('Azimuth [pixel]')
         ax[1].set_ylabel('Tilt [pixel]')
         ax[1].set_aspect('equal', adjustable='box')
-        
+
+        # Settings
         lim = np.max([np.max(np.abs(azim)), np.max(np.abs(tilt))])
         lim += lim/10.
         ax[1].set_xlim(-lim, lim)
         ax[1].set_ylim(-lim, lim)
-
         plt.tight_layout()
-        plt.show()
 
+    # Plot figure above 
+    
+    if plot: plt.show()
+    
     # Save APE camera misalignments
     
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
     
@@ -470,7 +475,7 @@ def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
     
     # Plot distributions
     
-    if plot:
+    if ofile:
         t *= 3600
         b *= 3600
         y = t/sigma
@@ -503,16 +508,18 @@ def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
         lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
         lim += lim/10.
         ax[1].set_xlim(-lim, +lim)
-        ax[1].set_ylim(-lim, +lim)
-        
+        ax[1].set_ylim(-lim, +lim)        
         plt.tight_layout()
-        plt.show()
+
+    # Plot figure above 
+    
+    if plot: plt.show()
         
     # Save file with relative pointing errors [deg]
     
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
     # That's it!
     
@@ -596,23 +603,29 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
         A[Q-quarter[0],3] = df1.roll.max()  - df1.roll.min()
 
     # Show amplitudes
+    
     if table:
         print('\nTED model amplitudes [arcsec]')
         names = ['Quarter', 'A_yaw', 'A_pitch', 'A_roll']
         da = pd.DataFrame(A, columns=names)
         da = da.sort_values(['Quarter'])
         da = da.astype({'Quarter':np.int})
+        da = da.reset_index(drop=True)
         print(da)
 
     # Plot model
-    if plot:
+    
+    if ofile:
+
         fig, ax = plt.subplots(3,1,figsize=(9, 6))
+
         # Plots
         for i, col in zip(range(3), cols):
             ax[i].plot(df["time"]/day2sec, df[col], 'k-')
             ax[i].axhline(y=0, linestyle=':', color='k')
             for k in range(N-1):
                 ax[i].axvline(x=quarter[k]*90, linestyle='--', color='b')
+
         # Settings
         ax[2].set_xlabel("Time [days]")
         ax[0].set_ylabel("Yaw [arcsec]")
@@ -620,16 +633,20 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
         ax[2].set_ylabel("Roll [arcsec]")
         for i in range(3):
             ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
+
         # Layout
         ax[0].set_xticklabels([])
         ax[1].set_xticklabels([])
         plt.tight_layout(h_pad=0.2, w_pad=0)
-        plt.show()
+        
+    # Plot figure above 
+    
+    if plot: plt.show()
         
     # Save data in one big drift text file for PlatoSim
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
 
 
@@ -666,23 +683,25 @@ def getACS(time, rms=[0.038, 0.038, 0.040], ofile=False, plot=False):
 
     # Plot results it requested
 
-    if plot:
+    if ofile:
+        
         # Plot time series
         fig1, ax = pt.plotYawPitchRollTimeSeries(df.t/3600, np.array([df.x, df.y, df.z]),
                                                  units=["hours", "arcsec"])
-        plt.show()
+        
         # Plot PSDs
         fig2, ax = pt.plotYawPitchRollPSD(df.t, np.array([df.x, df.y, df.z]))
-        plt.show()
+        
+    # Plot figure above 
+    
+    if plot: plt.show()
         
     # Save data in one jitter file
     
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot:
-            fig1.savefig(f"{ofile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
-            fig2.savefig(f"{ofile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
-        
+        fig1.savefig(f"{ofile[:-4]}_timeseries.png", bbox_inches='tight', dpi=200)
+        fig2.savefig(f"{ofile[:-4]}_psd.png", bbox_inches='tight', dpi=200)
     
     
 
@@ -758,7 +777,7 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
         roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec                 # [s]
         roll_dex       = np.where((time>=roll_event0[i]) & (time<=roll_event1[i]))[0]
         roll[roll_dex] = True
-                
+
     # DOWNLINK GAPS
 
     link_period   = 365.25/4/3
@@ -851,30 +870,30 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
         
     # Show figure
 
-    if plot and n_roll != 0:
+    if ofile and n_roll != 0:
 
         fig, ax = plt.subplots(figsize=(9, 3))
         ax.axhline(y=0, linestyle=':', color='k')
 
         for i in range(n_roll):
-            roll = ax.axvspan(roll_event0[i]/day2sec, roll_event1[i]/day2sec,
-                             color='b', alpha=0.5)
-            if i == n_roll-1: roll.set_label('Quarter rolls')
+            ax_roll = ax.axvspan(roll_event0[i]/day2sec, roll_event1[i]/day2sec,
+                                 color='b', alpha=0.5)
+            if i == n_roll-1: ax_roll.set_label('Quarter rolls')
 
         for i in range(n_link):
-            link = ax.axvspan(link_event0[i]/day2sec, link_event1[i]/day2sec,
-                             color='m', alpha=0.5)
-            if i == n_link-1: link.set_label('Downlinks')
+            ax_link = ax.axvspan(link_event0[i]/day2sec, link_event1[i]/day2sec,
+                                 color='m', alpha=0.5)
+            if i == n_link-1: ax_link.set_label('Downlinks')
 
         for i in range(n_jitter):
-            jitter = ax.axvspan(jitter_event0[i]/day2sec, jitter_event1[i]/day2sec,
-                               color='orange', alpha=0.5)
-            if i == n_jitter-1: jitter.set_label('Loss of FGS')
+            ax_jitter = ax.axvspan(jitter_event0[i]/day2sec, jitter_event1[i]/day2sec,
+                                   color='orange', alpha=0.5)
+            if i == n_jitter-1: ax_jitter.set_label('Loss of FGS')
 
         for i in range(n_safe):
-            safe = ax.axvspan(safe_event0[i]/day2sec, safe_event1[i]/day2sec,
-                             color='r', alpha=0.5)
-            if i == n_safe-1: safe.set_label('Safe modes')
+            ax_safe = ax.axvspan(safe_event0[i]/day2sec, safe_event1[i]/day2sec,
+                                 color='r', alpha=0.5)
+            if i == n_safe-1: ax_safe.set_label('Safe modes')
 
         # Labels
         ax.set_xlabel("Time [days]")
@@ -886,22 +905,24 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
         ax.set_xlim(time[0]/day2sec, time[-1]/day2sec+5)
         ax.set_ylim(-1,1)
         plt.tight_layout()
-        plt.show()
 
-    # Create pandas data frame for different flags
-    
+    # Show plot
+    if plot: plt.show()
+
+    # Create pandas data frame for different flags    
     df = pd.DataFrame()
     df["time"]   = time
     df["roll"]   = roll
     df["link"]   = link
     df["jitter"] = jitter
     df["safe"]   = safe
-        
+    df["all"]    = roll + link + jitter + safe
+    
     # Save file (and plot) if requested
-        
     if ofile:
-        df.to_csv(ofile, sep=" ", header=False, index=False)
-        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        df.reset_index(drop=True, inplace=True)
+        df.to_feather(ofile)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
     
     # Compute event times
         
@@ -1035,7 +1056,8 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
                
     # Plot if requested
     
-    if plot: 
+    if ofile:
+        
         fig, ax = plt.subplots(figsize=(9,3))
         for i in range(n):
             ax.axvspan(timeGap0[i], timeGap1[i], color='b', alpha=0.2)
@@ -1044,13 +1066,16 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
         ax.set_ylabel('CCD temperature [K]')
         ax.set_xlim(np.min(time), np.max(time))
         plt.tight_layout()
-        plt.show()
+
+    # Plot figure above
+        
+    if plot: plt.show()        
 
     # Save data if requested
 
     if ofile:
         np.savetxt(ofile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
-        if plot: fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
         
     # That's it!
         
