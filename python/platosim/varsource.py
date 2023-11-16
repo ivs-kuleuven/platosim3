@@ -17,6 +17,7 @@ import urllib.request
 from pathlib import Path
 
 # PlatoSim standard
+import h5py
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -33,6 +34,7 @@ from PyAstronomy import funcFit, pyasl
 
 # PlatoSim functions
 import platosim.plot      as pt
+import platosim.noise     as ns
 import platosim.utilities as ut
 from platosim.utilities import errorcode
 
@@ -1092,10 +1094,86 @@ def pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
 
 
 #==============================================================#
-#                        PULSATING STARS                       #
+#                         MASSIVE STARS                        #
 #==============================================================#
 
     
+class SurfaceModulations(object):
+
+    """Class to generate variability of roAp stars.
+
+    Rotationally modulated chemcically perculiar A-type (roAp) stars
+    are common and readily available objects that efficiently can be 
+    used as photometric calibrators in larger surveys. Rotational 
+    periods can be drawn randomly from a uniform distribution between
+    1 and 3 days. The shape of light curves of these stars is typically
+    sinusoidal with frequent contribution of the second harmonic. 
+    The amplitude is typically 10-30 mmag in the Kepler passband. 
+    We here assume that Kepler passband is representative for the 
+    PLATO passband.
+    """
+
+    def __init__(self, time, seed=False):
+        
+        self.time = time
+        self.rng  = ut.rng(seed)
+    
+
+        
+    def initToyModel(self, period_range=[1,3], amplitude_range=[10,30]):
+
+        """Draw pulsations from uniform distribution.
+        Author: Oleg Kochukhov (oleg.kochukhov@physics.uu.se)
+
+        Typical ratational periods [1, 3] days
+        Typical amplitude ranges [10, 30] mmag
+        """
+        
+        # Random value of rotational period
+        P = self.rng.uniform(period_range[0], period_range[1])
+
+        # Relative amplitudes between main frequency and harmonic
+        A = self.rng.uniform(0, 1)
+
+        # Random phase offset [0, 2*pi] between main frequency and harmonic
+        phi = self.rng.uniform(0, 2*np.pi)
+        
+        # Create light curve
+        mag = np.cos(2*np.pi * (self.time/P)) + A * np.cos(4*np.pi * (self.time/P) + phi)
+
+        # Scale amplitude within the range
+        scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
+        self.mag = mag * scale
+
+        # Return model parameters
+        return [P, phi, A, scale]
+
+
+        
+    def evaluate(self, plot=False):
+
+        """Evaluate and return generated model.
+        """        
+        
+        if plot:
+            plt.figure(figsize=(10, 4))
+            plt.plot(self.time, self.mag, 'k-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'$\mathcal{P}$ [mmag]')
+            plt.xlim(self.time.min(), self.time.max())
+            plt.tight_layout()
+            plt.show()
+        
+        return self.mag/1e3
+
+
+
+
+#==============================================================#
+#                        PULSATING STARS                       #
+#==============================================================#
+
+
 class GravityOscillator(object):
 
     """Class to generate gravity oscillation time series.
@@ -1176,75 +1254,15 @@ class GravityOscillator(object):
         self.starname = starfile.name
 
         
-                        
+
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
         """
 
-        # Number of pulsation modes
-        nmodes = len(self.freq)
-        
-        # Loop over the number of modes and sum of every mode
-        mag = np.zeros_like(self.time)
-        for i in range(nmodes):
-            mag += self.ampl[i] * np.sin((2*np.pi * self.freq[i]) * self.time + self.phase[i])
-
-        # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
-        # Then add 1, raise the power and substract 1
-        A = np.max(np.abs(mag))
-        self.mag = A * (((1 + mag/A)**self.power) - 1)
-
-        # Plot if requested
-        if plot: self.plot()
-            
-        # Return magnitude [mmag -> mag]
-        return mag/1e3
-    
-
-
-    def plot(self):
-
-        # Compute power spectrum
-        from platosim.noise import numpyFFT
-        
-        fig, ax = plt.subplots(2, 1, figsize=(12, 7))
-
-        # Plot time series
-        ax[0].plot(self.time, self.mag, 'k-', lw=0.3)
-        ax[0].set_xlabel(r'Time [days]')
-        ax[0].set_ylabel(r'$\delta m$ [mmag]')
-        ax[0].set_title(f'{self.starname}')
-        ax[0].set_xlim(self.time.min(), self.time.max())
-        #ax[0].set_ylim(self.mag.min(),  self.mag.max())
-
-        # Plot power spectrum
-        freq, power = numpyFFT(self.mag, np.diff(self.time)[0])
-        N    = len(self.freq)
-        ymin = np.mean(power)
-        ymax = np.max(power) + 0.1*np.max(power)
-        carray = np.linspace(0, 1, 1000)
-        colors = plt.cm.rainbow(carray)
-        #freq = 1/freq
-        # for i in range(N):
-        #     if self.starname is not 'g-Dor':
-        #         snr_norm = self.snr[i]/self.snr.max()
-        #         dex = ut.findNearestIndex(carray, snr_norm)
-        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax],
-        #                    c=colors[dex], lw=snr_norm*3)
-        #     else:
-        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax], c='royalblue')
-        ax[1].plot(freq, power, '-', c='deeppink', lw=1)
-        # Settings
-        ax[1].set_ylabel(r'Amplitude [mmag]')
-        ax[1].set_xlabel(r'Period, $P$ [day]')
-        #ax[1].set_yscale('log')
-
-        ax[1].set_xlim(0, np.max(self.freq)+1)
-        ax[1].set_ylim(ymin, ymax)
-        plt.tight_layout()
-        plt.show()
-
+        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
+                                        plot=plot, title=self.starname)
+   
 
 
 
@@ -1296,79 +1314,18 @@ class ClassicalPulsator(object):
         self.amplitude = df.ampl * 1e3  # [mag]
         self.phase     = df.phase       # [rad]
         self.snr       = df.snr
-        
-#==============================================================#
-#                         MASSIVE STARS                        #
-#==============================================================#
-
-    
-class SurfaceModulations(object):
-
-    """Class to generate variability of roAp stars.
-
-    Rotationally modulated chemcically perculiar A-type (roAp) stars
-    are common and readily available objects that efficiently can be 
-    used as photometric calibrators in larger surveys. Rotational 
-    periods can be drawn randomly from a uniform distribution between
-    1 and 3 days. The shape of light curves of these stars is typically
-    sinusoidal with frequent contribution of the second harmonic. 
-    The amplitude is typically 10-30 mmag in the Kepler passband. 
-    We here assume that Kepler passband is representative for the 
-    PLATO passband.
-    """
-
-    def __init__(self, time, seed=False):
-        
-        self.time = time
-        self.rng  = ut.rng(seed)
-    
-
-        
-    def initToyModel(self, period_range=[1,3], amplitude_range=[10,30]):
-
-        """Draw pulsations from uniform distribution.
-        Author: Oleg Kochukhov (oleg.kochukhov@physics.uu.se)
-
-        Typical ratational periods [1, 3] days
-        Typical amplitude ranges [10, 30] mmag
-        """
-        
-        # Random value of rotational period
-        P = self.rng.uniform(period_range[0], period_range[1])
-
-        # Relative amplitudes between main frequency and harmonic
-        A = self.rng.uniform(0, 1)
-
-        # Random phase offset [0, 2*pi] between main frequency and harmonic
-        phi = self.rng.uniform(0, 2*np.pi)
-        
-        # Create light curve
-        mag = np.cos(2*np.pi * (self.time/P)) + A * np.cos(4*np.pi * (self.time/P) + phi)
-
-        # Scale amplitude within the range
-        scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
-        self.mag = mag * scale
-
-        # Return model parameters
-        return [P, phi, A, scale]
 
 
         
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
-        """        
-        
-        if plot:
-            plt.figure(figsize=(10, 4))
-            plt.plot(self.time, self.mag, 'k-')
-            plt.xlabel('Time [d]')
-            plt.ylabel(r'$\mathcal{P}$ [mmag]')
-            plt.xlim(self.time.min(), self.time.max())
-            plt.tight_layout()
-            plt.show()
-        
-        return self.mag/1e3
+        """
+
+        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
+                                        plot=plot, title=self.starname)
+
+
 
 
 
@@ -1378,6 +1335,273 @@ class SurfaceModulations(object):
 #==============================================================#
 
 
+
+class EclipsingBinary(object):
+
+    """Models Eclipsing Binaries (EBs).
+    """
+
+
+    def __init__(self, time, seed=None):
+
+        """Open the HDF5 output file
+        """
+
+        self.time = time
+        self.rng  = ut.rng(seed)
+
+
+
+    def read_parameters_hdf5(self, file_name, verbose=False):
+
+        """Read the full model parameters of the linear, sinusoid
+        and eclipse models to an hdf5 file.
+
+        Parameters
+        ----------
+        file_name: str
+            File name (including path) for loading the results.
+        verbose: bool
+            If set to True, this function will print some information.
+
+        Returns
+        -------
+        results: dict
+            Contains:
+            sin_mean: None, list[numpy.ndarray[float]]
+                Parameter mean values for the linear and sinusoid model in the order they appear below.
+                linear parameters: const, slope,
+                sinusoid parameters: f_n, a_n, ph_n
+            sin_err: None, list[numpy.ndarray[float]]
+                Parameter error values for the linear and sinusoid model in the order they appear below.
+                linear parameters: c_err, sl_err,
+                sinusoid parameters: f_n_err, a_n_err, ph_n_err
+            sin_hdi: None, list[numpy.ndarray[float]]
+                Parameter hdi values for the linear and sinusoid model in the order they appear below.
+                linear parameters: c_hdi, sl_hdi,
+                sinusoid parameters: f_n_hdi, a_n_hdi, ph_n_hdi
+            sin_select: None, list[numpy.ndarray[bool]]
+                Sinusoids that pass certain selection criteria
+                passed_sigma, passed_snr, passed_h
+            ephem: None, numpy.ndarray[float]
+                Ephemerides of the EB, p_orb and t_zero
+            ephem_err: None, numpy.ndarray[float]
+                Error values for the ephemerides, p_err and t_zero_err
+            ephem_err: None, numpy.ndarray[float]
+                Hdi values for the ephemerides, p_hdi and t_zero_hdi
+            phys_mean: None, numpy.ndarray[float]
+                Parameter mean values for the physical eclipse model in the order they appear below.
+                ecosw, esinw, cosi, phi_0, log_rr, log_sb,
+                extra parametrisations: e, w, i, r_sum, r_rat, sb_rat
+            phys_err: None, numpy.ndarray[float]
+                Parameter error values for the physical eclipse model in the order they appear below.
+                ecosw_err, esinw_err, cosi_err, phi_0_err, log_rr_err, log_sb_err,
+                Extra parametrisation: e_err, w_err, i_err, r_sum_err, r_rat_err, sb_rat_err
+            phys_hdi: None, numpy.ndarray[float]
+                Parameter hdi values for the physical eclipse model in the order they appear below.
+                ecosw_hdi, esinw_hdi, cosi_hdi, phi_0_hdi, log_rr_hdi, log_sb_hdi,
+                Extra parametrisations: e_hdi, w_hdi, i_hdi, r_sum_hdi, r_rat_hdi, sb_rat_hdi
+            timings: None, numpy.ndarray[float]
+                Eclipse timings of minima and first and last contact points, internal tangency
+                and eclipse depth of the primary and secondary:
+                t_1, t_2, t_1_1, t_1_2, t_2_1, t_2_2, t_b_1_1, t_b_1_2, t_b_2_1, t_b_2_2, depth_1, depth_2
+            timings_err: None, numpy.ndarray[float]
+                Parameter error values for the eclipse timings and depths:
+                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
+                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
+            timings_hdi: None, numpy.ndarray[float]
+                Parameter hdi values for the eclipse timings and depths:
+                t_1_hdi, t_2_hdi, t_1_1_hdi, t_1_2_hdi, t_2_1_hdi, t_2_2_hdi,
+                t_b_1_1_hdi, t_b_1_2_hdi, t_b_2_1_hdi, t_b_2_2_hdi, depth_1_hdi, depth_2_hdi
+            timings_indiv_err: None, numpy.ndarray[float]
+                Parameter error values for the individual eclipse timings and depths:
+                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
+                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
+            var_stats: None, list[union(float, numpy.ndarray[float])]
+                Variability level diagnostic statistics
+                std_1, std_2, std_3, std_4, ratios_1, ratios_2, ratios_3, ratios_4
+            stats: None, list[float]
+                Some statistics: t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level
+            i_sectors: numpy.ndarray[int]
+                Pair(s) of indices indicating the separately handled timespans
+                in the piecewise-linear curve.
+            text: list[str]
+                Some information about the file and data:
+                identifier, data_id, description and date_time
+        """
+        # check some input
+        ext = os.path.splitext(os.path.basename(file_name))[1]
+        if (ext != '.hdf5'):
+            file_name = file_name.replace(ext, '.hdf5')
+        # create the file
+        with h5py.File(file_name, 'r') as file:
+            identifier = file.attrs['identifier']
+            description = file.attrs['description']
+            data_id = file.attrs['data_id']
+            date_time = file.attrs['date_time']
+            t_tot = file.attrs['t_tot']
+            t_mean = file.attrs['t_mean']
+            t_mean_s = file.attrs['t_mean_s']
+            t_int = file.attrs['t_int']
+            n_param = file.attrs['n_param']
+            bic = file.attrs['bic']
+            noise_level = file.attrs['noise_level']
+            # orbital period and time of deepest eclipse
+            p_orb = np.copy(file['p_orb'])
+            t_zero = np.copy(file['t_zero'])
+            # the linear model
+            # y-intercepts
+            const = np.copy(file['const'])
+            c_err = np.copy(file['c_err'])
+            c_hdi = np.copy(file['c_hdi'])
+            # slopes
+            slope = np.copy(file['slope'])
+            sl_err = np.copy(file['sl_err'])
+            sl_hdi = np.copy(file['sl_hdi'])
+            # sector indices
+            i_sectors = np.copy(file['i_sectors'])
+            # the sinusoid model
+            # frequencies
+            f_n = np.copy(file['f_n'])
+            f_n_err = np.copy(file['f_n_err'])
+            f_n_hdi = np.copy(file['f_n_hdi'])
+            # amplitudes
+            a_n = np.copy(file['a_n'])
+            a_n_err = np.copy(file['a_n_err'])
+            a_n_hdi = np.copy(file['a_n_hdi'])
+            # phases
+            ph_n = np.copy(file['ph_n'])
+            ph_n_err = np.copy(file['ph_n_err'])
+            ph_n_hdi = np.copy(file['ph_n_hdi'])
+            # passing criteria
+            passed_sigma = np.copy(file['passed_sigma'])
+            passed_snr = np.copy(file['passed_snr'])
+            passed_b = np.copy(file['passed_b'])
+            passed_h = np.copy(file['passed_h'])
+            # the physical eclipse model parameters
+            ecosw = np.copy(file['ecosw'])
+            esinw = np.copy(file['esinw'])
+            cosi = np.copy(file['cosi'])
+            phi_0 = np.copy(file['phi_0'])
+            log_rr = np.copy(file['log_rr'])
+            log_sb = np.copy(file['log_sb'])
+            # some alternate parametrisations
+            e = np.copy(file['e'])
+            w = np.copy(file['w'])
+            i = np.copy(file['i'])
+            r_sum = np.copy(file['r_sum'])
+            r_rat = np.copy(file['r_rat'])
+            sb_rat = np.copy(file['sb_rat'])
+            # eclipse timings
+            t_1 = np.copy(file['t_1'])
+            t_2 = np.copy(file['t_2'])
+            t_1_1 = np.copy(file['t_1_1'])
+            t_1_2 = np.copy(file['t_1_2'])
+            t_2_1 = np.copy(file['t_2_1'])
+            t_2_2 = np.copy(file['t_2_2'])
+            t_b_1_1 = np.copy(file['t_b_1_1'])
+            t_b_1_2 = np.copy(file['t_b_1_2'])
+            t_b_2_1 = np.copy(file['t_b_2_1'])
+            t_b_2_2 = np.copy(file['t_b_2_2'])
+            depth_1 = np.copy(file['depth_1'])
+            depth_2 = np.copy(file['depth_2'])
+            # variability to eclipse depth ratios
+            ratios_1 = np.copy(file['ratios_1'])
+            ratios_2 = np.copy(file['ratios_2'])
+            ratios_3 = np.copy(file['ratios_3'])
+            ratios_4 = np.copy(file['ratios_4'])
+
+        sin_mean = [const, slope, f_n, a_n, ph_n]
+        sin_err = [c_err, sl_err, f_n_err, a_n_err, ph_n_err]
+        sin_hdi = [c_hdi, sl_hdi, f_n_hdi, a_n_hdi, ph_n_hdi]
+        sin_select = [passed_sigma, passed_snr, passed_b, passed_h]
+        ephem = [p_orb[0], t_zero[0]]
+        ephem_err = [p_orb[1], t_zero[1]]
+        ephem_hdi = [p_orb[2:4], t_zero[2:4]]
+        phys_mean = np.array([ecosw[0], esinw[0], cosi[0], phi_0[0], log_rr[0], log_sb[0],
+                              e[0], w[0], i[0], r_sum[0], r_rat[0], sb_rat[0]])
+        phys_err = np.array([ecosw[1], esinw[1], cosi[1], phi_0[1], log_rr[1], log_sb[1],
+                             e[1], w[1], i[1], r_sum[1], r_rat[1], sb_rat[1]])
+        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4], log_rr[2:4], log_sb[2:4],
+                             e[2:4], w[2:4], i[2:4], r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
+        timings = np.array([t_1[0], t_2[0], t_1_1[0], t_1_2[0], t_2_1[0], t_2_2[0],
+                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0], depth_1[0], depth_2[0]])
+        timings_err = np.array([t_1[1], t_2[1], t_1_1[1], t_1_2[1], t_2_1[1], t_2_2[1],
+                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1], depth_1[1], depth_2[1]])
+        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4], t_2_1[2:4], t_2_2[2:4],
+                                t_b_1_1[2:4], t_b_1_2[2:4], t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
+        timings_indiv_err = np.array([t_1[4], t_2[4], t_1_1[4], t_1_2[4], t_2_1[4], t_2_2[4],
+                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4], depth_1[4], depth_2[4]])
+        var_stats = [ratios_1[0], ratios_2[0], ratios_3[0], ratios_4[0],
+                     ratios_1[1:], ratios_2[1:], ratios_3[1:], ratios_4[1:]]
+        stats = [t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level]
+        text = [identifier, data_id, description, date_time]
+        # put everything in a dict
+        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi, 'sin_select': sin_select,
+                   'ephem': ephem, 'ephem_err': ephem_err, 'ephem_hdi': ephem_hdi,
+                   'phys_mean': phys_mean, 'phys_err': phys_err, 'phys_hdi': phys_hdi,
+                   'timings': timings, 'timings_err': timings_err, 'timings_hdi': timings_hdi,
+                   'timings_indiv_err': timings_indiv_err,
+                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors, 'text': text}
+        if verbose:
+            print(f'Loaded analysis file with identifier: {identifier}, created on {date_time}. \n'
+                  f'data_id: {data_id}. Description: {description} \n')
+        return results
+
+
+        
+    def initIJspeert2023(self, odir, starID=None):
+
+        """Draw frequencies from Kepler g-Dor legacy.
+        """
+
+        # Name of folder on FTP server
+        filename = 'varsource_EBs_kepler_ijspeert2021'
+        dataDir  = Path(f'{odir}/{filename}')
+        
+        # Select a random object from the list and load Fourier data
+        if dataDir.is_dir():
+            folders = glob.glob(f'{odir}/{filename}/*')
+        else:
+            zipfile = f'{filename}.zip'
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+            os.system(f'unzip {odir}/{zipfile} -d {odir}')
+            os.system(f'rm {odir}/{zipfile}')
+
+        # If requested, select specific star or else do a random draw
+        if starID is None:
+            starDir = Path(self.rng.choice(folders))
+        else:
+            starDir = Path(filenames[starID-1])
+            
+        # Load file containing columns
+        starfile = starDir / f'{starDir.name}_2.hdf5' 
+        result   = self.read_parameters_hdf5(starfile)
+        data     = result['sin_mean']
+
+        # Else load the data
+        self.freq  = data[2]      # [days]
+        self.ampl  = data[3] * 1e3 #df.ampl * 1e3  # [mag]
+        self.phase = data[4] #df.phase       # [rad]
+        self.starname = str(starDir.stem)
+
+
+
+    def evaluate(self, plot=False):
+
+        """Evaluate and return generated model.
+        """
+
+        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
+                                        plot=plot, title=self.starname)
+        
+
+        
+        
+
+
+        
 class SMBHB(object):
 
     """Models for Super Massive Black Hole Binaries (SMBHBs).

@@ -68,6 +68,7 @@ from platosim.varsource import (StellarFlares,
                                 SolarLikeOscillator,
                                 GravityOscillator,
                                 SurfaceModulations,
+                                EclipsingBinary,
                                 SMBHB,
                                 PlanetMRforecast,
                                 DopplerBeaming,
@@ -1036,7 +1037,40 @@ class VarSim(object):
     #                          BINARY SYSTEMS                      #
     #--------------------------------------------------------------#
     
-    
+
+    def binary_eb(self):
+
+        """Function to generate a SMBH binary light curve.
+        """
+
+        if self.verbose > 0:
+            errorcode('module', '\nEclipsing binary\n')
+
+        # Set the stellar source entry
+        self.star_source = 'EB'
+            
+        # Fetch time array
+        time  = self.time.to('d').value
+        model = EclipsingBinary(time, seed=self.seed)
+
+        # Fetch model parameters
+        model.initIJspeert2023(self.idir)
+
+        # Check if a file with pulsations are parsed
+        # if args.puls == 'gang2020':
+        #     model.initGang2020(self.idir, starID=self.starID)
+        # else:
+        #     model.initToyModel([0.5, 3], [0.5, 2.5])
+
+        # Return model [mag -> ppm]
+        mag = model.evaluate(plot=self.plot)
+        exit()
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+
+
+
+
+        
     def binary_smbh(self):
 
         """Function to generate a SMBH binary light curve.
@@ -1731,8 +1765,8 @@ class VarSim(object):
         # Bolometric correction
         #self.stellar_spectrum()
 
-        if args.star == 'EB':
-            v.binary_system()
+        if args.binary == 'EB':
+            v.binary_eb()
         
         elif args.binary == 'SMBH':
             v.binary_smbh()
