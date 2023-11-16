@@ -141,14 +141,14 @@ class LightCurve(object):
             else:
                 self.path = filename
                 self.df = None
-                
+            
             # Correct obs info if it's a merged light curve
             self.ncam = ncam
 
             # No mask updates if multi mode
             self.mask_updates = np.array([])
 
-
+            
         # COMMON ACTIONS
 
         # Cadence/cycle time (exposure + readout time)

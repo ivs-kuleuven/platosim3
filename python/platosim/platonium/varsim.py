@@ -942,6 +942,31 @@ class VarSim(object):
 
 
 
+    def star_bcep(self): # TODO
+
+        """Generate light curves for beta Cephei stars.
+        """
+
+        # Start script
+        if self.verbose > 0:
+            errorcode('module', '\nPulsator: beta Cephei stars (g-modes)\n')
+
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = GravityOscillator(time, power=1.0, seed=self.seed)
+        
+        # Check if a file with pulsations are parsed
+        model.initToyModel([1/12, 1/3], [10, 30])
+
+        # Return model [mag -> ppm]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+
+        
+
+
+        
+
     def star_ceph(self): # TODO
 
         """Generate ligth curve for Cepheid and RR Lyrae stars.
@@ -1764,36 +1789,20 @@ class VarSim(object):
         self.starID = int(starID)
         
         # Load feather
-        df0 = pd.read_feather(idir /  'starcat_GaiaDR3_PlatoCS.ftr')
-        ds0 = pd.read_feather(idir / f'starcat_GaiaDR3_PlatoCS_{starType}.ftr')
+        df0 = pd.read_feather(idir / f'starcat_GaiaDR3_PlatoCS_{starType}_targets.ftr')
+        ds0 = pd.read_feather(idir / f'starcat_GaiaDR3_PlatoCS_{starType}_contaminants.ftr')
         
         # Output directory
         starDir = f'{self.starID}'.zfill(9)
         self.odir = odir / starDir
         self.odir.mkdir(parents=True, exist_ok=True)
 
-
-        # QUERY STARS IN SUBFIELD
-
         # Select target star
-        df_i = ds0.iloc[self.starID-1]
-
-        # Fetch smaller region around target
-        x = 45/3600.
-        dc_i = df0[(df0.ra  > df_i.ra  - x) & (df0.ra  < df_i.ra  + x) &
-                   (df0.dec > df_i.dec - x) & (df0.dec < df_i.dec + x)]
-
-        # Find radial distance [arcsec] 
-        dc_i['dis'] = ut.radialDistance(df_i.ra, df_i.dec, dc_i.ra, dc_i.dec) * 3600.
-        dc_i = dc_i.sort_values(by=['dis'])
-        dc_i = dc_i.reset_index(drop=True)
-
-        # If target distance is NaN we secure it is placed as first row
-        target_row = dc_i[dc_i.gaiaDR3 == df_i.gaiaDR3].index[0]
-        df = ut.pdMoveRowToFirst(dc_i, target_row, reset_index=True)
-        df.dis.iloc[0] = 0.0
+        df_i = df0.loc[self.starID-1]
+        ds_i = ds0[ds0.gaiaDR3 == df_i.gaiaDR3]
+        df   = pd.concat([df_i.to_frame().T, ds_i])
         
-
+        
         # GENERATE LIGHT CURVES
 
         # Check contaminant variability
@@ -1879,6 +1888,7 @@ class VarSim(object):
             #self.stellar_activity()
             #self.stellar_flares()
             #self.star_roap()
+            #self.star_gdor()
             self.star_gdor()
             #self.star_dsct()
             #self.star_ceph()

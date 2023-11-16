@@ -1244,7 +1244,7 @@ def compass(ax, x, y, size):
             
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
                  showGroups=False, showLegend=True, ncamStars=True, title=None,
-                 fovSize=30, fs=20, ms=1, figsize=(9,9)):
+                 fovSize=30, fs=20, ms=1, aa=1, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1359,13 +1359,13 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
                   title=r"P [mag]", fontsize=16, title_fontsize=16)
     else:
-        dm, mark, color = 20, '*', 'none'
+        dm, mark, color = 20, '.', 'none'
         
     # Plot all stars
 
     starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
     scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
-                         s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
+                         s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
     
     # Plot pointing of each camera group
     
