@@ -242,7 +242,8 @@ class PLATOnium(object):
         if (self.verbose == 3) or (self.fullFrame and self.verbose > 0):
             print('\nLoading stellar catalogue..')
 
-            
+        self.magPB = 'mag'
+        
         # FULL-FRAME CCD
             
         if self.fullFrame:
@@ -1111,7 +1112,7 @@ class PLATOnium(object):
 
             # Indices are the star IDs
             df = ut.pdAddColumn(df, df.index, 'starID')
-            df = df.drop(columns=['index'])
+            if 'index' in df: df.drop(columns=['index'], inplace=True)
             df = df.reset_index(drop=True)
             
             # Add stellar positions.
