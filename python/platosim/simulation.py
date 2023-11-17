@@ -18,7 +18,6 @@ import os
 import sys
 import ast
 import math
-import inspect
 import datetime
 import subprocess
 
@@ -74,7 +73,7 @@ class Simulation(object):
 
         # Set simulation location
         
-        self.setSimulatorLocation();
+        self.setSimulatorLocation()
 
         # Read the YAML input file
         
@@ -254,7 +253,7 @@ class Simulation(object):
         # E.g. "PSF/MappedGaussian/Sigma" into [PSF, MappedGaussian, Sigma]
 
         if key.find('/') == -1:
-            parentNodeName, nodeName = key, None
+            parentNodeName, nodeName = key, None            # FIXME: parentNodeName assigned but never used
             print("usage: the given parameter name (key) should " +
                   "include the group name of the group that contains the parameter.")
             print("E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
@@ -442,8 +441,7 @@ class Simulation(object):
         
         Return
         ------
-        When PlatoSim fails for some reason and returns an error code (!= 0),
-        an Exception is raised.
+        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
         """
 
         if executionTime:
@@ -670,6 +668,7 @@ class Simulation(object):
         self["CCD/IncludeFullWellSaturation"]       = switch
         self["CCD/IncludeDigitalSaturation"]        = switch
         self["CCD/IncludeQuantisation"]             = switch
+        self["CCD/IncludeGainNonlinearity"]         = switch
 
 
 
@@ -893,8 +892,7 @@ class Simulation(object):
 
 
     
-    def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel,
-                                          subfieldSizeX, subfieldSizeY, normal=True):
+    def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY, normal=True):
 
         """Set the subfield around pixel coordinates.
         
@@ -917,14 +915,11 @@ class Simulation(object):
 
         Return
         ------
-        None
+        success: boolean, if the subfield setting was successful or not
         """
 
         raStar, decStar = rf.pixelToSkyCoordinates(self, ccdCode, xCCDpixel, yCCDpixel)
-
-        success = self.setSubfieldAroundSkyCoordinates(raStar, decStar,
-                                                       subfieldSizeX, subfieldSizeY,
-                                                       normal)
+        success = self.setSubfieldAroundSkyCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, normal)
         return success
 
 
@@ -987,9 +982,7 @@ class Simulation(object):
 
 
 
-    def setSubfieldAroundSkyCoordinates(self, raStar, decStar,
-                                        subfieldSizeX, subfieldSizeY,
-                                        normal=True):
+    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
 
         """Set subfield around stellar coordinates
 
@@ -1186,8 +1179,7 @@ class Simulation(object):
 
     
 
-    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs,
-                                                  starCatalogPath):
+    def createStarCatalogFileFromPixelCoordinates(self, rows, cols, magnitudes, starIDs, starCatalogPath):
 
         """Create a star catalogue file from the pixel coordinates.
         
@@ -1258,8 +1250,7 @@ class Simulation(object):
 
         # Convert the pixel coordinates to focal plane coordinates [mm]
 
-        xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize,
-                                                       ccdZeroPointX, ccdZeroPointY, CCDangle)
+        xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(cols, rows, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle)
 
         # If distortion is required in the yaml input file, distort the focal plane coordinates [mm]
         if mappedDistortion:
@@ -1598,7 +1589,7 @@ class Simulation(object):
 
                 # No rows dumped
 
-                numRowsDump = 0;
+                numRowsDump = 0
 
             # Partial readout
 
