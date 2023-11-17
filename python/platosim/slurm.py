@@ -2,6 +2,9 @@
 
 """
 Library of functions used for SLURM computations.
+
+NOTE This class needs the Poetry install: 
+     >> poetry install --with platonium 
 """
 
 # Python standard
@@ -21,6 +24,7 @@ from tqdm import tqdm
 # PlatoSim imports
 import platosim.utilities as ut
 from platosim.utilities import errorcode
+
 
 #==============================================================#
 #                        SLURM UTILITIES                       #
@@ -149,7 +153,7 @@ def getJobScript(ids, groups, cameras, quarters,
     export OMP_NUM_THREADS=1
 
     # Run PLATOnium
-    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress -v 0 -w
+    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress -v 0
     """
 
     # Save textfile for worker

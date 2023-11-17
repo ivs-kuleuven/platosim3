@@ -22,6 +22,7 @@ and used when running "platonium".
 import os
 import shutil
 import argparse
+import datetime
 
 # PlatoSim standard
 import numpy as np
@@ -56,7 +57,7 @@ class Payload(object):
         # Global parameters
         self.day2sec = 86400.
         self.prefix  = 'cluster'
-
+        
         # Flags
         self.plot = args.plot
         self.fcam = args.fcam
@@ -73,22 +74,22 @@ class Payload(object):
 
         # File names
         if self.odir:
-            self.fileNameGap = f"{self.odir}/instrumentGap.txt"
-            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
             self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
             self.fileNameACS = f"{self.odir}/instrumentACS.txt"
+            self.fileNameGap = f"{self.odir}/instrumentGap.ftr"
+            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
         else:
             self.fileNameGap = self.fileNameCCD = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
         # Number of images in a quarter
-        self.nimg = (60 * 60 * 24 * 90) / 25.
+        self.nimg = round(ut.year() / 4 / 25)
 
         # Select pointng field
         self.field = args.field
-        self.ra, self.dec, self.kappa = ut.getPointingField(self.field)
-        
+        self.alpha, self.delta, self.kappa = ut.getPointingField(self.field)
+
         # Short-hand definitions 
         N = args.ids
         G = args.group
@@ -144,8 +145,9 @@ class Payload(object):
         self.Q = Q
 
         # Time column
-        t0 = round(90. * (self.Q[0]  - 1) * self.day2sec)
-        t1 = round(90. * (self.Q[-1])     * self.day2sec)
+        tQ = ut.year() / self.day2sec / 4
+        t0 = round(tQ * (self.Q[0]  - 1) * self.day2sec)
+        t1 = round(tQ * (self.Q[-1])     * self.day2sec)
         self.time = np.arange(t0, t1, 25)
 
 
@@ -164,6 +166,26 @@ class Payload(object):
     
 
 
+    def createParamFile(self):
+
+        """Function to create a job script to be used on the VSC.
+        """
+        
+        if self.odir:
+            filename = f"{self.odir}/{self.prefix}_ncams.data"
+            print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, self.G, self.C, self.Q,
+                            fcam=False, ofile=filename)
+            
+            if self.fcam:
+                filename = f"{self.odir}/{self.prefix}_fcams.data"
+                print(f"Creating HPC parameterization file  : {filename}")
+                sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
+                                fcam=True, ofile=filename)
+
+
+
+
     def createJobScript(self):
 
         """Function to create a job script to be used on the VSC.
@@ -179,22 +201,7 @@ class Payload(object):
 
 
 
-            
-    def createParamFile(self):
-
-        """Function to create a job script to be used on the VSC.
-        """
-        
-        if self.odir:
-            filename = f"{self.odir}/{self.prefix}.data"
-            print(f"Creating HPC parameterization file  : {filename}")
-            sm.getParamFile(self.N, self.G, self.C, self.Q,
-                            fcam=self.fcam, ofile=filename)
-
-
-
-
-        
+                            
     def createPRE(self):
 
         """Function to create a Pointing Repeatability Error (PRE) file.
@@ -203,7 +210,7 @@ class Payload(object):
 
         # Generete PRE file
         errorcode('module', '\nPointing repeatability error (PRE)')
-        ns.getPRE(self.ra, self.dec, self.kappa, self.Q, sigma=3,
+        ns.getPRE(self.alpha, self.delta, self.kappa, self.Q, sigma=3,
                   ofile=self.fileNamePRE, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNamePRE}")
 
@@ -219,7 +226,7 @@ class Payload(object):
 
         # Generete APE file
         errorcode('module', '\nAbsolute Pointing Error (APE)')
-        ns.getAPE(self.ra, self.dec, self.kappa, sigma=3,
+        ns.getAPE(self.alpha, self.delta, self.kappa, sigma=3,
                   ofile=self.fileNameAPE, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameAPE}")
 
@@ -227,6 +234,23 @@ class Payload(object):
         
 
 
+    def createGain(self):
+
+        """Function to create a gain variation file.
+        Used to realistically include gain variations for CCD and FEE.
+        TODO under struction!
+        """
+
+        # Generete APE file
+        errorcode('module', '\nCCD and FEE gain variations')
+        #ns.getGain(gain0CCD=, gain0FEE=, sigma=3,
+        #           ofile=self.fileNameAPE, table=True, plot=self.plot)
+        if self.odir: print(f"File saved: {self.fileNameAPE}")
+
+
+
+
+        
     def createGap(self):
 
         """Function to create a time columns including Data Gaps.
@@ -258,7 +282,7 @@ class Payload(object):
         """
         
         # Generate TED file
-        errorcode('module', '\nThermo-Elastic Distortion (TED)')
+        errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
         ns.getTED(self.Q, ofile=self.fileNameTED, table=True, plot=self.plot)
         if self.odir: print(f"File saved: {self.fileNameTED}")
 
@@ -272,14 +296,15 @@ class Payload(object):
         """
         
         # Generate ACS file
-        if not self.aocs: return
-        errorcode('module', '\nAttitude Control System (ACS)\n')
-        ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameACS}")
+        if self.aocs and self.odir:
+            errorcode('module', '\nAttitude Control System (ACS)\n')
+            ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
+            if self.odir: print(f"File saved: {self.fileNameACS}")
 
 
 
-        
+
+            
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
@@ -291,31 +316,44 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('ids',   type=str, help='Number of IDs (stars or CCDs=4)')
-man_group.add_argument('field', type=str, help='LOP (SPF, NPF)')
-
-obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
-obs_group.add_argument('--group',   metavar='NO.', type=str, help='Group   no.: 1, 2, .. (Default: 1-4 = all)')
-obs_group.add_argument('--camera',  metavar='NO.', type=str, help='Camera  no.: 1, 2, .. (Default: 1-6 = all)')
-obs_group.add_argument('--quarter', metavar='NO.', type=str, help='Quarter no.: 1, 2, .. (Default: 1-8 = 2yr)')
-obs_group.add_argument('--fcam',    action='store_true', help='Flag to generate files for the F-CAMs')
-obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate AOCS jitter file')
+man_group.add_argument('field', type=str, help='PLATO LOP field [LOPS2, LOPN1, SPF, NPF]')
 
 out_group = parser.add_argument_group('I/O PARAMETERS')
-out_group.add_argument('-p', '--plot',   action='store_true',      help='Flag to plot each action')
-out_group.add_argument('-o', '--outdir', metavar='PATH', type=str, help='Output directory to save')
-out_group.add_argument('--project',      metavar='NAME', type=str, help='Name of PLATOnium project')
+out_group.add_argument('-p', '--plot',    action='store_true',      help='Flag to plot each action')
+out_group.add_argument('-v', '--verbose', metavar='INT',  type=int, help='Verbosity level {0, 1, 3} (Default: 1)')
+out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output directory to save')
+out_group.add_argument('--project',       metavar='NAME', type=str, help='Name of PLATOnium project')
+
+obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
+obs_group.add_argument('--group',   metavar='INT', type=str, help='Group   number: 1, 2, .... (Default: 1-4 = all)')
+obs_group.add_argument('--camera',  metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
+obs_group.add_argument('--quarter', metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
+obs_group.add_argument('--fcam',    action='store_true', help='Flag to generate files for the F-CAMs')
+obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate a red noise AOCS jitter file')
+
+args = parser.parse_args()
+
+#--------------------------------------------------------------#
+#                            WORKFLOW                          #
+#--------------------------------------------------------------#
+
+# Start time tracking
+tic = datetime.datetime.now()
 
 # Initialize instance of class
-args = parser.parse_args()
 x = Payload(args)
 
 # Run each module
 x.createInputYAML()
-x.createJobScript()
 x.createParamFile()
+x.createJobScript()
 x.createPRE()
 x.createAPE()
 x.createGap()
 x.createTED()
-#x.createACS()
-print('')
+x.createACS()
+
+# Finish with output
+if (args.verbose is None) or (args.verbose > 0):
+    toc = datetime.datetime.now()
+    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]\n')

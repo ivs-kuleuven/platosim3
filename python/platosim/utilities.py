@@ -5,7 +5,7 @@ Python modules that contain some general utilities that are commonly
 used by the PlatoSim and PLATOnium.
 """
 
-# Python standard
+# Built-in
 import os
 import sys
 import glob
@@ -18,7 +18,6 @@ from pathlib import Path
 
 # PlatoSim standard
 import h5py
-import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
@@ -29,7 +28,7 @@ from scipy.ndimage import median_filter
 from scipy.integrate import cumtrapz
 from scipy.stats import gaussian_kde
 
-# PlatoSim imports
+# PlatoSim functions
 import platosim.referenceFrames as rf
 
 
@@ -43,9 +42,37 @@ def year():
     """Return 1 year in seconds.
     """
     
-    return 31556926
+    return 31556926.
 
 
+
+
+
+def quarter():
+
+    """Return 1 mission quarter in days.
+    """
+    
+    return year() / (4 * 86400)
+
+
+
+
+
+def rng(seed=None):
+
+    """Choose seed for randomness
+    """
+
+    if seed is None:
+        return np.random.default_rng()
+    else:
+        return np.random.default_rng(seed)        
+
+
+
+
+    
 #--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
 #--------------------------------------------------------------#
@@ -218,7 +245,7 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
     # If true then download folder and it entire content
     # If flase simply download the requested file
     
-    ftp_filename = pathlib.Path(filename)
+    ftp_filename = Path(filename)
 
     if ftp_filename.suffix:
         ftp_subpath = ftp_filename.parents[0]
@@ -268,7 +295,7 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
         
         # Only try to save file if is doesn't exists
 
-        local_file = pathlib.Path(outputDir) / filename
+        local_file = Path(outputDir) / filename
 
         if not local_file.is_file():
             ftp_file   = open(local_file, 'wb')
@@ -310,6 +337,24 @@ def pdAddColumn(df, newCol, name):
 
 
 
+def pdMoveRowToFirst(df, target_row, reset_index=True):
+
+    """ Move target row to first element of list.
+
+    NOTE: Only works for df with a reset index.
+    """
+
+    dex = [target_row] + [i for i in range(df.shape[0]) if i != target_row]
+
+    if reset_index:
+        return df.iloc[dex].reset_index(drop=True)
+    else:
+        return df.iloc[dex]
+
+    
+
+
+
 def pdMergeRows(df0, df1, identical=True):
 
     """Merge two data frames and keep (non)identical rows.
@@ -323,7 +368,20 @@ def pdMergeRows(df0, df1, identical=True):
 
 
 
-        
+
+
+def votable2pandas(votable):
+
+    """Function to convert a votable to a pandas data frame.
+
+    From: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
+    """
+
+    table = votable.get_first_table().to_table(use_names_over_ids=True)
+
+    return table.to_pandas()
+
+    
 #--------------------------------------------------------------#
 #                       NUMPY OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -431,7 +489,7 @@ def sortAfterDensity(x, y):
 
     dex = z.argsort()
 
-    return x[dex], y[dex], z[dex]
+    return x[dex], y[dex], z[dex], dex
 
 
 
@@ -595,6 +653,65 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 
 
 
+
+#--------------------------------------------------------------#
+#                       GENERAL ASTRONOMY                      #
+#--------------------------------------------------------------#
+
+
+def radialDistance(alpha1, delta1, alpha2, delta2):
+
+    """Radial distance between two equatorial coordinates.
+
+    The shortest angular distance between two points on the 
+    celestial sphere is measured along a great circle that passes
+    through both of them.
+
+    Parameters
+    ----------
+    (alpha1, delta1) : ndarray, pdframe
+        Equatorial coordinates of point 1 [deg]
+    (alpha2, delta2) : ndarray, pdframe
+        Equatorial coordinates of point 2 [deg]
+    
+    Return
+    ------
+    Radial distance between coordinates [deg]
+    """
+    
+    alpha1 = np.deg2rad(alpha1)
+    alpha2 = np.deg2rad(alpha2)
+    delta1 = np.deg2rad(delta1)
+    delta2 = np.deg2rad(delta2)
+    
+    cosR = (np.sin(delta1) * np.sin(delta2) +
+            np.cos(delta1) * np.cos(delta2) * np.cos(alpha1-alpha2))
+    
+    return np.rad2deg(np.arccos(cosR))
+
+
+    
+
+
+    def massLuminosityRelation(R, Teff):
+
+        """Calculate mass using M-L relation.
+
+        Using the Teff in the mass-luminosity relation, one can find
+        the stellar mass for a main sequence dwarf star. Method valid
+        for (0.43 < M/Msun < 2)
+
+        Notes
+        -----
+        Reference from:
+        https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+        """
+        return R**(1/2) * Teff[i]/5777.
+
+
+
+
+    
 #--------------------------------------------------------------#
 #                        PLATO SPECIFIC                        #
 #--------------------------------------------------------------#
@@ -631,9 +748,29 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
     photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
                   lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-    electronFlux = photonFlux * quantumEfficiency
 
-    return electronFlux
+    return photonFlux * quantumEfficiency
+
+
+
+
+
+def fromMagToFlux(mag):
+
+    """Convert magnitude to relative flux
+
+    Parameters
+    ----------
+    mag : float
+        Input magnitude
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux
+    """
+
+    return 10**(-0.4*mag)
 
 
 
@@ -655,7 +792,9 @@ def fromMagToRelativeFlux(mag, norm=1e6):
     flux : ndarray
         Relative flux scaled after the normalisation constant.
     """
-    flux = 10**(-0.4*mag)
+    
+    flux = fromMagToFlux(mag)
+
     return (flux / np.nanmedian(flux) - 1) * norm
 
 
@@ -701,6 +840,117 @@ def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
         return mag + bol
     else:
         return mag - bol
+
+
+
+
+
+def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
+
+    """Conversion from Gaia G magnitude to the PLATO passband.
+    
+    The calibration relation is derived in PLATO-UPD-SCI-TN-0019, Sect. 6.
+    NOTE only valid for (4000K < Teff < 15000K), hence, not for M-dwarfs.
+
+    Parameters
+    ----------
+    mag : float, narray
+        Gaia mean dereddened G magnitude of star(s).
+    BP_RP : float narray
+        Gaia dereddened color of star(s).
+
+    Return
+    ------
+    P : float, narray
+        The PLATO passband magnitude of star(s).
+    """
+
+    # Define coefficient to transform from G to P
+    
+    if camera == 'normal':
+        coeff = [-0.3613390, 0.0632494, 0.0301607, -0.0163962, 0.0027984, -0.0001679]
+    elif camera == 'fast_blue':
+        coeff = [-0.1386193, 0.1103836, 0.0582385, -0.0144120, 0.0006554, 0.0000251]
+    elif camera == 'fast_red':
+        coeff = [-0.6795686, 0.0539941, 0.0331913, -0.0123407, 0.0019006, -0.0001174]
+
+    color = np.sum([coeff[i-1] * BP_RP**i for i in range(1,7)], axis=0)
+
+    # From G to P (or P to G if inverse=True)
+    
+    if inverse:
+        return mag - color 
+    else:
+        return mag + color
+ 
+    
+
+
+    
+def getPointingField(name, unit='deg'):
+
+    """Function to fetch pointing field coordinates.
+
+    Small function that takes a string of numbers (here of magnitudes)
+    and split it up into readable float values used as real number
+    ranges. If a single number is given, a selection of 1 mag around
+    the imput int/float is returned as a magnitude range.
+    
+    Used in: PLATOnium/simulator-pic.py
+
+    Parameters
+    ----------
+    name : str
+        Name of the requested pointing field.
+
+    Return
+    ------
+    Sky coordinates (alpha, delta, kappa) [deg]
+    """
+
+    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000],  # PIC 1.1
+          'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
+          'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
+          'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
+          'KUL20': [ 86.79870508, -46.39594703,  0.0],      # TN of KUL20
+          'JUAN':  [ 86.79870,    -46.395950,    2.74]}     # Test for Juan
+
+    # Check data field exists
+    
+    try: p = PF[name]
+    except KeyError: errorcode('error', 'Not valid PLATO field!' +
+                               'Options: {LOPS2, LOPN1, SFP, NPF}')
+
+    # Convert units and return
+    
+    if unit == 'deg':
+        return p[0], p[1], p[2]
+    elif unit == 'rad':
+        return np.deg2rad(p[0]), np.deg2rad(p[1]), np.deg2rad(p[2])
+    else:
+        errorcode('error', 'Unit do not exist! Use either "deg" or "rad"')
+
+
+
+
+        
+def getSolarPanelOrientation(kappa, quarter):
+
+    """Fetch solar panel orientation for specific mission quarter.
+
+    Parameters
+    ----------
+    quarter : int
+        Mission quarter number (starting from 1)
+    kappa : float
+        Orientation of the solar panels (i.e. roll angle) [deg]
+
+    Return
+    ------
+    The corrected roll angle of the spacecraft [deg]
+    """
+
+    return math.fmod(quarter * 90, 360) - 90 + kappa        
 
 
 
@@ -880,7 +1130,11 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
     
     noise  = gain * bg * tdur * mask * throughput #* transmission
     signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
+
     return noise / signal
+
+
+
 
 
 #--------------------------------------------------------------#
@@ -974,90 +1228,18 @@ def convertMagnitudeRange(dm):
 
 
 
-def getPointingField(name, unit='deg'):
 
-    """Function to fetch pointing field coordinates.
-
-    Small function that takes a string of numbers (here of magnitudes)
-    and split it up into readable float values used as real number
-    ranges. If a single number is given, a selection of 1 mag around
-    the imput int/float is returned as a magnitude range.
+def getMainSequenceLimit(Teff):
     
-    Used in: PLATOnium/simulator-pic.py
+    """Function defined the devision between dwarfs and sub-giants.
 
-    Parameters
-    ----------
-    name : str
-        Name of the requested pointing field.
-
-    Return
-    ------
-    Sky coordinates (alpha, delta, kappa) [deg]
+    We use the limit defined by: Pecaut and Mamajek (2013)
     """
 
-    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000+180],  # PIC 1.1
-          'SPF':   [ 86.79870508, -46.39594703,  10.0000+180],  # PIC 1.1
-          'LOPN':  [277.18023,     52.85952,    -13.9947+180],  # PIC 2.0
-          'LOPS2': [ 95.31043,    -47.88693,     13.9947+180],  # PIC 2.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0],          # TN of KUL20
-          'JUAN':  [ 86.79870,    -46.395950,    2.74]}  # Test for Juan
-
-    # Check data field exists
-    
-    try: p = PF[name]
-    except KeyError: errorcode('error', 'Not valid PLATO field!' +
-                               'Options: NPF, SFP, LOPN, LOPS2')
-
-    # Convert units and return
-    
-    if unit == 'deg':
-        return p[0], p[1], p[2]
-    elif unit == 'rad':
-        return np.deg2rad(p[0]), np.deg2rad(p[1]), np.deg2rad(p[2])
-    else:
-        errorcode('error', 'Unit do not exist! Use either "deg" or "rad"')
+    return 1 + 2 * 1e-7 * (Teff - 4000)**2
 
 
 
-
-        
-def getSolarPanelOrientation(kappa, quarter):
-
-    """Fetch solar panel orientation for specific mission quarter.
-
-    Parameters
-    ----------
-    quarter : int
-        Mission quarter number (starting from 1)
-    kappa : float
-        Orientation of the solar panels (i.e. roll angle) [deg]
-
-    Return
-    ------
-    The corrected roll angle of the spacecraft
-    """
-
-    return math.fmod(quarter * 90, 360) - 90 + kappa        
-
-
-
-
-                
-def votable2pandas(votable):
-
-    """Function to convert a votable to a pandas data frame.
-
-    From: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
-    """
-
-    table = votable.get_first_table().to_table(use_names_over_ids=True)
-
-    return table.to_pandas()
-
-
-#--------------------------------------------------------------#
-#                        VARSIM SPECIFIC                       #
-#--------------------------------------------------------------#
 
 
 def diff(new, old):
@@ -1115,9 +1297,6 @@ def rebin3(x, xp, fp):
 
 
 
-#--------------------------------------------------------------#
-#                        VARSIM SPECIFIC                       #
-#--------------------------------------------------------------#
 
 def copyInputYAML(field, odir):
 
@@ -1129,6 +1308,12 @@ def copyInputYAML(field, odir):
         Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
     odir : str, pathlib object
         Absolute output directory (pathlib object)
+
+    Notes
+    -----
+    The zero-point flux of a P=0 G2V-star [phot/s/m^2/nm] is 
+    converted to the PLATO passband since PlatoSim uses the
+    V magnitude as a standard.
     """
 
     # Get files names of YAML files
@@ -1138,14 +1323,12 @@ def copyInputYAML(field, odir):
     # Copy YAML if it doesn't exist already
     if not yaml_new.is_file():
 
-        print(f"Copying YAML configuration file: {yaml_new}")
         shutil.copy(yaml_old, yaml_new)
 
         # Find and replace a few strings:
         with open(yaml_new, 'r') as file:
             filedata = file.read()
             filedata = filedata.replace('inputfiles/starcatalog.txt', field)
-            # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
             filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
             filedata = filedata.replace( 'NumColumns:                      100',
                                         f'NumColumns:                      7  ')

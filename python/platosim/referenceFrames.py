@@ -1800,21 +1800,18 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
 
     # Fetch RA and Dec for each camera group
 
-    raGroups  = []
-    decGroups = []
+    ra  = np.zeros(4)
+    dec = np.zeros(4)
 
-    for group in range(4):
-        ra, dec = platformToTelescopePointingCoordinates(raPlatform,
-                                                         decPlatform,
-                                                         solarPanelOrientation,
-                                                         azimuthAngles[group],
-                                                         tiltAngles[group])
-        raGroups.append(ra)
-        decGroups.append(dec)
-
+    for i in range(4):
+        ra[i], dec[i] = platformToTelescopePointingCoordinates(raPlatform,
+                                                               decPlatform,
+                                                               solarPanelOrientation,
+                                                               azimuthAngles[i],
+                                                               tiltAngles[i])
     # Finito!
 
-    return raGroups, decGroups
+    return ra, dec
 
 
 

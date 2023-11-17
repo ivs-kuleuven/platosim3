@@ -3,31 +3,34 @@
 """
 Run the PLATO Simulator from Python.
 
-The Simulation class provides the opportunity to interactively tune the input parameters
-before the simulator is started. The parameters that are available can be inspected by
-just printing the Simulation object, i.e. print (sim), which will dump all the parameters
+The Simulation class provides a Python interface to create script that
+interactively can tune the input parameters before launching PlatoSim.
+The parameters that are available can be inspected by just printing the
+Simulation object, i.e. print (sim), which will dump all the parameters
 and their current values on the command line.
 
-For usage, see the tutorial Jupyter-notebooks available at "PlatoSim/docs/tutorials".
+For usage, see the Jupyter notebook tutorials available at:
+PlatoSim/docs/tutorials.
 """
 
-# Python standard
+# Built-in
 import os
 import sys
 import ast
 import math
-import yaml
 import datetime
 import subprocess
 
 # PlatoSim standard
+import yaml
 import pyaml
 import numpy as np
 
-# PlatoSim imports
-import platosim.utilities as ut
+# PlatoSim functions
+import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 from platosim.simfile import SimFile
+
 
 #==============================================================#
 #                         BEGIN CLASS                          #
@@ -44,7 +47,7 @@ class Simulation(object):
     Example
     -------
     >>> import platosim.simulation as Simulation
-    >>> print(Simulation)
+   >>> print(Simulation)
     """
 
 
@@ -333,7 +336,8 @@ class Simulation(object):
             self.yamlDocument[nodeNames[0]] = item
             return True
 
-        # If we arrive here, there are at least 2 node in the path, check if 2nd parent node exists
+        # If we arrive here, there are at least 2 node in the path,
+        # check if 2nd parent node exists
 
         if nodeNames[1] not in self.yamlDocument[nodeNames[0]]:
              print("ERROR: no node with the name " +
@@ -346,7 +350,8 @@ class Simulation(object):
             self.yamlDocument[nodeNames[0]][nodeNames[1]] = item
             return True
 
-        # If we arrive here, there are at least 3 nodes in the path, check if 3rd parent node exists
+        # If we arrive here, there are at least 3 nodes in the path,
+        # check if 3rd parent node exists
 
         if nodeNames[2] not in self.yamlDocument[nodeNames[0]][nodeNames[1]]:
              print("ERROR: no node with the name " +
@@ -824,8 +829,7 @@ class Simulation(object):
 
             CCD/NumColumns = 4510
             CCD/NumRows    = 2255
-            ObservingParameters/CycleTime    = 2.5
-            ObservingParameters/ExposureTime = 2.3
+            ObservingParameters/CycleTime = 2.5
 
         Notes
         -----
@@ -1378,6 +1382,7 @@ class Simulation(object):
         """
 
         # Check if only a single target is requested
+        
         if isinstance(variableSourceFile, str):
             variableSourceFile = [variableSourceFile]
 
@@ -1584,7 +1589,7 @@ class Simulation(object):
 
                 # No rows dumped
 
-                numRowsDump = 0;
+                numRowsDump = 0
 
             # Partial readout
 

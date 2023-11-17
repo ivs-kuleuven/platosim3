@@ -1,34 +1,38 @@
 #!/usr/bin/env python3
 
 """
-Python module to with astro query functions used by "picsim".
+Python module to with astro query functions used by picsim.py.
+
+NOTE This class needs the Poetry install: 
+     >> poetry install --with platonium 
 """
 
+# Built-in
 import os
 import sys
 import glob
 import math
 import time
 import inspect
-
-import h5py
 import pathlib
-import numpy as np
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 import http.client as httplib
 import urllib.parse as urllib
 from xml.dom.minidom import parseString
 
+# PlatoSim standard
+import h5py
+import numpy as np
+import matplotlib.pyplot as plt
+import astropy.units as u
+from astropy.io.votable  import parse
+from astropy.coordinates import SkyCoord
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pylab import MaxNLocator
 from colorama import Fore, Style
 from prettytable import PrettyTable
 from scipy.ndimage import median_filter
 
-import astropy.units as u
-from astropy.io.votable  import parse
-from astropy.coordinates import SkyCoord
+# PLATOnium extra
 from astroquery.simbad   import Simbad
 from astroquery.mast     import Catalogs
 from astroquery.gaia     import Gaia
@@ -167,8 +171,8 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
 
 
 def gaiaQuery(star):
-    """
-    Query Gaia for a named star and return the Gaia DR2 ID.
+
+    """Query Gaia for a named star and return the Gaia DR2 ID.
 
     Parameters
     ----------
@@ -198,9 +202,9 @@ def gaiaQuery(star):
 
 
 
-def starQuery(star, radius=45):
-    """
-    Query Gaia for a named star and return the Gaia DR2 ID.
+def simbadQuery(star, radius=45, maglim=21):
+
+    """Query Gaia for a named star and return the Gaia DR2 ID.
 
     Parameters
     ----------
@@ -232,42 +236,139 @@ def starQuery(star, radius=45):
     # Convert radius to from arcsec to deg
     radius /= 3600.
 
-    # Gaia radius querymetric
     query_cone = f"""SELECT 
-    TOP 10 
-    source_id, ra, dec, phot_g_mean_mag
-    FROM gaiadr2.gaia_source
-    WHERE 1=CONTAINS(POINT(ra, dec), CIRCLE({raStar}, {decStar}, {radius}))
+    DISTANCE( POINT({raStar},{decStar}), POINT(ra,dec) )
+    AS dist, source_id, ra, dec,
+    phot_g_mean_mag, bp_rp,
+    parallax, parallax_error,
+    pmra, pmdec, ruwe,
+    teff_gspphot, logg_gspphot
+    FROM gaiadr3.gaia_source AS cat
+    WHERE 1=CONTAINS(POINT({raStar}, {decStar}),
+    CIRCLE(cat.ra, cat.dec, {radius}))
+    AND cat.phot_g_mean_mag < {maglim} 
+    ORDER BY dist ASC
     """
 
     # Launch Gaia query 
+
     job     = Gaia.launch_job(query_cone)
     results = job.get_results()
 
     # Convert astropy results table into pandas df
+
     df = results.to_pandas()
 
-    # Make sure that target is the first entry
-    for row in result_table:
-        if 'Gaia DR2' in row['ID']:
-            gaia_id = int(row['ID'][9:])            
-    row = df.index[df['source_id'] == gaia_id].tolist()
-    dex = row + [i for i in range(len(df)) if i != row[0]]
-    df = df.iloc[dex].reset_index(drop=True)
+    # Rename columns
     
-    # Calculate radial distance
-    dist = np.sqrt( (df.ra - df.ra.iloc[0])**2 + (df.dec - df.dec.iloc[0])**2 ) * 3600
-    df['dis'] = dist
-    df = df.sort_values(by=['dis'])
+    df = df.rename(columns={'source_id': 'gaiaDR3',
+                            'phot_g_mean_mag': 'Gmag',
+                            'bp_rp': 'BP_RP',
+                            'parallax': 'plx',
+                            'parallax_error': 'plxe',
+                            'teff_gspphot': 'teff',
+                            'logg_gspphot': 'logg'})
 
-    # Return data frame
-    return df
+    
+    # Make sure that target is the first entry    
+    # for row in result_table:
+    #     if 'source_id' in row['ID']:
+    #         gaia_id = int(row['ID'][9:])            
+    # row = df.index[df['source_id'] == gaia_id].tolist()
+    # dex = row + [i for i in range(len(df)) if i != row[0]]
+    # df = df.iloc[dex].reset_index(drop=True)
+
+    # Convert Gmag to Pmag
+
+    df['Pmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
+    
+    # Relocate distance column [arcsec]
+    
+    df.dist = (df.dist-df.dist.iloc[0]) * 3600.
+    #col = df.dist.values.tolist()
+    #df  = df.drop(columns=['dist'])
+    #df.insert(5, 'dist', col)
+
+    # Sort and return
+    
+    return df.sort_values(by=['dist'])
 
 
 
 
 
-def gaiaRegionQuery(ra, dec, radius=19, maglim=21, ofile=False):
+def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
+
+    """Query sky region using Gaia DR3.
+
+    Parameters
+    ----------
+    star : str
+        Name of the star to query around.
+
+    Returns
+    -------
+    gaia_id : int
+        The Gaia DR2 ID of the star.
+    """
+
+    # Gaia query job cone
+
+    query_cone = f"""SELECT 
+    DISTANCE( POINT({alpha},{delta}), POINT(ra,dec) )
+    AS dist, source_id, ra, dec,
+    phot_g_mean_mag, bp_rp,
+    parallax, parallax_error,
+    pmra, pmdec, ruwe,
+    teff_gspphot, logg_gspphot
+    FROM gaiadr3.gaia_source AS cat
+    WHERE 1=CONTAINS(POINT({alpha}, {delta}),
+    CIRCLE(cat.ra, cat.dec, {radius}))
+    AND cat.phot_g_mean_mag < {maglim} 
+    ORDER BY dist ASC
+    """
+
+    # Launch Gaia query
+    
+    job     = Gaia.launch_job(query_cone)
+    results = job.get_results()
+    
+    # Convert astropy results table into pandas df
+
+    df = results.to_pandas()
+
+    # Rename columns
+    
+    df = df.rename(columns={'source_id': 'gaiaDR3',
+                            'phot_g_mean_mag': 'mag',
+                            'bp_rp': 'BP_RP',
+                            'parallax': 'plx',
+                            'parallax_error': 'plxe',
+                            'teff_gspphot': 'teff',
+                            'logg_gspphot': 'logg'})
+    
+    # Relocate distance column [arcsec]
+    
+    df.dist = (df.dist-df.dist.iloc[0]) * 3600.
+    col = df.dist.values.tolist()
+    df  = df.drop(columns=['dist'])
+    df.insert(5, 'dist', col)
+
+    #
+    df = df.fillna(0)
+    df = df.astype({'teff':int})
+    
+    # Sort and return
+    
+    return df.sort_values(by=['dist'])
+
+
+
+
+
+
+def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
+                    flag_astro=False, ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
     
@@ -282,113 +383,121 @@ def gaiaRegionQuery(ra, dec, radius=19, maglim=21, ofile=False):
     maglim : int, float
         Magitude limit to search for stars below
     ofile : str
-v        File name (without file extension) to be saved
+        File name (without file extension) to be saved
 
     Return
     ------
     Feather file given by the file name destination
 
-    NOTE: The following data is available in Gaia DR3 (gaia_source):
-    source_id,
-    ra, 
-    dec,
-    parallax,
-    pmra, 
-    pmdec,
-    ruwe,
-    phot_g_mean_mag,
-    bp_rp,
-    radial_velocity,
-    phot_variable_flag,
-    non_single_star,
-    has_xp_continuous,
-    has_xp_sampled,
-    has_rvs,
-    has_epoch_photometry,
-    has_epoch_rv,
-    has_mcmc_gspphot,
-    has_mcmc_msc,
-    teff_gspphot,
-    logg_gspphot,
-    mh_gspphot,
-    distance_gspphot,
-    azero_gspphot,
-    ag_gspphot,
-    ebpminrp_gspphot
+    Notes
+    -----
+    Columns can be found at: https://gea.esac.esa.int/archive/
+    See: "Search" -> "Advanced (ADQL)" -> "Gaia Data Release 3"
+
+    NOTE Query only valid for Gmag < 17, else gaps are intoduced!
+    Use additional queries e.g. in bins of 1 mag for Gmah > 17.
     """
 
-    # Configuration variables
+    # Fetch columns from catalogues
+
+    if flag_astro:
+        colname = ['gaia.source_id',
+                   'gaia.ra',
+                   'gaia.dec',
+                   'gaia.phot_g_mean_mag',
+                   'gaia.bp_rp',
+                   'gaia.ag_gspphot',
+                   'gaia.parallax', 'gaia.parallax_error',
+                   'gaia.pmra',
+                   'gaia.pmdec',
+                   'gaia.ruwe',
+                   'gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
+                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',                   
+                   'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
+                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
+                   'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
+                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
+                   'astro.spectraltype_esphs']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}        
+        """
+
+    else:
+        colname = ['gaia.source_id',
+                   'gaia.ra',
+                   'gaia.dec',
+                   'gaia.phot_g_mean_mag',
+                   'gaia.bp_rp']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}        
+        """
+        
+    # We use the urllib to keep the connection open because
+    # the sky regions are huge which fails with Gaia.lunch_job
     
-    coord = SkyCoord(ra=ra*u.deg, dec=dec*u.deg, frame='icrs')
+    params = urllib.urlencode({"REQUEST"        : "doQuery",
+                               "LANG"           : "ADQL",
+                               "FORMAT"         : "votable_plain",
+                               "PHASE"          : "RUN",
+                               "JOBNAME"        : "PLATO catalog",
+                               "JOBDESCRIPTION" : "None", 
+                               "QUERY"          : query_base})
     
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept"      : "text/plain"}
+
     # Information about server
     
     host = "gea.esac.esa.int"
     port = 443
     pathinfo = "/tap-server/tap/async"
-    catalogue = 'gaiadr3.gaia_source'
-    
-    # Create job to be parsed
-    
-    params = urllib.urlencode({\
-            "REQUEST"        : "doQuery",
-            "LANG"           : "ADQL",
-            "FORMAT"         : "votable_plain",
-            "PHASE"          : "RUN",
-            "JOBNAME"        : "PLATO catalog",
-            "JOBDESCRIPTION" : "Masterarbeit S. Bowling (contact juan.cabrera@dlr.de)", 
-            "QUERY"          : f"SELECT DISTANCE(POINT({coord.ra.deg},{coord.dec.deg}), " +
-                               "POINT(ra,dec)) " +
-                               "AS dist, designation, ra, dec, " +
-                               "parallax, parallax_error, " +
-                               "pmra, pmdec, ruwe, " +
-                               "phot_g_mean_mag, bp_rp, " +
-                               "teff_gspphot, logg_gspphot " +
-                               f"FROM {catalogue} AS cat " +
-                               f"WHERE 1=CONTAINS(POINT({coord.ra.deg},{coord.dec.deg}), " +
-                               f"CIRCLE(cat.ra,cat.dec,{radius})) " +
-                               f"AND cat.phot_g_mean_mag < {maglim} ORDER BY dist ASC"})
-
-    
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept"      : "text/plain"}
-
     connection = httplib.HTTPSConnection(host, port)
-    connection.request("POST",pathinfo,params,headers)
+    connection.request("POST", pathinfo, params, headers)
 
     # Get status
+    
     response = connection.getresponse()
-    print ("Status: " +str(response.status), "Reason: " + str(response.reason))
-
-    # Server job location (URL)
     location = response.getheader("location")
-    print ("Location: " + location)
-
-    # Job ID
-    jobid = location[location.rfind('/')+1:]
-    print ("Job id: " + jobid)
-
+    jobid    = location[location.rfind('/')+1:]
     connection.close()
 
     # Check job status, wait until finished
 
     while True:
-            connection = httplib.HTTPSConnection(host, port)
-            connection.request("GET",pathinfo+"/"+jobid)
-            response = connection.getresponse()
-            data = response.read()
-            # XML response: parse it to obtain the current status
-            # (you may use pathinfo/jobid/phase entry point to avoid XML parsing)
-            dom = parseString(data)
-            phaseElement = dom.getElementsByTagName('uws:phase')[0]
-            phaseValueElement = phaseElement.firstChild
-            phase = phaseValueElement.toxml()
-            # Check finished
-            if phase == 'COMPLETED':
-                    print("Status: " + phase)
-                    break
-            # Wait and repeat
-            time.sleep(0.2)
+        connection = httplib.HTTPSConnection(host, port)
+        connection.request("GET",pathinfo+"/"+jobid)
+        response = connection.getresponse()
+        data = response.read()
+
+        # XML response: parse it to obtain the current status
+        # (you may use pathinfo/jobid/phase entry point to avoid XML parsing)
+        dom = parseString(data)
+        phaseElement = dom.getElementsByTagName('uws:phase')[0]
+        phaseValueElement = phaseElement.firstChild
+        phase = phaseValueElement.toxml()
+
+        # Check finished
+        if phase == 'COMPLETED':
+            break
+        
+        # Wait and repeat
+        time.sleep(0.2)
 
     connection.close()
 
@@ -399,31 +508,65 @@ v        File name (without file extension) to be saved
     response = connection.getresponse()
     data = response.read().decode('iso-8859-1')
 
-    # Output file name
+    # Write output file
     
-    if ofile:
-        outputFileName = f'{ofile}.vot'
-    else:
-        outputFileName = 'starcatGaiaDR3.vot'
-
-    # Output file
-    
-    outputFile = open(outputFileName, 'w')
+    if not ofile:
+        ofile = 'starcatGaiaDR3.vot'
+    outputFile = open(ofile, 'w')
     outputFile.write(data)
     outputFile.close()
     connection.close()
 
-    # Create a pandas data frame
+    # Load output file into a pandas df
     
-    votable = parse(outputFileName)
+    votable = parse(ofile)
     df = ut.votable2pandas(votable)
-    os.remove(outputFileName)
-    df.to_feather(outputFileName.replace('.vot', '.ftr'))
-    if ofile:
-        ftrFile = outputFileName.replace('.vot', '.ftr')
-        df.to_feather(ftrFile)
-        print(f'Saved file: {ftrFile}')
-
-    # That's it!
+    os.remove(ofile)
     
-    return df
+    # Rename columns
+
+    if flag_astro:
+        df = df.rename(columns={'source_id': 'gaiaDR3',
+                                'phot_g_mean_mag': 'Gmag',
+                                'bp_rp': 'BP_RP',
+                                'ag_gspphot': 'Ag',
+                                'parallax': 'plx',
+                                'parallax_error': 'plx_err',
+                                'mh_gspphot': 'Z',
+                                'mh_gspphot_lower': 'Z_low',
+                                'mh_gspphot_upper': 'Z_upp',
+                                'logg_gspphot': 'logg',
+                                'logg_gspphot_lower': 'logg_low',
+                                'logg_gspphot_upper': 'logg_upp',
+                                'teff_gspphot': 'Teff',
+                                'teff_gspphot_lower': 'Teff_low',
+                                'teff_gspphot_upper': 'Teff_upp',
+                                'radius_flame': 'R',
+                                'radius_flame_lower': 'R_low',
+                                'radius_flame_upper': 'R_upp',
+                                'mass_flame': 'M',
+                                'mass_flame_lower': 'M_low',
+                                'mass_flame_upper': 'M_upp',
+                                'lum_flame': 'L',
+                                'lum_flame_lower': 'L_low',
+                                'lum_flame_upper': 'L_upp',                                
+                                'spectraltype_esphs': 'spec'})
+        df = df.sort_values(by=['BP_RP'])
+        # Round Teff column
+        df = df.fillna(-1)
+        df = df.astype({'Teff':int,
+                        'Teff_low':int,
+                        'Teff_upp':int})
+        df = df.replace({-1:np.nan})
+    else:
+        df = df.rename(columns={'source_id': 'gaiaDR3',
+                                'phot_g_mean_mag': 'Gmag',
+                                'bp_rp': 'BP_RP'})
+
+    # Convert names to string
+    
+    df.gaiaDR3 = df.gaiaDR3.astype(str)
+        
+    # Reset index and return
+
+    return df.reset_index(drop=True)

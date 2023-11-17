@@ -1,353 +1,1569 @@
 #!/usr/bin/env python
 
 """
-This is a script holding all relevant secondary synthetic model classes.
-For an explaination of the full parameter space used in each class, have
-a look at the "source_exoplanets.py" module.
+This script contains all relevant functions and classes that 
+are used by the PLATOnium script "varsim.py".
+
+NOTE This class needs the Poetry install: 
+     >> poetry install --with platonium 
 """
 
+# Built-in
 import os
+import glob
 import math
 import random
-import zipfile
 import urllib.request
+from pathlib import Path
 
-import pathlib
+# PlatoSim standard
 import numpy as np
-from numba import njit
-from astropy.io import fits
-from astropy import units as u
-from astropy import constants as c
-from PyAstronomy import funcFit, pyasl
+import pandas as pd
 from matplotlib import pyplot as plt
 from scipy.stats import norm, truncnorm
+from scipy.interpolate import interp1d, make_interp_spline
+from astropy.io import fits
+from astropy.table import Table
+from astropy import units as u
+from astropy import constants as c
 
-# PlatoSim
-from platosim.utilities import errorcode, downloadFromFTP
+# PLATOnium extra
+from numba import njit
+from PyAstronomy import funcFit, pyasl
+
+# PlatoSim functions
+import platosim.plot      as pt
+import platosim.utilities as ut
+from platosim.utilities import errorcode
 
 
 #==============================================================#
-#                       MODELS PARAMETERS                      #
+#                        SOLAR-LIKE STARS                      #
 #==============================================================#
-
-
-def create_star(spectype, spectypes_datafile=None):
-
-
-    if spectype in spectype_names: 
-        spectype_names = list(np.genfromtxt(spectypes_datafile, dtype='str', delimiter='', usecols=(0), unpack=True))
-        teffs, luminosities, radii,masses = np.genfromtxt(spectypes_datafile, delimiter='', usecols=(1,2,3,4), unpack=True)
-
-    else:
-        raise ValueError("SpType {} not one of {}".format(spectype,spectype_names))
-
-    index = sptype_names.index(spectype)
-    #-- then fill in the values
-    star = {}
-    star['teff'] = teffs[index],'K'
-    star['radius'] = radii[index],'Rsol'
-    star['mass'] = masses[index],'Msol'
-
-    return star
-
-
-# Based on tabulated data deduced from the spectral type
-
-# if source == 'K5V':
-#     M = create_star(source, spectypes_datafile='spectypes.dat')['mass']
-#     R = create_star(source, spectypes_datafile='spectypes.dat')['radius']
-#     g = (constants.GG_cgs * M[0] * constants.Msol_cgs / (R[0] * constants.Rsol_cgs)**2, 'cm s-2')
-#     Teff = create_star(source, spectypes_datafile='spectypes.dat')['teff']
-#     L = conversions.derive_luminosity(R, Teff, units='Lsol').as_tuple()  # "bolometric" luminosity
-
-
-
-
-
-def load_star(source):
-    """
-    This module is a placeholder for user defined stars for which the stellar spectrum
-    is created from the stellar parameters. Stars can either be created from a spectral
-    type or by adding a custom star to the list below.
-
-    PARAMETERS
-    ----------
-    Teff : int, float
-        Stellar effective temperature [astropy.units]
-    R : int, float
-        Stellar radius [astropy.units]
-    M : int, float
-        Stellar mass [astropy.units]
-    """
-
-    if source == 'GJ1214':  # M-dwarf
-        M = 0.15  * u.M_sun
-        R = 0.216 * u.R_sun
-        Teff = 3026 * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == 'WASP-43':  # K7 V
-        # http://exoplanet.eu/catalog/wasp-33_b/
-        M = 0.717 * u.M_sun
-        R = 0.667 * u.R_sun
-        Teff = 4520 * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == 'CoRoT-1':  # G0 V
-        # http://exoplanet.eu/catalog/wasp-33_b/
-        M = 0.95 * u.M_sun
-        R = 1.11 * u.R_sun
-        Teff = 6298 * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == "Sun":  # G0 V
-        R = 1. * u.R_sun
-        M = 1. * u.M_sun
-        Teff = 5777. * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == 'HD209458':
-        M = 1.26 * u.M_sun
-        R = 1.20 * u.R_sun
-        Teff = 6071 * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == 'WASP-33':  # A5 V
-        # http://exoplanet.eu/catalog/wasp-33_b/
-        M = 1.59 * u.M_sun
-        R = 1.77 * u.R_sun
-        Teff = 7430 * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == 'Kepler-21':  # F6 IV
-        # http://exoplanet.eu/catalog/wasp-33_b/
-        M = 1.41 * u.M_sun
-        R = 1.90 * u.R_sun
-        Teff = 6305 * u.K
-        logg = 4.5
-        Z    = 0.0
-
-    if source == 'dSct':
-        M = 1.26 * u.M_sun
-        R = 1.20 * u.R_sun
-        Teff = 6071 * u.K
-        logg = 4.0
-        Z    = 0.0
-
-    if source == 'gDor':
-        M = 1.26 * u.M_sun
-        R = 1.20 * u.R_sun
-        Teff = 6071 * u.K
-        logg = 4.0
-        Z    = 0.0
-
-    return M, R, Teff, logg, Z
-
-
-
-
-def load_exoplanet(source):
-
-    """Module containing a few standard exoplanet paramters. 
-
-    NOTE in the following the astropy-units are required, however,
-    the the choice of units (e.g. seconds vs. hours) are optional. 
-    The unit for each parameter is reinforced to match the calculations
-    within the script "simVariability.py". knowing the following 
-    parameter space:
-
-    Parameters
-    ----------
-    t0 : float
-        Time of inferior conjunction (i.e. central time of first transit) [unit required]
-    P : float
-       Orbital period [astropy.units]
-    a : float
-        Semi-major axis [unit required]
-    i : float
-        Orbital inclination (90-0) [astropy.units]
-    e : float
-        Eccentricity (0-1)
-    w : float
-        Longitude of periastron (0-360) [astropy.units]
-    rp : float
-        Planet radius [astropy.units]
-    fp : float
-        Planet-to-star flux ratio
-
-    Optional SPIDERMAN
-    ------------------
-    xi : float
-        Ratio of radiative to advective timescale
-    Tn : float
-        Temperature of nightside [astropy.units]
-    dT : float
-       Day-night temperature contrast [astropy.units]
-    """
     
-    #-------------------------------------------------------#
-    #                      SOLAR SYSTEM                     #
-    #-------------------------------------------------------#
+    
+class StellarFlares(object): # TODO under construction!
+
+    """Model stellar flares.
+
+    A simplistic analytical description of stellar flares described by
+    an sudden flux increase followed by an exponential decay. Given the
+    time of the time series the corresponding flux is returned including
+    the wanted flares.
+    """
+
+    def __init__(self, time, seed=False):
         
-    if source == 'Jupiter':
-        # Parameters are drawn from astropy
-        params = {'t0': 10 * u.d,
-                  'P' : 100 * u.d,
-                  'i' : 90 * u.deg,
-                  'e' : 0,
-                  'w' : 90 * u.deg,
-                  'rp': 0.5 * u.R_jup,
-                  'mp': 0.5 * u.M_jup,
-                  'xi': 0.0,
-                  'Tn': 300 * u.K,
-                  'dT': 300 * u.K}
-
-    #-------------------------------------------------------#
-    #                      HOT-JUPITERS                     #
-    #-------------------------------------------------------#
-
-    if source == 'hotJupiter':
-        # Parameters are drawn from astropy
-        params = {'t0': 1 * u.d,
-                  'P' : 2 * u.d,
-                  'i' : 90 * u.deg,
-                  'e' : 0,
-                  'w' : 90 * u.deg,
-                  'rp': 1 * u.R_jup,
-                  'mp': 1 * u.M_jup,
-                  'xi': 0.0,
-                  'Tn': 1128 * u.K,
-                  'dT': 942 * u.K}
-
-    if source == 'CoRoT-1b':
-        # http://exoplanet.eu/catalog/corot-1_b/
-        params = {'t0': 1 * u.d,
-                  'P' : 1.5089557 * u.d,
-                  'e' : 0.0,
-                  'i' : 83.96 * u.deg,
-                  'w' : 90.0 * u.deg,
-                  'rp': 1.49 * u.R_jup,
-                  'mp': 1.03 * u.M_jup,
-                  'xi': 0.1,
-                  'Tn': 1757 * u.K,
-                  'dT': (3144 - 1757) * u.K}
-
-    if source == 'WASP-33b':  # A5 V
-        # http://exoplanet.eu/catalog/wasp-33_b/
-        params = {'t0': 1 * u.d,
-                  'P' : 1.21986967 * u.d,
-                  'e' : 0.0,
-                  'i' : 87.7 * u.deg,
-                  'w' : 130.0 * u.deg,
-                  'rp': 1.603 * u.R_jup,
-                  'mp': 2.8 * u.M_jup,
-                  'xi': 0.1,
-                  'Tn': 1757 * u.K,
-                  'dT': (3144 - 1757) * u.K}
-
-    if source == 'WASP-43b':  # K7 V
-        # http://exoplanet.eu/catalog/wasp-43_b/
-        params = {'t0': 1 * u.d,
-                  'P' : 0.81347753 * u.d,
-                  'e' : 0.0035,
-                  'i' : 82.33 * u.deg,
-                  'w' : 328 * u.deg,
-                  'rp': 1.036 * u.R_jup,
-                  'mp': 2.052 * u.M_jup,
-                  'xi': 0.0,
-                  'Tn': 1000 * u.K,
-                  'dT': 1000 * u.K}
-
-    #-------------------------------------------------------#
-    #                      EARTH ANALOGS                    #
-    #-------------------------------------------------------#
-
-    if source == 'hotMars':
-        # 
-        params = {'t0': 1 * u.d,
-                  'P' : 2 * u.d,
-                  'e' : 0.,
-                  'i' : 88.0 * u.deg,
-                  'w' : 0. * u.deg,
-                  'rp': 0.531 * u.R_earth,
-                  'mp': 0.107 * u.M_earth,
-                  'xi': 0.,
-                  'Tn': 300. * u.K,
-                  'dT': 0. * u.K}
+        # Store array
+        self.time = time
+        self.rng  = ut.rng(seed)
 
 
-    if source == 'hotEarth':
-        # 
-        params = {'t0': 1 * u.d,
-                  'P' : 50 * u.d,
-                  'e' : 0.,
-                  'i' : 90. * u.deg,
-                  'w' : 0. * u.deg,
-                  'rp': 1. * u.R_earth,
-                  'mp': 1. * u.M_earth,
-                  'xi': 0.,
-                  'Tn': 300. * u.K,
-                  'dT': 0. * u.K}
 
-    if source == 'Earth':
-        # 
-        params = {'t0': 10 * u.d,
-                  'P' : 365.25 * u.d,
-                  'e' : 0.0167,
-                  'i' : 90.0 * u.deg,
-                  'w' : 0. * u.deg,
-                  'rp': 1. * u.R_earth,
-                  'mp': 1. * u.M_earth,
-                  'xi': 0.,
-                  'Tn': 300. * u.K,
-                  'dT': 50. * u.K}
+    def initToyModelBeta0(self):
 
-    if source == 'Neptune':
-        # 
-        params = {'t0': 10 * u.d,
-                  'P' : 365.25 * u.d,
-                  'e' : 0.0167,
-                  'i' : 90.0 * u.deg,
-                  'w' : 0. * u.deg,
-                  'rp': 3.9 * u.R_earth,
-                  'mp': 17.15 * u.M_earth,
-                  'xi': 0.,
-                  'Tn': 300. * u.K,
-                  'dT': 50. * u.K}
+        """Uniform distribution of toy model.
+        """
 
-    if source == 'Kepler-21b':  # F6 IV
-        # http://exoplanet.eu/catalog/kepler-21_b/
-        params = {'t0': 1 * u.d,
-                  'P' : 2.78578 * u.d,
-                  'e' : 0.02,
-                  'i' : 83.96 * u.deg,
-                  'w' : -15. * u.deg,
-                  'rp': 1.636 * u.R_earth,
-                  'mp': 5.079 * u.M_earth,
-                  'xi': 0.,
-                  'Tn': 300. * u.K,
-                  'dT': 50. * u.K}
+        # Time in [days] and ampl in [mmag]
+        nflares = self.rng.integers(0, 10, 1)[0]
+        self.tscale = self.rng.uniform(0.01, 0.1, nflares)
+        self.tmax   = self.rng.uniform(0, self.time[-1], nflares)
+        self.ampl   = self.rng.uniform(0, 0.2, nflares)
 
-    return params
+        return self.tscale, self.tmax, self.ampl
+
+    
+        
+    def evaluate(self, tscale=False, tmax=False, ampl=False, asym=1, plot=False):
+
+        """Analytic model of stellar flares.
+        
+        Parameters
+        ----------
+        tscale : float, ndarray
+            Time scale duration of the flare(s) [days]
+        tmax : float, ndarray
+            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
+        ampl : float, ndarray
+            Amplitude of the flare(s) [mmag]
+        asym : float, ndarray
+            Asymmetry factor of the flare(s)
+        """
+
+        # Check parsing
+        if not tscale: tscale = self.tscale
+        if not tmax:   tmax   = self.tmax
+        if not ampl:   ampl   = self.ampl
+        
+        # Placeholders
+        flux     = np.zeros_like(self.time)
+        self.mag = np.zeros_like(self.time)
+
+        # Sampling
+        dt = np.diff(self.time)[0]
+        
+        # Secure that single flare works
+        try: len(tmax)
+        except: tmax = [tmax]
+        
+        # Loop over each flare event
+        
+        for m in range(len(tmax)):
+
+            # Start and end of flare event
+            t0 = (self.time[0]  - tmax[m])
+            t1 = (self.time[-1] - tmax[m])
+
+            # Time array during flare event
+            tn = np.arange(t0, t1, dt)
+            t  = tn / tscale
+
+            # Model parameters of flare
+            B = asym
+            C = 1/B
+            b = -1.941 - 0.175 + 2.246 + 1
+            c = 1 - 0.689
+
+            # Loop over every time-step in the flare time interval:
+            # NOTE: this is defined relative to this flares maxima
+            # and put in units of the time-scale here the analytic
+            # expressions for the rise and decay are used to determine
+            # the flux of this flare
+
+            for i in range(len(t)):
+
+                # Rise of flare
+                if t[i]*B > -1 and t[i]*B <= 0:
+                    flux[i] += (1
+                                + 1.941 * (t[i]*B)
+                                - 0.175 * (t[i]*B)**2
+                                - 2.246 * (t[i]*B)**3
+                                - b     * (t[i]*B)**4)
+
+                # Decay of flare
+                elif t[i]*C > 0:
+                    flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
+                                c     * np.exp(-0.2783 * t[i]*C))
+
+                # No flare
+                else:
+                    flux[i] += 0
+
+        # Convert to magnitude [mmag]
+        self.mag = flux * ampl
+                    
+        # plot light curve
+        #if plot: self.plot()
+            
+        # Return relative flux
+        return self.mag
+
+
+
+    def plot(self):
+
+        """Function to plot result.
+        """
+        plt.figure(figsize=(9, 5))
+        plt.plot(self.time, self.mag, 'k-')
+        plt.xlabel('Time [d]')
+        plt.ylabel(r'$\delta m$ [mmag]')
+        plt.xlim(np.min(self.time), np.max(self.time))
+        plt.tight_layout()
+        plt.show()
+
+
+
+            
+    
+class StellarSpots(object):
+    
+    """Class to generate rotational star spot modulations.
+
+    This function simulate a synthetic noise-less light curve of main-sequence
+    stars that include stellar activity in the form of cyclic spot modulations.
+
+    Resources
+    ---------
+    Noyes et al.            (1984) : https://adsabs.harvard.edu/pdf/1984ApJ...279..763N
+    Pillet et al.           (1993) : https://www.cambridge.org/core/journals/international-
+                                     astronomical-union-colloquium/article/distribution-of-
+                                     sunspot-decay-rates/9D2174592A1C0CD0E9DD8B1DF347B7FF#
+    Baumann and Solanki     (2005) : https://www.aanda.org/articles/aa/abs/2005/45/aa3415-
+                                     05/aa3415-05.html
+    Mamajek and Hillenbrand (2008) : https://iopscience.iop.org/article/10.1086/591785/meta
+    Llama et al.            (2012) : https://academic.oup.com/mnrasl/article/422/1/L72/
+                                     971190?login=true
+    Aigrain et al.          (2012) : https://academic.oup.com/mnras/article/419/4/3147/
+                                     2908053?login=true
+    Meunier et al.          (2019) : https://arxiv.org/abs/1911.05319
+
+    Assumptions
+    -----------
+    - Model of spots only (missing e.g. faculae)
+    - Model only valid for main-sequence stars
+
+    Code courtesy
+    -------------
+    Suzanne Aigrain : Aigrain et al. (2012)
+    """
+
+    def __init__(self, seed=False):
+        
+        # Random number generator
+        self.rng = ut.rng(seed)
+
+        # Constants
+        self.BV_SUN    = 0.656
+        self.LRHK_SUN  = -5.025 # from Lorenzo-Oliveira et al. (2018, A&A 619, A73)
+        self.PROT_SUN  = 27.0
+        self.OMEGA_SUN = 2 * np.pi / (self.PROT_SUN * 86400)
+
+        # Load table
+        idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_varsim'
+        self.t1 = Table.read(f'{idir}/varsim_meunier19a_t1.txt', format = 'ascii')
+
+
+        
+    ####################################
+    # FROM TEFF TO ACTIVITY PARAMETERS #
+    ####################################
+    # All relations used are based on Meunier et al. (2019, A&A, 627, A56)
+    # except where specified otherwise
+
+    def get_stpar_from_teff(self, teff):
+
+        # Check if Teff is within grid
+        if teff < min(self.t1['Teff']) or teff > max(self.t1['Teff']):
+            errorcode('Warning', 'Teff is outside range of conversion table. ' +
+                      f'Returning B-V for Teff={min(self.t1["Teff"])}')
+            if teff < min(self.t1['Teff']): return max(self.t1['BV'])
+            if teff > max(self.t1['Teff']): return min(self.t1['BV'])
+
+        g = interp1d(self.t1['Teff'], self.t1['BV'])
+        return g(teff)
+
+    
+    def get_lrhk_from_S_and_bv(self, S, bv):
+        # Cf Noyes et al. (1984, ApJ 279 763, Appendix a)
+        lCcf = 1.13 * bv**3 - 3.91 * bv**2 + 2.84 * bv - 0.47 
+        if bv < 0.63:
+            x = 0.63 - bv
+            lCcf += 0.135 * x - 0.814 * x**2 + 6.03 * x**3
+        return -4 + np.log10(1.34) + lCcf + np.log10(S)
+
+
+    def get_lrhk_from_bv(self, bv):
+        if bv < 0.94:
+            Smin = 0.144
+        else:
+            Smin = 0.0269231 * bv + 0.118892
+        lrhkmin = self.get_lrhk_from_S_and_bv(Smin, bv)
+        lrhkmax = -0.375 * bv - 4.4
+        return self.rng.random() * (lrhkmax - lrhkmin) + lrhkmin
+
+    
+    def get_ltauc_from_bv(self, bv):
+        # cf Noyes et al. (1984, ApJ 279 763, Eqn 4)
+        x = 1.0 - bv
+        if x > 0:
+            return 1.362 - 0.166 * x + 0.025 * x**2 - 5.323 * x**3
+        else:
+            return 1.362 - 0.14 * x
+
+        
+    def get_prot_from_lrhk_and_bv(self, lrhk, bv):
+        Ro = 0.808 - 2.966 * (lrhk + 4.52)
+        delta = self.rng.random() * 0.4 - 0.2
+        ltc = self.get_ltauc_from_bv(bv)
+        return (Ro + delta) * 10**ltc 
+
+    
+    def get_prange_from_teff_and_prot(self, teff, prot):
+        p0 = -3.485 + 2.47810e-4 * teff
+        p1 = 1.597 - 1.3510e-4 * teff
+        alpha = 10**(p0 + p1 * np.log10(prot))
+        pmax = 2 * prot / (2 - alpha)
+        pmin = pmax * (1 - alpha)
+        return pmin, pmax
+
+    
+    def get_latrange(self): 
+        lat_min = 0.0
+        lat_max = 32.0 + 20.0 * self.rng.random()
+        return lat_min, lat_max # in degrees
+
+    
+    def get_omega01_from_prange_and_latrange(self, pmin, pmax, lat_min, lat_max):
+        omega_min = 2 * np.pi / pmax / 86400
+        omega_max = 2 * np.pi / pmin / 86400
+        s2min = np.sin(np.deg2rad(lat_min))**2
+        s2max = np.sin(np.deg2rad(lat_max))**2
+        omega_1 = (omega_min - omega_max) / (s2max - s2min)
+        omega_0 = omega_max - omega_1 * s2min 
+        return omega_0, omega_1 
+
+    
+    def get_omega_from_lat_and_omega01(self, lat, omega_0, omega_1):
+        # In radians per second
+        return omega_0 + omega_1 * np.sin(np.deg2rad(lat))**2
+
+
+    def get_pcyc_from_prot(self, prot):
+        delta = self.rng.random() * 0.6 - 0.3
+        y = 0.84 * np.log10(1/prot) + 3.14 + delta
+        return prot * 10**y
+
+    
+    def get_acyc_from_bv_and_lrhk(self, bv, lrhk):
+        if bv < 0.851:
+            Acyc_max = 0.727 * bv - 0.292
+        else:
+            Acyc_max = 0.727 * 0.851 - 0.292
+        Acyc_min = max([0.28 * bv - 0.196, 0.342 * lrhk + 1.703, 0.005])
+        return self.rng.random() * (Acyc_max - Acyc_min) + Acyc_min
+
+    
+    def get_arate_from_acyc(self, acyc):
+        asun = self.get_acyc_from_bv_and_lrhk(self.BV_SUN, self.LRHK_SUN)
+        return acyc/asun
+
+
+
+    def regions(self, activity_rate=1, cycle_period=10, cycle_overlap=0, randspots=False,
+                maxlat=70, minlat=0, tsim=1000, tstart=0, verbose=False):
+
+        """ACTIVE REGION EMERGENCE
+
+        According to Schrijver and Harvey (1994), the number of active regions
+        emerging with areas in the range [A,A+dA] in a time dt is given by:
+
+        n(A,t) dA dt = a(t) A^(-2) dA dt ,
+
+        where A is the "initial" area of a bipole in square degrees, and t is
+        the time in days; a(t) varies from 1.23 at cycle minimum to 10 at cycle
+        maximum.
+
+        The bipole area is the area within the 25-Gauss contour in the
+        "initial" state, i.e. time of maximum development of the active region.
+        The assumed peak flux density in the initial sate is 1100 G, and
+        width = 0.2*bsiz (see disp_region). The parameters written onto the
+        file are corrected for further diffusion and correspond to the time
+        when width = 4 deg, the smallest width that can be resolved with lmax=63.
+
+        In our simulation we use a lower value of a(t) to account for "correlated"
+        regions.
+        """
+        
+        nbin = 5                              # number of area bins
+        delt = 0.5                            # delta ln(A)
+        amax = 100.                           # orig. area of largest bipoles (deg^2)
+        dcon = np.exp(0.5*delt)-np.exp(-0.5*delt)   # contant from integ. over bin
+        latrmsd = 6
+        atm     = 10 * activity_rate    
+        # a(t) at cycle maximum (deg^2/day)
+        # cycle period (days)
+        # cycle duration (days)
+
+        ncycle = int(cycle_period * 365)     # cycle length in days   
+        nclen = int((cycle_period + cycle_overlap) * 365)
+        fact = np.exp(delt*np.arange(nbin))  # array of area reduction factors
+        ftot = fact.sum()                    # sum of reduction factors
+        bsiz = np.sqrt(amax/fact)            # array of bipole separations (deg)
+        tau1 = 5                             # first and last times (in days) for
+        tau2 = 15                            #   emergence of "correlated" regions
+        prob = 0.001                         # total probability for "correlation"
+        nlon = 36                            # number of longitude bins
+        nlat = 16                            # number of latitude bins       
+        nday1 = 0                            # first day to be simulated
+        ndays = int(tsim)                    # number of days to be simulated
+        dt = 1
+
+        # Initialize time since last emergence of a large region, as function
+        # of longitude, latitude and hemisphere:
+        tau = np.zeros((nlon,nlat,2),'int') + tau2
+        dlon = 360. / nlon
+        dlat = maxlat / nlat
+
+        # Create arrays to store regions properties
+        reg_tims = []
+        reg_lats = []
+        reg_lons = []
+        reg_angs = []
+
+        # Loop over time (in days):
+        ncnt = 0
+        ncur = 0
+        start_day = 0
+
+        for nd in range(ndays):
+            nday = nd + nday1
+
+            # Compute index of most recently started cycle:
+            ncur_now = int(nday / ncycle)
+            ncur_prev = int((nday-1) / ncycle)
+            if ncur_now > ncur_prev:
+                ncur = ncur + 1
+
+            #  Initialize rate of emergence for largest regions, and add 1 day
+            #  to time of last emergence:
+            tau = tau + 1
+            rc0 = np.zeros((nlon,nlat,2))
+            l = (tau > tau1) & (tau <= tau2)
+            if l.any():
+                rc0[l] = prob / (tau2 - tau1)
+
+            #  Loop over current and previous cycle:
+            for icycle in [0,1]:
+                nc = ncur-icycle # index of cycle
+                if ncur == 0:
+                    start_day = nc * ncycle
+                else:  
+                    if ncur == 1:
+                        if icycle == 0:
+                            start_day = ncycle * nc
+                        elif icycle == 1:
+                            start_day = 0
+                    else:
+                        start_day = ncycle * nc
+
+                nstart = start_day        # start date of cycle
+                if (nday-nstart) < nclen:  
+                    ic = 1 - 2 * ((nc + 2) % 2) # +1 for even, -1 for odd cycle
+                    phase = float(nday-nstart) / nclen # phase within the cycle
+
+                    # Emergence rate of largest "uncorrelated" regions (number per day,
+                    # both hemispheres), from Schrijver and Harvey (1994):
+                    ru0_tot = atm * np.sin(np.pi * phase)**2 * (1.0 * dcon) / amax
+
+                    # Emergence rate of largest "uncorrelated" regions per latitude/longitude
+                    # bin (number per day), as function of latitude:
+                    if randspots:
+                        latavg = (maxlat - minlat) / 2. 
+                        latrms = maxlat - minlat
+                        nlat1 = np.floor(minlat / dlat).astype(int)
+                        nlat2 = np.floor(maxlat / dlat).astype(int)
+                        nlat2 = min([nlat2, nlat - 1])
+                    else:
+                        latavg = maxlat + (minlat - maxlat)*phase #+ 5.*phase**2
+                        latrms = (maxlat/5.) - latrmsd * phase # rms latitude (degrees)
+                        nlat1 = np.floor(max([maxlat * 0.9 - 1.2 * maxlat * phase, 0.0]) /
+                                         dlat).astype(int) # first and last index
+                        nlat2 = np.floor(min([maxlat + 15. - maxlat * phase, maxlat]) /
+                                         dlat).astype(int)
+                        nlat2 = min([nlat2, nlat - 1])
+
+                    js = np.arange(nlat2 - nlat1).astype(int)
+
+                    p = np.zeros(nlat)
+                    for j in np.arange(nlat2-nlat1+1).astype(int) + nlat1:
+                        p[j] = np.exp( - ((dlat * (0.5 + j) - latavg) / latrms)**2)
+                    ru0 = ru0_tot * p / (p.sum() * nlon * 2)
+
+                    # Loops over hemisphere and latitude:
+                    for k in [0,1]:
+                        for j in np.arange(nlat2-nlat1+1).astype(int) + nlat1:
+                            # Emergence rates of largest regions per
+                            # longitude/latitude bin (number per day):
+                            r0 = ru0[j] + rc0[:,j,k]
+                            rtot = r0.sum()
+                            ssum = rtot * ftot
+                            x = self.rng.random()
+                            if x <= ssum:
+                                nb = 0
+                                sumb = rtot * fact[0]
+                                while x > sumb:
+                                    nb = nb + 1
+                                    sumb = sumb + rtot * fact[nb]
+                                i = 0
+                                sumb = sumb + (r0[0] - rtot) * fact[nb]
+                                while x > sumb:
+                                    i = i + 1
+                                    sumb = sumb + r0[i] * fact[nb]
+                                lon = dlon * (self.rng.random() + float(i))
+                                lat = dlat * (self.rng.random() + float(j))
+                                if (nday > tstart):
+                                    reg_tims.append(self.rng.random() + nday)
+                                    reg_lons.append(lon)
+                                    if k == 0:                  # Insert on N hemisphere
+                                        reg_lats.append(lat)
+                                    else:
+                                        reg_lats.append(-lat)
+                                    x = self.rng.normal()
+                                    while abs(x) > 1.6:
+                                        x = self.rng.normal()
+                                    y = self.rng.normal()
+                                    while abs(y) >= 1.6:
+                                        y = self.rng.normal()
+                                    z = self.rng.random()
+                                    if z > 0.14:
+                                        # Tilt angle (degrees)
+                                        ang = 0.5 * lat + 2.0 + 27. * x * y
+                                    else:
+                                        z = self.rng.normal()
+                                        while z > 0.5:
+                                            z = self.rng.normal()
+                                        ang = np.deg2rad(z)
+                                    reg_angs.append(ang)
+                                    if verbose:
+                                        print(reg_tims[-1], reg_lats[-1],
+                                              reg_lons[-1], reg_angs[-1])
+                                ncnt = ncnt + 1
+                                if nb < 1:
+                                    tau[i,j,k] = 0
+
+        if verbose:
+            print('Total number of regions: ', ncnt)
+
+        reg_arr = np.zeros((4, len(reg_tims)))
+        reg_arr[0] = np.array(reg_tims)
+        reg_arr[1] = np.array(reg_lats)
+        reg_arr[2] = np.array(reg_lons)
+        reg_arr[3] = np.deg2rad(np.array(reg_angs))
+        return reg_arr
+    
+
+
+    def spots(self, reg_arr, incl=None, omega_0=None, omega_1=0.0,
+              dur=None, threshold=0.1):
+
+        """Holds parameters for spots for a given star.
+        
+        Generate initial parameter set for spots (emergence times
+        and initial locations.
+        """
+
+        # Set global parameters which are the same for all spots inclination [deg]
+        if incl == None:
+            self.incl = np.rad2deg(np.arcos(np.random.uniform()))
+        else:
+            self.incl = incl
+
+        if omega_0 is None:
+            omega_0 = self.OMEGA_SUN
+            
+        # Rotation and differential rotation [rad/s]
+        self.omega_0 = omega_0
+        self.omega_1 = omega_1
+        
+        # Regions parameters
+        t0 = reg_arr[0,:]
+        lat = reg_arr[1,:]
+        lon = reg_arr[2,:]
+        ang = reg_arr[3,:]
+
+        # Keep only spots emerging within specified time-span with:
+        # peak B-field > threshold
+        if dur == None:
+            self.dur = t0.max() 
+        else:
+            self.dur = dur
+        l = (t0 < self.dur) * (ang > threshold)
+        self.nspot = l.sum()
+        self.t0 = t0[l]
+        self.lat = lat[l]
+        self.lon = lon[l]
+        
+        # The settings below are designed approximately match the distributions
+        # used in Borgniet et al. (2015) and Meunier et al. (2019) spot sizes
+        self.amax = ang[l]**2 * 300 * 1e-6
+        
+        # spot emergence and decay timescales
+        mea = 15 * 1e-6
+        med = 10 * 1e-6
+        mu = np.log(med)
+        sig = np.sqrt(2*np.log(mea/med))
+        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspot)
+
+
+    def calci(self, time, i):
+
+        """Single spot calculation.
+
+        Evolve one spot and calculate its impact on the stellar flux.
+        NOTE: Currently there is no spot drift or shear.
+        """
+        
+        # Spot area (linear growth and decay)
+        area        = np.zeros(len(time)) 
+        decay_time  = self.amax[i] / self.decay_rate[i]
+        emerge_time = decay_time / 10.0
+        
+        # exponential growth and decay
+        l = time < self.t0[i]
+        area[l] = self.amax[i] * np.exp(-(self.t0[i]-time[l]) / emerge_time)
+        l = time >= self.t0[i]
+        area[l] = self.amax[i] * np.exp(-(time[l]-self.t0[i]) / decay_time)
+        
+        # linear growth and decay
+        # l = (time >= (self.t0[i]-emerge_time)) * (time < self.t0[i])
+        # area[l] = self.amax[i] * (self.t0[i]-time[l]) / emerge_time
+        # l = (time >= self.t0[i]) * (time < (self.t0[i]+decay_time))
+        # area[l] = self.amax[i] * (1-(time[l]-self.t0[i]) / decay_time)
+
+        # Rotation rate [rad/s]
+        ome = self.get_omega_from_lat_and_omega01(self.lat[i], self.omega_0, self.omega_1)
+        
+        # Fore-shortening 
+        phase = ome * time * 86400 + np.deg2rad(self.lon[i]) # [rad]
+        beta  = (np.cos(np.deg2rad(self.incl)) * np.sin(np.deg2rad(self.lat[i])) +
+                 np.sin(np.deg2rad(self.incl)) * np.cos(np.deg2rad(self.lat[i])) *
+                 np.cos(phase))
+        
+        # Differential effect on stellar flux
+        dF = - area * beta
+        dF[beta < 0] = 0
+        return area, ome, beta, dF
+
+
+    def calc(self, time):
+
+        """Calculations for all spots
+        """
+        
+        N = len(time)
+        M = self.nspot
+
+        # Don't go beyond 5 Gb RAM memory!
+        bytemax = int(5/8*1e9)
+        X = N*M
+        if X > bytemax:
+            errorcode('warning', f'Too many spots -> Array of size larger than 5 Gb!')
+            return None, None, None, None
+        else:
+            area = np.zeros((M, N))
+            ome = np.zeros(M)
+            beta = np.zeros((M, N))
+            dF = np.zeros((M, N))
+            for i in np.arange(M):
+                area_i, omega_i, beta_i, dF_i = self.calci(time, i)
+                area[i,:] = area_i
+                ome[i] = omega_i
+                beta[i,:] = beta_i
+                dF[i,:] = dF_i
+            return area, ome, beta, dF
+
+
+
+    def evaluate(self, teff, time, dur, cadence_hours, incl=None, isim=0,
+                 odir=None, verbose=False, save=False):
+
+        """Generate spot modulated light curve.
+        """
+        
+        if odir is None:
+            odir = os.getcwd()
+            
+        # select parameters
+        bv   = self.get_stpar_from_teff(teff)
+        lrhk = self.get_lrhk_from_bv(bv)
+        prot = self.get_prot_from_lrhk_and_bv(lrhk, bv)
+        pmin, pmax       = self.get_prange_from_teff_and_prot(teff, prot)
+        lmin, lmax       = self.get_latrange()
+        omega_0, omega_1 = self.get_omega01_from_prange_and_latrange(pmin, pmax, lmin, lmax)
+        pcyc     =  self.get_pcyc_from_prot(prot)
+        clen     = pcyc / 365.
+        coverlap = self.rng.random() * 0.1 * clen 
+        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk)
+        arate    = self.get_arate_from_acyc(acyc)
+        if incl is None:
+            incl = np.rad2deg(np.arccos(self.rng.random()))
+
+        # simulate regions
+        reg_arr = self.regions(activity_rate=arate,
+                               cycle_period=clen, cycle_overlap=coverlap, verbose=False,
+                               maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
+
+        # make the simulation start at a random point in the cycle
+        reg_arr[0] -= self.rng.random() * pcyc
+
+        # simulate LC
+        self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
+                   threshold=0.1, dur=dur)
+        
+        # NOTE we decrease the sampling to 30 min for increased performance
+        # NOTE this corresponds to every 72nd time point -> 30 * 60 / 25
+        time0 = np.copy(time)
+        time = time[::72]
+        area, ome, beta, dF = self.calc(time)
+        
+        # Stop here if the RAM memory would have been overflown
+        if dF is None:
+            return None, None
+
+        # Save data and figure
+        if save:
+
+            # save individual spot properties
+            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('LAT','LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R')
+            flo.write('# {}\n'.format(header))
+            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('deg','deg', 'days', 'days', 'muHem', 'days', 'periods')
+            flo.write('# {}\n'.format(header))
+            
+            for i in range(self.nspot):
+                # spot came too early or too late or was too short lived given cadence
+                if area[i,:].max() == 0:
+                    continue
+                prot = 2*np.pi / ome[i] / 86400
+                lifetime = self.amax[i] / self.decay_rate[i]
+                str_ = '{:6.1f} {:6.2f} {:6.2f} {:6.2f} {:8.2e} {:6.2f} {:6.2f}'.format(self.lat[i], self.lon[i], prot, self.t0[i], self.amax[i] * 1e6, lifetime, lifetime/prot)
+                flo.write('{}\n'.format(str_))
+
+            # save LC
+            X = np.zeros((2,len(time)))
+            X[0,:] = time
+            X[1,:] = dF.sum(0)
+            lfile = os.path.join(odir, 'lightcurve_{:04d}.txt'.format(isim)) # save LC
+            np.savetxt(lfile,X.T)
+
+        # We interpolate back to original time grid of 25s cadence
+        # NOTE Interpolate (piecewise cubic) into higher resolution grid
+        #time_int = np.linspace(time0[0], time0[-1], len(time0)
+        spline = make_interp_spline(time, dF.sum(0), k=3)
+        flux   = spline(time0)
+
+        # Finito!
+        self.dF, self.dur, self.area, self.time = dF, dur, area, time
+        self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
+        return flux, self.params
+
+    
+
+    def plot(self):
+
+        """Plot spot modulation model.
+        """
+
+        fig, axes = plt.subplots(3,1, figsize=(11,8), sharex=True)
+        ttl= ('Model: ' +
+              r'${\rm AR} = $'+f'{self.params[2]:5.3f}, ' +
+              r'${\rm CL} = $'+f'{self.params[6]:6.3f} yr, ' +
+              r'$P_{\rm min} = $'+f'{self.params[4]:6.2f} d, ' +
+              r'$P_{\rm max} = $'+f'{self.params[5]:6.2f} d, ' +
+              r'$L_{\rm max} = $'+f'{self.params[8]:5.2f}'+r'$^{\circ}$, ' +
+              r'$i = $'+f'{self.params[9]:6.2f}'+r'$^{\circ}$')
+        axes[0].set_title(ttl, fontsize='18')
+        axes[0].set_facecolor('yellow')
+        axes[0].axhline(y=0, color='k', linestyle='--')
+        for j in range(self.nspot):
+            if self.t0[j] < -10:
+                continue
+            if self.t0[j] > self.dur:
+                continue
+            axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8,
+                         markersize=self.amax[j]*(1./3e-4)*5)
+        axes[0].set_ylim(-90,90)
+        axes[0].set_ylabel('Spot latitude [deg]')
+        axes[1].plot(self.time, self.area.sum(0)*100, 'k-')
+        axes[1].set_ylabel(r'Spot coverage [\%]')        
+        axes[2].plot(self.time, self.dF.sum(0)*1e6, 'k-')
+        axes[2].set_ylabel('Relative flux [ppm]')
+        axes[2].set_xlim(0, self.dur)
+        axes[2].set_xlabel('Time [days]')
+        plt.tight_layout(h_pad=0.1)
+        plt.show()
+        
+    
+
+    
+
+class SolarLikeOscillator(object):
+
+    """Class to generate gravity oscillation time series.
+
+    Function to simulate stellar granulation and stochastic oscillation (p-modes).
+    Each synthetic component of stellar variability is generated in the time domain
+    and from asteroseismic scaling relations, for which a vararity of relations are
+    are made available to choose from for the user. This function apply the bolometric
+    correction when observing in the PLATO passband to each signal compponent.
+
+    Resources
+    ---------
+    Kjeldsen & Bedding (1995) : https://arxiv.org/abs/astro-ph/9403015
+    Michel et al.      (2005) : https://arxiv.org/abs/0809.1078
+    Chaplin et al.     (2009) : https://arxiv.org/abs/0905.1722
+    Kjeldsen & Bedding (2011) : https://arxiv.org/abs/1104.1659
+    Ballot et al.      (2011) : https://arxiv.org/abs/1105.4557
+    Kallinger et al.   (2014) : https://arxiv.org/abs/1408.0817
+
+    Code & Data (p-modes)
+    ---------------------
+    De Ridder et al.   (2006) : https://academic.oup.com/mnras/article/365/2/595/976827
+    Broomhall et al.   (2009) : Tables in paper
+    """
+
+    def __init__(self, time, star_params, path, seed=False):
+        
+        # Convert units [Ms => microHz in frequency]
+        self.time    = time.to('Ms').value
+        self.cadence = np.diff(time)[0].to('Ms').value
+        
+        # Load stellar parameters [solar]
+        self.Teff = star_params[0].to('K').value
+        self.R    = star_params[1].to('R_sun').value
+        self.M    = star_params[2].to('M_sun').value
+        self.L    = star_params[3].to('L_sun').value
+        self.T    = self.Teff / 5777.
+        
+        # Random number generator
+        self.rng = ut.rng(seed)
+                    
+        # Solar frequency spectrum: mode line-widths and frequencies:
+        # Frequencies of 96 modes from BiSON
+        data = np.loadtxt(f'{path}/varsim_mainFitsBiSON.txt')
+        freq = data[:,2]
+
+        # Frequency of maximum power and the primary frequency splitting
+        # Keldsen & Bedding (1995) eq. 10 and 9:
+        numax_sun    = 3140.                                             # [muHz]
+        deltanu_sun  = 134.9                                             # [muHz]
+        self.numax   = self.M / self.R**2 / np.sqrt(self.T) * numax_sun  # [Sun] 
+        self.deltanu = np.sqrt(self.M) * self.R**-1.5 * deltanu_sun      # [Sun]
+            
+        # Scaling solar distinct pulsation frequencies of the 96 modes of the Sun [microHz]
+        self.freq = (freq-numax_sun)/deltanu_sun * self.deltanu + self.numax
+        
+        # From Chaplin et al. (2009) Eq. 1
+        self.eta = np.exp(data[:,6])*np.pi
+
+
+        
+    def init_granulation(self, scaling='Kallinger2014'):
+
+        """Initialize granulation model.
+        """
+        
+        tau_gran_sun = 375.   # [s]
+
+        # SELECT SCALING RELATION
+        
+        if scaling == 'KjeldsenBedding2011':  # TODO incomplete model?
+
+            # Timescale from Keldsen & Bedding (2011) Eq. 9 [Sun]
+            tau_gran = self.L * self.M**-1 * self.T**-3.5
+
+            # Amplitude from Kallinger et al. 2014 table 3 TODO where is this equation from?
+            A_gran_bol = self.L * tau_gran**0.5 * self.M**-1.5 * self.T**-2.75 * 41.
+
+        elif scaling == 'Kallinger2014':
+            # The idea to construct the PSD from Kallinger et al. (2014) Eq. 2 using only the
+            # granulation component modelled by the contribution of 1-3 super-Lorentzian
+            # functions. Here we only use 2 super-Lorentzian functions.
+
+            #A_gran_bol_sun = 41.    # [ppm] Kallinger et al. (2014) 
+            
+            # Bolometric correction that scales with the Kepler bandpass: Sec. 5.4
+            # Originally from Ballot et al. (2011); Michel et al. (2005)
+            T0    = 5934.  # [K]
+            C_bol = (self.Teff/T0)**0.8
+
+            # Parameters of power law fits to granulation: Sec. 5.2, from Tab. 2:
+            # a**2 correspond to the area under the super-Loretzian in PSD, hence,
+            # the variance in the time series, and bolmetric correction account for the bandpass.
+            # {b1, b2} are the characteristic frequencies defined by the chracteristic timescale tau
+            self.a  = C_bol * 3710. * self.numax**-0.613 * self.M**-0.26  # [ppm]
+            self.b1 = 0.317 * self.numax**0.970                           # [microHz]
+            self.b2 = 0.948 * self.numax**0.992                           # [microHz]
+
+        else:
+            errorcode('error', 'Invalid scaling relation!')
+
+        # Return model parameters
+        return self.a, self.b1, self.b2
+            
+
+
+    def eval_granulation(self, a=False, b1=False, b2=False):
+
+        """Model stochastic oscillations.
+        """
+
+        # Fetch input parameters
+        if not a:  a  = self.a
+        if not b1: b1 = self.b1
+        if not b2: b2 = self.b2
+        
+        # Prepare PSD model
+        Nfreq = int(len(self.time)/2 + 1)
+        frequencies = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / self.cadence
+
+        # Add Gaussian noise TODO add new numpy rng!
+        realPart = np.random.normal(0., 0.5, Nfreq)
+        imagPart = np.random.normal(0., 0.5, Nfreq)
+
+        # Construct PSD [ppm^2/muHz] and the full fourier spectrum
+        psd1 = ut.superLorentzian(frequencies, b1, a)
+        psd2 = ut.superLorentzian(frequencies, b2, a)
+        psd  = psd1 + psd2
+
+        fourier = np.sqrt(2. * psd * (Nfreq-1) / self.cadence) * (realPart + imagPart * 1j)
+        self.signal_gran = np.real(np.fft.irfft(fourier))
+
+        # Return generated signal
+        return self.signal_gran
+
+
+
+    def init_oscillations(self, scaling='Corsaro2013'):
+
+        """Model stochastic oscillations.
+        """
+        
+        # We use the solar frequency spectrum as a template for the pulsations but
+        # scale the frequencies and amplitudes according to the scaling relations
+        # (we do not scale the mode lifetimes) -> Michel et al. (2009)
+        Teff_sun       = 5777.
+        numax_sun      = 3140.                         # [muHz]
+        deltanu_sun    = 134.9                         # [muHz]
+        tau_puls_sun   = (2.88 * u.d).to('Ms').value   # [Ms]
+        A_puls_bol_sun = 3.6                           # [ppm]
+        
+        # SELECT SCALING RELATION
+        
+        if scaling == 'KB1995Brown1991':
+            # According to Corsaro et al. (2013) Eq. 6 [ppm]
+            A_puls_bol = (self.numax/numax_sun)**-1 * self.T**1.5 * A_puls_bol_sun
+
+        elif scaling == 'KjeldsenBedding1995':
+            # According to Kjeldsen and Bedding (1995), Eq. 4 usinf Eq. 8 [ppm]
+            A_puls_bol = self.L * self.T**-1 * self.M**-1 * 4.7 * 550/623
+
+        elif scaling == 'Mosser2010': # TODO
+            # According to Corsaro et al. 2013, equ. (24)
+            tau_puls = conversions.convert('d', 'Ms', np.exp((5777. - self.T)/601.) * 2.65)
+            r = 1.5  # free parameter
+            # According to Kjeldsen and Bedding 2011 equ. (6), [ppm]
+            tau0 = conversions.convert('d','Ms', 2.65)
+            A_puls_bol = self.L * (tau_puls/tau0)**0.5 * self.M**-1.5 * (self.T)**-(1.25+r) * 3.6
+            
+        elif scaling == 'Huber2011':
+            # According to the relation by Huber et al. 2011b [ppm]
+            s = 0.886
+            t = 1.89
+            r = 2.0
+            A_puls_bol = self.L**s * self.M**-t * self.T**(1-r) * A_puls_bol_sun
+
+        elif scaling == 'KjeldsenBedding2011':  # TODO
+            # According to Corsaro et al. 2013, equ. (24)
+            tau_puls = conversions.convert('d', 'Ms', np.exp((Teff_sun-self.Teff)/601.) * 2.65)
+            r = 2.0
+            # According to Kjeldsen and Bedding 2011 equ. (6), [ppm]
+            tau0 = conversions.convert('d','Ms',2.65)
+            A_puls_bol = self.L * (tau_puls/tau)**0.5 * self.M**-1.5 * self.T**-(1.25+r) * 3.6
+
+        elif scaling == 'Corsaro2013huber2011':
+            # Reestimated of Huber et al. (2011b)'s values by
+            # Corsaro et al. (2013) using Bayesian inference
+            s = 0.984
+            t = 1.66
+            r = 2.79
+            # According to the relation by Huber et al. 2011b,
+            # and the fit by Corsaro et al. (2013), Eq. (19) [ppm]
+            A_puls_bol = ((self.numax/numax_sun)**(2*s-3*t) *
+                          (self.deltanu/deltanu_sun)**(-4*s+4*t) *
+                          self.T**(5*s-1.5*t-r+0.2) * 3.6)
+            
+        elif scaling == 'Corsaro2013':
+            # According to Corsaro et al. 2013, Eq. 24:
+            # NOTE The value of T0 was calibrated using Kepler RGs in the open clusters
+            # NGC 6791 and NGC 6819, and a sample of MS and subgiant Kepler field stars.
+            T0   = 601.                         # [K]
+            tau0 = (2.65 * u.d).to('Ms').value  # [Ms]
+            tau_puls = np.exp((Teff_sun - self.Teff) / T0) * tau0  # [Ms]
+            # According to Corsaro et al. (2013) Eq. 26 (Model 6) [ppm]
+            r = -2.8
+            t = 1.56
+            A_puls_bol = ((self.numax/numax_sun)**(2-3*t) *
+                          (self.deltanu/deltanu_sun)**(4*t-4) *
+                          (tau_puls/tau_puls_sun)**0.5 *
+                          self.T**(4.55-r-1.5*t) * A_puls_bol_sun)
+            
+        # Amplitude [ppm]
+        self.ampl = A_puls_bol * np.exp(-(self.freq-self.numax)**2/(2*(1.5*self.deltanu)**2))
+        
+        # Return model parameters
+        return self.numax, self.deltanu, self.freq, self.ampl
+
+            
+            
+    def eval_oscillations(self, time=False, freq=False, ampl=False, eta=False):
+
+        """Compute time series of stochastically excited damped modes.
+        
+        Parameters
+        ----------
+        time : ndarray
+            Time points [0..Ntime-1] (unit: e.g. Ms)
+        freq : ndarray 
+            Oscillation freqs [0..Nmodes-1] (unit: e.g. microHz)
+        ampl : ndarray 
+            Amplitude of each oscillation mode rms amplitude = ampl / sqrt(2.)
+        eta : ndarray
+            Damping rates (unit: e.g. (Ms)^{-1})
+
+        Returns
+        -------
+        signal : ndarray
+            Pulsation signal[0..Ntime-1]
+
+        Resources
+        ---------
+        De Ridder et al., 2006, MNRAS 365, pp. 595-605.
+        """
+
+        # Parsing of arguments
+        if not time: time = self.time
+        if not freq: freq = self.freq
+        if not ampl: ampl = self.ampl
+        if not eta:  eta  = self.eta
+
+        # Constants
+        Ntime = len(time)
+        Nmode = len(freq)
+
+        # Set the kick (= reexcitation) timestep to be one 100th of the
+        # shortest damping time. (i.e. kick often enough).
+        kicktimestep = (1.0 / max(eta)) / 100.0
+
+        # Init start values of amplitudes, and the kicking amplitude
+        # so that the amplitude of the oscillator will be on average be
+        # constant and equal to the user given amplitude
+        amplcos = 0.0
+        amplsin = 0.0
+        kick_amplitude = ampl * np.sqrt(kicktimestep * eta)
+
+        # Warm up the stochastic excitation simulator to forget the
+        # initial conditions. Do this during the longest damping time.
+        # But put a maximum on the number of kicks, as there might
+        # be almost-stable modes with damping time = infinity
+        damp = np.exp(-eta * kicktimestep)
+        Nwarmup = min(20000, int(math.floor(1.0 / np.min(eta) / kicktimestep)))
+        for i in range(Nwarmup):
+            amplsin = damp * amplsin + np.random.normal(np.zeros(Nmode), kick_amplitude)
+            amplcos = damp * amplcos + np.random.normal(np.zeros(Nmode), kick_amplitude)
+
+        # Initialize the last kick times for each mode to be randomly chosen
+        # a little before the first user time point. This is to avoid that
+        # the kicking time is always exactly the same for all of the modes.
+
+        last_kicktime = np.random.uniform(time[0] - kicktimestep, time[0], Nmode)
+        next_kicktime = last_kicktime + kicktimestep
+
+        # Generate and return model [ppm -> normalised]
+        self.signal_puls = pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
+                                      kicktimestep, kick_amplitude,
+                                      last_kicktime, next_kicktime)
+        return self.signal_puls
+
+            
+# Numba cannot be integrated into a class currently
+@njit
+def pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
+               kicktimestep, kick_amplitude, last_kicktime, next_kicktime):
+
+    # Prepare for loop
+    signal = np.zeros(Ntime)
+    for j in range(Ntime):
+
+        # Compute the contribution of each mode separatly
+        for i in range(Nmode):
+
+            # Let the oscillator evolve until right before 'time[j]'
+            while (next_kicktime[i] <= time[j]):
+
+                deltatime = next_kicktime[i] - last_kicktime[i]
+                damp = np.exp(-eta[i] * deltatime)
+                amplsin[i] = damp * amplsin[i] + kick_amplitude[i] * np.random.normal(0.,1.)
+                amplcos[i] = damp * amplcos[i] + kick_amplitude[i] * np.random.normal(0.,1.)
+                last_kicktime[i] = next_kicktime[i]
+                next_kicktime[i] = next_kicktime[i] + kicktimestep
+
+            # Now make the last small step until 'time[j]'
+            deltatime = time[j] - last_kicktime[i]
+            damp = np.exp(-eta[i] * deltatime)
+            signal[j] = signal[j] + damp * (amplsin[i] * np.sin(2*np.pi*freq[i]*time[j])    \
+                                  + amplcos[i] * np.cos(2*np.pi*freq[i]*time[j]))
+
+    return(signal)
 
 
 
 
 
 #==============================================================#
-#                          MODELS CLASS                        #
+#                        PULSATING STARS                       #
+#==============================================================#
+
+    
+class GravityOscillator(object):
+
+    """Class to generate gravity oscillation time series.
+    """
+
+    def __init__(self, time, power, seed=False):
+
+        self.time  = time
+        self.power = power
+
+        # Random number generator
+        self.rng = ut.rng(seed)
+            
+
+        
+    def initToyModel(self, period_range, amplitude_range, nmodes=False):
+
+        """Draw pulsations from uniform distribution.
+
+        Parameters
+        ----------
+        period_range : list
+            Range of pulsation periods [Pmin, Pmax] in unit of [days]
+        amplitude_range : list
+            Range of pulsation amplitudes [Amin, Amax] in units of [mmag]
+        nmodes : int
+            Number of pulsation modes to include
+
+        TODO Model gives wrong results! High value at 0 c/d!
+        """
+        
+        # Number of pulsation modes
+        if not nmodes:
+            nmodes = int(self.rng.normal(50, 5))
+        
+        # Generate pulsations using uniform distributions
+        self.freq  = self.rng.uniform(0, 2*np.pi, nmodes)
+        self.ampl  = self.rng.uniform(period_range[0], period_range[1], nmodes)
+        self.phase = self.rng.uniform(amplitude_range[0], amplitude_range[1], nmodes)
+        self.starname = 'g-Dor'
+
+        
+        
+    def initGang2020(self, odir, starID=None):
+
+        """Draw frequencies from Kepler g-Dor legacy.
+        """
+
+        # Name of folder on FTP server
+        filename = 'varsource_gdor_gang2020'
+        dataDir  = Path(f'{odir}/{filename}')
+        
+        # Select a random object from the list and load Fourier data
+        if dataDir.is_dir():
+            filenames = glob.glob(f'{odir}/{filename}/*.dat')
+        else:
+            zipfile = f'{filename}.zip'
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+            os.system(f'unzip {odir}/{zipfile} -d {odir}')
+            os.system(f'rm {odir}/{zipfile}')
+
+        # If requested, select specific star or else do a random draw
+        if starID is None:
+            starfile = Path(self.rng.choice(filenames))
+        else:
+            starfile = Path(filenames[starID-1])
+            
+        # Load file containing columns
+        df = pd.read_csv(starfile, sep=' ', comment='#',
+                         names=['freq', 'ampl', 'phase', 'snr'])
+
+        # Else load the data
+        self.freq  = 1/df.freq      # [days]
+        self.ampl  = df.ampl * 1e3  # [mag]
+        self.phase = df.phase       # [rad]
+        self.snr   = df.snr
+        self.starname = starfile.name
+
+        
+                        
+    def evaluate(self, plot=False):
+
+        """Evaluate and return generated model.
+        """
+
+        # Number of pulsation modes
+        nmodes = len(self.freq)
+        
+        # Loop over the number of modes and sum of every mode
+        mag = np.zeros_like(self.time)
+        for i in range(nmodes):
+            mag += self.ampl[i] * np.sin((2*np.pi * self.freq[i]) * self.time + self.phase[i])
+
+        # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
+        # Then add 1, raise the power and substract 1
+        A = np.max(np.abs(mag))
+        self.mag = A * (((1 + mag/A)**self.power) - 1)
+
+        # Plot if requested
+        if plot: self.plot()
+            
+        # Return magnitude [mmag -> mag]
+        return mag/1e3
+    
+
+
+    def plot(self):
+
+        # Compute power spectrum
+        from platosim.noise import numpyFFT
+        
+        fig, ax = plt.subplots(2, 1, figsize=(12, 7))
+
+        # Plot time series
+        ax[0].plot(self.time, self.mag, 'k-', lw=0.3)
+        ax[0].set_xlabel(r'Time [days]')
+        ax[0].set_ylabel(r'$\delta m$ [mmag]')
+        ax[0].set_title(f'{self.starname}')
+        ax[0].set_xlim(self.time.min(), self.time.max())
+        #ax[0].set_ylim(self.mag.min(),  self.mag.max())
+
+        # Plot power spectrum
+        freq, power = numpyFFT(self.mag, np.diff(self.time)[0])
+        N    = len(self.freq)
+        ymin = np.mean(power)
+        ymax = np.max(power) + 0.1*np.max(power)
+        carray = np.linspace(0, 1, 1000)
+        colors = plt.cm.rainbow(carray)
+        #freq = 1/freq
+        # for i in range(N):
+        #     if self.starname is not 'g-Dor':
+        #         snr_norm = self.snr[i]/self.snr.max()
+        #         dex = ut.findNearestIndex(carray, snr_norm)
+        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax],
+        #                    c=colors[dex], lw=snr_norm*3)
+        #     else:
+        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax], c='royalblue')
+        ax[1].plot(freq, power, '-', c='deeppink', lw=1)
+        # Settings
+        ax[1].set_ylabel(r'Amplitude [mmag]')
+        ax[1].set_xlabel(r'Period, $P$ [day]')
+        #ax[1].set_yscale('log')
+
+        ax[1].set_xlim(0, np.max(self.freq)+1)
+        ax[1].set_ylim(ymin, ymax)
+        plt.tight_layout()
+        plt.show()
+
+
+
+
+
+class ClassicalPulsator(object):
+
+    """Class to generate variability classical pulsators
+    """
+
+    def __init__(self, time, seed=False):
+        
+        self.time = time
+        self.rng  = ut.rng(seed)
+
+
+        
+    def initFromFile(self, odir, starID=None):
+
+        """Draw frequencies from Kepler g-Dor legacy.
+        """
+
+        # Name of folder on FTP server
+        filenames = glob.glob(f'{self.idir}/RRL-CEP/*.fou')
+        starfile = random.choice(filenames)
+        
+        # Select a random object from the list and load Fourier data
+        if dataDir.is_dir():
+            filenames = glob.glob(f'{odir}/{filename}/*.dat')
+        else:
+            zipfile = f'{filename}.zip'
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+            os.system(f'unzip {odir}/{zipfile} -d {odir}')
+            os.system(f'rm {odir}/{zipfile}')
+
+        # If requested, select specific star or else do a random draw
+        if starID is None:
+            starfile = Path(self.rng.choice(filenames))
+        else:
+            starfile = Path(filenames[starID-1])
+            
+        # Load file containing columns
+        df = pd.read_csv(starfile, sep=' ', comment='#',
+                         names=['freq', 'ampl', 'phase', 'snr'])
+
+        # Else load the data
+        self.starname  = starfile.name
+        self.period    = df.freq        # [days]
+        self.amplitude = df.ampl * 1e3  # [mag]
+        self.phase     = df.phase       # [rad]
+        self.snr       = df.snr
+        
+#==============================================================#
+#                         MASSIVE STARS                        #
+#==============================================================#
+
+    
+class SurfaceModulations(object):
+
+    """Class to generate variability of roAp stars.
+
+    Rotationally modulated chemcically perculiar A-type (roAp) stars
+    are common and readily available objects that efficiently can be 
+    used as photometric calibrators in larger surveys. Rotational 
+    periods can be drawn randomly from a uniform distribution between
+    1 and 3 days. The shape of light curves of these stars is typically
+    sinusoidal with frequent contribution of the second harmonic. 
+    The amplitude is typically 10-30 mmag in the Kepler passband. 
+    We here assume that Kepler passband is representative for the 
+    PLATO passband.
+    """
+
+    def __init__(self, time, seed=False):
+        
+        self.time = time
+        self.rng  = ut.rng(seed)
+    
+
+        
+    def initToyModel(self, period_range=[1,3], amplitude_range=[10,30]):
+
+        """Draw pulsations from uniform distribution.
+        Author: Oleg Kochukhov (oleg.kochukhov@physics.uu.se)
+
+        Typical ratational periods [1, 3] days
+        Typical amplitude ranges [10, 30] mmag
+        """
+        
+        # Random value of rotational period
+        P = self.rng.uniform(period_range[0], period_range[1])
+
+        # Relative amplitudes between main frequency and harmonic
+        A = self.rng.uniform(0, 1)
+
+        # Random phase offset [0, 2*pi] between main frequency and harmonic
+        phi = self.rng.uniform(0, 2*np.pi)
+        
+        # Create light curve
+        mag = np.cos(2*np.pi * (self.time/P)) + A * np.cos(4*np.pi * (self.time/P) + phi)
+
+        # Scale amplitude within the range
+        scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
+        self.mag = mag * scale
+
+        # Return model parameters
+        return [P, phi, A, scale]
+
+
+        
+    def evaluate(self, plot=False):
+
+        """Evaluate and return generated model.
+        """        
+        
+        if plot:
+            plt.figure(figsize=(10, 4))
+            plt.plot(self.time, self.mag, 'k-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'$\mathcal{P}$ [mmag]')
+            plt.xlim(self.time.min(), self.time.max())
+            plt.tight_layout()
+            plt.show()
+        
+        return self.mag/1e3
+
+
+
+
+#==============================================================#
+#                         OTHER OBJECTS                        #
+#==============================================================#
+
+
+class SMBHB(object):
+
+    """Models for Super Massive Black Hole Binaries (SMBHBs).
+    """
+
+
+    def __init__(self, time, seed=None):
+
+        """Open the HDF5 output file
+        """
+
+        self.time = time
+        self.rng  = ut.rng(seed)
+        
+
+
+        
+    def __del__(self):
+
+        """Destructor
+        """
+
+        pass
+
+
+
+    def initToyModelSpikey(self):
+        
+        A   = 0.04         # [mag]
+        P   = 2 * 365.25   # [days]
+        phi = 0.1 * np.pi  # [rad] #np.random.uniform(low=0, high=2*np.pi) 
+        tscale    = 10     # [days] #np.ones(len(max)) * 10
+        amplitude = 0.08   # [mag]
+
+        return
+
+    
+    def initToyModel(self):
+
+        """Simplified description of a SMBH binary system.
+
+        The model consist of two components:
+          1) Doppler beaming
+          2) Gravitational lens
+        
+        Assumptions
+        -----------
+        - Circular orbits (e = 0)
+        - The orbital period is drawn from the uniform distribution [1.5, 2.5] years
+        - The beaming amplitude is drawn from the uniform distribution [0, 0.1] mag
+        - The lensing amplitude is twice that of the beaming amplitude
+        - The lensing duration scales linearly with the orbital period [5, 12] days
+        """
+
+        # Orbital period [days]
+        P_min = 1.5
+        P_max = 2.5
+        year  = 365.25
+        P = self.rng.uniform(P_min, P_max) * year
+
+        # Beaming amplitude [mag]
+        A_beam = self.rng.uniform(0, 0.1)
+        
+        # Lens paramters [mmag and days]
+        A_lens = 2 * A_beam
+
+        # Lens time maximum [days]
+        phi_lens  = self.rng.uniform(0, 2*np.pi)
+        tmax_lens = P * (1 - phi_lens/(2*np.pi))
+        
+        # Lens duration [days]
+        tdur_lens = ut.evalLinReg(np.array([P_min, P_max]),
+                                  np.array([5, 10]), P/year)
+
+        # Return parameters
+        return P, A_beam, A_lens, phi_lens, tmax_lens, tdur_lens
+
+
+
+    def evalLensingEvent(self, tmax=False, tscale=False, ampl=30, asym=1):
+
+        """Simple analytic model for lensing event.
+        
+        Parameters
+        ----------
+        tmax : float, ndarray
+            Time of maximum intensity due to lensing [days]
+        tscale : float, ndarray
+            Time scale duration of the flare(s) [days]
+        ampl : float, ndarray
+            Amplitude of the flare(s) [mmag]
+        asym : float, ndarray
+            Asymmetry factor of the flare(s)
+        """
+
+        # Convert units of input parameters
+        time = self.time
+        flux = np.zeros_like(time)
+
+        # Secure that single flare works
+        try: len(tmax)
+        except: tmax = [tmax]
+        
+        # Loop over each flare event
+        
+        for m in range(len(tmax)):
+
+            # Start and end of flare event
+            t0 = (time[0]  - tmax[m])
+            t1 = (time[-1] - tmax[m])
+            dt = np.diff(time)[0]
+
+            # Time array during flare event
+            tn = np.arange(t0, t1, dt)
+            t = tn/tscale
+
+            # Model parameters of flare
+            b = -1.941 - 0.175 + 2.246 + 1
+            c = 1 - 0.689
+
+            # Loop over every time-step in the flare time interval
+
+            for i in range(len(t)):
+
+                # Rise of lensing
+                if t[i] <= 0:
+                    flux[i] += 0.689 * np.exp(+1.6 * t[i])
+
+                # Decay of lensing
+                elif t[i] > 0:
+                    flux[i] += 0.689 * np.exp(-1.6 * t[i])
+
+                # Outside lens
+                else:
+                    flux[i] += 0
+
+        # Return relative flux
+        return flux * ampl + 1
+
+    
+
+    def evalToyModel(self, P, A_beam, A_lens, phi, tmax, tdur):
+
+        """Uniform distribution of toy model.
+        """
+        
+        # Model doppler beaming effect
+        flux_beam = A_beam * np.sin(2*np.pi * (self.time/P) + phi) + 1
+
+        # Model all lesing evens with P < duration of observation
+        flux_lens = np.ones_like(flux_beam)
+        for tm in [tmax-P, tmax, tmax+P]:
+            flux = self.evalLensingEvent(tm, tdur, A_lens, asym=1)
+            flux_lens += flux - np.ones_like(flux_beam)
+
+        # Signals
+        self.flux = flux_beam + flux_lens - 1
+        self.flux_beam = flux_beam
+        self.flux_lens = flux_lens
+            
+        # Return models
+        return self.flux, self.flux_beam, self.flux_lens
+
+
+
+    def plot(self):
+
+        fig, ax = plt.subplots(1, 1, figsize=(9,4))
+        ax.plot(self.time, self.flux_beam, '-', c='green')
+        ax.plot(self.time, self.flux_lens, '-', c='orange')
+        ax.plot(self.time, self.flux,      '-', c='royalblue')
+        ax.set_xlabel('Time [d]')
+        ax.set_ylabel(r'Relative flux')
+        ax.set_xlim(self.time.min(), self.time.max())
+        plt.tight_layout()
+        plt.show()
+    
+    
+#==============================================================#
+#                         EXOPLANETS                           #
 #==============================================================#
 
 
 class LimbDarkening(funcFit.OneDFit):
-    """
-    Class for fitting the Limb Darkening Coefficients.
+
+    """Class for fitting the Limb Darkening Coefficients.
     Integrated into the BATMAN and SPIDERMAN packages.
     """
 
@@ -418,7 +1634,8 @@ class LimbDarkening(funcFit.OneDFit):
         data_int_VTA = np.zeros(grid_no*len(mu)).reshape(grid_no, len(mu))
         for jj in range(len(mu)):
             data_int[:,jj] = np.interp(wvl_int, wvl_data, data[jj])
-            data_int_VTA[:,jj], vind = pyasl.specAirVacConvert(wvl_int, data_int[:,jj], direction="vactoair")
+            data_int_VTA[:,jj], vind = pyasl.specAirVacConvert(wvl_int, data_int[:,jj],
+                                                               direction="vactoair")
 
         # Colvolve data with transmission to find the VTA intensity
         intensity_VTA = [np.nansum(data_int_VTA[:,i]*tran_int) for i in range(len(mu))]
@@ -454,9 +1671,8 @@ class LimbDarkening(funcFit.OneDFit):
 
 
 class DopplerBeaming(funcFit.OneDFit):
-    """
-    Class for the calculation of the Beaming Effect (also called
-    Doppler Beaming/Boosting).
+
+    """Model Doppler Beaming Effect (also called Boosting).
 
     This utility models the beaming effect descriped in Shporer (2017).
     The effect is composed by: 1) Doppler shift, 2) Time dialation
@@ -535,8 +1751,8 @@ class DopplerBeaming(funcFit.OneDFit):
 
 
 class EllipsoidalDistortion(funcFit.OneDFit):
-    """
-    Class for the calculation of the ellipsoidal effect.
+
+    """Class for the calculation of the ellipsoidal effect.
 
     The model presented here is a fusion between the simple analytical description
     presented by Sphorer (2019) and adding a parametization solving the elliptical
@@ -545,10 +1761,10 @@ class EllipsoidalDistortion(funcFit.OneDFit):
 
     Resources:
     ----------
-    Sphorer (2019)         : https://arxiv.org/abs/1703.00496
-    Murray & Correia (2011): https://arxiv.org/abs/1009.1738v2
-    Morris & Nafilan (1993): http://cdsads.u-strasbg.fr/pdf/1993ApJ...419..344M
-    Claret & Bloemen (2011): TODO this is for TESS but we don't have g fror PLATO
+    Sphorer (2019)          : https://arxiv.org/abs/1703.00496
+    Murray & Correia (2011) : https://arxiv.org/abs/1009.1738v2
+    Morris & Nafilan (1993) : http://cdsads.u-strasbg.fr/pdf/1993ApJ...419..344M
+    Claret & Bloemen (2011) : TODO this is for TESS but we don't have g fror PLATO
     NOTE Only w=90 produces the expected beaming effect with max and min between
     inferior and superior conjunction.
     """
@@ -604,885 +1820,12 @@ class EllipsoidalDistortion(funcFit.OneDFit):
         return y.value, A.value
 
 
-
-
-
-
-
-class StellarFlares(funcFit.OneDFit):  # TODO test
-    """
-    A simplistic analytical description of stellar flares described by an sudden
-    flux increase followed by an exponential decay. Given the time of the time
-    series the corresponding flux is returned including the wanted flares.
-
-    PARAMETERS
-    ----------
-    t_flares : float, narray
-        Times for the maxima of each flare occurances [days]
-    t_scale : float, narray
-        The full time width at half-maximum-flux of each flare [days]
-    asymmetry : float, narray
-        Higher order asymmetry factor for each flare.
-
-    RETURN
-    ------
-    flux : narray
-    """
-    def __init__(self):
-        funcFit.OneDFit.__init__(self, ["sampling", "t_flares", "t_scale", "asymmetry"])
-
-    def evaluate(self, time):
-
-        t_step   = np.diff(time[:2])[0]
-        n_flares = len(self["t_flares"])
-        flux     = np.zeros_like(np.arange(time[0], time[-1], t_step))
-
-        for m in range(n_flares):
-
-            t0 = time[0]  - self["t_flares"][m]
-            t1 = time[-1] - self["t_flares"][m]
-            tn = np.arange(t0, t1, t_step)
-            t  = tn / self["t_scale"]
-
-            B = self["asymmetry"]
-            C = 1./B
-            b = - 1.941 - 0.175 + 2.246 + 1
-            c = 1 - 0.689
-
-            # Loop over every time-step in the time interval that is defined relative to this flares maxima
-            # and put in units of the time-scale
-
-            for i in range(len(t)):
-                if (t[i]*B) > -1 and (t[i]*B) <= 0:
-                    flux[i] += 1 + 1.941 * t[i]*B - 0.175 * np.power(t[i]*B,2) - 2.246 * np.power(t[i]*B,3) - b * np.power(t[i]*B,4)
-
-                elif t[i]*C > 0:
-                    flux[i] += 0.689 * np.exp(-1.6 * t[i]*C) + c * np.exp(-0.2783 * t[i]*C)
-
-                else:
-                    flux[i] += 0
-
-
-        time = tn + self["t_flares"][n_flares-1]
-
-        return flux
-
-
-
-
-
-
-class GravityOscillations(funcFit.OneDFit):  # TODO test
-    """
-    time_start and time_end are given in days and define the time interval over which to simulate the flare
-    the sampling should be given in exposures or data-points per day
-    the period and amplitude define the allowed range in periods and amplitudes to include
-    the number_modes defines how many different modes or periods/amplitudes to include
-    power is the power to which the sum of every mode is raised, it introduces an asymmetry in the signal
-
-    """
-    def __init__(self):
-        funcFit.OneDFit.__init__(self, ["P_range", "A_range", "N_modes", "power", "t_step"])
-
-    def evaluate(self, time):
-
-        seed = random.seed(seed)
-
-        # convert the times in days to times in secons (because the time_step is given in seconds)
-        
-        self["t_step"] /= 24*60*60.
-
-        t = np.arange(time[0], time[-1], self["t_step"], dtype=float)
-        flux = np.zeros_like(t)
-
-        # loop over the number of modes and each time pick a period, an amplitude and a phi
-        #  at random out of the appropriate range
-        
-        for i in range(self["N_modes"]):
-
-            phi = random.uniform(0, 2 * np.pi)
-            P   = random.uniform(self["P_range"][0], self["P_range"][1])
-            A   = random.uniform(self["A_range"][0], self["A_range"][1])
-
-            flux += A * np.sin(2 * np.pi * (1 / P) * t + phi)  # sum of every mode
-
-        # normalize the flux so its values lie in [-1, 1] (so roots are not undefined)
-        
-        A     = np.amax(np.absolute(flux))
-        flux /= A
-        flux  = A * (((flux + 1)**self["power"]) - 1)
-
-        # That's it!
-        
-        return flux
-
-
-
-
-
-
-
-
-# class SolarLikeOscillations(object):
-
-#     def __init__(self):
-#         """
-#         PURPOSE: Initialize and prepare data structure
-#         """
-#         # Create data directories if they do not exist
-
-@njit
-def pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
-               kicktimestep, kick_amplitude, last_kicktime, next_kicktime):
-
-    # Prepare for loop
-    signal = np.zeros(Ntime)
-    for j in range(Ntime):
-
-        # Compute the contribution of each mode separatly
-        for i in range(Nmode):
-
-            # Let the oscillator evolve until right before 'time[j]'
-            while (next_kicktime[i] <= time[j]):
-
-                deltatime = next_kicktime[i] - last_kicktime[i]
-                damp = np.exp(-eta[i] * deltatime)
-                amplsin[i] = damp * amplsin[i] + kick_amplitude[i] * np.random.normal(0.,1.)
-                amplcos[i] = damp * amplcos[i] + kick_amplitude[i] * np.random.normal(0.,1.)
-                last_kicktime[i] = next_kicktime[i]
-                next_kicktime[i] = next_kicktime[i] + kicktimestep
-
-            # Now make the last small step until 'time[j]'
-            deltatime = time[j] - last_kicktime[i]
-            damp = np.exp(-eta[i] * deltatime)
-            signal[j] = signal[j] + damp * (amplsin[i] * np.sin(2*np.pi*freq[i]*time[j])    \
-                                  + amplcos[i] * np.cos(2*np.pi*freq[i]*time[j]))
-
-    return(signal)
-
-
-
-
-
-
-
-def solarosc(time, freq, ampl, eta, verbose):
-    """
-    Compute time series of stochastically excited damped modes
-
-    See also De Ridder et al., 2006, MNRAS 365, pp. 595-605.
-
-    Example:
-
-    >>> time = np.linspace(0, 40, 100)      # in Ms
-    >>> freq = np.array([23.0, 23.5])       # in microHz
-    >>> ampl = np.array([100.0, 110.0])     # in ppm
-    >>> eta = np.array([1.e-6, 3.e-6])      # in 1/Ms
-    >>> oscsignal = solarosc(time, freq, ampl, eta)
-    >>> flux = 1000000.0                      # average flux level
-    >>> signal = flux * (1.0 + oscsignal)
-    >>> # The same with a logger
-    >>> import sys, logging, logging.handlers
-    >>> myLogger = logging.getLogger("solarosc")
-    >>> myLogger.addHandler(logging.StreamHandler(sys.stdout))
-    >>> myLogger.setLevel(logging.INFO)
-    >>> oscsignal = solarosc(time, freq, ampl, eta, myLogger)
-    Simulating 2 modes
-    Oscillation kicktimestep: 3333.333333
-    300 kicks for warm up for oscillation signal
-    Simulating stochastic oscillations
-
-    @param time: time points [0..Ntime-1] (unit: e.g. Ms)
-    @type time: ndarray
-    @param freq: oscillation freqs [0..Nmodes-1] (unit: e.g. microHz)
-    @type freq: ndarray
-    @param ampl: amplitude of each oscillation mode
-                 rms amplitude = ampl / sqrt(2.)
-    @type ampl: ndarray
-    @param eta: damping rates (unit: e.g. (Ms)^{-1})
-    @type eta: ndarray
-    @return: signal[0..Ntime-1]
-    @rtype: ndarray
-    """
-
-    Ntime = len(time)
-    Nmode = len(freq)
-
-    if verbose:
-        print("Simulating %d modes" % Nmode)
-
-    # Set the kick (= reexcitation) timestep to be one 100th of the
-    # shortest damping time. (i.e. kick often enough).
-    kicktimestep = (1.0 / max(eta)) / 100.0
-
-    if verbose:
-        print("Oscillation kicktimestep: %f" % kicktimestep)
-        
-    # Init start values of amplitudes, and the kicking amplitude
-    # so that the amplitude of the oscillator will be on average be
-    # constant and equal to the user given amplitude
-
-    amplcos = 0.0
-    amplsin = 0.0
-    kick_amplitude = ampl * np.sqrt(kicktimestep * eta)
-
-    # Warm up the stochastic excitation simulator to forget the
-    # initial conditions. Do this during the longest damping time.
-    # But put a maximum on the number of kicks, as there might
-    # be almost-stable modes with damping time = infinity
-
-    damp = np.exp(-eta * kicktimestep)
-    Nwarmup = min(20000, int(math.floor(1.0 / np.min(eta) / kicktimestep)))
-
-    if verbose:
-        print("Simulating stochastic oscillations")
-        print("%d kicks for warm up for oscillation signal" % Nwarmup)
-
-    for i in range(Nwarmup):
-        amplsin = damp * amplsin + np.random.normal(np.zeros(Nmode), kick_amplitude)
-        amplcos = damp * amplcos + np.random.normal(np.zeros(Nmode), kick_amplitude)
-
-    # Initialize the last kick times for each mode to be randomly chosen
-    # a little before the first user time point. This is to avoid that
-    # the kicking time is always exactly the same for all of the modes.
-
-    last_kicktime = np.random.uniform(time[0] - kicktimestep, time[0], Nmode)
-    next_kicktime = last_kicktime + kicktimestep
-
-    signal = pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
-                        kicktimestep, kick_amplitude, last_kicktime, next_kicktime)
-
-    # Finito!
-
-    return signal
-
-
-
-
-
-
-
-
-
-
-def add_region(nday, ic, lon, lat, k, bsiz1, phase):
-# Add one active region of a particular size:
-    w_org = 0.4 * bsiz1                            # original width (degrees)
-    width = 4.0                                    # final width (degrees)
-    bmax = 250. * (w_org / width)**2               # final peak flux density (G) 
-    bsizr = np.pi * bsiz1 / 180                    # pole separation in radians
-    width = np.pi * width / 180                    # final width in radians
-    # For tilt angles, see Wang and Sheeley, Sol. Phys. 124, 81 (1989)
-    #                      Wang and Sheeley, Ap. J. 375, 761 (1991)
-    #                      Howard, Sol. Phys. 137, 205 (1992)
-    x = np.random.normal()
-    while abs(x) > 1.6:
-        x = np.random.normal()
-    y = np.random.normal()
-    while abs(y) >= 1.6:
-        y = np.random.normal()
-    z = np.random.uniform()
-    if z > 0.14:
-        ang = 0.5 * lat + 2.0 + 27. * x * y # tilt angle (degrees)
-    else:
-        while z > 0.5:
-            z = np.random.normal()
-        ang =  z * np.pi / 180
-    lat = np.pi * lat / 180                               # latitude (radians)
-    ang = np.pi * ang / 180                               # tilt angle (radians)
-    dph = ic * 0.5 * bsizr * np.cos(ang) / np.cos(lat)    # delta phi (radians)
-    dth = ic * 0.5 * bsizr * np.sin(ang)                  # delta theta (radians)
-    phcen = np.pi * lon / 180                             # longitude (radians)
-    if k == 0:                       # Insert on N hemisphere
-        thcen = 0.5 * np.pi - lat
-        phpos = phcen + dph
-        phneg = phcen - dph
-    else:                            # Insert on S hemisphere
-        thcen = 0.5 * np.pi + lat
-        phpos = phcen - dph
-        phneg = phcen + dph
-
-    thpos = thcen + dth
-    thneg = thcen - dth
-    str_ = '{:5d} {:8.5f} {:8.5f} {:8.5f} {:8.5f} {:8.5f} {:7.1f} {:8.5f}'.format(int(nday),thpos,phpos,thneg,phneg,width,250,ang)
-    return str_          
-
-def regions(seed = None, activityrate = 1, cycle_period = 1, cycle_overlap = 0, maxlat = 70,
-            minlat = 0, tsim = 1000, tstart = 0, randspots = False, odir = None, verbose  = True):
-# ; inputs
-# ; activityrate - number of bipoles (1= solar)
-# ; cyclelength - length of cycle in years
-# ; cycleoverlap - cycleoverlap time in years
-# ; tsim - length of simulation in days 
-# ; tstart - first day to start outputting bipoles 
-# ; minlat - minimum latitude of spot emergence
-# ; maxlat - maximum latitude of spot emergence 
-# ; randspots - if True, no Butterfly pattern
-# ; odir - output directory 
-# ; verbose - if True, output printed to stdout
-
-# ; output: list of regions with parameters:
-# ;
-# ;    nday = day of emergence
-# ;    thpos= theta of positive pole (radians)
-# ;    phpos= phi   of positive pole (radians)
-# ;    thneg= theta of negative pole (radians)
-# ;    phneg= phi   of negative pole (radians)
-# ;    width= width of each pole (radians)
-# ;    bmax = maximum flux density (Gauss)
-# ;
-# ;  According to Schrijver and Harvey (1994), the number of active regions
-# ;  emerging with areas in the range [A,A+dA] in a time dt is given by 
-# ;
-# ;    n(A,t) dA dt = a(t) A^(-2) dA dt ,
-# ;
-# ;  where A is the "initial" area of a bipole in square degrees, and t is
-# ;  the time in days; a(t) varies from 1.23 at cycle minimum to 10 at cycle
-# ;  maximum.
-# ;
-# ;  The bipole area is the area within the 25-Gauss contour in the
-# ;  "initial" state, i.e. time of maximum development of the active region.
-# ;  The assumed peak flux density in the initial sate is 1100 G, and
-# ;  width = 0.2*bsiz (see disp_region). The parameters written onto the
-# ;  file are corrected for further diffusion and correspond to the time
-# ;  when width = 4 deg, the smallest width that can be resolved with lmax=63.
-# ;
-# ;  In our simulation we use a lower value of a(t) to account for "correlated"
-# ;  regions.
-# ;
-
-    nbin=5                              # number of area bins
-    delt=0.5                            # delta ln(A)
-    amax=100.                           # orig. area of largest bipoles (deg^2)
-    dcon = np.exp(0.5*delt)-np.exp(-0.5*delt)   # contant from integ. over bin
-
-    if verbose:
-        print('Creating regions with the following parameters:')
-        print('Acivity rate: {} x Solar rate.'.format(activityrate))
-        print('Activity cycle period: {} years.'.format(cycle_period))
-        print('Duration of overlap between consecutive activity cycles: {} years.'.format(cycle_overlap))
-        print('Maximum spot latitude: {} degrees.'.format(maxlat))
-        print('Minimum spot latitude: {} degrees.'.format(minlat))
-        print('Duration of simulation: {} days.'.format(tsim))
-        print('Time at start of simulation: {} days.'.format(tstart))
-        
-    latrmsd = 5
-    atm = 10 * activityrate    
-    # a(t) at cycle maximum (deg^2/day)
-    # cycle period (days)
-    # cycle duration (days)
-     
-    ncycle = int(cycle_period * 365)         # cycle length in days   
-    nclen = int((cycle_period + cycle_overlap) * 365)
-    fact = np.exp(delt*np.arange(nbin))     # array of area reduction factors
-    ftot = fact.sum()                         # sum of reduction factors
-    bsiz = np.sqrt(amax/fact)               # array of bipole separations (deg)
-    tau1 = 5                                  # first and last times (in days) for
-    tau2 = 15                                 #   emergence of "correlated" regions
-    prob = 0.001                              # total probability for "correlation"
-    nlon = 36                                 # number of longitude bins
-    nlat = 16                                 # number of latitude bins       
-    nday1 = 0                                 # first day to be simulated
-    ndays = int(tsim)                              # number of days to be simulated
-    dt = 1
-
-    # Initialize random number generator
-    np.random.seed(seed)
-                
-    # Initialize time since last emergence of a large region, as function
-    # of longitude, latitude and hemisphere:
-    tau = np.zeros((nlon,nlat,2),'int') + tau2
-    dlon = 360. / nlon
-    dlat = maxlat / nlat
-                  
-    # Open file for results
-    if odir is None: 
-        odir = os.getcwd() + '/output'
-    ofile = os.path.join(odir, 'regions.txt')
-        
-    with open(ofile, 'w') as flo:
-        ncnt = 0
-        # Loop over time (in days):
-        ncur = 0
-        start_day = 0
-        
-        for nd in range(ndays):
-#            print('nd:', nd)
-            nday = nd + nday1
-            
-            # Compute index of most recently started cycle:
-            ncur_now = int(nday / ncycle)
-            ncur_prev = int((nday-1) / ncycle)
-            if ncur_now > ncur_prev:
-                ncur = ncur + 1
-#            print('ncur:', ncur)
-            #  Initialize rate of emergence for largest regions, and add 1 day
-            #  to time of last emergence:
-
-            tau = tau + 1
-            rc0 = np.zeros((nlon,nlat,2))
-            l = (tau > tau1) & (tau <= tau2)
-            if l.any():
-                rc0[l] = prob / (tau2 - tau1)
- 
-            #  Loop over current and previous cycle:
-            for icycle in [0,1]:
-                nc = ncur-icycle # index of cycle
-#                print('icycle:', icycle)
-#                print('nc:', nc)
-                if ncur == 0:
-                    start_day = nc * ncycle
-                else:  
-                    if ncur == 1:
-                        if icycle == 0:
-                            start_day = ncycle * nc
-                        elif icycle == 1:
-                            start_day = 0
-                    else:
-                        start_day = ncycle * nc
-#                print('start_day', start_day)
-           
-                nstart = start_day        # start date of cycle
-                if (nday-nstart) < nclen:  
-#                    print('inif')
-                    ic = 1 - 2 * ((nc + 2) % 2) # +1 for even, -1 for odd cycle
-                    phase = float(nday-nstart) / nclen # phase within the cycle
-#                    print('Cycle phase:', phase)
-                    # Emergence rate of largest "uncorrelated" regions (number per day,
-                    # both hemispheres), from Schrijver and Harvey (1994):
-            
-                    ru0_tot = atm * np.sin(np.pi * phase)**2 * (1.0 * dcon) / amax
-            
-                    # Emergence rate of largest "uncorrelated" regions per latitude/longitude
-                    # bin (number per day), as function of latitude:
-                    if randspots:
-                        latavg = (maxlat - minlat) / 2. 
-                        latrms = maxlat - minlat
-                        nlat1 = np.floor(minlat / dlat).astype(int)
-                        nlat2 = np.floor(maxlat / dlat).astype(int)
-                        nlat2 = min([nlat2, nlat - 1])
-                    else:
-                        latavg = maxlat + (minlat - maxlat)*phase #+ 5.*phase**2
-                        # latavg=70.0-68.*phase+5.*phase**2 # average latitude (degrees)
-                        latrms = (maxlat/5.) - latrmsd * phase # rms latitude (degrees)
-                        nlat1 = np.floor(max([maxlat * 0.9 - 1.2 * maxlat * phase, 0.0]) / dlat).astype(int) # first and last index
-                        nlat2 = np.floor(min([maxlat + 15. - maxlat * phase, maxlat]) / dlat).astype(int)
-                        nlat2 = min([nlat2, nlat - 1])
-
-                    js = np.arange(nlat2 - nlat1).astype(int)
-
-                    p = np.zeros(nlat)
-                    for j in np.arange(nlat2-nlat1+1).astype(int) + nlat1:
-                        p[j] = np.exp( - ((dlat * (0.5 + j) - latavg) / latrms)**2)
-                    ru0 = ru0_tot * p / (p.sum() * nlon * 2)
-            
-                    # Loops over hemisphere and latitude:
-                    for k in [0,1]:
-                        for j in np.arange(nlat2-nlat1+1).astype(int) + nlat1:
-                            # Emergence rates of largest regions per longitude/latitude bin (number
-                            # per day):
-                            r0 = ru0[j] + rc0[:,j,k]
-                            rtot = r0.sum()
-                            ssum = rtot * ftot
-                            x = np.random.uniform()
-                            if x <= ssum:
-                                nb = 0
-                                sumb = rtot * fact[0]
-                                while x > sumb:
-                                    nb = nb + 1
-                                    sumb = sumb + rtot * fact[nb]
-                                i = 0
-                                sumb = sumb + (r0[0] - rtot) * fact[nb]
-                                while x > sumb:
-                                    i = i + 1
-                                    sumb = sumb + r0[i] * fact[nb]
-                                lon = dlon * (np.random.uniform() + float(i))
-                                lat = dlat * (np.random.uniform() + float(j))
-                                if (nday > tstart):
-                                    str_ = add_region(nday/dt,ic,lon,lat,k,bsiz[nb],phase)
-                                    if verbose:
-                                        print(str_)
-                                    flo.write('{}\n'.format(str_))
-                                ncnt = ncnt + 1
-                                if nb < 1:
-                                    tau[i,j,k] = 0
-    flo.close()
-    if verbose:
-        print('Total number of regions:  ',ncnt)
-    return
-
-def butterfly(odir=None):
-    if not odir:
-        odir = os.getcwd()
-    regions = np.genfromtxt(os.path.join(odir, 'regions.txt')).T
-    print(regions[7])
-    nreg = len(regions)
-    angle_regions = 0.5 * (regions[1] + regions[3])
-    lats_regions = np.pi/2 - angle_regions
-    l = angle_regions < 0.0
-    lats_regions[l] = angle_regions[l] - np.pi/2
-    lats_regions = lats_regions * 180 / np.pi
-    plt.figure(figsize=(12,4))
-    plt.plot(regions[0], lats_regions, 'ko')
-    plt.ylim(-90, 90)
-    plt.ylabel('Latitude (deg)')
-    plt.xlabel('Time (days)')
-    plt.savefig(os.path.join(odir,'butterfly.png'))
-
-if __name__ == "__main__":
-    regions(cycle_overlap=0.2,verbose=False)
-    butterfly()
-    plt.show()
-
-
-
-
-
-
-
-
-
-
-
-class StellarActivity(object):
-    """
-    A simplistic sinusoidal model of stellar activity.
-    """
-    def __init__(self):
-        
-        self.Prot_sun  = 27.0
-    
-
-    def run_model(self, time, timedur, cadence, nsim=1,
-                  odir=None, seed=None, verbose=True, plot=False):
-        """
-        PURPOSE: Quicktool to to create a noise-less time series.
-        """
-        # Run script to produce the spot cycles
-        self.make_starspot_regions(tsim=timedur)
-        # Run script to produce light curves
-        self.make_starspot_lightcurve(time=time, dur=timedur, cadence_hours=cadence,
-                                      verbose=verbose, plot=plot)
-        # Plot if defined by user
-        #self.make_plot()
-        # Return data
-        return self.dF.sum(0)
-
-    
-    def make_plot(self):
-        fig, axes = plt.subplots(3,1, figsize=(12,9), sharex=True)
-        X = np.genfromtxt(self.reg_file).T
-        i = 0
-        #string = \
-        # """
-        # Stellar activity cycles
-        # AR = {:5.3f}, CL = {:6.3f}, R = {:1d} 
-        # sini = {:6.2f}, PEQ = {:6.2f}, PPL = {:6.2f} 
-        # tau  = {:5.2f}, NS = {:5d}
-        # """.format(self.ar[i],
-        #            self.clen[i],
-        #            int(self.rr[i]),
-        #            np.sin(self.incl[i]),
-        #            self.period_eq[i],
-        #            self.period_pole[i],
-        #            self.tau_evol[i],
-        #            self.s.nspot)
-        axes[0].set_title('Stellar Acticity Cycle')
-        #axes[1].text(self.time[-1]-self.time[-1]/10, 0, string)
-        for j in range(self.s.nspot):
-            
-            axes[0].plot(self.s.t0[j], self.s.lat[j]*180/np.pi, 'ko',
-                         ms=self.s.amax[j]*(1./3e-4)*5, alpha=0.5)
-            axes[0].set_ylim(-90,90)
-            axes[0].set_ylabel('Spot latitude [deg]')
-
-            axes[1].plot(self.time, self.area.sum(0)*100, 'k-')
-            axes[1].set_ylabel('Spot coverage [%]')
-            
-            axes[2].plot(self.time, self.dF.sum(0), 'k-')
-            axes[2].set_ylabel('Relative flux')
-            axes[2].set_xlim(self.time.min(), self.time.max())
-            axes[2].set_xlabel('Time [days]')
-            
-            #plt.savefig(os.path.join(odir, 'lightcurve_{:04d}.png'.format(i)))
-        #plt.tight_layout()
-        plt.show()
-        plt.close('all')
-
-
-
-
-        
-        
-    def make_starspot_regions(self, tsim, odir=None, nsim=1, seed=None, verbose=True):
-
-        # Handle output directory
-        if odir is None:
-            odir = os.getcwd() + '/output'
-        ofile = os.path.join(odir, 'regions_par.txt')
-
-        # Verbosity
-        header = '{:4s} {:5s} {:6s} {:6s} {:6s} {:6s} {:4s}'.format('NO', 'AR', 'CLEN', 'COVER', 'LMIN', 'LMAX', 'RAND')
-        if verbose:
-            print(header)
-        flo = open(os.path.join(odir, 'regions_par.txt'), 'w')
-        flo.write('{}\n'.format(header))
-
-        # Draw global parameters from random distributions
-        np.random.seed(seed)
-
-        # Activity cycle period, uniform between 1 and 10 years
-        clen = np.random.uniform(1, 10, nsim) 
-
-        # Overlap between consecutive cycles, uniform between 0 and 0.1 cycle period
-        coverlap = np.random.uniform(0, 0.1, nsim) * clen 
-
-        # Rate of emergence of magnetic bipoles:
-        # log uniform between 0.3 (10^-0.5) lower and 3x (10^0.5) times solar
-        ar = 10.0**(np.random.uniform(-0.5, 0.5, nsim))
-
-        # minimum spot latitute, uniform between 0 and 40 degrees
-        minlat = np.random.uniform(0, 40, nsim)
-
-        # maximum spot latitute, ranging from minlat to 80 degrees
-        maxlat = np.random.uniform(0,1,nsim)**0.3 * (80 - minlat) + minlat
-
-        # A fifth of the LCs will have no butterfly pattern, but the rate of emergence
-        # of active regions still fluctuates periodically with period clen
-        randspots = np.zeros(nsim, 'bool')
-        randspots[0:int(nsim/5)] = True
-        np.random.shuffle(randspots)
-
-
-        for i in range(nsim):
-            lin = '{:4d} {:5.3f} {:6.3f} {:6.3f} {:6.3f} {:6.3f} {:1d}'.format(i, ar[i], clen[i], coverlap[i], minlat[i], maxlat[i], randspots[i])
-            if verbose:
-                print(lin)
-            flo.write('{}\n'.format(lin))
-
-            # Simulate regions
-            regions(activityrate = ar[i], cycle_period = clen[i], cycle_overlap = coverlap[i],
-                    tsim = max(tsim, 1.2 * clen[i] * 365.25), minlat = minlat[i], maxlat = maxlat[i],
-                    randspots = randspots[i], verbose=False) 
-
-            # Extract random subset 
-            rfile_tmp = os.path.join(odir, 'regions.txt')
-            rfile_fin = os.path.join(odir, 'regions_{:04d}.txt'.format(i))
-
-            X = np.genfromtxt(rfile_tmp).T
-            t = X[0]
-            tlen = int(t.max())
-            if tlen > tsim:
-                tstart = np.random.randint(tlen - tsim)
-                l = (t >= tstart) & (t < (tstart + tsim))
-                X = X[:,l]
-                X[0] -= tstart
-            np.savetxt(rfile_fin,X.T)
-
-        flo.close()
-
-
-    def make_starspot_lightcurve(self, time, seed=None, dur=1100, cadence_hours=2.0, 
-                                 verbose=True, odir=None, plot=True):
-
-        cad = cadence_hours / 24.0 # in days
-        if odir is None:
-            odir = os.getcwd() + '/output'
-
-        # read in global activity cycle parameters
-        reg_par_file = os.path.join(odir, 'regions_par.txt')
-        X = np.genfromtxt(reg_par_file, skip_header=1).T
-        no, ar, clen, cover, lmin, lmax, rr = X
-
-        # Avoid a crash when only one star is requested
-        try:
-            nsim = len(ar)
-        except TypeError:
-            nsim = 1
-            ar = [ar]
-            clen = [clen]
-            cover = [cover]
-            lmin = [lmin]
-            lmax = [lmax]
-            rr = [rr]
-
-        # draw stellar parameters from random distributions
-        np.random.seed(seed)
-        # random orientations -> uniform in sin(i)
-        incl = np.arcsin(np.random.uniform(0, 1, nsim))
-        # (equatorial) rotation period uniform between 3 and 90 days
-        period_eq = np.random.uniform(3, 90.0, nsim)
-        omega_eq = self.Prot_sun / period_eq # equatorial rotation rate (in radians)
-        # relative differential rotation rate uniform between 0 and 0.25 (solar is about 0.15)
-        delta_omega_rel = np.random.uniform(0, 0.25, nsim)
-        delta_omega = delta_omega_rel * omega_eq # absolute differential rotation in radians
-        period_pole = period_eq / (1 - delta_omega_rel) # polar period
-        # spot half life ranges of 1 to 10 rotation periods (log uniform)
-        tau_evol = 10.0**(np.random.uniform(0, 1, nsim))
-        # average size of spots (using this scaling approximately matches the amplitude of variability for the Sun if ar=1)
-        alpha_med = np.sqrt(ar) * 3e-4
-
-        spot_par_file = os.path.join(odir, 'spot_par.txt')
-        flo = open(spot_par_file, 'w')
-        str_ = '#  N    AR   CLEN  COVER   LMIN   LMAX R   SINI    PEQ   PPOL  A_MED  TAU  NSPOT'
-        flo.write('{}\n'.format(str_))
-
-        if verbose: print(str_)
-            
-        for i in range(nsim):
-            reg_file = os.path.join(odir, 'regions_{:04d}.txt'.format(i))
-
-            
-            s = StarSpots(incl = incl[i], omega = omega_eq[i],
-                          delta_omega = delta_omega_rel[i], alpha_med = alpha_med[i],
-                          tau_evol = tau_evol[i], regions = reg_file)
-
-            str_ = '{:4d} {:5.3f} {:6.3f} {:6.3f} {:6.3f} {:6.3f} {:1d} {:6.2f} {:6.2f} {:6.2} {:5.2f} {:5.2f} {}'.format(i, ar[i], clen[i], cover[i], lmin[i], lmax[i], int(rr[i]), np.sin(incl[i]), period_eq[i], period_pole[i], np.log10(alpha_med[i]), tau_evol[i], s.nspot)
-            flo.write('{}\n'.format(str_))
-
-            if verbose:print(str_)
-
-            tstart = s.dur - dur
-            #time   = np.r_[tstart:s.dur:cad]
-            area, ome, beta, dF = s.calc(time)
-        
-            X = np.zeros((2,len(time)))
-            X[0,:] = time
-            X[1,:] = dF.sum(0)
-            #np.savetxt(os.path.join(odir, 'lightcurve_{:04d}.txt'.format(i)), X.T)
-            # Create plot if defined by user
-            self.reg_file = reg_file
-            self.ar = ar
-            self.clen = clen
-            self.rr = rr
-            self.incl = incl
-            self.period_eq = period_eq
-            self.period_pole = period_pole
-            self.tau_evol = tau_evol
-            self.s = s
-            self.dF = dF
-            self.time = time
-            self.area = area
-            self.regions = regions
-            if plot:
-                self.make_plot()
-
-        flo.close()
-        return
-
-
-
-
-
-
     
 
 
-        
-    
-class StarSpots():
-    """Holds parameters for spots on a given star"""
-    def __init__(self, dur = None, alpha_med = 0.0001, incl = None,
-                 omega = 2.0, delta_omega = 0.3, 
-                 tau_evol = 5.0, threshold = 0.1, 
-                 regions = '/Users/aigrain/Soft/idl/diffrot/regions.txt'):
-        '''Generate initial parameter set for spots (emergence times
-        and initial locations are read from regions file)'''
-        # set global stellar parameters which are the same for all spots
-        # inclination
-        if incl == None:
-            self.incl = np.arcsin(np.random.uniform())
-        else:
-            self.incl = incl
-        # rotation and differential rotation (supplied in solar units)
-        self.omega_sun = 2 * np.pi / (27.0 * 86400)
-        self.omega = omega * self.omega_sun                                  # [rad]
-        self.delta_omega = delta_omega * self.omega_sun 
-        self.per_eq = 2 * np.pi / self.omega / 86400                         # [day]
-        self.per_pole = 2 * np.pi / (self.omega - self.delta_omega) / 86400  # [day]
-        #self.diffrot_func = diffrot_func
-        # spot emergence and decay timescales
-        self.tau_em = min(2.0, self.per_eq * tau_evol / 10.0)
-        self.tau_decay = self.per_eq * tau_evol
-        # read in regions file
-        X = np.genfromtxt(regions).T
-        t0 = X[0].astype(float)
-        lat = 0.5*(X[1]+X[3])
-        l = lat < 0
-        lat = np.pi/2. - lat
-        lat[l] = -lat[l]
-        lon = 0.5*(X[2]+X[4])
-        Bem = X[7]
-        # keep only spots emerging within specified time-span, with peak B-field > threshold
-        if dur == None:
-            self.dur = t0.max() 
-        else:
-            self.dur = dur
-        l = (t0 < self.dur) * (Bem > threshold)
-        self.nspot = l.sum()
-        self.t0 = t0[l]
-        self.lat = lat[l]
-        self.lon = lon[l]
-        # scale to achieve desired median alpha, where alpha = spot contrast * spot area
-        self.amax = Bem[l] * alpha_med / np.median(Bem[l])
-                                               
-
-    def diffrot_func(self, name, omega_0, delta_omega, lat):
-        """
-        # at pole lat = 90 deg then sin(lat) = 1 and omega_90 = omega_0 - delta_omega, 
-        # therefore period_90 = 2pi/omega_90 = 2 pi / (omega_0 - delta_omega)
-        # but omega_0 = 2 pi / period_0 and delta_omega = delta_omega_rel * omega_0 so
-        # period_pole = 2 pi / (2 pi / period_0 - delta_omega_rel * 2 pi / period_0)
-        #             = 2 pi / (2 pi / period_0 (1 - delta_omega_rel))
-        #             = period_0 / (1 - delta_omega_rel)
-        """
-        if name == 'sin2': 
-            return omega_0 - delta_omega * np.sin(lat)**2
-                                               
-    def calci(self, time, i):
-        '''Evolve one spot and calculate its impact on the stellar flux'''
-        '''NB: Currently there is no spot drift or shear'''
-        # Spot area
-        area = np.ones(len(time)) * self.amax[i]
-        tt = time - self.t0[i]
-        l = tt<0
-        area[l] *= np.exp(-tt[l]**2 / 2. / self.tau_em**2) # emergence
-        l = tt>0
-        area[l] *= np.exp(-tt[l]**2 / 2. / self.tau_decay**2) # decay
-        # Rotation rate
-        ome = self.diffrot_func('sin2', self.omega, self.delta_omega, self.lat[i])
-        # Fore-shortening 
-        phase = ome * time * 86400 + self.lon[i]
-        beta = np.cos(self.incl) * np.sin(self.lat[i]) + \
-            np.sin(self.incl) * np.cos(self.lat[i]) * np.cos(phase)
-        # Differential effect on stellar flux
-        dF = - area * beta
-        dF[beta < 0] = 0
-        return area, ome, beta, dF
-
-    def calc(self, time):
-        '''Calculations for all spots'''
-        N = len(time)
-        M = self.nspot
-        area = np.zeros((M, N))
-        ome = np.zeros(M)
-        beta = np.zeros((M, N))
-        dF = np.zeros((M, N))
-        for i in np.arange(M):
-            area_i, omega_i, beta_i, dF_i = self.calci(time, i)
-            area[i,:] = area_i
-            ome[i] = omega_i
-            beta[i,:] = beta_i
-            dF[i,:] = dF_i
-        return area, ome, beta, dF
-
-
-
-
-    
 class PlanetMRforecast():
-    """
-    Class to forecast the mass from a planets radius.
+
+    """Class to forecast the mass from a planets radius.
     """
 
     def __init__(self):
@@ -1510,7 +1853,7 @@ class PlanetMRforecast():
         except:
             errorcode('message', 'Inuaguration: Welcome to the PLATO variability simulator!')
             print(f"Downloading mass-radius parameterisation file...")
-            downloadFromFTP(hyper_file.name, hyper_file.parents[0], server='plato')
+            ut.downloadFromFTP(hyper_file.name, hyper_file.parents[0], server='plato')
 
         # Open file
         h5 = h5py.File(hyper_file, 'r')
@@ -1837,5 +2180,4 @@ class PlanetMRforecast():
         m_up = np.percentile(mass, 50.+onesigma, interpolation='nearest')
         m_down = np.percentile(mass, 50.-onesigma, interpolation='nearest')
 
-        return m_med, m_up - m_med, m_med - m_down
-        
+        return m_med, m_up - m_med, m_med - m_down        
