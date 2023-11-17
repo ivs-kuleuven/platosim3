@@ -539,8 +539,9 @@ void Detector::updateParameters(double time)
     includeQuantisation             = configParam.getBoolean("CCD/IncludeQuantisation");
     includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
     constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
+    includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
 
-    if(includeRelativeTransmissivity)
+    if (includeRelativeTransmissivity)
     {
         // expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");    # FIXME remove?
         relTransmissivityCoefVector = configParam.getDoubleVector("CCD/RelativeTransmissivity/Coefficients");
@@ -553,6 +554,23 @@ void Detector::updateParameters(double time)
 
         radiusFOV                           = deg2rad(configParam.getDouble("CCD/RelativeTransmissivity/RadiusFOV"));
         expectedValueRelativeTransmissivity =  configParam.getDouble("CCD/RelativeTransmissivity/ExpectedValue");
+    }
+
+    // If a non-linear gain was requested, read the polynomial coefficients. 
+
+    if (includeGainNonlinearity) 
+    {
+        gainNonlinearityCoefficients = configParam.getDoubleVector("CCD/Gain/Nonlinearity");     
+        if (gainNonlinearityCoefficients.size() != 3)
+            {
+                string msg = "Detector::configure(): number of coefficients for the gain nonlinearity in input yaml file != 3.";
+                throw ConfigurationException(msg);
+            }
+    }
+    else 
+    {
+        gainNonlinearityCoefficients.resize(3);
+        std::fill(gainNonlinearityCoefficients.begin(), gainNonlinearityCoefficients.end(), 0.0);
     }
 
     // The configuration for CTI
@@ -2711,7 +2729,8 @@ void Detector::applyQuantisation()
 
 /**
  * \brief: Divide the bias register, smearing, and pixel map by the detector gain.
- *         This converts these three maps from electrons to ADU.
+ *         This converts these three maps from electrons to ADU. The gain is applied
+ *         _before_ adding the bias.
  *
  * \pre Pixel unit in the pixel, smearing, and bias register maps: [electrons].
  *
@@ -2733,41 +2752,101 @@ void Detector::applyGain()
     const double ccdGainLeft = refValueGainLeft + ccdGainOverDeltaTemp;
     const double ccdGainRight = refValueGainRight + ccdGainOverDeltaTemp;
 
-    // FEE gain (left & right) [ADU / µV]
-
-    // Combined gain (FEE & CCD) [ADU / e-]
+    // Combined gain (FEE & CCD): [ADU / e-]
+    // FEE gain (left & right):   [ADU / µV]
 
     combinedGainLeft = frontEndElectronics->getGainLeftAdc(internalTime) * ccdGainLeft;
     combinedGainRight = frontEndElectronics->getGainRightAdc(internalTime) * ccdGainRight;
 
-    if(lastIndexSubFieldLeft >= ((int) numColumnsPixelMap - 1))      // Left ADC only
+    // In what follows we have to take into account whether the non-linearity of the gain needs to be taken into account.
+    // If not, than the pixel level simply needs to be multiplied by the gain to go from [e-] to [ADU]. The caveat is that we need to 
+    //         multiply with the right gain, depending on which half of the CCD the subfield is. 
+    // If yes, we use the following formula:
+    //         I_out  = B + I_in + a0 + a1 * I_in + a2 * I_in^2
+    // where I_out is the pixel signal in ADU with non-linearity taken into account, I_in is the pixel signal in ADU without non-linearity
+    // taken into account. B is the bias in ADU which we ignore here, because the bias will be applied after the gain in PlatoSim.
+    // If 
+    //         I_in = g * I_e
+    // with g=gain in [ADU/e-], and I_e is the signal in [e-], we can rewrite the formula above as:
+    //         I_out = a0 + g * I_e * (1 + a1 + a2 * g * I_e)
+    // which is what is implemented, again with the caveat that the right gain must be chosen.
+    //
+    // Note: in Armadillo, algebraic multiplication is done with '*', elementwise multiplication with '%'.
+
+    const double a0 = gainNonlinearityCoefficients[0];                              // [ADU]
+    const double a1 = gainNonlinearityCoefficients[1];                              // [-]
+    const double a2 = gainNonlinearityCoefficients[2];                              // [-]
+
+    if(lastIndexSubFieldLeft >= ((int) numColumnsPixelMap - 1))                     // Left ADC only
     {
-        pixelMap *= combinedGainLeft;
-        smearingMap *= combinedGainLeft;
+        if (includeGainNonlinearity) {
+            pixelMap    = a0 + combinedGainLeft * pixelMap % (1.0 + a1 + a2 * combinedGainLeft * pixelMap);
+            smearingMap = a0 + combinedGainLeft * smearingMap % (1.0 + a1 + a2 * combinedGainLeft * smearingMap);
+        } else {
+            pixelMap    *= combinedGainLeft;
+            smearingMap *= combinedGainLeft;
+        }
     }
-    else if(lastIndexSubFieldLeft < 0)                     // Right ADC only
+    else if(lastIndexSubFieldLeft < 0)                                              // Right ADC only
     {
-        pixelMap *= combinedGainRight;
-        smearingMap *= combinedGainRight;
+        if (includeGainNonlinearity) {
+            pixelMap    = a0 + combinedGainRight * pixelMap % (1.0 + a1 + a2 * combinedGainRight * pixelMap);
+            smearingMap = a0 + combinedGainRight * smearingMap % (1.0 + a1 + a2 * combinedGainRight * smearingMap);
+        } else {
+            pixelMap    *= combinedGainRight;
+            smearingMap *= combinedGainRight;
+        }
     }
     else
     {
         // 0 -> lastIndexSubFieldLeft (incl.): left ADC
 
-        pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
-        smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+        if (includeGainNonlinearity) {
+            // I abbreviate/alias the submatrices into myMap and myMap2 to make the equations more readable.
+
+            const auto &myMap = pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft));
+            pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) =
+                a0 + combinedGainLeft * myMap % (1.0 + a1 + a2 * combinedGainLeft * myMap);
+
+            const auto &myMap2 = smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)); 
+            smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) = 
+                a0 + combinedGainLeft * myMap2 % (1.0 + a1 + a2 * combinedGainLeft * myMap2);
+        } else {
+            pixelMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+            smearingMap.submat(arma::span::all, arma::span(0, lastIndexSubFieldLeft)) *= combinedGainLeft;
+        }
 
         // lastIndexSubFieldLeft + 1 -> numColumnsSubPixelMap - 1 (incl.): right ADC
 
-        pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
-        smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+        if (includeGainNonlinearity) {
+            const auto &myMap = pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1));
+            pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) = 
+                a0 + combinedGainRight * myMap % (1.0 + a1 + a2 * combinedGainRight * myMap);
+
+            const auto &myMap2 = smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1));
+            smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) = 
+                a0 + combinedGainRight * myMap2 % (1.0 + a1 + a2 * combinedGainRight * myMap2);
+        } else {
+            pixelMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+            smearingMap.submat(arma::span::all, arma::span(lastIndexSubFieldLeft + 1, numColumnsPixelMap - 1)) *= combinedGainRight;
+        }
     }
 
-    biasMapLeft *= combinedGainLeft;
-    biasMapRight *= combinedGainRight;
+    if (includeGainNonlinearity) {
+        biasMapLeft  = a0 + combinedGainLeft * biasMapLeft % (1.0 + a1 + a2 * combinedGainLeft * biasMapLeft);
+        biasMapRight = a0 + combinedGainRight * biasMapRight % (1.0 + a1 + a2 * combinedGainRight * biasMapRight);
+    } else {
+        biasMapLeft  *= combinedGainLeft;
+        biasMapRight *= combinedGainRight;
+    }
 
     Log.info("Detector: gain of left part of CCD: " + to_string(combinedGainLeft));
     Log.info("Detector: gain of right part of CCD: " + to_string(combinedGainRight));
+
+    if (includeGainNonlinearity) {
+        Log.info("Detector: including gain non-linearity");
+    }
+
 }
 
 

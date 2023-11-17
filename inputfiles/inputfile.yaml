@@ -171,6 +171,8 @@ CCD:
         RefValueRight:               2.21            # E side of CCD [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
+        Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # O = B + I + a0 + a1 * I + a2 * I^2
+                                                                        # O=output signal [ADU], B=bias [ADU], I=input signal [ADU]
     QuantumEfficiency:
         MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
@@ -238,6 +240,7 @@ CCD:
     IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
     IncludeQuantisation:             yes             # Whether or not to include quantisation
+    IncludeGainNonlinearity:         yes             # Whether or not to include a non-linear gain (e- -> ADU)
 
 
 SubField:
