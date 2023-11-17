@@ -18,7 +18,6 @@ import h5py
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-from matplotlib.colors import Normalize, LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
@@ -136,7 +135,8 @@ class SimFile (object):
         ccdCode       = self.getInputParameter("CCD", "Position")
 
         # TODO fix this in future!
-        if ccdCode == "Custom": ccdCode = "1"
+        if ccdCode == "Custom": 
+            ccdCode = "1"
         timeShift = self.getInputParameter("CCDPositions", "TimeShift")[int(ccdCode)-1]
         timeArray = np.arange(beginExposure, beginExposure+numExposures) * cadence+timeShift
 
@@ -389,8 +389,10 @@ class SimFile (object):
 
         # Correct naming conventions
 
-        if imageMap in ["highResPSF", "diffusedPSF"]: imageMap = "PSF"
-        if imageMap in ["PRNU",       "IRNU"]:        imageMap = "Flatfield"
+        if imageMap in ["highResPSF", "diffusedPSF"]: 
+            imageMap = "PSF"
+        if imageMap in ["PRNU", "IRNU"]:  
+            imageMap = "Flatfield"
 
         # Check if the image is in the file
 
@@ -1098,9 +1100,12 @@ class SimFile (object):
 
             if exposureGroupName not in self.hdf5file[groupName].keys():
 
-                if groupName == "StarPositions":           func = "getStarCoordinates()" 
-                if groupName == "PointLikeGhostPositions": func = "getPointLikeGhostCoordinates()" 
-                if groupName == "ExtendedGhostPositions":  func = "getExtendedGhostCoordinates()"
+                if groupName == "StarPositions":           
+                    func = "getStarCoordinates()" 
+                if groupName == "PointLikeGhostPositions": 
+                    func = "getPointLikeGhostCoordinates()" 
+                if groupName == "ExtendedGhostPositions":  
+                    func = "getExtendedGhostCoordinates()"
                 
                 self.errorcode("warning", f"SimfFile.{func}: {exposureGroupName} not in hdf5 file")
 
@@ -1146,7 +1151,8 @@ class SimFile (object):
             # Check if only a single image is requested and use that automatically
 
             N = len(self.hdf5file[groupName][star[0]]["rowPix"][:])
-            if N == 1: imageNr = 0
+            if N == 1: 
+                imageNr = 0
             starID = np.array([int(s[-6:]) for s in star])
             row    = np.array([self.hdf5file[groupName][s]["rowPix"][imageNr] for s in star])
             col    = np.array([self.hdf5file[groupName][s]["colPix"][imageNr] for s in star])
@@ -1162,7 +1168,7 @@ class SimFile (object):
                 
         # If no cut in V magnitude is required, we're finished.
 
-        if (minMag == None) and (maxMag == None):
+        if (minMag is None) and (maxMag is None):
             
             if groupName == "ExtendedGhostPositions":
                 if df:
@@ -1185,9 +1191,9 @@ class SimFile (object):
 
         # If the min or max V magnitude is set to None, use the default values
 
-        if minMag == None:
+        if minMag is None:
             minMag = subFieldMag.min()
-        if maxMag == None:
+        if maxMag is None:
             maxMag = subFieldMag.max()
 
         # Make the magnitude cut
@@ -1392,7 +1398,7 @@ class SimFile (object):
 
         # Check if the field variables matches the allowed values
 
-        if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
+        if field not in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
             print("Error: SimFile.getCosmicsInfo(): " +
                   "field variable doesn't match one of the allowed values: " +
                   "[SubField, BiasMapLeft, BiasMapRight, SmearingMap] ")
@@ -1492,7 +1498,7 @@ class SimFile (object):
 
         # Check if the field variables matches the allowed values
 
-        if not field in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
+        if field not in ["SubField", "BiasMapLeft", "BiasMapRight", "SmearingMap"]:
             print("Error: SimFile:getCosmicsAffectedPixels(): " +
                   "field variable doesn't match one of the allowed values: " +
                   "[SubField, BiasMapLeft, BiasMapRight, SmearingMap]")
@@ -1644,12 +1650,19 @@ class SimFile (object):
 
                 # Compare mask pixels to cosmics affected pixels element wise
 
-                try: (row_cos == row_mask).all()
-                except: rows = True
-                else: rows = False
-                try: (col_cos == col_mask).all()
-                except: cols = True
-                else: cols = False
+                try: 
+                    (row_cos == row_mask).all()
+                except: 
+                    rows = True
+                else: 
+                    rows = False
+
+                try: 
+                    (col_cos == col_mask).all()
+                except: 
+                    cols = True
+                else: 
+                    cols = False
                 
                 if rows and cols:
                     dex.append(i)
@@ -1672,15 +1685,18 @@ class SimFile (object):
 
         # Select the proper flux name
 
-        if   fluxType == "estimated": lctype = "estimatedFlux"
-        elif fluxType == "input":     lctype = "inputFlux"
+        if   fluxType == "estimated": 
+            lctype = "estimatedFlux"
+        elif fluxType == "input":     
+            lctype = "inputFlux"
         else:
             print("ERROR: SimFile.getFlux(): fluxType can only be 'estimated' or 'input'")
             return None
         
         # Query either a single star or multiple stars as requested
 
-        try: len(starID)
+        try: 
+            len(starID)
         except:
             starID = np.array([starID])
             names = False
@@ -1700,8 +1716,10 @@ class SimFile (object):
 
             # Select correct name convention
             
-            if names: string = f"flux_{ID}"
-            else:     string = "flux"
+            if names: 
+                string = f"flux_{ID}"
+            else:     
+                string = "flux"
 
             # Fetch flux column
             
@@ -1724,7 +1742,8 @@ class SimFile (object):
             return df0
         else:
             flux = df0.to_numpy().T
-            if not names: flux = flux[0]                
+            if not names: 
+                flux = flux[0]                
             return flux 
 
 
@@ -2160,7 +2179,7 @@ class SimFile (object):
 
                 if len(col) > 1:
                     # Scale contaminant circle with area
-                    conDeltaMag   = mag[1:] - mag[0]
+                    conDeltaMag   = mag[1:] - mag[0]                   # FIXME: assigned but never used
                     conMarkerSize = tarMarkerSize * (mag[0]/mag[1:])**2
                     ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='gold',
                                edgecolor='k', linewidth=lw, zorder=4)
