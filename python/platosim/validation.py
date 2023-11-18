@@ -45,6 +45,7 @@ def switchOffAllEffects(sim):
                 - full-well saturation (blooming);
                 - digital saturation;
                 - quantisation.
+                - non-linear gain
 
     INPUT:
         - sim: Simulation for which to switch off all effects.
@@ -99,6 +100,7 @@ def switchOffAllEffects(sim):
     sim["CCD/IncludeFullWellSaturation"] = "no"
     sim["CCD/IncludeDigitalSaturation"] = "no"
     sim["CCD/IncludeQuantisation"] = "no"
+    sim["CCD/IncludeGainNonlinearity"] = "no"
 
     return sim
 

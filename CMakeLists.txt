@@ -3,6 +3,7 @@
 # Usage: ($ mkdir build)
 #        $ cd build
 #        $ cmake ..  (alternatively: cmake -D CMAKE_EXPORT_COMPILE_COMMANDS=1 -D CMAKE_CXX_COMPILER=/usr/bin/clang++ .. on mac OSX)
+#                    (               mv compile_commands.json ../.                                                                )
 #        ($ make clean)
 #        $ make -j 4
 #        $ make install

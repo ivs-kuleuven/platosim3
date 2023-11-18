@@ -242,6 +242,7 @@ class Detector: public HDF5Writer
         int cosmicSubgroupIndex=-1;                      // Keeps track of which subgroup in HDF5 file is being filled when saving the cosmics
 
         vector<double> relTransmissivityCoefVector;      // To take into account the transmissivity, including the vignetting
+        vector<double> gainNonlinearityCoefficients;     // To take into account the non-linear behaviour of the gain
         double radiusFOV;                        // Radius of the FOV [radians]
         double expectedValueRelativeTransmissivity; // Expected value of the relative transmissivity for the sub-field
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
@@ -317,6 +318,7 @@ class Detector: public HDF5Writer
         bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
         bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
         bool includeQuantisation;                // Whether or not to include quantisation
+        bool includeGainNonlinearity;            // Whether or not to include a non-linear gain (e- -> ADU)
         double transmissionEfficiencyBOS;        // Transmission efficiency at the begining of the simulation.
 
         int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.

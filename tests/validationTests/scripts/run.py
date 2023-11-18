@@ -41,7 +41,7 @@ from Quantisation.digitalSaturation                import DigitalSaturation
 from metallicShield                                import MetallicShield               
 from quaternion                                    import Quaternion                   
 from RefFrames.focalPlaneCoordinates               import FocalPlaneCoordinates
-
+from nonlineargain                                 import NonlinearGainTest 
 
 
 from contextlib import contextmanager
@@ -119,7 +119,8 @@ myTests = [
     (Gain(),                       "Gain"),
     (DarkSignalNonUniformity(),    "Dark Signal Non Uniformity"),
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),
-    (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane")
+    (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
+    (NonlinearGainTest(),          "Nonlinear gain")
 ]                                  
 
 

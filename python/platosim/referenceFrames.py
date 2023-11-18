@@ -1636,13 +1636,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
-            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                             pathToPsfFile,
-                                                                             focalLength)
+            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength)
         else:
-            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                       distortionCoefficients,
-                                                                       focalLength)
+            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
@@ -1656,8 +1652,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
 
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
-                                                        zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
 
