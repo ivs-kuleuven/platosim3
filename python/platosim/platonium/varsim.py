@@ -2,33 +2,36 @@
 # -*- coding: utf-8 -*-
 
 """
-This script is an integrated part of PlatoSim's toolkit PLATOnium. Given a star and exoplent
+This script is an integrated part of PlatoSim's toolkit PLATOnium. Given a star and planet
 this script creates a synthetic stellar and exoplanet variability model that can be used
 directly as input for PlatoSim. A bolometric PLATO passband correction is applied to each 
-photometric amplitude signal using synthetic high-resolution PHOENIX spectra (FGKM stars) or 
-medium-resolution ATLAS9 spectra (OBAF stars). The current implemented models are:
+photometric amplitude signal using synthetic high-resolution PHOENIX spectra (FGKM stars) 
+or medium-resolution ATLAS9 spectra (OBAF stars). The current implemented models are:
 
 Solar-like stars (F5-K7 dwarf and subgiants):
   - Granulation noise 
-  - Convection driven oscillations (p-modes)
-  - Stellar activity (spot modulations)
+  - Convection driven oscillations (analytic)
+  - Solar spot modulated activity  (analytic)
 
 Other types of stars:
-  - Cepheids/RR Lyrae  (fromFile)
+  - roAp star          (analytic)
   - gamma-Doradus star (analytic, fromFile)
   - delta-Scuti star   (analytic)
 
 Exoplanet phase curve variations:
-  - Transits               (using BATMAN)
-  - Occultations           (using SPIDERMAN)
-  - Limb Darkening         (using LDTk)
-  - Doppler beaming        (using PyAstronomy)
-  - Ellipsoidal distortion (using PyAstronomy)
+  - Transits           (using BATMAN)
 
 User examples:
   $ varsim --star Sun --planet hotJupiter --quarter 1-8 -p
   $ varsim --star_params 1 1 5800 4.5 0 --planet_params 1 10 0 90 0 1 1 -o </path/to/varsource.txt>
 """
+
+# TODO
+  # - Occultations           (using SPIDERMAN)
+  # - Limb Darkening         (using LDTk)
+  # - Doppler beaming        (using PyAstronomy)
+  # - Ellipsoidal distortion (using PyAstronomy)
+#   - Cepheids/RR Lyrae  (fromFile)
 
 # Built-in
 import os
@@ -65,6 +68,7 @@ from platosim.varsource import (StellarFlares,
                                 SolarLikeOscillator,
                                 GravityOscillator,
                                 SurfaceModulations,
+                                EclipsingBinary,
                                 SMBHB,
                                 PlanetMRforecast,
                                 DopplerBeaming,
@@ -939,6 +943,31 @@ class VarSim(object):
 
 
 
+    def star_bcep(self): # TODO
+
+        """Generate light curves for beta Cephei stars.
+        """
+
+        # Start script
+        if self.verbose > 0:
+            errorcode('module', '\nPulsator: beta Cephei stars (g-modes)\n')
+
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = GravityOscillator(time, power=1.0, seed=self.seed)
+        
+        # Check if a file with pulsations are parsed
+        model.initToyModel([1/12, 1/3], [10, 30])
+
+        # Return model [mag -> ppm]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+
+        
+
+
+        
+
     def star_ceph(self): # TODO
 
         """Generate ligth curve for Cepheid and RR Lyrae stars.
@@ -1008,7 +1037,40 @@ class VarSim(object):
     #                          BINARY SYSTEMS                      #
     #--------------------------------------------------------------#
     
-    
+
+    def binary_eb(self):
+
+        """Function to generate a SMBH binary light curve.
+        """
+
+        if self.verbose > 0:
+            errorcode('module', '\nEclipsing binary\n')
+
+        # Set the stellar source entry
+        self.star_source = 'EB'
+            
+        # Fetch time array
+        time  = self.time.to('d').value
+        model = EclipsingBinary(time, seed=self.seed)
+
+        # Fetch model parameters
+        model.initIJspeert2023(self.idir)
+
+        # Check if a file with pulsations are parsed
+        # if args.puls == 'gang2020':
+        #     model.initGang2020(self.idir, starID=self.starID)
+        # else:
+        #     model.initToyModel([0.5, 3], [0.5, 2.5])
+
+        # Return model [mag -> ppm]
+        mag = model.evaluate(plot=self.plot)
+        exit()
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+
+
+
+
+        
     def binary_smbh(self):
 
         """Function to generate a SMBH binary light curve.
@@ -1703,8 +1765,8 @@ class VarSim(object):
         # Bolometric correction
         #self.stellar_spectrum()
 
-        if args.star == 'EB':
-            v.binary_system()
+        if args.binary == 'EB':
+            v.binary_eb()
         
         elif args.binary == 'SMBH':
             v.binary_smbh()
@@ -1761,36 +1823,20 @@ class VarSim(object):
         self.starID = int(starID)
         
         # Load feather
-        df0 = pd.read_feather(idir /  'starcat_GaiaDR3_PlatoCS.ftr')
-        ds0 = pd.read_feather(idir / f'starcat_GaiaDR3_PlatoCS_{starType}.ftr')
+        df0 = pd.read_feather(idir / f'starcat_GaiaDR3_PlatoCS_{starType}_targets.ftr')
+        ds0 = pd.read_feather(idir / f'starcat_GaiaDR3_PlatoCS_{starType}_contaminants.ftr')
         
         # Output directory
         starDir = f'{self.starID}'.zfill(9)
         self.odir = odir / starDir
         self.odir.mkdir(parents=True, exist_ok=True)
 
-
-        # QUERY STARS IN SUBFIELD
-
         # Select target star
-        df_i = ds0.iloc[self.starID-1]
-
-        # Fetch smaller region around target
-        x = 45/3600.
-        dc_i = df0[(df0.ra  > df_i.ra  - x) & (df0.ra  < df_i.ra  + x) &
-                   (df0.dec > df_i.dec - x) & (df0.dec < df_i.dec + x)]
-
-        # Find radial distance [arcsec] 
-        dc_i['dis'] = ut.radialDistance(df_i.ra, df_i.dec, dc_i.ra, dc_i.dec) * 3600.
-        dc_i = dc_i.sort_values(by=['dis'])
-        dc_i = dc_i.reset_index(drop=True)
-
-        # If target distance is NaN we secure it is placed as first row
-        target_row = dc_i[dc_i.gaiaDR3 == df_i.gaiaDR3].index[0]
-        df = ut.pdMoveRowToFirst(dc_i, target_row, reset_index=True)
-        df.dis.iloc[0] = 0.0
+        df_i = df0.loc[self.starID-1]
+        ds_i = ds0[ds0.gaiaDR3 == df_i.gaiaDR3]
+        df   = pd.concat([df_i.to_frame().T, ds_i])
         
-
+        
         # GENERATE LIGHT CURVES
 
         # Check contaminant variability
@@ -1876,6 +1922,7 @@ class VarSim(object):
             #self.stellar_activity()
             #self.stellar_flares()
             #self.star_roap()
+            #self.star_gdor()
             self.star_gdor()
             #self.star_dsct()
             #self.star_ceph()

@@ -29,7 +29,209 @@ day2sec = 86400.
 
 
 #--------------------------------------------------------------#
-#                     RANDOM NOISE SOURCES                     #
+#                   TIME AND FREQUENCY DOMAIN                  #
+#--------------------------------------------------------------#
+
+
+def numpyFFT(signal, timestep):
+    """
+    Computes power spectrum of an equidistant time series 'signal'
+    using the FFT algorithm. The length of the time series need not
+    be a power of 2 (zero padding is done automatically).
+    Normalisation is such that a signal A*sin(2*pi*nu_0*t)
+    gives power A^2 at nu=nu_0  (IF nu_0 is in the 'freq' array)
+    @param signal: the time series [0..Ntime-1]
+    @type signal: ndarray
+    @param timestep: time step fo the equidistant time series
+    @type timestep: float
+    @return: frequencies and the power spectrum
+    @rtype: array,array
+    """
+
+    # Compute the FFT of a real-valued signal. If N is the number
+    # of points of the original signal, 'Nfreq' is (N/2+1).
+
+    fourier = np.fft.rfft(signal)
+    Ntime = len(signal)
+    Nfreq = len(fourier)
+
+    # Compute the power
+
+    power = np.abs(fourier)**2 * 4.0 / Ntime**2
+
+    # Compute the frequency array.
+    # First compute an equidistant array that goes from 0 to 1 (included),
+    # with in total as many points as in the 'fourier' array.
+    # Then rescale the array that it goes from 0 to the Nyquist frequency
+    # which is 0.5/timestep
+
+    freq = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timestep
+
+    # That's it!
+
+    return freq, power
+
+
+
+
+
+def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
+                          plot=False, title=False):
+
+    """Generate light curve from Fourier info.
+
+    Paramters
+    ---------
+    time : ndarray, pdframe
+        Time points of which light curve will be generated [s]
+    freq : ndarray, pdframe
+        Frequencies of sinusoids [d]
+    ampl : ndarray, pdframe
+        Amplitudes of sinusoids [mmag]
+    phase : ndarray, pdframe
+        Phases of sinusoids [rad]
+
+    Returns
+    -------
+    mag : ndarray
+        Signal for each time point [mag]
+    """
+
+    # Number of pulsation modes
+    nmodes = len(freq)
+
+    # Loop over the number of modes and sum of every mode
+    mag = np.zeros_like(time)
+    for i in range(nmodes):
+        mag += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
+
+    # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
+    # Then add 1, raise the power and substract 1
+    A = np.max(np.abs(mag))
+    mag = A * (((1 + mag/A)**power) - 1)
+
+    # If requested, plot model 
+    if plot:
+
+        fig, ax = plt.subplots(2, 1, figsize=(12, 7))
+
+        mag0 = mag / 1e3  # [mag -> mmag] 
+        
+        # Plot time series
+        ax[0].plot(time, mag0, 'k-', lw=0.3)
+        ax[0].set_xlabel(r'Time [days]')
+        ax[0].set_ylabel(r'$\delta m$ [mmag]')
+        ax[0].set_xlim(time.min(), time.max())
+        #ax[0].set_ylim(self.mag.min(),  self.mag.max())
+        if title:
+            ax[0].set_title(str(title))
+        
+        # Plot power spectrum
+        cadence = np.diff(time)[0]
+        freq, power = numpyFFT(mag0, cadence)
+        ymin = np.mean(power)
+        ymax = np.max(power) + 0.1*np.max(power)
+        carray = np.linspace(0, 1, 1000)
+        colors = plt.cm.rainbow(carray)
+        #freq = 1/freq
+        # for i in range(N):
+        #     if self.starname is not 'g-Dor':
+        #         snr_norm = self.snr[i]/self.snr.max()
+        #         dex = ut.findNearestIndex(carray, snr_norm)
+        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax],
+        #                    c=colors[dex], lw=snr_norm*3)
+        #     else:
+        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax], c='royalblue')
+        ax[1].plot(freq, power, '-', c='deeppink', lw=1)
+        # Settings
+        ax[1].set_ylabel(r'Amplitude [mmag]')
+        ax[1].set_xlabel(r'Period, $P$ [day]')
+        #ax[1].set_yscale('log')
+        ax[1].set_xlim(0, np.max(freq)+1)
+        ax[1].set_ylim(ymin, ymax)
+        plt.tight_layout()
+        plt.show()
+
+    # Return signal
+    
+    return mag
+
+
+
+
+
+def timeSeriesFromMeanPSD(freq, psd):
+
+    """
+    PURPOSE: Given the average noise profile in the power spectral density, compute the 
+             corresponding noisy time series. 
+
+    INPUT: freq: Array containing {n / N / deltat } with n in [0,..,Ntime/2],
+                 where N is the number of time points, and deltat the time step.
+                 Unit: [Hz | microHz | mHz]
+           psd:  Power spectral density: abs(fourier)**2 / Ntime * timestep
+                 Unit: [ppm^2/Hz | ppm^2/microHz | ppm^2/mHz]
+
+    OUTPUT: time:    time points [s | Ms | KHz]
+            signal:  [ppm]
+
+    EXAMPLE: 
+        >>> timeStep = 25.0e-6    # in Ms
+        >>> Nfreq = 15001
+        >>> freq = arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timeStep
+        >>> omega = 2*np.pi*freq
+        >>> omegaMin  = 2. * np.pi *  20.0
+        >>> omegaKnee = 2. * np.pi * 200.0
+        >>> meanPSD = (omega**2 + omegaKnee**2)/(omega**2 + omegaMin**2) *  timeStep
+        >>> time, signal = timeSeriesFromMeanPSD(freq, meanPSD)
+        >>> nu, noisyPSD = FFTpowerdensity(signal, timeStep)
+        >>> plt.loglog(nu, noisyPSD, c="b")
+        >>> plt.loglog(freq, meanPSD, c="r")
+
+    NOTE: - N points in the time domain correspond to N/2+1 points in the frequency 
+            domain (not N/2), where the division is an _integer_ division (rounded down).
+
+    """
+
+    # Determine the number of time points. 
+
+    Nfreq = len(freq)
+    Ntime = 2*(Nfreq-1)
+
+    # Determine the frequency resolution
+    # Note: N points in the time domain corresponds to N/2+1 points in the frequency domain (not N/2).
+
+    freqStep = freq[1] - freq[0]
+    timeStep = 1./(freqStep*Ntime)
+
+    # Generate the time points of the signal
+
+    time = np.arange(Ntime) * timeStep
+
+    # Generate the real and imaginary parts of the fourier transform with gaussian noise
+
+    realPart = normal(0., 1., Nfreq)
+    imagPart = normal(0., 1., Nfreq)
+
+    # Construct the full fourier spectrum, using the proper scale factor
+    
+    fourier = np.sqrt(psd * Nfreq / timeStep) * (realPart + imagPart * 1j)
+
+    # Inverse-FFT the fourier transform to generate the time series [ppm]
+
+    signal = np.real(np.fft.irfft(fourier)) 
+
+    # That's it!
+
+    return time, signal
+
+
+
+
+
+
+#--------------------------------------------------------------#
+#                    STOCASHIC NOISE SOURCES                   #
 #--------------------------------------------------------------#
 
 
@@ -140,75 +342,6 @@ def modelRedNoisePSD(freq, timescale, varscale):
         psd += sigma * sigma * tau / (1.0 + (2.0*np.pi*freq*tau)**2)
     
     return psd
-
-
-
-
-
-def timeSeriesFromMeanPSD(freq, psd):
-
-    """
-    PURPOSE: Given the average noise profile in the power spectral density, compute the 
-             corresponding noisy time series. 
-
-    INPUT: freq: Array containing {n / N / deltat } with n in [0,..,Ntime/2],
-                 where N is the number of time points, and deltat the time step.
-                 Unit: [Hz | microHz | mHz]
-           psd:  Power spectral density: abs(fourier)**2 / Ntime * timestep
-                 Unit: [ppm^2/Hz | ppm^2/microHz | ppm^2/mHz]
-
-    OUTPUT: time:    time points [s | Ms | KHz]
-            signal:  [ppm]
-
-    EXAMPLE: 
-        >>> timeStep = 25.0e-6    # in Ms
-        >>> Nfreq = 15001
-        >>> freq = arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timeStep
-        >>> omega = 2*np.pi*freq
-        >>> omegaMin  = 2. * np.pi *  20.0
-        >>> omegaKnee = 2. * np.pi * 200.0
-        >>> meanPSD = (omega**2 + omegaKnee**2)/(omega**2 + omegaMin**2) *  timeStep
-        >>> time, signal = timeSeriesFromMeanPSD(freq, meanPSD)
-        >>> nu, noisyPSD = FFTpowerdensity(signal, timeStep)
-        >>> plt.loglog(nu, noisyPSD, c="b")
-        >>> plt.loglog(freq, meanPSD, c="r")
-
-    NOTE: - N points in the time domain correspond to N/2+1 points in the frequency 
-            domain (not N/2), where the division is an _integer_ division (rounded down).
-
-    """
-
-    # Determine the number of time points. 
-
-    Nfreq = len(freq)
-    Ntime = 2*(Nfreq-1)
-
-    # Determine the frequency resolution
-    # Note: N points in the time domain corresponds to N/2+1 points in the frequency domain (not N/2).
-
-    freqStep = freq[1] - freq[0]
-    timeStep = 1./(freqStep*Ntime)
-
-    # Generate the time points of the signal
-
-    time = np.arange(Ntime) * timeStep
-
-    # Generate the real and imaginary parts of the fourier transform with gaussian noise
-
-    realPart = normal(0., 1., Nfreq)
-    imagPart = normal(0., 1., Nfreq)
-
-    # Construct the full fourier spectrum, using the proper scale factor
-    
-    fourier = np.sqrt(psd * Nfreq / timeStep) * (realPart + imagPart * 1j)
-
-    # Inverse-FFT the fourier transform to generate the time series [ppm]
-
-    signal = np.real(np.fft.irfft(fourier)) 
-
-    # That's it!
-
-    return time, signal
 
 
 
@@ -1080,45 +1213,3 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
     # That's it!
         
     return temp
-
-
-        
-
-
-def numpyFFT(signal, timestep):
-    """
-    Computes power spectrum of an equidistant time series 'signal'
-    using the FFT algorithm. The length of the time series need not
-    be a power of 2 (zero padding is done automatically).
-    Normalisation is such that a signal A*sin(2*pi*nu_0*t)
-    gives power A^2 at nu=nu_0  (IF nu_0 is in the 'freq' array)
-    @param signal: the time series [0..Ntime-1]
-    @type signal: ndarray
-    @param timestep: time step fo the equidistant time series
-    @type timestep: float
-    @return: frequencies and the power spectrum
-    @rtype: array,array
-    """
-
-    # Compute the FFT of a real-valued signal. If N is the number
-    # of points of the original signal, 'Nfreq' is (N/2+1).
-
-    fourier = np.fft.rfft(signal)
-    Ntime = len(signal)
-    Nfreq = len(fourier)
-
-    # Compute the power
-
-    power = np.abs(fourier)**2 * 4.0 / Ntime**2
-
-    # Compute the frequency array.
-    # First compute an equidistant array that goes from 0 to 1 (included),
-    # with in total as many points as in the 'fourier' array.
-    # Then rescale the array that it goes from 0 to the Nyquist frequency
-    # which is 0.5/timestep
-
-    freq = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timestep
-
-    # That's it!
-
-    return freq, power

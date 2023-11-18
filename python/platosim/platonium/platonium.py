@@ -242,8 +242,9 @@ class PLATOnium(object):
         if (self.verbose == 3) or (self.fullFrame and self.verbose > 0):
             print('\nLoading stellar catalogue..')
 
-            
-        # FULL FRAME
+        self.magPB = 'mag'
+        
+        # FULL-FRAME CCD
             
         if self.fullFrame:
 
@@ -265,7 +266,7 @@ class PLATOnium(object):
 
         # SUBFIELD
 
-        # Fetch stars either from custum catalogue are the default PIC setup
+        # Fetch stars from custum catalogue
         
         if self.starcatFile is not None:
 
@@ -279,6 +280,8 @@ class PLATOnium(object):
             # Define data frames
             self.df = df.loc[0]
             dc = df.iloc[1:]
+
+        # Fetch stars from the default PIC setup
             
         else:
 
@@ -297,6 +300,14 @@ class PLATOnium(object):
             except IndexError:
                 errorcode('error', f'Stellar {self.sample} catalogue do not exist!')
 
+            # Check if PIC or GaiaDR3 catalogue is parsed
+            if 'PIC' in df:
+                self.colID = 'PIC'
+            elif 'gaiaDR3' in df:
+                self.colID = 'gaiaDR3'
+            else:
+                errorcode('error', "Cannot find ID identifier! Usage in ['PIC', 'gaiaDR3']")
+                
             # Merge for full frame
             self.dx = pd.concat([df, dc])
             
@@ -304,34 +315,54 @@ class PLATOnium(object):
             if self.targetNo == 0:
                 errorcode('error', 'Star ID indicing starts from 1 and not 0!')
             elif self.picID is not None:
+                if 'gaiaDR3' in df:
+                    errorcode('error', "Argument '--pic' is only valid for a PIC identifier!")
                 try:
-                    self.targetNo = np.where(df['PIC'] == self.picID)[0][0]
+                    self.targetNo = np.where(df.PIC == self.picID)[0][0]
                 except IndexError:
                     errorcode('error', f'PIC {self.picID} star does not exist in catalogue:' +
                               f'\n{picTarFile}')
             else:
                 self.targetNo -= 1
-
+                
             # Select target star
             self.df = df.iloc[self.targetNo]
-            
-        # Additional info for subfield simulations            
+
+        # Additional info for subfield simulations
+        
         if not self.fullFrame:
             
-            # If requested select only the target or including contaminants
+            # If requested select only the target, else include contaminants
             if self.noCon:
                 self.numCon = 0
-                self.dc = dc[dc['PIC'] == self.numCon]
+                self.dc = dc[dc[self.colID] == self.numCon]
             else:
-                self.dc = dc[dc['PIC'] == self.df['PIC']]
-                self.numCon = len(self.dc['PIC'])
-                # Sort contaminants after their distance
+                self.dc = dc[dc[self.colID] == self.df[self.colID]]
                 self.dc = self.dc.sort_values(by=['dis'])
+                self.numCon = self.dc.shape[0] 
 
+            # Secure default "mag" naming
+            if not 'mag' in df:
+
+                # Check PLATO passbands
+                if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
+                    self.magPB = 'PBmag'
+                elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
+                    self.magPB = 'PRmag'
+                elif 'Pmag' in df:
+                    self.magPB = 'Pmag'
+                else:
+                    errorcode('error', "No valid passband present in star catalogue! " +
+                              "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
+                    
+                # Change naming
+                self.df = self.df.to_frame().T.rename(columns={self.magPB:'mag'}).squeeze()
+                self.dc = self.dc.rename(columns={self.magPB:'mag'})
+                
             # If requested overwrite magnitude of target star
             if self.mag:
                 self.df.mag = self.mag
-            
+
             # Save star catalogue
             self.ds = pd.DataFrame()
             self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
@@ -458,6 +489,15 @@ class PLATOnium(object):
         else:
             normal = True
             sim.useNormalCamera(self.performance, self.timeStart)
+
+        # Secure correct zero-point flux w.r.t. passband used
+        # NOTE: if "mag" column exist the YAML entry "Fluxm0" is used
+        if self.magPB == 'Pmag':
+            sim['ObservingParameters/Fluxm0'] = 0.73244782244e8
+        elif self.magPB == 'PBmag':
+            sim['ObservingParameters/Fluxm0'] = 0.73244782244e8 # TODO
+        elif self.magPB == 'PRmag':
+            sim['ObservingParameters/Fluxm0'] = 0.73244782244e8 # TODO
             
         
         # CONFIGURE TIMING
@@ -644,8 +684,8 @@ class PLATOnium(object):
                 sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
                 sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
             else:
-                sim["SubField/NumRows"]         = sim["CCDPositions/NumRows"][0]
-                sim["SubField/NumColumns"]      = sim["CCDPositions/NumColumns"][0]
+                sim["SubField/NumRows"]    = sim["CCDPositions/NumRows"][0]
+                sim["SubField/NumColumns"] = sim["CCDPositions/NumColumns"][0]
 
             # Control output requirements
             sim["ControlHDF5Content/GroupByExposure"]    = True
@@ -673,7 +713,7 @@ class PLATOnium(object):
                                                            normal=normal)
         if not self.isOnCCD:
             if self.verbose > 0:
-                message  = (f"PIC {self.df.PIC} (subfield {self.targetNo}) " +
+                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
                             f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -770,7 +810,7 @@ class PLATOnium(object):
                                                                        focalLength));
         if self.rOA > 19.555:
             if self.verbose > 0:
-                message  = (f"PIC {self.df.PIC} (subfield {self.targetNo}) " +
+                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
                             f'is outside camera FOV (d={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -778,10 +818,10 @@ class PLATOnium(object):
             exit()
             
         # Create data frame for printing and saving
-        c = ['PIC', 'ra [deg]', 'dec [deg]', 'mag',
+        c = [self.colID, 'ra [deg]', 'dec [deg]', 'mag',
              'CCD', 'xCCD [pix]', 'yCCD [pix]',
              'rOA [deg]', 'xFP [mm]', 'yFP [mm]', 'Ncon']
-        d = {'PIC': [self.df['PIC']], 'mag': [self.df['mag']],
+        d = {self.colID: [self.df[self.colID]], 'mag': [self.df['mag']],
              'ra [deg]': [self.df['ra']], 'dec [deg]': [self.df['dec']],
              'CCD': [self.ccdCode], 'xCCD [pix]': [self.xCCD], 'yCCD [pix]': [self.yCCD],
              'rOA [deg]': [self.rOA], 'xFP [mm]': [self.xFP], 'yFP [mm]': [self.yFP],
@@ -973,7 +1013,7 @@ class PLATOnium(object):
             figsize = (6,6)
             showStarPositions = 'PIC'
             showMaskOfStarID  = '1'
-            title = f'Imagette of PIC {int(self.df.PIC)} ({float(self.df.mag):.2f} mag)'
+            title = f'{self.colID} {int(self.df[self.colID])} ({float(self.df.mag):.2f} mag)'
             clipPercentile    = 2
             imgScale          = "auto"
             cmap              = 'magma' #'gist_stern'
@@ -1058,21 +1098,23 @@ class PLATOnium(object):
 
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
+
         
         # Save full-frame catalogue for first exposure
         if self.fullFrame:
 
             # Fetch simulation and stellar positions
             f = SimFile(outputFile)
-            PIC, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
+            ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
             
             # Select detected stars
-            df = self.dx.iloc[PIC]
+            df = self.dx.iloc[ID]
 
             # Indices are the star IDs
             df = ut.pdAddColumn(df, df.index, 'starID')
+            if 'index' in df: df.drop(columns=['index'], inplace=True)
             df = df.reset_index(drop=True)
-
+            
             # Add stellar positions.
             df['xCCD'] = col - 0.5
             df['yCCD'] = row - 0.5
@@ -1087,8 +1129,9 @@ class PLATOnium(object):
 
             # Save to file
             df = df.reset_index(drop=True)
-            df.to_feather(self.outputSimName + '.ftr')
+            df.to_feather(f'{self.outputSimName}.ftr')
 
+            
         # Make a animation if requested
         if self.animation:
             
@@ -1109,6 +1152,7 @@ class PLATOnium(object):
                                   useTitle=True,
                                   showGrid=True,
                                   figsize=(6,6))
+
             
         # Resources
         if self.verbose > 0:
@@ -1535,21 +1579,21 @@ class PLATOnium(object):
 
         # Write PlatoSim info to a table
         filename = f'{odir}/{self.outputFileName}.table'
-        data = {"ID":      self.targetNo+1,
-                "PIC":     self.df.PIC,
-                "ra":      self.df.ra,
-                "dec":     self.df.dec,
-                "mag":     self.df.mag,
-                "group":   self.group,
-                "camera":  self.camera,
-                "quarter": self.quarter,
-                "ccd":     self.ccdCode,
-                "xCCD":    self.xCCD,
-                "yCCD":    self.yCCD,
-                "rOA":     self.rOA,                
-                "xFP":     self.xFP,
-                "yFP":     self.yFP,
-                "ncon":    self.numCon,
+        data = {"ID":       self.targetNo+1,
+                self.colID: self.df[self.colID],
+                "ra":       self.df.ra,
+                "dec":      self.df.dec,
+                "mag":      self.df.mag,
+                "group":    self.group,
+                "camera":   self.camera,
+                "quarter":  self.quarter,
+                "ccd":      self.ccdCode,
+                "xCCD":     self.xCCD,
+                "yCCD":     self.yCCD,
+                "rOA":      self.rOA,                
+                "xFP":      self.xFP,
+                "yFP":      self.yFP,
+                "ncon":     self.numCon,
         }
         df1 = pd.DataFrame(data, index=[0])
         df1.to_feather(filename)
