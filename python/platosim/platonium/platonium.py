@@ -1635,19 +1635,21 @@ class PLATOnium(object):
         if not self.fullFrame:
             self.create_sim_table(self.outputDir)
 
-        # Remove non-compressed files
+        # Remove HDF5 file for pipeline mode
         if self.postWotan:
             os.remove(f'{self.outputSimName}.hdf5')
-
+            
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
             
         # Compress files
-        if self.compress and os.path.isfile(f'{self.outputSimName}.hdf5') and not self.pipeline:
+        if (self.compress and os.path.isfile(f'{self.outputSimName}.ftr') or
+            self.compress and os.path.isfile(f'{self.outputSimName}.hdf5')):
 
             if self.verbose > 0:
                 errorcode('module', '\nRestructuring data output\n')
                 print('Compressing files')
+                
             os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}* ' +
                       f'{self.devnull}')
             
@@ -1655,14 +1657,13 @@ class PLATOnium(object):
             os.system(f'chmod 755 {self.outputSimName}.zip')
             
             # Remove non-compressed files
-            if self.postWotan:
+            if not self.postWotan:
                 os.remove(f'{self.outputSimName}.hdf5')
-            else:
+            if not self.fullFrame:
+                os.remove(f'{self.outputSimName}.table')                
+            if self.postWotan or self.fullFrame:
                 os.remove(f'{self.outputSimName}.ftr')
                 
-            if not self.fullFrame:
-                os.remove(f'{self.outputSimName}.table')
-
         # If requested move file to final output directory (for cluster)
         if self.storageDir:
             os.system(f'mv {self.outputSimName}.* {self.storageDir}')
