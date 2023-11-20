@@ -227,8 +227,13 @@ class LightCurve(object):
         
         if not filename:
             file_ftr = Path(self.filename)
-            filename = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
-        
+            # PlatoSim tag < 3.6.0-292-g629e6c27
+            try:
+                filename = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
+            # PlatoSim tag >= 3.6.0-292-g629e6c27
+            except:
+                filename = file_ftr.parents[0] / f'{file_ftr.stem}.table'
+                
         # Fetch info about target star
         
         return pd.read_feather(filename).squeeze()
