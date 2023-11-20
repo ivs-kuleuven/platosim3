@@ -2403,7 +2403,10 @@ void Detector::applyOpenShutterSmearing(float exposureTime)
 
         for(unsigned int column = 0; column < numColumnsPixelMap; column++) //[pixels in sub-field]
         {
-            // Intersection of the current column of the detector with the circle representing the FOV:
+            // If the subfield is close to the edge of the CCD, part of the column may not be exposed due
+            // to mechanical vignetting. Stars with pixel coordinates inside a vignetted part of the CCD 
+            // should therefore be ignored to determine the open shutter smearing. 
+            // First, find the intersection of the current column of the detector with the circle representing the FOV:
             // (rowFOV, column).  If no intersection can be found, this is NaN.
             rowFOV = getRowEdgeFOV(column);
 
