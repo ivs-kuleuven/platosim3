@@ -44,7 +44,7 @@ from platosim.utilities import errorcode
 #==============================================================#
     
     
-class StellarFlares(object): # TODO under construction!
+class StellarFlares(object):
 
     """Model stellar flares.
 
@@ -62,7 +62,7 @@ class StellarFlares(object): # TODO under construction!
 
 
 
-    def initToyModelBeta0(self):
+    def initToyModelBeta0(self): # TODO under construction!
 
         """Uniform distribution of toy model.
         """
@@ -119,7 +119,7 @@ class StellarFlares(object): # TODO under construction!
 
             # Time array during flare event
             tn = np.arange(t0, t1, dt)
-            t  = tn / tscale
+            t  = tn / tscale[m]
 
             # Model parameters of flare
             B = asym
@@ -152,11 +152,11 @@ class StellarFlares(object): # TODO under construction!
                 else:
                     flux[i] += 0
 
-        # Convert to magnitude [mmag]
-        self.mag = flux * ampl
+            # Convert to magnitude [mmag]
+            self.mag = flux * ampl[m]
                     
         # plot light curve
-        #if plot: self.plot()
+        if plot: self.plot()
             
         # Return relative flux
         return self.mag
@@ -614,7 +614,7 @@ class StellarSpots(object):
                  np.cos(phase))
         
         # Differential effect on stellar flux
-        dF = - area * beta
+        dF = - 2 * area * beta
         dF[beta < 0] = 0
         return area, ome, beta, dF
 
