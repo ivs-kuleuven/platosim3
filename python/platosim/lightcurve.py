@@ -120,7 +120,7 @@ class LightCurve(object):
                     
                 # Mask updates
                 self.mask_updates = simfile.getMaskUpdateEvents()
-
+                print(self.mask_updates)
                 
             elif self.fileExtention == ".txt":
 
@@ -228,11 +228,11 @@ class LightCurve(object):
         if not filename:
             file_ftr = Path(self.filename)
             # PlatoSim tag < 3.6.0-292-g629e6c27
-            try:
-                filename = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
+            #try:
+            #    filename = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
             # PlatoSim tag >= 3.6.0-292-g629e6c27
-            except:
-                filename = file_ftr.parents[0] / f'{file_ftr.stem}.table'
+            #except:
+            filename = file_ftr.parents[0] / f'{file_ftr.stem}.table'
                 
         # Fetch info about target star
         
@@ -336,10 +336,15 @@ class LightCurve(object):
         
         filename = Path(self.filename)
         starID   = filename.stem[:9]
-        path     = filename.parents[2]
+        path     = filename.parents[1]
         filename = f"varsource_{starID}.txt"
         varpath  = path / "varsource" / filename
 
+        # Check another path for MOCKA
+        
+        if not varpath.is_file():
+            varpath = path / 'varsource' / starID / 'varsource_001.txt'
+        
         # Read file and add flux column
         
         df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
@@ -803,17 +808,323 @@ class LightCurve(object):
     #                       DATA CORRECTIONS                       #
     #--------------------------------------------------------------#
     
+
+    def get_flux_jumps(self):
+
+        """Get indices in time related to flux jumps.
+        """
         
+        # Find flux jumps
+        print(self.mask_updates)
+        if self.mask_updates.any():
+
+            # Gaps due to mask updates
+
+            time_dex = self.mask_updates[1:] - self.mask_updates[0]
+            
+        else:
+
+            # Gaps between mission quarters
+
+            time_diff = np.diff(self.df.time)/86400.
+            time_dex  = np.where(abs(time_diff)>gapsize)[0][:]
+
+        # Return time indices
+        
+        return np.append(time_dex, -1)
+
+
+
+
+    def correct_gain(self, temp, sim, replace=False, plot=False):
+
+        """Correct for gain variations due to thermal changes.
+        """
+        
+        # Use correct gain from either F or E side
+
+        gainRefValue  = sim['CCD/Gain/RefValueRight']
+        tempNominal   = sim['CCD/NominalOperatingTemperature']
+        gainStability = sim['FEE/Gain/Stability']
+        gainFEE       = sim['FEE/Gain/RefValueRight']
+
+        # Compute the gain time series
+
+        gainCCD = gainRefValue + gainStability * (temp - tempNominal)
+        gain = 1 / (gainCCD * gainFEE)
+
+        # Correct for gain changes
+
+        flux = self.df.flux.to_numpy()
+        delta_gain = 1 + 2 * (gain[0] - gain)
+        flux_gain = flux * delta_gain
+        flux_corr = (flux + flux_gain) / 2
+        
+        # Convert into ppm
+
+        self.df['flux_gain'] = flux_gain
+        self.df['flux_corr'] = flux_corr
+            
+        # Plot dianostic
+
+        if plot: self.plot_correct_gain(self.df)
+
+        # Overwrite flux column        
+
+        if replace:
+            self.df.flux = self.df.flux_corr
+            self.df.drop(columns=['flux_gain', 'flux_corr'], inplace=True)
+
+        # Finito!
+
+        return self.df
+        
+
+
+
+    
+    def plot_correct_gain(self, df, column='flux', figsize=(9,8)):
+
+        """Plot a detrended light curve and make a O-C plot.
+        """
+
+        time = self.time(unit='d')
+        flux_median = median_filter(df.flux_corr, 144) # [ppt]
+        
+        # Start plotting
+        
+        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
+
+        # Plot simulation and trend
+        
+        ax[0].plot(time, df.flux_gain, '.', c='tomato', ms=1, alpha=0.2, label='Gain flux')
+        ax[0].plot(time, df.flux,      '.', c='k',      ms=1, alpha=0.2, label='Raw data')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].set_ylabel(r'Flux [e$^-$ s$^{-1}$]')
+        ax[0].legend(ncol=2, markerscale=5, loc='upper right')
+        
+        # Plot detrend and median
+
+        ax[1].plot(time, df.flux_corr, '.', c='k',         ms=1.0, alpha=0.2, label="Corrected")
+        ax[1].plot(time, flux_median,  '-', c='royalblue', lw=0.5, alpha=1.0, label="1h median")
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[1].set_ylabel(r'Flux [e$^-$ s$^{-1}$]')
+        ax[1].legend(ncol=2, markerscale=5, loc='upper right')
+                    
+        # Layout
+
+        ax[1].set_xlabel('Time [days]')
+        plt.tight_layout(h_pad=0.1, w_pad=1)
+        plt.show()
+        
+        return fig, ax
+
+        
+
+
+    
+    def detrend(self, column='flux', model="poly",                      # Choice of model:
+                degree=2, gradient=False,                               # Model -> Polynomial
+                method="biweight", window=0.5, gapsize=0.1, mask=None,  # Model -> Wotan
+                plot=False, replace=False):
+                
+        """Detrend time series.
+
+        This function can be used to detrend a time series using either 
+        a simply polynomial model or the Wotan module specialized for
+        exoplanet transit vetting.
+
+        NOTE: Wotan removed stellar variability (spots modulation, pulsations,
+              and granulation) so another module is needed to preserve these.
+
+        Parameters
+        ----------
+        model : wotan, poly
+            Which model to be used for detrending
+        degree : int
+            Degree of the polynomial fit (poly parameter)
+        gradient : bool
+            Flag to remove a flat gradient of the flux (poly parameter)
+        method : str
+            Method to be used by Wotan (wotan parameter)
+        window : float
+            Window size to be used for detrending [days] (wotan parameter)
+        mask : bool, float
+            List with [period, duration, t0] to mask out periodic signal [all in days]
+        """
+        
+        # Remove clipped NaNs
+        self.df = self.df.dropna()
+        time = self.df.time
+        flux = self.df[column]
+
+        # Detrend in segments
+        if len(self.mask_updates) == 0:
+            mask_indices = [0, len(time)]
+        else:
+            dexFirstExp  = np.floor(time.iloc[0] / self.cadence).astype(int)
+            mask_indices = np.append(self.mask_updates-dexFirstExp, len(time))
+
+        # Prepare arrays to store light curve
+        flux_detrend = np.zeros_like(time)
+        flux_trend   = np.zeros_like(time)
+        
+        # POLYNOMIAL MODEL
+        
+        if model == "poly":
+
+            for i in range(len(mask_indices)-1):
+
+                # Make poly fit
+                time_segment = time[mask_indices[i]:mask_indices[i+1]]
+                flux_segment = flux[mask_indices[i]:mask_indices[i+1]]
+                poly = np.polyfit(time_segment, flux_segment, deg=degree)
+
+                # Trend of light curve
+                trend = np.polyval(poly, time_segment)
+                flux_trend[mask_indices[i]:mask_indices[i+1]] = trend
+
+                # Detrended flux
+                if column == 'flux_stitch':
+                    detrend = (flux_segment/1e3 + 1) / (trend/1e3 + 1)
+                else:
+                    detrend = flux_segment / trend
+                flux_detrend[mask_indices[i]:mask_indices[i+1]] = detrend
+                
+        # WOTAN MODEL
+        
+        elif model == "wotan":
+
+            # Check if transits should be masked
+            if mask:
+                mask = wotan.transit_mask(time=time,
+                                          period=mask[0]*c.day,
+                                          duration=mask[1]*c.day,
+                                          T0=mask[2]*c.day)
+                
+            # Run Wotan in segments after mask-updates
+            for i in range(len(mask_indices)-1):
+                data = wotan.flatten(time[mask_indices[i]:mask_indices[i+1]],
+                                     flux[mask_indices[i]:mask_indices[i+1]],
+                                     method=method,
+                                     window_length=window*c.day,
+                                     break_tolerance=gapsize*c.day,
+                                     return_trend=True,
+                                     robust=True,
+                                     mask=mask)
+                flux_detrend[mask_indices[i]:mask_indices[i+1]] = data[0]
+                flux_trend[mask_indices[i]:mask_indices[i+1]]   = data[1]
+                
+        # PROLOGUE
+                
+        # Convert into ppm
+        self.df['flux_trend']   = flux_trend
+        self.df['flux_detrend'] = flux_detrend                
+            
+        # Plot dianostic
+        if plot: self.plot_detrend(self.df, column)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_detrend
+            self.df.drop(columns=['flux_trend', 'flux_detrend'], inplace=True)
+
+        # Finito!
+        return self.df
+                
+
+
+    
+
+    
+    def plot_detrend(self, df, column='flux', figsize=(9,8)):
+
+        """Plot a detrended light curve and make a O-C plot.
+        """
+        
+        # Get varsource light curve
+        try: lc_var = self.varsource()
+        except:
+            rows = 2
+            varsource = False
+        else:
+            rows = 3
+            varsource = True
+            time_var = lc_var["time"] / c.day
+            # Compatability
+            if 'flux' in lc_var:
+                # PlatoSim tag: 3.6.0-297-gd76ba1b7
+                flux_var = lc_var['flux']
+            elif 'comb' in lc_var:
+                flux_var = lc_var['comb']
+            else:
+                flux_var = lc_var['sum']
+
+        # Get time series
+        time = self.time(unit='d')
+        
+        # Convert units
+        if column == 'flux':
+            ylab0      = r'Flux [ke$^-$ s$^{-1}$]'
+            flux       = df[column]    / 1e3  # [ke-/s]
+            flux_trend = df.flux_trend / 1e3  # [ke-/s]
+        elif column == 'flux_stitch':
+            ylab0      = 'Flux [ppt]'
+            flux       = df[column]           # [ppt]
+            flux_trend = df.flux_trend        # [ppt]
+
+        # Detrendend and median filter
+        flux_detrend = (df.flux_detrend - 1) * 1e3      # [ppt] 
+        flux_median  = median_filter(flux_detrend, 144) # [ppt]
+        
+        # Start plotting
+        
+        fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)
+
+        # Plot simulation and trend
+        ax[0].plot(time,  flux,       '.', c='k',      ms=1, alpha=0.2, label='Raw data')
+        ax[0].plot(time,  flux_trend, '-', c='orange', lw=2, alpha=1.0, label='Trend')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].set_ylabel(ylab0)
+        ax[0].legend(ncol=2, markerscale=5, loc='upper right')
+        
+        # Plot detrend and median
+        ax[1].plot(time, flux_detrend, '.', c='k', ms=1.0, alpha=0.2, label="Detrended data")
+        ax[1].plot(time, flux_median,  '-', c='royalblue', lw=0.5,    label="1h median")
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[1].set_ylabel('Flux [ppt]')
+        ax[1].legend(ncol=2, markerscale=5, loc='upper right')
+        
+        # Plot detrend-median,  vs. input
+        if varsource:
+            ax[2].plot(time,     flux_median, '-', c='royalblue', lw=0.5, alpha=1.0)
+            ax[2].plot(time_var, flux_var,    '-', c='darkblue',  lw=1.0, alpha=1.0,
+                       label="Input model")
+            ax[2].set_xlim(time.iloc[0], time.iloc[-1])
+            ax[2].set_ylabel('Flux [ppt]')
+            ax[2].legend(ncol=1, markerscale=5, loc='upper right')
+            
+        # Layout
+        ax[rows-1].set_xlabel('Time [days]')
+        plt.tight_layout(h_pad=0.1, w_pad=1)
+        plt.show()
+        
+        return fig, ax
+
+
+
+
+
     def clip(self, column='flux', model="scipy",
-             sigma_lower=3, sigma_upper=3, window=0.5,
+             sigma_lower=4, sigma_upper=4, window=0.5,
              plot=False, replace=False, flux_unit='e/s'):
 
         """Sigma clipping of light curve.
 
-        This function use a moving median filter to reject 3 sigma outliers from
-        the out-of-eclipsed data. This is done to secure that a simple median
-        convolution do not mis-interp sharp and deep transit signatures as outliers.
-        Use a 16 point-width moving median to reject 3 sigma outliers.
+        This function use a moving median filter to reject 3 sigma outliers 
+        from the out-of-eclipsed data. This is done to secure that a simple 
+        median convolution do not mis-interp sharp and deep transit signatures
+        as outliers. Use a 16 point-width moving median to reject 3 sigma outliers.
         """
             
         # Sigma clipping methods
@@ -832,17 +1143,14 @@ class LightCurve(object):
                                                     center='median')  # {mean, median}
             
         # Plot if requested
-        
         if plot: self.plot_clip(self.df, column=column, flux_unit=flux_unit)
 
-        # Overwrite flux column
-        
+        # Overwrite flux column        
         if replace:
             self.df.flux = self.df.flux_clip
             self.df.drop(columns=['flux_clip'], inplace=True)
 
         # That's it!
-        
         return self.df
 
     
@@ -853,7 +1161,7 @@ class LightCurve(object):
 
         """Plot a clipped light curve for outliers.
         """
-        
+                
         # Fetch rows corresponding to outliers
         
         df1 = df.loc[df.flux_clip.isna()]
@@ -895,185 +1203,10 @@ class LightCurve(object):
         
         return fig, ax
 
-    
 
 
     
-    def detrend(self, column='flux', model="poly",
-                degree=2, gradient=False,                               # Model: Polynomial
-                method="biweight", window=0.5, gapsize=0.1, mask=None,  # Model: Wotan
-                plot=False, replace=False):
-                
-        """Detrend time series.
-
-        This function can be used to detrend a time series using either 
-        a simply polynomial model or the Wotan module specialized for
-        exoplanet transit vetting.
-
-        NOTE: Wotan removed stellar variability (spots modulation, pulsations,
-              and granulation) so another module is needed to preserve these.
-
-        Parameters
-        ----------
-        model : wotan, poly
-            Which model to be used for detrending
-        degree : int
-            Degree of the polynomial fit (poly parameter)
-        gradient : bool
-            Flag to remove a flat gradient of the flux (poly parameter)
-        method : str
-            Method to be used by Wotan (wotan parameter)
-        window : float
-            Window size to be used for detrending [days] (wotan parameter)
-        mask : bool, float
-            List with [period, duration, t0] to mask out periodic signal [all in days]
-        """
-        
-        # Remove clipped NaNs
-        self.df = self.df.dropna()
-        time = self.df.time
-        flux = self.df[column]
-        
-        # POLYNOMIAL MODEL
-        
-        if model == "poly":
-            
-            # Make poly fit
-            poly = np.polyfit(time, flux, deg=degree)
-            self.df['flux_trend'] = np.polyval(poly, time)
-
-            # Convert to flux
-            if column == 'flux_stitch':
-                self.df['flux_detrend'] = (flux/1e3 + 1) / (df.flux_trend/1e3 + 1)
-            else:
-                self.df['flux_detrend'] = flux / df.flux_trend
-                            
-        # WOTAN MODEL
-        
-        elif model == "wotan":
-
-            # Check if transits should be masked
-            if mask:
-                mask = wotan.transit_mask(time=time,
-                                          period=mask[0]*c.day,
-                                          duration=mask[1]*c.day,
-                                          T0=mask[2]*c.day)
-                
-            # Secure
-            if len(self.mask_updates) == 0:
-                mask_indices = [0, len(time)]
-            else:
-                dexFirstExp  = np.floor(time.iloc[0] / self.cadence).astype(int)
-                mask_indices = np.append(self.mask_updates-dexFirstExp, len(time))
-
-            # Run Wotan in segments after mask-updates
-            flux_detrend = np.zeros_like(time)
-            flux_trend   = np.zeros_like(time)
-
-            for i in range(len(mask_indices)-1):
-                data = wotan.flatten(time[mask_indices[i]:mask_indices[i+1]],
-                                     flux[mask_indices[i]:mask_indices[i+1]],
-                                     method=method,
-                                     window_length=window*c.day,
-                                     break_tolerance=gapsize*c.day,
-                                     return_trend=True,
-                                     robust=True,
-                                     mask=mask)
-                flux_detrend[mask_indices[i]:mask_indices[i+1]] = data[0]
-                flux_trend[mask_indices[i]:mask_indices[i+1]]   = data[1]
-                
-            # Convert into ppm
-            self.df['flux_trend']   = flux_trend
-            self.df['flux_detrend'] = flux_detrend                
-            
-        # Plot dianostic
-        if plot: self.plot_detrend(self.df, column)
-
-        # Overwrite flux column
-        
-        if replace:
-            self.df.flux = self.df.flux_detrend
-            self.df.drop(columns=['flux_trend', 'flux_detrend'], inplace=True)
-
-        # Finito!
-            
-        return self.df
-                
-
-
-
     
-    def plot_detrend(self, df, column='flux', figsize=(9,8)):
-
-        """Plot a detrended light curve and make a O-C plot.
-        """
-        
-        # Get varsource light curve
-        try: lc_var = self.varsource()
-        except:
-            rows = 2
-            varsource = False
-        else:
-            rows = 3
-            varsource = True
-            time_var = lc_var["time"] / c.day
-            try: flux_var = lc_var["comb"]
-            except: flux_var = lc_var["sum"]
-
-        # Get time series
-        time = self.time(unit='d')
-        
-        # Convert units
-        if column == 'flux':
-            ylab0      = r'Flux [ke$^-$ s$^{-1}$]'
-            flux       = df[column]    / 1e3  # [ke-/s]
-            flux_trend = df.flux_trend / 1e3  # [ke-/s]
-        elif column == 'flux_stitch':
-            ylab0      = 'Flux [ppt]'
-            flux       = df[column]           # [ppt]
-            flux_trend = df.flux_trend        # [ppt]
-
-        # Detrendend and median filter
-        flux_detrend = (df.flux_detrend - 1) * 1e3      # [ppt] 
-        flux_median  = median_filter(flux_detrend, 144) # [ppt]
-        
-        # Start plotting
-        
-        fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)
-
-        # Plot simulation and trend
-        ax[0].plot(time,  flux,       '.', c='k',         ms=1, alpha=0.2, label='Raw data')
-        ax[0].plot(time,  flux_trend, '-', c='royalblue', lw=2, alpha=1.0, label='Trend')
-        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].set_ylabel(ylab0)
-        ax[0].legend(ncol=2, markerscale=5, loc='upper right')
-        
-        # Plot detrend and median
-        ax[1].plot(time,  flux_detrend, '.', c='k', ms=1.0, alpha=0.2, label="Detrended data")
-        ax[1].plot(time,  flux_median,  '-', c='orange', lw=0.5, alpha=1.0, label="1h median")
-        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[1].set_ylabel('Flux [ppt]')
-        ax[1].legend(ncol=2, markerscale=5, loc='upper right')
-        
-        # Plot detrend-median,  vs. input
-        if varsource:
-            ax[2].plot(time,     flux_median*1e3, '-', c='orange', lw=0.5, alpha=1.0)
-            ax[2].plot(time_var, flux_var, '-', c='m', lw=1.0, alpha=1.0, label="Input model")
-            ax[2].set_xlim(time.iloc[0], time.iloc[-1])
-            ax[2].set_ylabel('Flux [ppm]')
-            ax[2].legend(ncol=1, markerscale=5, loc='upper right')
-            
-        # Layout
-        ax[rows-1].set_xlabel('Time [days]')
-        plt.tight_layout(h_pad=0.1, w_pad=1)
-        plt.show()
-        
-        return fig, ax
-
-
-
-
-
     def stitch(self, column='flux', gapsize=0.1, medpoint=1000, plot=False):
 
         """Function to stitct a light curve.
@@ -1095,15 +1228,17 @@ class LightCurve(object):
         self.df['flux_stitch'] = self.df.flux
         
         # Find flux jumps
-        if self.mask_updates.any():
-            # Gaps due to mask updates
-            time_dex = self.mask_updates[1:] - self.mask_updates[0]
-        else:
-            # Gaps between mission quarters
-            time_diff = np.diff(self.df.time)/86400.
-            time_dex  = np.where(abs(time_diff)>gapsize)[0][:]
-        time_dex = np.append(time_dex, -1)
-
+        # if self.mask_updates.any():
+        #     # Gaps due to mask updates
+        #     time_dex = self.mask_updates[1:] - self.mask_updates[0]
+        # else:
+        #     # Gaps between mission quarters
+        #     time_diff = np.diff(self.df.time)/86400.
+        #     time_dex  = np.where(abs(time_diff)>gapsize)[0][:]
+        # time_dex = np.append(time_dex, -1)
+        time_dex = self.get_flux_jumps()
+        print(time_dex)
+        
         # Move the data when a jump
         for i,j in zip(time_dex[:-1], time_dex[1:]):
 
@@ -1140,12 +1275,19 @@ class LightCurve(object):
             # Correct each flux chunk
             self.df.flux_stitch.iloc[i:j] += flux_jump
 
+            
         # Recenter data after median value
-        self.df.flux_stitch -= self.df.flux_stitch.median()
-        
-        # Plot result of requested
-        if plot:
-            self.plot_stitch(self.df)
+        #self.df.flux_stitch -= self.df.flux_stitch.median()
+            
+        # Plot if requested
+        if plot: self.plot_stitch(self.df, column=column)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_clip
+            self.df.drop(columns=['flux_clip'], inplace=True)
+
+        # Finito!
             
         return self.df
 
@@ -1153,34 +1295,84 @@ class LightCurve(object):
 
 
 
-    def plot_stitch(self, df, medfilt=144, figsize=(9,7)):
+    def plot_stitch(self, df, column='flux', medfilt=144, figsize=(9,7)):
 
         """Plot a detrended light curve and make a O-C plot.
         """        
-        
-        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
 
+        # Get varsource light curve
+        try: lc_var = self.varsource()
+        except:
+            rows = 2
+            varsource = False
+        else:
+            rows = 3
+            varsource = True
+            time_var = lc_var["time"] / c.day
+            # Compatability
+            if 'flux' in lc_var:
+                # PlatoSim tag: 3.6.0-297-gd76ba1b7
+                flux_var = lc_var['flux']
+            elif 'comb' in lc_var:
+                flux_var = lc_var['comb']
+            else:
+                flux_var = lc_var['sum']
+
+        # Time array        
         time = self.time(unit='d')
+
+        # Convert units
+        # if column == 'flux':
+        #     ylab        = r'Flux [ke$^-$ s$^{-1}$]'
+        #     flux        = df[column]     #/ 1e3  # [ke-/s]
+        #     flux_stitch = df.flux_stitch #/ 1e3  # [ke-/s]
+        # elif column == 'flux_stitch':
+        ylab        = 'Flux [ppt]'
+        flux        = (df[column] - 1) *1e3                      # [ppt]
+        flux_stitch = (df.flux_stitch - 1) *1e3       # [ppt]
+        flux_rawmed = median_filter(flux, medfilt)
+        flux_median = median_filter(flux_stitch, medfilt)
+
+        
+        fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)                
         
         # Plot simulation and trend
-        flux_raw_median = median_filter(df.flux, medfilt)
-        ax[0].plot(time, df.flux, '.', c='k', ms=1, alpha=0.2, label='Before')
-        ax[0].plot(time, flux_raw_median, '-', c='deeppink', lw=0.5, label="1h median")
+
+        ax[0].plot(time, flux,        '.', c='k', ms=1, alpha=0.2, label='Before')
+        ax[0].plot(time, flux_rawmed, '-', c='deeppink', lw=0.5, label="1h median")
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].set_ylabel(r"Flux [as input]")
+        ax[0].set_ylabel(ylab)
         ax[0].set_title('Light curve stitching')
         ax[0].legend(ncol=2, markerscale=5)
-
+        
         # Plot detrend and median
-        flux_median = median_filter(df.flux_stitch, medfilt)
-        ax[1].plot(time, df.flux_stitch, '.', c='k',ms=1,alpha=0.2,label="After")
+
+        ax[1].plot(time, flux_stitch, '.', c='k',ms=1,alpha=0.2,label="After")
         ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5, label="1h median")
         ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[1].set_ylabel('Flux [as input]')
-        ax[1].set_xlabel('Time [days]')
+        ax[1].set_ylabel(ylab)
         ax[1].legend(ncol=2, markerscale=5)
 
+        # If any plot mask-update events
+
+        time_dex = self.get_flux_jumps()
+        for jump in time_dex:
+            ax[0].axvline(x=time.iloc[jump], c='k', linestyle=':', lw=1)
+            ax[1].axvline(x=time.iloc[jump], c='k', linestyle=':', lw=1)
+
+        # Plot detrend-median,  vs. input
+        if varsource:
+            ax[2].plot(time,     flux_median, '-', c='royalblue', lw=0.5, alpha=1.0)
+            ax[2].plot(time_var, flux_var,    '-', c='darkblue',  lw=1.0, alpha=1.0,
+                       label="Input model")
+            ax[2].set_xlim(time.iloc[0], time.iloc[-1])
+            ax[2].set_ylabel('Flux [ppt]')
+            ax[2].legend(ncol=1, markerscale=5, loc='upper right')
+            
+        # Layout
+        ax[rows-1].set_xlabel('Time [days]')
         plt.tight_layout(h_pad=0.1, w_pad=1)
+        plt.show()
 
         return fig, ax
 
@@ -1353,7 +1545,7 @@ class LightCurve(object):
             updates = self.mask_updates * self.cadence / c.day
             for update in updates[1:]:
                 if update == updates[-1]:
-                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1, label='Mask updates')
+                    ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
                 else:
                     ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
 

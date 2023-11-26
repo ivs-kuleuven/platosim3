@@ -99,11 +99,15 @@ class VarSim(object):
         # Parameters in {True, False, None}
         self.plot  = args.plot
         self.seed  = args.seed
-        self.star  = args.star
         self.ofile = args.ofile
-        self.mocka = args.mocka
+        self.star  = args.star
+        self.star_params = args.star_params
         self.binary = args.binary
         self.planet = args.planet
+        self.planet_params = args.planet_params
+        self.kul20 = args.kul20
+        self.mocka = args.mocka
+        
         #self.phase_curve = args.phase_curve TODO
         self.starID = None
 
@@ -501,8 +505,8 @@ class VarSim(object):
             errorcode('module', '\nStellar parameters\n')
         
         # Check star source or use Sun as default
-        if args.star:
-            self.star_source = args.star
+        if self.star:
+            self.star_source = self.star
         else:
             self.star_source = 'Sun'
                     
@@ -767,7 +771,7 @@ class VarSim(object):
         """
 
         if self.verbose > 0:
-            errorcode('module', '\nSolar-like spot modulations\n')
+            errorcode('module', '\nStellar activity (spots)\n')
 
         # Use a random uniform distribution
         # NOTE secure a lower misalignment for planetary systems
@@ -825,6 +829,10 @@ class VarSim(object):
         """Model solar flares.
         """
 
+        # Start script
+        if self.verbose > 0:
+            errorcode('module', '\nSolar flares\n')
+        
         # Initialise model
         time  = self.time.to('d').value
         model = StellarFlares(time, seed=self.seed)
@@ -1040,7 +1048,7 @@ class VarSim(object):
 
     def binary_eb(self):
 
-        """Function to generate a SMBH binary light curve.
+        """Function to generate a Eclipsing Binary (EB) light curve.
         """
 
         if self.verbose > 0:
@@ -1656,9 +1664,11 @@ class VarSim(object):
             if 'tran' in self.lc:
                 self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
                 
-            # Plot combined light curve
+            # Plot combined light curve [flux -> ppm]
             if self.plot:
-                fig, ax = pt.plot_final_lc(self.lc)
+                lc = self.lc
+                lc.flux = (lc.flux - 1) * 1e6
+                fig, ax = pt.plot_final_lc(lc)
                 plt.show()
                                 
             
@@ -1812,7 +1822,7 @@ class VarSim(object):
         
     def mode_mocka(self):
 
-        """Given stellar properties asign variable signal.
+        """Given the stellar properties asign variable signal.
         """
 
         # I/O EXTRA
@@ -1835,7 +1845,7 @@ class VarSim(object):
         df_i = df0.loc[self.starID-1]
         ds_i = ds0[ds0.gaiaDR3 == df_i.gaiaDR3]
         df   = pd.concat([df_i.to_frame().T, ds_i])
-        
+
         
         # GENERATE LIGHT CURVES
 
@@ -1846,22 +1856,24 @@ class VarSim(object):
             nstar = df.shape[0]
         else:
             errorcode('error', 'Not valid mocka.CFLAG value! Use [yes, no]')
-
             
         # Loop over each star in subfield
-
         varSourceFiles = []
+        
         for i in range(nstar):
 
+            # Fetch star and print
             self.df = df.iloc[i]
-            
+            if self.verbose > 0:
+                errorcode('message', f'\nSimulating star ID {i}')
+                
             
             # FETCH STELLAR PARAMETERS
 
             # Case 1) Only SpecType
             # Case 2) Only SpecType, BP-RP
             # Case 3) Only SpecType, BP-RP, Teff, logg
-            # Case 4) All parameters exist
+            # Case 4) All parameters exists
             
             # Case 1: Draw from spectral type distributions
             if pd.isna(self.df.Ag) and pd.isna(self.df.BP_RP):
@@ -1920,40 +1932,41 @@ class VarSim(object):
             
             #self.stellar_granosc()
             #self.stellar_activity()
-            #self.stellar_flares()
+            #self.solar_flares()
             #self.star_roap()
             #self.star_gdor()
-            self.star_gdor()
+            #self.star_gdor()
             #self.star_dsct()
             #self.star_ceph()
-            
-            # if df0.spec == 'O':
-            #     self.stellar_gran_osc()
+
+            if self.df.spec == 'O':
+                self.solar_granosc()
                 
-            # elif df0.spec == 'B':
-            #     self.photometric_standard()
-
-            # elif df0.spec == 'A':
-            #     self.photometric_standard()
-
-            # elif df0.spec == 'F':
-            #     self.stellar_gran_osc()
+            elif self.df.spec == 'B':
+                self.star_bcep()
                 
-            # elif df0.spec == 'G':
-            #     self.stellar_gran_osc()
-            #     self.stellar_activity()
+            elif self.df.spec == 'A':
+                self.star_ceph()
 
-            # elif df0.spec == 'K':
-            #     self.stellar_gran_osc()
-            #     self.stellar_activity()
-            #     self.stellar_flares()
-
-            # elif df0.spec == 'M':
-            #     self.stellar_activity()
-            #     self.stellar_flares()
+            elif self.df.spec == 'F':
+                self.star_gdor()
                 
-            # print(df0)
-            # exit()
+            elif self.df.spec == 'G':
+                self.solar_granosc()
+                self.solar_spots()
+
+            elif self.df.spec == 'K':
+                self.solar_granosc()
+                self.solar_spots()
+                self.solar_flares()
+
+            elif self.df.spec == 'M':
+                self.solar_spots()
+                self.solar_flares()
+
+            else:
+                self.star_roap()
+                
         
             # GENERATE LIGHT CURVE
 
@@ -1963,7 +1976,8 @@ class VarSim(object):
             self.run_prolog()
 
             # Use cluster name for PLATOnium
-            clusterDir = f'$VSC_SCRATCH/platosim/mocka/{starType}/{starDir}/'
+            # NOTE $VSC_MOCKA directory is defined in job script
+            clusterDir = f'$VSC_MOCKA/{starType}/{starDir}/'
             varSourceFiles.append(clusterDir + sfile)
             
         # GENERATE VARIABLE CATALOG FILE
@@ -2024,7 +2038,7 @@ planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darke
 
 dis_group = parser.add_argument_group('DISTRIBUTION MODES')
 dis_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')
-dis_group.add_argument('--mocka', action='append', type=str, nargs=5, metavar=('PROJECT', 'CLASS', 'ID', 'CFLAG', 'ODIR'), help='Option designed for MOCKA')
+dis_group.add_argument('--mocka', action='append', type=str, nargs=5, metavar=('PROJECT', 'STAR', 'ID', 'CFLAG', 'ODIR'), help='Option designed for MOCKA')
 
 args = parser.parse_args()
 

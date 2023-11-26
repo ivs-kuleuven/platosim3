@@ -1070,7 +1070,7 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
 
 
 
-def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, timeSpan=30,
+def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.1, timeSpan=30,
                           timeScale=False, amplitude=False, ofile=False, plot=False):
 
     """Function to model detector temperature transients.
@@ -1094,11 +1094,11 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
         Linear model is used if False.
     plot : bool
         Flag to plot the generated model.
-    """
 
-    # NOTE this is if we want to remove the data gaps from the df:
-    # df0 = df.drop(df[(df.roll == True)   | (df.link == True) |
-    #                  (df.jitter == True) | (df.safe == True)].index)
+    NOTE this is if we want to remove the data gaps from the df:
+    >> df0 = df.drop(df[(df.roll == True)   | (df.link == True) |
+                        (df.jitter == True) | (df.safe == True)].index)
+    """
     
     # Secure numpy syntax
     
@@ -1135,8 +1135,6 @@ def temperatureTransients(time, t0, td, tempCCD=200, tempConst=10, gapSize=0.1, 
     
     if not timeScale:
         timeScale = 1/tempConst * tdurGap
-    
-    # Linear CCD temperature dependece with gap size
     
     if not amplitude:
         amplitude = tempConst * tdurGap
