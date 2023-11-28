@@ -555,7 +555,7 @@ class PLATOnium(object):
                                                                                     pathToPsfFile, focalLength)
             else: 
                 xFPmm, yFPmm = rf.undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                              distortionCoefficients)
+                                                                              distortionCoefficients, focalLength)
 
                 
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
