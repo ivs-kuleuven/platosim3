@@ -200,7 +200,8 @@ Notes on PIC catalogue creation:
         self.inputFiles    = args.incat
         self.oldCatalogue  = args.unique
         self.numTimeseries = args.ntime
-            
+
+        
         # MANDATORY PARAMETERS
             
         # Mandatory parameters
@@ -298,7 +299,7 @@ Notes on PIC catalogue creation:
 
             # Save either a PlatoSim (ascii) or a PLATOnium (feather) calogue
             if self.saveAscii:
-                self.outputFileCat = self.outputDir / self.outputPrefix / '.txt'
+                self.outputFileCat = self.outputDir / f'{self.outputPrefix}.txt'
             else:
                 self.outputFileTar = self.outputDir / self.outputPrefixTar
                 self.outputFileCon = self.outputDir / self.outputPrefixCon
@@ -646,16 +647,17 @@ Notes on PIC catalogue creation:
 
             # Save textfile with information about PIC stars
             log = ('PIC Catalogue include\n' +
-                   f'Catalogue            : {self.pic}\n' +
-                   f'PLATO field          : {self.field}\n' +
-                   f'PLATO sample         : {self.sample}\n' +
-                   f'PLATO camera-group   : {self.group}\n' +
-                   f'Magnitude range      : {self.magRange[0]:.2f}-{self.magRange[1]:.2f} \n' +
-                   f'Luminosity class     : {self.lumClass}\n' +
-                   f'Spectral type        : {self.specType}\n' +
-                   f'Contaminant distance : {self.disConLimit} arcsec\n' +
-                   f'Contaminant magnitude: {self.dmagConLimit} mag\n' +
-                   '\n' + self.t.get_string())
+                   '----------------------------------\n' +
+                   f'Catalogue             : {self.pic}\n' +
+                   f'PLATO field           : {self.field}\n' +
+                   f'PLATO sample          : {self.sample}\n' +
+                   f'PLATO camera-group    : {self.group}\n' +
+                   f'Magnitude range       : {self.magRange[0]:.2f}-{self.magRange[1]:.2f}\n' +
+                   f'Luminosity class      : {self.lumClass}\n' +
+                   f'Spectral type         : {self.specType}\n' +
+                   f'Contaminant distance  : {self.disConLimit} arcsec\n' +
+                   f'Contaminant magnitude : {self.dmagConLimit} mag\n' +
+                   self.t.get_string() + '\n')
             with open(self.outputDir / f'{self.outputPrefix}.log','w') as file:
                 file.write(log)
 
@@ -677,9 +679,9 @@ Notes on PIC catalogue creation:
             if self.saveAscii:
                 if self.verbose > 0:
                     print(f'Saving file {self.outputFileCat}')
-                df0        = pd.concat([df.ra,  dfc.ra])
-                df0['dec'] = pd.concat([df.dec, dfc.dec])
-                df0['mag'] = pd.concat([df.mag, dfc.mag])
+                df0        = pd.concat([self.df.ra,  self.dc.ra])
+                df0['dec'] = pd.concat([self.df.dec, self.dc.dec])
+                df0['mag'] = pd.concat([self.df.mag, self.dc.mag])
                 df0.to_csv(self.outputFileCat, sep=' ', header=False, float_format='%.6f')
             
             else:
