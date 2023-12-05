@@ -44,7 +44,7 @@ from platosim.utilities import errorcode
 #==============================================================#
     
     
-class StellarFlares(object): # TODO under construction!
+class StellarFlares(object):
 
     """Model stellar flares.
 
@@ -62,7 +62,7 @@ class StellarFlares(object): # TODO under construction!
 
 
 
-    def initToyModelBeta0(self):
+    def initToyModelBeta0(self): # TODO under construction!
 
         """Uniform distribution of toy model.
         """
@@ -119,7 +119,7 @@ class StellarFlares(object): # TODO under construction!
 
             # Time array during flare event
             tn = np.arange(t0, t1, dt)
-            t  = tn / tscale
+            t  = tn / tscale[m]
 
             # Model parameters of flare
             B = asym
@@ -152,11 +152,11 @@ class StellarFlares(object): # TODO under construction!
                 else:
                     flux[i] += 0
 
-        # Convert to magnitude [mmag]
-        self.mag = flux * ampl
+            # Convert to magnitude [mmag]
+            self.mag = flux * ampl[m]
                     
         # plot light curve
-        #if plot: self.plot()
+        if plot: self.plot()
             
         # Return relative flux
         return self.mag
@@ -614,7 +614,7 @@ class StellarSpots(object):
                  np.cos(phase))
         
         # Differential effect on stellar flux
-        dF = - area * beta
+        dF = - 2 * area * beta
         dF[beta < 0] = 0
         return area, ome, beta, dF
 
@@ -800,13 +800,14 @@ class SolarLikeOscillator(object):
         # Convert units [Ms => microHz in frequency]
         self.time    = time.to('Ms').value
         self.cadence = np.diff(time)[0].to('Ms').value
+        self.Teff_sun = 5777.
         
         # Load stellar parameters [solar]
         self.Teff = star_params[0].to('K').value
         self.R    = star_params[1].to('R_sun').value
         self.M    = star_params[2].to('M_sun').value
         self.L    = star_params[3].to('L_sun').value
-        self.T    = self.Teff / 5777.
+        self.T    = self.Teff / self.Teff_sun
         
         # Random number generator
         self.rng = ut.rng(seed)
@@ -915,29 +916,33 @@ class SolarLikeOscillator(object):
         # We use the solar frequency spectrum as a template for the pulsations but
         # scale the frequencies and amplitudes according to the scaling relations
         # (we do not scale the mode lifetimes) -> Michel et al. (2009)
-        Teff_sun       = 5777.
         numax_sun      = 3140.                         # [muHz]
         deltanu_sun    = 134.9                         # [muHz]
         tau_puls_sun   = (2.88 * u.d).to('Ms').value   # [Ms]
         A_puls_bol_sun = 3.6                           # [ppm]
+
+        # Handy definitions
+        delta_Teff   = self.Teff_sun - self.Teff     # [K]
+        numax_frac   = self.numax / numax_sun        
+        deltanu_frac = self.deltanu / deltanu_sun
         
         # SELECT SCALING RELATION
         
         if scaling == 'KB1995Brown1991':
             # According to Corsaro et al. (2013) Eq. 6 [ppm]
-            A_puls_bol = (self.numax/numax_sun)**-1 * self.T**1.5 * A_puls_bol_sun
+            A_puls_bol = numax_frac**-1 * self.T**1.5 * A_puls_bol_sun
 
         elif scaling == 'KjeldsenBedding1995':
-            # According to Kjeldsen and Bedding (1995), Eq. 4 usinf Eq. 8 [ppm]
+            # According to Kjeldsen and Bedding (1995), Eq. 4 using Eq. 8 [ppm]
             A_puls_bol = self.L * self.T**-1 * self.M**-1 * 4.7 * 550/623
 
         elif scaling == 'Mosser2010': # TODO
-            # According to Corsaro et al. 2013, equ. (24)
-            tau_puls = conversions.convert('d', 'Ms', np.exp((5777. - self.T)/601.) * 2.65)
             r = 1.5  # free parameter
+            tau0 = convert('d','Ms', 2.65)
+            # According to Corsaro et al. 2013, equ. (24)
+            tau_puls = convert('d', 'Ms', np.exp(delta_Teff / 601.) * 2.65)
             # According to Kjeldsen and Bedding 2011 equ. (6), [ppm]
-            tau0 = conversions.convert('d','Ms', 2.65)
-            A_puls_bol = self.L * (tau_puls/tau0)**0.5 * self.M**-1.5 * (self.T)**-(1.25+r) * 3.6
+            A_puls_bol = self.L * (tau_puls/tau0)**0.5 * self.M**-1.5 * (self.T)**-(1.25+r) *3.6
             
         elif scaling == 'Huber2011':
             # According to the relation by Huber et al. 2011b [ppm]
@@ -948,10 +953,10 @@ class SolarLikeOscillator(object):
 
         elif scaling == 'KjeldsenBedding2011':  # TODO
             # According to Corsaro et al. 2013, equ. (24)
-            tau_puls = conversions.convert('d', 'Ms', np.exp((Teff_sun-self.Teff)/601.) * 2.65)
+            tau_puls = convert('d', 'Ms', np.exp(delta_Teff / 601.) * 2.65)
             r = 2.0
             # According to Kjeldsen and Bedding 2011 equ. (6), [ppm]
-            tau0 = conversions.convert('d','Ms',2.65)
+            tau0 = convert('d','Ms',2.65)
             A_puls_bol = self.L * (tau_puls/tau)**0.5 * self.M**-1.5 * self.T**-(1.25+r) * 3.6
 
         elif scaling == 'Corsaro2013huber2011':
@@ -962,24 +967,24 @@ class SolarLikeOscillator(object):
             r = 2.79
             # According to the relation by Huber et al. 2011b,
             # and the fit by Corsaro et al. (2013), Eq. (19) [ppm]
-            A_puls_bol = ((self.numax/numax_sun)**(2*s-3*t) *
-                          (self.deltanu/deltanu_sun)**(-4*s+4*t) *
-                          self.T**(5*s-1.5*t-r+0.2) * 3.6)
+            A_puls_bol = (numax_frac**(2*s - 3*t) *
+                          deltanu_frac**(-4*s + 4*t) *
+                          self.T**(5*s - 1.5*t - r + 0.2) * 3.6)
             
         elif scaling == 'Corsaro2013':
             # According to Corsaro et al. 2013, Eq. 24:
             # NOTE The value of T0 was calibrated using Kepler RGs in the open clusters
             # NGC 6791 and NGC 6819, and a sample of MS and subgiant Kepler field stars.
-            T0   = 601.                         # [K]
-            tau0 = (2.65 * u.d).to('Ms').value  # [Ms]
-            tau_puls = np.exp((Teff_sun - self.Teff) / T0) * tau0  # [Ms]
+            T0       = 601.                            # [K]
+            tau0     = (2.65 * u.d).to('Ms').value     # [Ms]
+            tau_puls = np.exp(delta_Teff / T0) * tau0  # [Ms]
             # According to Corsaro et al. (2013) Eq. 26 (Model 6) [ppm]
             r = -2.8
             t = 1.56
-            A_puls_bol = ((self.numax/numax_sun)**(2-3*t) *
-                          (self.deltanu/deltanu_sun)**(4*t-4) *
+            A_puls_bol = (numax_frac**(2 - 3*t) *
+                          deltanu_frac**(4*t - 4) *
                           (tau_puls/tau_puls_sun)**0.5 *
-                          self.T**(4.55-r-1.5*t) * A_puls_bol_sun)
+                          self.T**(4.55 - r - 1.5*t) * A_puls_bol_sun)
             
         # Amplitude [ppm]
         self.ampl = A_puls_bol * np.exp(-(self.freq-self.numax)**2/(2*(1.5*self.deltanu)**2))

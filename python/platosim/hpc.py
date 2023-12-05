@@ -50,6 +50,9 @@ class HPC(object):
         self.idir = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
         self.pdir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), project)
 
+        
+        self.vardir = self.pdir / 'varsource'
+        
         # Software
         self.VARSIM    = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/varsim.py'
         self.PLATONIUM = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
@@ -58,16 +61,23 @@ class HPC(object):
 
 
         
-    def run(self, script, odir, param_file=False, sim_range=False):
+    def run(self, script, param_file=False, sim_range=False, odir=False, kwargs=None):
 
         """Function to run the parallelisation.
         """
 
         # Output folder
-        self.odir = self.pdir / odir
-        
+        if not odir:
+            self.odir = self.pdir / 'output'
+        else:
+            self.odir = odir
+
+        # Parse additional arguments
+        self.kwargs = kwargs
+            
         # Parsing of parameters
         if param_file:
+            param_file = self.pdir / 'input' / param_file 
             params = pd.read_csv(param_file).to_numpy()
             N, M = params.shape
             sim_range = range(N)
@@ -83,7 +93,7 @@ class HPC(object):
             # RUN PLATONIUM
             
             if script == 'platonium':
-                Parallel()(delayed(self.run_platonium)(i, N, M, params, project)
+                Parallel()(delayed(self.run_platonium)(i, N, M, params)
                            for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
 
             # RUN VARSIM
@@ -107,18 +117,8 @@ class HPC(object):
     #                        HPC FOR PLATONIUM                     #
     #--------------------------------------------------------------#
 
-            
-    #def set_compress(self, compress=False): return compress
-    #def set_nexp(self,    nexp    = ''):  self.nexp     = nexp
-    def set_seed(self,    seed    = ''):  self.seed     = seed
-    def set_cadence(self, cadence = ''):  self.cadence  = cadence
-    def set_vardir(self,  vardir  = ''):  self.vardir   = vardir
-
-
-
-
     
-    def run_platonium(self, i, N, M, params, project):
+    def run_platonium(self, i, N, M, params):
 
         """Function to run the PLATOnium in parallel.
         """
@@ -128,22 +128,14 @@ class HPC(object):
         C = int(params[i,2])
         Q = int(params[i,3])
 
-        # Nine digit star ID 
-        starID = f'{S}'.zfill(9)
-        odir   = os.getenv('PLATO_WORKDIR') + f'/{project}/output/{starID}'
-        # Parse flags
-        #compress = self.set_compress()
-
         # Parse arguments
-        #if self.set_nexp    != '': nexp     = f'--nexp {self.nexp}'
-        if self.set_seed    != '': seed     = f'--seed {self.seed}'
-        if self.set_cadence != '': cadence  = f'--cadence {self.cadence}'
-        if self.set_vardir  != '': varfile  = f'--varfile {self.vardir}/varsource_{starID}.txt'
+        if self.vardir != '':
+            starID = f'{S}'.zfill(9)
+            vararg = f'--varfile {self.vardir}/varsource_{starID}.txt'
 
         # Run PlatoSim simulation
-        os.system(f'{platonium} {S} {G} {C} {Q} --project {project} -o {odir} ' +
-                  f'{seed} {cadence} {varfile} ' +
-                  '--compress -v 0 -w')
+        os.system(f'{self.PLATONIUM} {S} {G} {C} {Q} --project {self.project} ' +
+                  f'-o {self.odir} {vararg} {self.kwargs} -v 0 -w')
 
 
 

@@ -35,7 +35,8 @@ General information:
   is recognized be by "platonium --fullframe" for the generation
   of full-frame CCD images. Usage examples:
 
-  $ picsim --vizier LOPS2 --project <project_name> --maglim 15 -p
+  $ picsim --vizier LOPS2 --project <project_name> -p
+
 """
 
 # Built-in
@@ -200,7 +201,8 @@ Notes on PIC catalogue creation:
         self.inputFiles    = args.incat
         self.oldCatalogue  = args.unique
         self.numTimeseries = args.ntime
-            
+
+        
         # MANDATORY PARAMETERS
             
         # Mandatory parameters
@@ -298,7 +300,7 @@ Notes on PIC catalogue creation:
 
             # Save either a PlatoSim (ascii) or a PLATOnium (feather) calogue
             if self.saveAscii:
-                self.outputFileCat = self.outputDir / self.outputPrefix / '.txt'
+                self.outputFileCat = self.outputDir / f'{self.outputPrefix}.txt'
             else:
                 self.outputFileTar = self.outputDir / self.outputPrefixTar
                 self.outputFileCon = self.outputDir / self.outputPrefixCon
@@ -646,16 +648,17 @@ Notes on PIC catalogue creation:
 
             # Save textfile with information about PIC stars
             log = ('PIC Catalogue include\n' +
-                   f'Catalogue            : {self.pic}\n' +
-                   f'PLATO field          : {self.field}\n' +
-                   f'PLATO sample         : {self.sample}\n' +
-                   f'PLATO camera-group   : {self.group}\n' +
-                   f'Magnitude range      : {self.magRange[0]:.2f}-{self.magRange[1]:.2f} \n' +
-                   f'Luminosity class     : {self.lumClass}\n' +
-                   f'Spectral type        : {self.specType}\n' +
-                   f'Contaminant distance : {self.disConLimit} arcsec\n' +
-                   f'Contaminant magnitude: {self.dmagConLimit} mag\n' +
-                   '\n' + self.t.get_string())
+                   '----------------------------------\n' +
+                   f'Catalogue             : {self.pic}\n' +
+                   f'PLATO field           : {self.field}\n' +
+                   f'PLATO sample          : {self.sample}\n' +
+                   f'PLATO camera-group    : {self.group}\n' +
+                   f'Magnitude range       : {self.magRange[0]:.2f}-{self.magRange[1]:.2f}\n' +
+                   f'Luminosity class      : {self.lumClass}\n' +
+                   f'Spectral type         : {self.specType}\n' +
+                   f'Contaminant distance  : {self.disConLimit} arcsec\n' +
+                   f'Contaminant magnitude : {self.dmagConLimit} mag\n' +
+                   self.t.get_string() + '\n')
             with open(self.outputDir / f'{self.outputPrefix}.log','w') as file:
                 file.write(log)
 
@@ -677,9 +680,9 @@ Notes on PIC catalogue creation:
             if self.saveAscii:
                 if self.verbose > 0:
                     print(f'Saving file {self.outputFileCat}')
-                df0        = pd.concat([df.ra,  dfc.ra])
-                df0['dec'] = pd.concat([df.dec, dfc.dec])
-                df0['mag'] = pd.concat([df.mag, dfc.mag])
+                df0        = pd.concat([self.df.ra,  self.dc.ra])
+                df0['dec'] = pd.concat([self.df.dec, self.dc.dec])
+                df0['mag'] = pd.concat([self.df.mag, self.dc.mag])
                 df0.to_csv(self.outputFileCat, sep=' ', header=False, float_format='%.6f')
             
             else:
@@ -885,7 +888,7 @@ Notes on PIC catalogue creation:
             self.magmin = args.magmin
             
         if args.magmax is None:
-            self.magmax = 17
+            self.magmax = 15
         else:
             self.magmax = args.magmax
             
@@ -1135,7 +1138,7 @@ bad_group.add_argument('--simbad', type=str, metavar='NAME',  help='Simbad targe
 viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
 viz_group.add_argument('--magmin', type=float, metavar='MAG',   help='Min magnitude to query (Default: 0 mag)')
-viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 17 mag)')
+viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 15 mag)')
 viz_group.add_argument('--yale_stars', action='store_true',     help='Flag to add the Yale bright stars catalogue')
 viz_group.add_argument('--gaia_astro', action='store_true',     help='Flag to add parameters from the Astrophysical Gaia table')
 

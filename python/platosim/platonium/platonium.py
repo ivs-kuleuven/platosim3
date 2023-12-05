@@ -91,8 +91,8 @@ class PLATOnium(object):
 
         self.maskUpdate   = args.mask
         self.clipWotan    = args.clip
-        self.detrendWotan = args.detrend
-        self.checkWotan   = args.check
+        self.detrend      = args.detrend
+        self.plotPost     = args.check
         
         self.pipeline       = args.pipeline
         self.conDeltaMag    = args.con_dmag
@@ -205,9 +205,9 @@ class PLATOnium(object):
             # Check that the sample is parsed
             if self.sample is None:
                 errorcode('error', 'The pipeline mode need parsing of --sample argument!')
-
+        
                 
-        # PIPELINE PARAMETERS
+        # PHOTOMETRY AND PIPELINE PARAMETERS
 
         # Inclusion thresholds for contaminants [delta mag]
         if not self.conDeltaMag: self.conDeltaMag = 5
@@ -219,17 +219,20 @@ class PLATOnium(object):
         if not self.conFluxError:   self.conFluxError   = 10    # [%]
         if not self.tarFluxError:   self.tarFluxError   = 1     # [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # [pixel]
+
+        # Check parsing of detrending model
+        if not self.detrend in [None, 'poly', 'wotan']:
+            errorcode('error', 'Not a valid detrending model!')
+            
+        # Built-in photometric post-processing
+        if self.detrend is not None or self.clipWotan:
+            self.postProcess = True
+        else:
+            self.postProcess = False
         
         # Monitor script speed
         self.tic  = datetime.datetime.now()
-        self.tic0 = datetime.datetime.now()
-
-        # Built-in photometric post-processing
-        if self.clipWotan or self.detrendWotan:
-            self.postWotan = True
-        else:
-            self.postWotan = False
-            
+        self.tic0 = datetime.datetime.now()            
 
 
             
@@ -305,8 +308,11 @@ class PLATOnium(object):
                 self.colID = 'PIC'
             elif 'gaiaDR3' in df:
                 self.colID = 'gaiaDR3'
+            elif 'ID' in df:
+                # PlatoSim version: 3.5.3-19-g18d87597
+                self.colID = 'ID'                
             else:
-                errorcode('error', "Cannot find ID identifier! Usage in ['PIC', 'gaiaDR3']")
+                errorcode('error', "Cannot find ID identifier! Usage in [ID, PIC, gaiaDR3]")
                 
             # Merge for full frame
             self.dx = pd.concat([df, dc])
@@ -473,10 +479,10 @@ class PLATOnium(object):
         sim = Simulation(self.outputFileName, self.inputFile)
 
         # Start time of simulation
-        timeQuarter = ut.year()/86400/4  # [days]
+        timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-        
+
         # CONFIGURE CAMERA
 
         # NOTE these function sets the correct CCD configuration and cadence
@@ -527,10 +533,10 @@ class PLATOnium(object):
             self.numExposures = round(self.simTime * 86400. / self.cadence)
         else:
             # Setting time series to full quarter
-            # NOTE Minimally a day is lost due to events of  platform roll,
+            # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1.) * 86400. / self.cadence)
-            
+
 
         # PHOTOMETRY ALA MARCHIORI
 
@@ -1172,7 +1178,7 @@ class PLATOnium(object):
 
 
 
-    def run_reduction(self):
+    def run_reduction(self, sim):
 
         """Module to perform data reduction.
         """
@@ -1184,29 +1190,57 @@ class PLATOnium(object):
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5')
-        
-        # TODO Introduce gaps
-        # inputFileGap = self.inputDir.joinpath('instrumentGap.ftr')
-        # if inputFileGap.is_file():
-        #     if self.verbose > 0 :
-        #         print('Introducing gaps in time series')
-        #     dg = pd.read_feather(inputFileGap)
-        #     dg = dg.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
-        #     df = lc.data().loc[~dg['all'].to_numpy()]
-        #     lc = LightCurve(df, mode='multi')
 
         
+        # GAPS AND TRANSIENTS
+
+        # Apply step if CCD(T) file exists
+        inputFileCCD = self.inputDir.joinpath('instrumentCCD.txt')
+        
+        if inputFileCCD.is_file():
+            if self.verbose > 0 :
+                print('Running transient gain correction')
+
+            # Load CCD gain temperature file
+            dt = pd.read_csv(inputFileCCD, sep=' ', names=['time', 'temp'])
+            dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
+            temp = dt.temp.to_numpy()
+
+            # Fetch the gap durations
+            inputFileGap = self.inputDir.joinpath('instrumentGap.tab')
+            dg = pd.read_feather(inputFileGap)
+            tdur = dg.td.iloc[0] / 86400
+
+            # Use correct gain from either F or E side
+            tempNominal   = sim['CCD/NominalOperatingTemperature']
+            gainCCD       = sim['CCD/Gain/RefValueRight']
+            gainFEE       = sim['FEE/Gain/RefValueRight']
+            gainStability = sim['FEE/Gain/Stability']
+            
+            # Perfect correction
+            lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
+                            replace=True, plot=self.plotPost)
+            
+            
         # DETRENDING
 
-        if self.detrendWotan:            
+        if self.detrend is not None:            
             if self.verbose > 0:
-                print('Running Wotan detrending')
+                print(f'Running {self.detrend} detrending')
 
-            lc.detrend(model='wotan', replace=True, plot=self.checkWotan, gapsize=0.1)
+            lc.detrend(model=self.detrend, degree=1, replace=True, plot=self.plotPost)
             
             if self.verbose > 0:
-                self.tocWotanDetrend = datetime.datetime.now() - self.tic
+                self.tocDetrend = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
+                
+
+        # STITCH MASK-UPDATES
+
+        if self.verbose > 0 :
+            print('Checking for mask-updates to stitch')
+        
+        df = lc.stitch(medpoint=1000, replace=True, plot=self.plotPost)
 
 
         # OUTLIER REJECTION
@@ -1215,16 +1249,32 @@ class PLATOnium(object):
             if self.verbose > 0:
                 print('Running Wotan sigma-clipping')
 
-            if self.detrendWotan: flux_unit='ppt'
+            if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
                 
-            df = lc.clip(model='wotan', replace=True, sigma_lower=4, sigma_upper=4,
-                         plot=self.checkWotan, flux_unit=flux_unit)
+            lc.clip(model='wotan', replace=True, sigma_lower=4, sigma_upper=4,
+                    plot=self.plotPost, flux_unit=flux_unit)
 
             if self.verbose > 0:
                 self.tocWotanClip = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
+
                 
+        # INTRODUCE GAPS
+
+        # Load file produced by payload.py
+        # inputFileGap = self.inputDir.joinpath('instrumentGap.ftr')
+        
+        # if inputFileGap.is_file():
+        #     if self.verbose > 0 :
+        #         print('Running transient correction')
+
+        #     # Remove 
+        #     dg = pd.read_feather(inputFileGap)
+        #     dg = dg.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
+        #     df = df.loc[~dg['all'].to_numpy()]
+
+        
         # Save dataset
         #df = df.drop(columns=['time'])
         df = df.reset_index(drop=True)
@@ -1635,19 +1685,21 @@ class PLATOnium(object):
         if not self.fullFrame:
             self.create_sim_table(self.outputDir)
 
-        # Remove non-compressed files
-        if self.postWotan:
+        # Remove HDF5 file for pipeline mode
+        if self.postProcess:
             os.remove(f'{self.outputSimName}.hdf5')
-
+            
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
             
         # Compress files
-        if self.compress and os.path.isfile(f'{self.outputSimName}.hdf5') and not self.pipeline:
+        if (self.compress and os.path.isfile(f'{self.outputSimName}.ftr') or
+            self.compress and os.path.isfile(f'{self.outputSimName}.hdf5')):
 
             if self.verbose > 0:
                 errorcode('module', '\nRestructuring data output\n')
                 print('Compressing files')
+                
             os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}* ' +
                       f'{self.devnull}')
             
@@ -1655,14 +1707,13 @@ class PLATOnium(object):
             os.system(f'chmod 755 {self.outputSimName}.zip')
             
             # Remove non-compressed files
-            if self.postWotan:
+            if not self.postProcess:
                 os.remove(f'{self.outputSimName}.hdf5')
-            else:
+            if not self.fullFrame:
+                os.remove(f'{self.outputSimName}.table')                
+            if self.postProcess or self.fullFrame:
                 os.remove(f'{self.outputSimName}.ftr')
                 
-            if not self.fullFrame:
-                os.remove(f'{self.outputSimName}.table')
-
         # If requested move file to final output directory (for cluster)
         if self.storageDir:
             os.system(f'mv {self.outputSimName}.* {self.storageDir}')
@@ -1787,8 +1838,8 @@ class PLATOnium(object):
         print(f'Max RAM memory for PlatoSim      : {self.memRamPlatoSim} MB')
         print(f'Storage memory for PlatoSim      : {self.memDiskPlatoSim} MB')
         print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [hh:mm:ss]')
-        if self.detrendWotan:
-            print(f'Execution time for Wotan detrend : {self.tocWotanDetrend} [hh:mm:ss]')
+        if self.detrend:
+            print(f'Execution time for detrending    : {self.tocDetrend} [hh:mm:ss]')
         if self.clipWotan:
             print(f'Execution time for Wotan clip    : {self.tocWotanClip} [hh:mm:ss]')
         if self.pipeline:
@@ -1853,10 +1904,10 @@ sim_group.add_argument('--jit_reuse', action='store_true',      help='Flag to re
 sim_group.add_argument('--fullframe', action='store_true',      help='Flag to simulate a full-frame CCD -> CCDcode = starID')
 
 phot_group = parser.add_argument_group('PHOTOMETRY PARAMETERS')
-phot_group.add_argument('--mask',   metavar='DAY', type=float, help='Option to overwrite the mask-update in inputfile [days]')
-phot_group.add_argument('--clip',    action='store_true',      help='Flag to activate Wotan outlier rejection (> 4 sigma)')
-phot_group.add_argument('--detrend', action='store_true',      help='Flag to activate Wotan detrending optimal for planet vetting')
-phot_group.add_argument('--check',   action='store_true',      help='Flag to plot the requested Wotan post-processing steps')
+phot_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to overwrite the mask-update in inputfile [days]')
+phot_group.add_argument('--detrend', metavar='NAME', type=str,   help='Name of detrending method to activate [poly, wotan]')
+phot_group.add_argument('--clip',    action='store_true',        help='Flag to activate outlier rejection using Wotan (> 4 sigma)')
+phot_group.add_argument('--check',   action='store_true',        help='Flag to plot the requested post-processing steps')
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline', action='store_true',           help='Flag to activate proto-type pipeline')
@@ -1902,7 +1953,7 @@ else:
     p.run_sim_normal(sim)
     # Run post-processing
     if args.clip or args.detrend:
-        p.run_reduction()
+        p.run_reduction(sim)
     # Prologue
     p.sort_output_normal()
         
