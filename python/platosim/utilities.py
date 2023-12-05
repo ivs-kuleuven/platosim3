@@ -757,7 +757,7 @@ def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
 
 def fromMagToFlux(mag):
 
-    """Convert magnitude to relative flux
+    """Convert relative magnitude to relative flux.
 
     Parameters
     ----------
@@ -847,10 +847,10 @@ def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
 def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
 
-    """Conversion from Gaia G magnitude to the PLATO passband.
+    """Conversion from Gaia G_0 magnitude to the PLATO passband.
     
     The calibration relation is derived in PLATO-UPD-SCI-TN-0019, Sect. 6.
-    NOTE only valid for (4000K < Teff < 15000K), hence, not for M-dwarfs.
+    NOTE only valid for (4000K < Teff < 15,000K), hence, not for M-dwarfs.
 
     Parameters
     ----------
@@ -918,7 +918,7 @@ def getPointingField(name, unit='deg'):
     # Check data field exists
     
     try: p = PF[name]
-    except KeyError: errorcode('error', 'Not valid PLATO field!' +
+    except KeyError: errorcode('error', 'Not valid PLATO field! ' +
                                'Options: {LOPS2, LOPN1, SFP, NPF}')
 
     # Convert units and return
@@ -1138,7 +1138,7 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
 
 
 #--------------------------------------------------------------#
-#                       PLATOnium FUNCTIONS                    #
+#                       PLATONIUM FUNCTIONS                    #
 #--------------------------------------------------------------#
 
 

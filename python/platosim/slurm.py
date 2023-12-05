@@ -251,7 +251,7 @@ def convertWorkerLog(workerLog):
 
 
     
-def workerOverview(workerLog, paramFile, ofile=False, plot=False):
+def workerOverview(workerLog, paramFile, ofile=False, plot=False, fullFrame=False):
 
     """Overview of the run time for worker using SLURM.
     """
@@ -261,8 +261,8 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
     df = convertWorkerLog(workerLog)        
     unique = df.sim.unique()
     umax = len(unique)
-    imax = 72
-    
+    imax = 96
+
     # If requested, plot an overview of start and end times
     
     if plot:
@@ -273,11 +273,21 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
     dex, walltime = [], []
     for i in tqdm(unique, bar_format=ut.tqdmBar()):
         df0 = df[df.sim == i]
+        
         if df0.shape[0] == 2:
             walltime.append(df0.datetime.iloc[1].timestamp() - df0.datetime.iloc[0].timestamp())
             if plot and i < imax:
+
+                if fullFrame:
+                    if i <= 24: c = 'blue'
+                    elif i > 24 and i <= 48: c = 'cyan'
+                    elif i > 48 and i <= 72: c = 'yellow'
+                    else: c = 'red'
+                else:
+                    c = 'b'
+                
                 ax.hlines(df0.sim.iloc[0], df0.datetime.iloc[0], df0.datetime.iloc[1], color='b', alpha=0.2)
-                ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], 'blue', marker='>', mec='k', ms=6)
+                ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], c=c, marker='>', mec='k', ms=6)
                 ax.plot(df0.datetime.iloc[1], df0.sim.iloc[1], 'lime', marker='s', mec='k', ms=6)
                 
         elif df0.shape[0] == 1:
@@ -311,4 +321,4 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False):
         print(f'Fastest walltime for cpus : {np.min(walltime)/60:.3f} h')
         print(f'Slowest walltime for cpus : {np.max(walltime)/60:.3f} h')
         
-    return df
+    return df, np.array(walltime)

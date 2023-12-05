@@ -1812,7 +1812,7 @@ class SimFile (object):
         """
 
         # Fetch mask update events
-
+        
         return np.array(self.hdf5file["Photometry/Masks/exposureNrOfMaskUpdate"])
 
 
