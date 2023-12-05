@@ -62,7 +62,7 @@ class Payload(object):
         self.plot = args.plot
         self.fcam = args.fcam
         self.aocs = args.aocs
-        
+
         # Output directory
         if args.outdir:
             self.odir = Path(args.outdir).resolve()
@@ -260,7 +260,6 @@ class Payload(object):
         # Generate a data-gap file
         errorcode('module', '\nDate gaps & Thermal transients\n')
         print('Downtime due to quater interuptions')
-        print('Downtime due to montly data downlinks')
         print('Downtime due to loss of fine guidance')
         print('Downtime due to safe-mode events')
         _, self.t0, self.td = ns.getDataGaps(self.time, self.Q,

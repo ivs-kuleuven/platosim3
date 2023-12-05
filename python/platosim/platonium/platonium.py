@@ -308,8 +308,11 @@ class PLATOnium(object):
                 self.colID = 'PIC'
             elif 'gaiaDR3' in df:
                 self.colID = 'gaiaDR3'
+            elif 'ID' in df:
+                # PlatoSim version: 3.5.3-19-g18d87597
+                self.colID = 'ID'                
             else:
-                errorcode('error', "Cannot find ID identifier! Usage in ['PIC', 'gaiaDR3']")
+                errorcode('error', "Cannot find ID identifier! Usage in [ID, PIC, gaiaDR3]")
                 
             # Merge for full frame
             self.dx = pd.concat([df, dc])
@@ -476,10 +479,10 @@ class PLATOnium(object):
         sim = Simulation(self.outputFileName, self.inputFile)
 
         # Start time of simulation
-        timeQuarter = ut.year()/86400/4  # [days]
+        timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-        
+
         # CONFIGURE CAMERA
 
         # NOTE these function sets the correct CCD configuration and cadence
@@ -530,7 +533,7 @@ class PLATOnium(object):
             self.numExposures = round(self.simTime * 86400. / self.cadence)
         else:
             # Setting time series to full quarter
-            # NOTE Minimally a day is lost due to events of  platform roll,
+            # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1.) * 86400. / self.cadence)
 
@@ -1175,7 +1178,7 @@ class PLATOnium(object):
 
 
 
-    def run_reduction(self):
+    def run_reduction(self, sim):
 
         """Module to perform data reduction.
         """
@@ -1187,7 +1190,8 @@ class PLATOnium(object):
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5')
-        flux = lc.flux().to_numpy()
+
+        
         # GAPS AND TRANSIENTS
 
         # Apply step if CCD(T) file exists
@@ -1201,8 +1205,21 @@ class PLATOnium(object):
             dt = pd.read_csv(inputFileCCD, sep=' ', names=['time', 'temp'])
             dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
             temp = dt.temp.to_numpy()
+
+            # Fetch the gap durations
+            inputFileGap = self.inputDir.joinpath('instrumentGap.tab')
+            dg = pd.read_feather(inputFileGap)
+            tdur = dg.td.iloc[0] / 86400
+
+            # Use correct gain from either F or E side
+            tempNominal   = sim['CCD/NominalOperatingTemperature']
+            gainCCD       = sim['CCD/Gain/RefValueRight']
+            gainFEE       = sim['FEE/Gain/RefValueRight']
+            gainStability = sim['FEE/Gain/Stability']
             
-            lc.correct_gain(temp, sim, replace=True, plot=self.plotPost)
+            # Perfect correction
+            lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
+                            replace=True, plot=self.plotPost)
             
             
         # DETRENDING
@@ -1211,12 +1228,20 @@ class PLATOnium(object):
             if self.verbose > 0:
                 print(f'Running {self.detrend} detrending')
 
-            lc.detrend(model=self.detrend, replace=True, plot=self.plotPost)
+            lc.detrend(model=self.detrend, degree=1, replace=True, plot=self.plotPost)
             
             if self.verbose > 0:
                 self.tocDetrend = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
                 
+
+        # STITCH MASK-UPDATES
+
+        if self.verbose > 0 :
+            print('Checking for mask-updates to stitch')
+        
+        df = lc.stitch(medpoint=1000, replace=True, plot=self.plotPost)
+
 
         # OUTLIER REJECTION
 
@@ -1234,28 +1259,20 @@ class PLATOnium(object):
                 self.tocWotanClip = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
 
-
-        # STITCH MASK-UPDATES
-
-        if self.verbose > 0 :
-            print('Checking for mask-updates to stitch')
-        
-        df = lc.stitch(medpoint=10000, plot=self.plotPost)
-
-        
+                
         # INTRODUCE GAPS
 
         # Load file produced by payload.py
-        inputFileGap = self.inputDir.joinpath('instrumentGap.ftr')
+        # inputFileGap = self.inputDir.joinpath('instrumentGap.ftr')
         
-        if inputFileGap.is_file():
-            if self.verbose > 0 :
-                print('Running transient correction')
+        # if inputFileGap.is_file():
+        #     if self.verbose > 0 :
+        #         print('Running transient correction')
 
-            # Remove 
-            dg = pd.read_feather(inputFileGap)
-            dg = dg.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
-            df = df.loc[~dg['all'].to_numpy()]
+        #     # Remove 
+        #     dg = pd.read_feather(inputFileGap)
+        #     dg = dg.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
+        #     df = df.loc[~dg['all'].to_numpy()]
 
         
         # Save dataset
@@ -1936,7 +1953,7 @@ else:
     p.run_sim_normal(sim)
     # Run post-processing
     if args.clip or args.detrend:
-        p.run_reduction()
+        p.run_reduction(sim)
     # Prologue
     p.sort_output_normal()
         

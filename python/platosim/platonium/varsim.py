@@ -712,7 +712,7 @@ class VarSim(object):
     #                   MODELS OF SOLAR-LIKE STARS                 #
     #--------------------------------------------------------------#
 
-
+    
     def solar_granosc(self):
 
         """Model convection driven oscillations.
@@ -771,7 +771,7 @@ class VarSim(object):
         """
 
         if self.verbose > 0:
-            errorcode('module', '\nStellar activity (spots)\n')
+            errorcode('module', '\nStellar spot cycle\n')
 
         # Use a random uniform distribution
         # NOTE secure a lower misalignment for planetary systems
@@ -1742,7 +1742,7 @@ class VarSim(object):
                     v.solar_spots()
                 if not args.gran or not args.puls:
                     v.solar_granosc()
-
+                    
             # Include exoplanet
             if args.planet or args.planet_params or args.planet == 'random':
                 v.ldc()

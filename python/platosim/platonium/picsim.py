@@ -35,7 +35,8 @@ General information:
   is recognized be by "platonium --fullframe" for the generation
   of full-frame CCD images. Usage examples:
 
-  $ picsim --vizier LOPS2 --project <project_name> --maglim 15 -p
+  $ picsim --vizier LOPS2 --project <project_name> -p
+
 """
 
 # Built-in
@@ -887,7 +888,7 @@ Notes on PIC catalogue creation:
             self.magmin = args.magmin
             
         if args.magmax is None:
-            self.magmax = 17
+            self.magmax = 15
         else:
             self.magmax = args.magmax
             
@@ -1137,7 +1138,7 @@ bad_group.add_argument('--simbad', type=str, metavar='NAME',  help='Simbad targe
 viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
 viz_group.add_argument('--magmin', type=float, metavar='MAG',   help='Min magnitude to query (Default: 0 mag)')
-viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 17 mag)')
+viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 15 mag)')
 viz_group.add_argument('--yale_stars', action='store_true',     help='Flag to add the Yale bright stars catalogue')
 viz_group.add_argument('--gaia_astro', action='store_true',     help='Flag to add parameters from the Astrophysical Gaia table')
 
