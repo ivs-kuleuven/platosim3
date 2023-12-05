@@ -1410,7 +1410,7 @@ void Detector::readOut(float exposureTime)
     
     // Apply quantisation [electrons -> ADU]
     // This consists of:
-    // - TODO applying CCD non-linearity
+    // - applying CCD non-linearity
     // - applying FEE and CCD gain (converting from electrons to ADU)
     // - adding the electronic offset
     // - applying digital saturation
