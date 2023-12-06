@@ -704,23 +704,30 @@ class Simulation(object):
 
         """Change the detector gain.
 
-        These basic input parameters are from the technical note: 
-        PLATO-DLR-PL-LI-0015 i.4.2
-        
-        NOTE: Total gain = 1/ (FFE gain * CCD gain) = 25 e-/ADU
+        The parameters are from the Mission Parameter Database:
+        http://ptoops02.esac.esa.int/mpdb/home
+
+        Notes
+        -----
+        * A mean value of the CCD gain min/max and F/E side value are used from the MPD
+        * The FEE gain is then calculated requiring that the:
+          Total gain = 1 / (gainFFE * gainCCD) = 25 e-/ADU
         """
         
         if performance == 'required':
-            self.__setitem__("CCD/Gain/RefValueLeft",  "1.8")
-            self.__setitem__("CCD/Gain/RefValueRight", "1.8")
-            self.__setitem__("FEE/Gain/RefValueLeft",  "0.0222")
-            self.__setitem__("FEE/Gain/RefValueRight", "0.0222")
+            # CCD gain F/E side: (min, max) = (1.8, 2.5)
+            self.__setitem__("CCD/Gain/RefValueLeft",  "2.15")    # [microV/e-]
+            self.__setitem__("CCD/Gain/RefValueRight", "2.15")    # [microV/e-]
+            self.__setitem__("FEE/Gain/RefValueLeft",  "0.0186")  # [ADU/microV]
+            self.__setitem__("FEE/Gain/RefValueRight", "0.0186")  # [ADU/microV]
 
         elif performance == 'designed':
-            self.__setitem__("CCD/Gain/RefValueLeft",  "2.2")
-            self.__setitem__("CCD/Gain/RefValueRight", "2.2")
-            self.__setitem__("FEE/Gain/RefValueLeft",  "0.0182")
-            self.__setitem__("FEE/Gain/RefValueRight", "0.0182")
+            # CCD gain F side (min, max) = (2.08, 2.28) -> 2.18 microV/e- 
+            # CCD gain E side (min, max) = (2.04, 2.26) -> 2.15 microV/e-
+            self.__setitem__("CCD/Gain/RefValueLeft",  "2.18")
+            self.__setitem__("CCD/Gain/RefValueRight", "2.15")
+            self.__setitem__("FEE/Gain/RefValueLeft",  "0.018348")
+            self.__setitem__("FEE/Gain/RefValueRight", "0.0186")
 
         elif performance != False:
             raise ValueError("Not valid entry! Use either 'required' or 'designed'")
@@ -737,43 +744,44 @@ class Simulation(object):
 
         """Change noise properties of CCD/FEE.
         
+        The parameters are from the Mission Parameter Database:
+        http://ptoops02.esac.esa.int/mpdb/home
+
         Notes
         -----
-        These basic input parameters are from the technical note: 
+        - Assumption that parameters are the same for F and E side of CCD
+        - Assumption that the dark signal for N-CAM and F-CAM (F and E side) are the same        
+        - NOTE: 'required' or 'designed' F-FEE readout noise EOL missing
+        - NOTE: 
         """
         
         times = [0, self["ObservingParameters/MissionDuration"]*ut.year()]
 
-        # NOTE No 'designed' values for FEE readout noise
+        # FEE readout noise [e-] -> independent on performance
+        
         if camera == "Normal":
             readNoiseFEE = ut.evalLinReg(times, np.array([32.8, 37.7]), timeFromBOL)
         elif camera == "Fast":
-            readNoiseFEE = 200.0
+            readNoiseFEE = 203.0
         else:
-            raise ValueError("Not valid entry! Use either 'Normal' or 'Fast'")
-        
-        if performance =="required":
+            raise ValueError("Not valid entry! Usage in ['Normal', 'Fast']")
 
-            # NOTE We use the dark current from PLATO-DLR-PL-LI-0015 i.4.2, since:
-            # N-CAM: Dark current -> BOL(E,F) = (1.2,   4.5), no EOL values
-            # F-CAM: Dark current -> BOL(E,F) = (0.544, 4.0), no EOL values
+        # Choose performance
+        
+        if performance == "required":
             readNoiseCCD  = ut.evalLinReg(times, np.array([24.5, 28.0]), timeFromBOL)
             darkCurrent   = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
             darkStability = 5.0
             DSNU          = 15.0
-                                        
-        elif performance == "designed":
 
-            # NOTE We use the dark current from PLATO-DLR-PL-LI-0015 i.4.2, since:
-            # N-CAM: Dark current -> BOL(E,F) = (0.572, 4.0), no EOL values
-            # F-CAM: Dark current -> BOL(E,F) = (0.544, 4.0), no EOL values            
-            readNoiseCCD  = ut.evalLinReg(times, np.array([23.3, 25.0]), timeFromBOL)
-            darkCurrent   = ut.evalLinReg(times, np.array([ 1.2,  4.5]), timeFromBOL)
+        elif performance == "designed":
+            readNoiseCCD  = ut.evalLinReg(times, np.array([23.2,   25.0]), timeFromBOL)
+            darkCurrent   = ut.evalLinReg(times, np.array([ 0.544,  4.0]), timeFromBOL)
             darkStability = 0.7
-            DSNU          = 11.5
-                            
+            DSNU          = 13.0
+            
         else:
-            raise ValueError("Not valid entry! Use either 'required' or 'designed'")
+            raise ValueError("Not valid entry! Usage in ['required', 'designed']")
 
         # Set all parameters from above
         
@@ -791,25 +799,17 @@ class Simulation(object):
     
     def useNormalCamera(self, performance=False, timeFromBOL=0):
 
-        """Change the input parameters to use the nominal camera's.
-
-        The following parameters are updated:
+        """Change the input parameters to use the N-CAM.
         
-            CCD/NumColumns = 4510
-            CCD/NumRows    = 4510
-            ObservingParameters/CycleTime = 25
-        
-        Notes
-        -----
-        These basic input parameters are from the technical note: 
-        PLATO-DLR-PL-LI-0015 i.4.2
+        The parameters are from the Mission Parameter Database:
+        http://ptoops02.esac.esa.int/mpdb/home
         """
 
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "4510")
         self.__setitem__("ObservingParameters/CycleTime", "25")
 
-        # If requested, select basic input parameters
+        # If requested, select basic input parameters from MPD
 
         if performance in ["required", "designed"]:
             self.useDetectorGain(performance)
@@ -823,25 +823,19 @@ class Simulation(object):
 
     def useFastCamera(self, passband=False, performance=False, timeFromBOL=0):
 
-        """Change the input parameters to use the fast camera's.
+        """Change the input parameters to use the F-CAM.
 
-        The following parameters are updated:
-
-            CCD/NumColumns = 4510
-            CCD/NumRows    = 2255
-            ObservingParameters/CycleTime = 2.5
-
+        The parameters are from the Mission Parameter Database:
+        http://ptoops02.esac.esa.int/mpdb/home
+        
         Notes
         -----
-        These basic input parameters are from the technical note: 
-        PLATO-DLR-PL-LI-0015 i.4.2. 
-
-        Effects that are unique for F-CAMs:
+        Effects that are unique for the F-CAMs:
         - FEE overshoot/undershoot (TODO not working properly yet)
 
         The following parameters are wavelenght dependent:
         - Photometric reference flux (and irradiance -> only PIS)
-        - Tranmission efficiency
+        - Tranmission efficiency (built-in linear model given BOL->EOL)
         - Throughput bandwidth
         - Central wavelength of the throughput passband
         - Quantum efficiency
@@ -851,7 +845,7 @@ class Simulation(object):
         self.__setitem__("CCD/NumRows",    "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
 
-        # If requested, select basic input parameters
+        # If requested, select basic input parameters from MPD
         
         if performance in ["required", "designed"]:
 
@@ -863,28 +857,20 @@ class Simulation(object):
             # Select time and wavelength dependent parameters
 
             if passband == "blue":
-
-                #self.__setitem__("ObservingParameters/Fluxm0",           "")
-                self.__setitem__("Camera/ThroughputBandwidth",           "200")
-                self.__setitem__("Camera/ThroughputLambdaC",             "600")
+                #self.__setitem__("ObservingParameters/Fluxm0",                  "")
+                self.__setitem__("Camera/ThroughputBandwidth",                  "200")
+                self.__setitem__("Camera/ThroughputLambdaC",                    "600")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
                 self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
-
-                # Tranmission efficiency already depends on a linear model
-                
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "")
                 
             if passband == "red":
-
-                #self.__setitem__("ObservingParameters/Fluxm0",           "")
-                self.__setitem__("Camera/ThroughputBandwidth",           "380")
-                self.__setitem__("Camera/ThroughputLambdaC",             "860")
+                #self.__setitem__("ObservingParameters/Fluxm0",                  "")
+                self.__setitem__("Camera/ThroughputBandwidth",                  "380")
+                self.__setitem__("Camera/ThroughputLambdaC",                    "860")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
                 self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
-
-                # Tranmission efficiency already depends on a linear model
-
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "")
 
         return
 

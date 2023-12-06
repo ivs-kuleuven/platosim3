@@ -35,7 +35,8 @@ General information:
   is recognized be by "platonium --fullframe" for the generation
   of full-frame CCD images. Usage examples:
 
-  $ picsim --vizier LOPS2 --project <project_name> --maglim 15 -p
+  $ picsim --vizier LOPS2 --project <project_name> -p
+
 """
 
 # Built-in
@@ -200,7 +201,8 @@ Notes on PIC catalogue creation:
         self.inputFiles    = args.incat
         self.oldCatalogue  = args.unique
         self.numTimeseries = args.ntime
-            
+
+        
         # MANDATORY PARAMETERS
             
         # Mandatory parameters
@@ -298,7 +300,7 @@ Notes on PIC catalogue creation:
 
             # Save either a PlatoSim (ascii) or a PLATOnium (feather) calogue
             if self.saveAscii:
-                self.outputFileCat = self.outputDir / self.outputPrefix / '.txt'
+                self.outputFileCat = self.outputDir / f'{self.outputPrefix}.txt'
             else:
                 self.outputFileTar = self.outputDir / self.outputPrefixTar
                 self.outputFileCon = self.outputDir / self.outputPrefixCon
@@ -646,16 +648,17 @@ Notes on PIC catalogue creation:
 
             # Save textfile with information about PIC stars
             log = ('PIC Catalogue include\n' +
-                   f'Catalogue            : {self.pic}\n' +
-                   f'PLATO field          : {self.field}\n' +
-                   f'PLATO sample         : {self.sample}\n' +
-                   f'PLATO camera-group   : {self.group}\n' +
-                   f'Magnitude range      : {self.magRange[0]:.2f}-{self.magRange[1]:.2f} \n' +
-                   f'Luminosity class     : {self.lumClass}\n' +
-                   f'Spectral type        : {self.specType}\n' +
-                   f'Contaminant distance : {self.disConLimit} arcsec\n' +
-                   f'Contaminant magnitude: {self.dmagConLimit} mag\n' +
-                   '\n' + self.t.get_string())
+                   '----------------------------------\n' +
+                   f'Catalogue             : {self.pic}\n' +
+                   f'PLATO field           : {self.field}\n' +
+                   f'PLATO sample          : {self.sample}\n' +
+                   f'PLATO camera-group    : {self.group}\n' +
+                   f'Magnitude range       : {self.magRange[0]:.2f}-{self.magRange[1]:.2f}\n' +
+                   f'Luminosity class      : {self.lumClass}\n' +
+                   f'Spectral type         : {self.specType}\n' +
+                   f'Contaminant distance  : {self.disConLimit} arcsec\n' +
+                   f'Contaminant magnitude : {self.dmagConLimit} mag\n' +
+                   self.t.get_string() + '\n')
             with open(self.outputDir / f'{self.outputPrefix}.log','w') as file:
                 file.write(log)
 
@@ -677,9 +680,9 @@ Notes on PIC catalogue creation:
             if self.saveAscii:
                 if self.verbose > 0:
                     print(f'Saving file {self.outputFileCat}')
-                df0        = pd.concat([df.ra,  dfc.ra])
-                df0['dec'] = pd.concat([df.dec, dfc.dec])
-                df0['mag'] = pd.concat([df.mag, dfc.mag])
+                df0        = pd.concat([self.df.ra,  self.dc.ra])
+                df0['dec'] = pd.concat([self.df.dec, self.dc.dec])
+                df0['mag'] = pd.concat([self.df.mag, self.dc.mag])
                 df0.to_csv(self.outputFileCat, sep=' ', header=False, float_format='%.6f')
             
             else:
@@ -885,7 +888,7 @@ Notes on PIC catalogue creation:
             self.magmin = args.magmin
             
         if args.magmax is None:
-            self.magmax = 17
+            self.magmax = 15
         else:
             self.magmax = args.magmax
             
@@ -1135,7 +1138,7 @@ bad_group.add_argument('--simbad', type=str, metavar='NAME',  help='Simbad targe
 viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
 viz_group.add_argument('--magmin', type=float, metavar='MAG',   help='Min magnitude to query (Default: 0 mag)')
-viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 17 mag)')
+viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 15 mag)')
 viz_group.add_argument('--yale_stars', action='store_true',     help='Flag to add the Yale bright stars catalogue')
 viz_group.add_argument('--gaia_astro', action='store_true',     help='Flag to add parameters from the Astrophysical Gaia table')
 
@@ -1144,6 +1147,7 @@ que_group.add_argument('--dmag', type=int, metavar='MAG',    help='Delta magnitu
 que_group.add_argument('--dist', type=int, metavar='ARCSEC', help='Radial distance target-to-contaminant limit (Default: 45 arcsec)')
 
 args = parser.parse_args()
+
 
 #--------------------------------------------------------------#
 #                            WORKFLOW                          #
@@ -1195,285 +1199,3 @@ if (args.verbose is None) or (args.verbose > 0):
     toc = datetime.datetime.now()
     print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
     print('')
-
-
-
-
-
-#--------------------------------------------------------------#
-#        FUNCTIONS TO GENERATE THE PIC-VARSIM CATALOGS         #
-#--------------------------------------------------------------#
-
-
-def loadNumpyTargetsPIC110(inputFileTar):
-
-    """Function to load PIC110 numpy binary catalogue. 
-
-    This is a debrecated function used prior to PlatoSim 3.6.0.
-    The columns loaded below are the following:
-
-    PICidDR1   : PIC-ID-DR1 from Gaia DR2
-    ra         : ICRS RA
-    decl       : ICRS Dec
-    gaiaV      : De-reddened V mag from Gaia colour photometry
-    sampleFlag : Bitmaskdefining PIC samples
-    teff       : Stellar effective temperature [K]
-    radius     : Stellar radius [R_sun]
-    mass       : Stellar mass [M_sun]
-    nCameraObs : EOL number of cameras seeing the star
-    """
-
-    # TARGETS
-    
-    df = pd.DataFrame()
-    pic_tar = np.load(inputFileTar)
-    df['PIC']    = pic_tar[:,0].astype(float).astype(int)
-    df['ra']     = pic_tar[:,1].astype(np.float64)
-    df['dec']    = pic_tar[:,2].astype(np.float64)
-    df['mag']    = pic_tar[:,3].astype(np.float64)
-    df['sample'] = pic_tar[:,4].astype(float).astype(int)
-    df['Teff']   = pic_tar[:,5].astype(np.float64)
-    df['R']      = pic_tar[:,6].astype(np.float64)
-    df['M']      = pic_tar[:,7].astype(np.float64)
-    df['ncams']  = pic_tar[:,8].astype(float).astype(int)
-    df['field']  = pic_tar[:,9].astype(str)
-    df = df.iloc[1:]
-    df = df.reset_index(drop=True)
-
-    # CONTAMINANTS
-    
-    dc = pd.DataFrame()
-    pic_con = np.load(inputFileCon)
-    dc['PIC'] = pic_con[:,0].astype(float).astype(int)
-    dc['ra']  = pic_con[:,1].astype(float)
-    dc['dec'] = pic_con[:,2].astype(float)
-    dc['mag'] = pic_con[:,4].astype(float)
-    dc['dis'] = pic_con[:,3].astype(float)
-    
-    return df, dc
-
-
-
-
-
-def createPIC110(path):
-
-    """Create the PIC110 feather files used by 'picsim'.
-
-    This function loads the original PIC110 catalogue that contains
-    the PIC targets and stellar contaminant. It then selects the 
-    right columns and saves them to a binary feather file. Note that
-    the original input folders needs to be parsed.
-
-    Execution
-    ---------
-    >> from platosim.platonium.picsim import createPIC110
-    >> createPIC110(<path/to/pLOPS2PIC2.0.0.1-t>)
-    >> createPIC110(<path/to/pLOPN1PIC2.0.0.1-t>)
-    """
-    
-    # PIC TARGETS
-
-    # Load ascii catalogue
-    data = np.genfromtxt(f'{path}/filename.csv', delimiter=',',
-                        usecols=[0, 3, 5, 53, 55, 56, 58, 60, 71])
-    df = pd.DataFrame()
-    df['PIC']    = data[:,0].astype(float).astype(int)
-    df['ra']     = data[:,1].astype(np.float64)
-    df['dec']    = data[:,2].astype(np.float64)
-    df['mag']    = data[:,3].astype(np.float64)
-    df['Teff']   = data[:,5].astype(np.float64)
-    df['R']      = data[:,6].astype(np.float64)
-    df['M']      = data[:,7].astype(np.float64)
-    df['ncams']  = data[:,8].astype(float).astype(int)
-    df['sample'] = data[:,4].astype(float).astype(int)
-
-    # String field needs to be loaded seperately: PLATO field: N=North, S=South
-    df['field'] = np.loadtxt(inputFileTar.with_suffix('.csv'), delimiter=',',
-                             usecols=[68], dtype=str)
-
-    # Drop nan rows
-    df = df.dropna()
-
-    # Store columns
-    col_sample = df['sample']
-    df = df.drop(columns=['sample'])
-    df['sample'] = col_sample
-
-    # Select PIC sample
-    # NOTE 2 is stated in documentation but 3 is correct..
-    df['sample'] = df['sample'].replace([1, 3, 4, 8], ['P1', 'P2', 'P4', 'P5'])
-
-    # Change camera numbers
-    df['ncams'] = df['ncams'].replace([5, 11, 16, 17, 22], [6, 12, 18, 18, 24])
-
-    # Convert V Jonhson-Cousin to P passband
-    df['mag'] = ut.passbandConversionV2P(df.mag, df.Teff)
-
-    # Select catalogues
-    ds = df[df.field == 'S']
-    dn = df[df.field == 'N']
-
-    # Drop field before saving
-    ds = ds.drop(columns=['field'])
-    dn = dn.drop(columns=['field'])
-
-    # Reset indices
-    ds = ds.reset_index(drop=True)
-    dn = ds.reset_index(drop=True)
-
-    # Save to feather files
-    ds.to_feather('PIC110_SPF_targets.ftr')
-    dn.to_feather('PIC110_NPF_targets.ftr')
-
-
-    # PIC CONTAMINATS
-
-    # Load data
-    # NOTE The PIC is the target to which the contaminants refers to
-    data = np.loadtxt(inputFileCon.with_suffix('.csv'), delimiter=',',
-                      skiprows=1, usecols=[2, 6, 8, 5, 19])
-    dc =pd.DataFrame()
-    dc['PIC'] = data[:,0].astype(float).astype(int)
-    dc['ra']  = data[:,1].astype(np.float64)
-    dc['dec'] = data[:,2].astype(np.float64)
-    dc['mag'] = data[:,4].astype(np.float64)
-    dc['dis'] = data[:,3].astype(float).astype(int)
-
-    # Convert Vmag to Pmag using host star Teff
-    # NOTE assumption needed for PlatoSim!
-    for i in tqdm(range(len(dc)), bar_format=ut.tqdmBar()):
-        df_i = df[df.PIC == dc.PIC.iloc[i]]
-        dc.mag.iloc[i] = ut.passbandConversionV2P(dc.mag.iloc[0], df_i.Teff)
-
-    # Sort after pointing
-    ds = df[(ds.dec < 0)]
-    dn = df[(df.dec > 0)]
-
-    # Save to feather files
-    ds.to_feather('PIC110_SPF_contaminants.ftr')
-    dn.to_feather('PIC110_NPF_contaminants.ftr')
-
-
-
-
-
-def createPIC200(path):
-
-    """Create the PIC200 feather files used by 'picsim'.
-
-    This function loads the original PIC200 catalogue that contains
-    the PIC targets and stellar contaminant. It then selects the 
-    right columns and saves them to a binary feather file. Note that
-    the original input folders needs to be parsed.
-
-    Execution
-    ---------
-    >> from platosim.platonium.picsim import createPIC200
-    >> createPIC200(<path/to/pLOPS2PIC2.0.0.1-t>)
-    >> createPIC200(<path/to/pLOPN1PIC2.0.0.1-t>)
-    """
-
-    field = path[-18:-13]
-    odir  = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
-    
-    # TARGETS
-
-    # Load targets
-    print('Creating PIC target catalogue')
-    tfile = f'p{field}PICtarget2.0.0.1-t.vot'
-    votable = parse(f'{path}/{tfile}')
-    df0 = ut.votable2pandas(votable)
-
-    # Write relevant columns to df
-    df = pd.DataFrame()
-    df['PIC']   = df0.PICid
-    df['ra']    = df0.RAdeg
-    df['dec']   = df0.DEdeg
-    df['mag']   = df0.PlatoMagNCAM
-    df['PBmag'] = df0.PlatoMagFCAMb
-    df['PRmag'] = df0.PlatoMagFCAMr
-    df['Teff']  = df0.Teff
-    df['R']     = df0.Radius
-    df['M']     = df0.Mass
-    df['ncams'] = df0.BOLnCameraObs
-    df['sample'] = df0.BOLsourceFlag
-    
-    # Remove NaNs
-    df = df.dropna()
-
-    # Rename sample after their bit value
-    df['sample'] = df['sample'].replace([10, 14, 16, 8], ['P1', 'P2', 'P4', 'P5'])  
-
-    # Remove the remaining bit values
-    df = df.drop(df[df['sample'].isin([40, 42, 46, 48])].index)
-
-    # No need to keep more an integer value for Teff
-    df = df.astype({'Teff':'int'})
-    
-    # Save to feather files
-    df = df.reset_index(drop=True)
-    
-    df.to_feather(f'{odir}/PIC200_{field}_targets.ftr')
-    print('Done with PIC targets')
-
-    # CONTAMINANTS
-
-    # File is huge hence read only one column at the time
-    print('Loading PIC contaminants')
-    cfile = f'p{field}PICcontaminant2001t.csv'
-
-    # Create data frame
-    dc  = pd.DataFrame()
-    dc['PIC']   = pd.read_csv(f'{path}/{cfile}', usecols=['PICcontaminantId'])
-    dc['ra']    = pd.read_csv(f'{path}/{cfile}', usecols=['RAdeg'])
-    dc['dec']   = pd.read_csv(f'{path}/{cfile}', usecols=['DEdeg'])
-    dc['Gmag']  = pd.read_csv(f'{path}/{cfile}', usecols=['Gmag'])
-    dc['BPmag'] = pd.read_csv(f'{path}/{cfile}', usecols=['BPmag'])
-    dc['RPmag'] = pd.read_csv(f'{path}/{cfile}', usecols=['RPmag'])
-
-    # Remove NaNs
-    dc = dc.dropna()
-
-    # Use Gaia colours to convert to PLATO bandpass
-    dc['mag']   = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag)
-    dc['PBmag'] = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag, camera='fast_blue')
-    dc['PRmag'] = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag, camera='fast_red')
-
-    # Remove Gaia filters again
-    dc = dc.drop(columns=['Gmag', 'BPmag', 'RPmag'])
-
-    # Fetch all contaminants within 45 arcsec from target
-    print('Sorting PIC contaminants after PIC targets:')
-    print('This will take approximately 18 hours!')
-    for i in tqdm(range(df.shape[0]), bar_format=ut.tqdmBar()):
-
-        # Select target star
-        df_i = df.iloc[i]
-
-        # Fetch smaller region around target
-        x = 45/3600.
-        dc_i = dc[(dc.ra  > df_i.ra  - x) & (dc.ra  < df_i.ra  + x) &
-                  (dc.dec > df_i.dec - x) & (dc.dec < df_i.dec + x)]
-
-        # Remove target star if present
-        dc_i = dc_i.drop(dc_i[dc_i.PIC == df_i.PIC].index)
-
-        # Find radial distance [arcsec] 
-        dc_i['dis'] = ut.radialDistance(df_i.ra, df_i.dec,
-                                        dc_i.ra.to_numpy(), dc_i.dec.to_numpy()) * 3600.
-        dc_i = dc_i.sort_values(by=['dis'])
-
-        # Set PIC contaminant name to PIC target name
-        dc_i.PIC = df_i.PIC
-
-        # Save to a new df
-        if i == 0:
-            dc0 = dc_i
-        else:
-            dc0 = pd.concat([dc0, dc_i])
-
-    # Save to feather files
-
-    dc0 = dc0.reset_index(drop=True)
-    dc0.to_feather(f'{odir}/PIC200_{field}_contaminants.ftr')

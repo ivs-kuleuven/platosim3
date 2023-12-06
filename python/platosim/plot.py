@@ -1243,8 +1243,8 @@ def compass(ax, x, y, size):
 
             
 def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, showLegend=True, ncamStars=True, title=None,
-                 fovSize=30, fs=20, ms=1, figsize=(9,9)):
+                 showGroups=False, showFcamFOV=False, showLegend=True, ncamStars=True,
+                 title=None, fovSize=30, fs=20, ms=1, aa=1, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1266,6 +1266,8 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         Sky reference system as used by Astropy: 'icrs' or 'galactic'
     showGroups : bool
         Flag to show pointing of each camera group (default: False)
+    showFcamFOV : bool
+        Flag to show FOV of the F-CAMs (default: False)
     ncamStars : bool
         Flag to show N-CAM visibility of PIC stars (default: True)
     title : str
@@ -1314,10 +1316,14 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         
     # Load PIC stars for each N-CAM visibility
 
-    if ncamStars:
+    if ncamStars is not False:
 
-        idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-        df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+        if isinstance(ncamStars, pd.DataFrame):
+            df = ncamStars
+        else:
+            idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
+            df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+            
         PF06 = df[df['ncams'] == 6]
         PF12 = df[df['ncams'] == 12]
         PF18 = df[df['ncams'] == 18]
@@ -1359,13 +1365,15 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
         ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
                   title=r"P [mag]", fontsize=16, title_fontsize=16)
     else:
-        dm, mark, color = 20, '*', 'none'
+        dm, mark, color = 20, '.', 'none'
         
     # Plot all stars
 
-    starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
-    scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg, transform=ax.get_transform('world'), 
-                         s=dm, marker=mark, c=color, ec='k', lw=1, zorder=5)
+    if raStars is not None:
+        starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
+        scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
+                             transform=ax.get_transform('world'), 
+                             s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
     
     # Plot pointing of each camera group
     
@@ -1380,15 +1388,18 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
                                np.rad2deg(decGroups)*u.deg,
                                frame='icrs', unit='deg')  
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
-            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
+            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=10, color=c,
                     mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
         
         # Plot pointing F-CAM group (i.e. platform pointing)
         
-        ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=25,
+        ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=20,
                 transform=ax.get_transform('world'), zorder=6)
 
-        # Plot F-CAM FOV as cicle
+
+    # Plot F-CAM FOV as cicle 
+        
+    if showFcamFOV:
         
         # ax.plot(PF.ra.deg, PF.dec.deg,  marker='.',
         #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
@@ -3039,7 +3050,7 @@ def plot_final_lc(lc, figsize=(9,8)):
 
     plt.xlabel('Time [days]')
     fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')    
-    plt.tight_layout(h_pad=0.1, w_pad=1)
+    plt.tight_layout(h_pad=0.0, w_pad=1)
     
     return fig, ax
 

@@ -113,10 +113,7 @@ else
 
 
     # PROLOGUE
-    
-    # Reload .bashrc
-    source $HOME/.bashrc
-    
+        
     # Finish with prolog message
     echo "----------------------------"
     echo " PLATOnium has been set up !"
@@ -143,4 +140,7 @@ else
 	echo ">> jittercorrection.py -h"
 	echo ""
     fi
+
+    # Reload .bashrc
+    bash
 fi

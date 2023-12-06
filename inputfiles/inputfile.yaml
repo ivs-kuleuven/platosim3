@@ -18,9 +18,9 @@ ObservingParameters:
     
 Sky:
 
-    SkyBackground:
+    SkyBackground:                                   # Sky background (Built-in Zodiacal + Galactic, excl. transmission efficiency)
       UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
-      BackgroundValue:               -1              # Sky background: Zodiacal + Galactic (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
+      BackgroundValue:               -1              # Sky background value. Set negative to compute. [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -37,36 +37,36 @@ Platform:
     Orientation:
       Source:                        Angles          # Should be either "Angles" or "Quaternion" 
       Angles:
-        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
-        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate         [deg]
-        SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation.  [deg]
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
+        SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
         Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
                                                      # [q0, qx, qy, qz] with norm = 1.0
-    UseJitter:                       yes             # yes or no. If no, ignore everything below.
-    JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
-    JitterYawRms:                    0.038           # [arcsec]
-    JitterPitchRms:                  0.038           # [arcsec]
-    JitterRollRms:                   0.040           # [arcsec]
-    JitterTimeScale:                 250.            # [s]
+    UseJitter:                       yes             # Whether or not to incldue jitter. If no, ignore everything below.
+    JitterSource:                    FromRedNoise    # Jitter model: {FromFile, FromRedNoise, FromNetwork}
+    JitterYawRms:                    0.038           # RMS of RedNoise jitter in yaw   [arcsec]
+    JitterPitchRms:                  0.038           # RMS of RedNoise jitter in pitch [arcsec]
+    JitterRollRms:                   0.040           # RMS of RedNoise jitter in roll  [arcsec]
+    JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
 
 Telescope:
 
-    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
-    AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> when GroupID = Custom
-    TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> when GroupID = Custom
-    LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
+    GroupID:                         Custom          # Camera groups: {1, 2, 3, 4, Fast, Custom}
+    AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> GroupID = Custom
+    TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> GroupID = Custom
+    LightCollectingArea:             113.1           # Effective light collecting area of a camera [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8135          # Beginning of Life value in [0,1]
-        EOL:                         0.7945          # End       of Life value in [0,1]
-    UseDrift:                        no              # yes or no. If no, ignore everything below.
-    DriftSource:                     FromRedNoise    # FromFile or FromRedNoise (use RMS and timescale below)
-    DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw   [arcsec]
-    DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll  [arcsec]
-    DriftTimeScale:                  3600.           # Timescale of thermo-elastic drift [s]
+        BOL:                         0.8135          # Beginning of Life (BOL) value: [0, 1]
+        EOL:                         0.7945          # End       of Life (EOL) value: [0, 1]
+    UseDrift:                        no              # Include Thermo-Elastic Drift (TED): {yes, no}.
+    DriftSource:                     FromRedNoise    # TED model: {FromFile, FromRedNoise}
+    DriftYawRms:                     2.0             # RMS of RedNoise TED in yaw   [arcsec]
+    DriftPitchRms:                   2.0             # RMS of RedNoise TED in pitch [arcsec]
+    DriftRollRms:                    2.0             # RMS of RedNoise TED in roll  [arcsec]
+    DriftTimeScale:                  3600.           # Timescale of RedNoise TED [s]
     DriftFileName:                   inputfiles/drift.txt
 
 
