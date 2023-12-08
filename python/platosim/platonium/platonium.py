@@ -815,6 +815,7 @@ class PLATOnium(object):
         # Calculate radial distance of coordinate away from OA
         self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
                                                                        focalLength));
+        # TODO make rOA limit dependent on SimFile
         if self.rOA > 19.555:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
@@ -1107,9 +1108,11 @@ class PLATOnium(object):
         outputFile = f'{self.outputSimName}.hdf5'
 
         
-        # Save full-frame catalogue for first exposure
+        # FULL-FRAME CCD IMAGE
+        
         if self.fullFrame:
 
+            # Save full-frame catalogue for first exposure
             # Fetch simulation and stellar positions
             f = SimFile(outputFile)
             ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
@@ -1139,7 +1142,8 @@ class PLATOnium(object):
             df.to_feather(f'{self.outputSimName}.ftr')
 
             
-        # Make a animation if requested
+        # SUBFIELD ANIMATION
+        
         if self.animation:
             
             # Adjust number of images to skip and frame rate
@@ -1152,7 +1156,7 @@ class PLATOnium(object):
                                   frameRate=fps,
                                   skipNimages=nskip,
                                   numImages=False,
-                                  colorMap="gist_stern",
+                                  colorMap="magma",
                                   clipPercentile=8.0, 
                                   showStarPositions='PIC',
                                   showMaskOfStarID='1',
@@ -1161,7 +1165,8 @@ class PLATOnium(object):
                                   figsize=(6,6))
 
             
-        # Resources
+        # RESOURCES
+        
         if self.verbose > 0:
 
             # Execution time of module
