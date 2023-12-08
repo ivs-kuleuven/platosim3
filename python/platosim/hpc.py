@@ -36,7 +36,7 @@ class HPC(object):
     """Class for parallisation of PLATOnium functions.
     """
     
-    def __init__(self, project, cpus=8, backend='threading'):
+    def __init__(self, project, cpus=6, backend='threading'):
 
          # PATHS AND INPUT
 
@@ -49,10 +49,8 @@ class HPC(object):
         self.path = Path(__file__).parent.resolve()
         self.idir = self.path.joinpath(os.getenv('PLATO_PROJECT_HOME'), 'inputfiles')
         self.pdir = self.path.joinpath(os.getenv('PLATO_WORKDIR'), project)
-
-        
         self.vardir = self.pdir / 'varsource'
-        
+
         # Software
         self.VARSIM    = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/varsim.py'
         self.PLATONIUM = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
@@ -127,12 +125,22 @@ class HPC(object):
         G = int(params[i,1])
         C = int(params[i,2])
         Q = int(params[i,3])
-
-        # Parse arguments
-        if self.vardir != '':
-            starID = f'{S}'.zfill(9)
-            vararg = f'--varfile {self.vardir}/varsource_{starID}.txt'
-
+        starID = f'{S}'.zfill(9)
+        
+        # Testing MOCKA locally
+        varfile = self.vardir / f'{starID}' / f'varsource_001.txt'
+        vararg = f'--varfile {varfile}'
+        
+        # # Parse arguments
+        # if self.vardir != '':
+        #     starID9 = f'{S}'.zfill(9)
+        #     varfile = self.vardir / f'varsource_{starID}.txt'
+        #     varlist = self.vardir / f'{starID}' / f'varSourceList.txt'
+        #     if varfile.is_file():
+        #         vararg = f'--varfile {varfile}'
+        #     elif varlist.is_file():
+        #         vararg = f'--varlist {varlist}'
+                
         # Run PlatoSim simulation
         os.system(f'{self.PLATONIUM} {S} {G} {C} {Q} --project {self.project} ' +
                   f'-o {self.odir} {vararg} {self.kwargs} -v 0 -w')
