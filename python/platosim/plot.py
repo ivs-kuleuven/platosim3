@@ -3484,11 +3484,11 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
 
             # If requested, add star IDs to plot
             
-            if showStarIDs:
-                for k in range(len(ID)):
-                    label = "{0}".format(ID[k])
-                    ax.annotate(label, (col[k], row[k]), fontsize='small',
-                                fontweight='extra bold', color="black")
+            # if showStarIDs:
+            #     for k in range(len(ID)):
+            #         label = "{0}".format(ID[k])
+            #         ax.annotate(label, (col[k], row[k]), fontsize='small',
+            #                     fontweight='extra bold', color="black")
                     
         # Ensure that the axis limits are properly set
         
