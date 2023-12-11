@@ -1062,10 +1062,30 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         image /= combinedGainRight;
     }
 
+    // The gain introduces a quantistation error: the number of electrons is a multiple of the gain:
+    //           e = ADU * gain
+    // We assume that the true (unknown) number of electrons are somewhere between e - 0.5 gain and e + 0.5 gain,
+    // uniformly distributed. This leads to a quantisation uncertainty with a variance 
+    //           gain^2 / 12
+    // (variance of a uniform distribution).
+
+    double varianceQuant = 0.0;
+    if (subFieldZeroPointColumn < numColumns / 2) {
+        varianceQuant = 1.0/combinedGainLeft / 12.0;
+    } else {
+        varianceQuant = 1.0/combinedGainRight / 12.0;
+    }
+
     // Subtract the sky background
 
     const double skyBackground = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
     image -= throughputMap * skyBackground;                                      // [e-/pixel/exposure]
+
+    // Make sure all image pixels are positive. Because of the Poisson noise and because we subtracted mean values, 
+    // we may sometimes arrrive at negative flux values in a pixel. 
+
+    arma::Mat<arma::uword> isNegative = arma::find(image < 0.0);
+    image(isNegative).zeros();
 
     // Loop over all targets for which you need a lightcurve
 
@@ -1187,8 +1207,10 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     // We assume photon noise, so the variance equals the flux. We multiply by the throughput so that both terms
                     // are expressed in [e-/exposure].
 
-                    varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) * throughputMap(irow, icol) + varianceRON;
                     NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / singleTargetMap(irow, icol);
+                    varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) 
+                                                * throughputMap(irow, icol) 
+                                              + varianceRON + varianceQuant;
                     flatNSRmap.push_back(NSRmap(irow, icol));
                 }
             }
