@@ -248,7 +248,7 @@ Notes on PIC catalogue creation:
         if args.mag is None:
             self.magRange = [0, 21]
         else:
-            self.magRange = ut.convertMagnitudeRange(magRange)
+            self.magRange = ut.convertMagnitudeRange(args.mag)
         
         # Visibility by N-cams
         if args.ncams in [None, 6, 12, 18, 24]:
