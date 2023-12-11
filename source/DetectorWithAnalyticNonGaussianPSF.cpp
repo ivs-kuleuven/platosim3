@@ -1138,13 +1138,18 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             arma::Mat<float> contaminantMap(numRowsPixelMap, numColumnsPixelMap);
 
             // Create a noiseless subfield as if there was only the flux of this single target
+            // Units of singleTargetMap: [photons/exposure]
 
             singleTargetMap.zeros();
             double r = rad2deg(camera.getGnomonicRadialDistanceFromOpticalAxis(xFPtarget, yFPtarget));
             double p = atan2(yFPtarget, xFPtarget);
             bool success = addFluxToMap(singleTargetMap, rowTarget, colTarget, r, p, fluxTarget);
+            if (!success) {
+                Log.error("Detector::applyPhotometry: problem adding PSF to pixel map");
+            }
 
             // Create a noiseless subfield of only the possible contaminants
+            // Units of contaminantMap: [photons/exposure]
 
             contaminantMap.zeros();
 
@@ -1207,10 +1212,10 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     // We assume photon noise, so the variance equals the flux. We multiply by the throughput so that both terms
                     // are expressed in [e-/exposure].
 
-                    NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / singleTargetMap(irow, icol);
                     varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) 
                                                 * throughputMap(irow, icol) 
                                               + varianceRON + varianceQuant;
+                    NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / (singleTargetMap(irow, icol) * throughputMap(irow, icol));
                     flatNSRmap.push_back(NSRmap(irow, icol));
                 }
             }
@@ -1233,11 +1238,12 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
             // Build the mask, starting with the pixel with the best NSR, adding one pixel at the time,
             // with the condition that adding a pixel should contribute more to the aggregated signal than to the aggregated noise.
+            // The aggregatedVariance, aggregatedSingleTargetFlux, and aggregatedObservedTargetFlux all have units [e-/exposure].
 
             // Initialize with the first pixel
 
             double aggregatedVariance            = varianceMap(rowIndex[0], colIndex[0]);
-            double aggregatedSingleTargetFlux    = singleTargetMap(rowIndex[0], colIndex[0]);
+            double aggregatedSingleTargetFlux    = singleTargetMap(rowIndex[0], colIndex[0]) * throughputMap(rowIndex[0], colIndex[0]);
             double aggregatedObservedTargetFlux  = image(rowIndex[0], colIndex[0]);
             double aggregatedNSR                 = NSRmap(rowIndex[0], colIndex[0]);
             maskSizeTarget[starID].push_back(1);
@@ -1249,13 +1255,15 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
             for (int i = 1; i < rowIndex.size(); i++)
             {
-                double temp = sqrt(aggregatedVariance + varianceMap(rowIndex[i], colIndex[i])) / (aggregatedSingleTargetFlux + singleTargetMap(rowIndex[i], colIndex[i]));
+                double temp = sqrt(aggregatedVariance + varianceMap(rowIndex[i], colIndex[i])) 
+                                / (aggregatedSingleTargetFlux 
+                                      + singleTargetMap(rowIndex[i], colIndex[i]) * throughputMap(rowIndex[i], colIndex[i]) );
                 if (temp < aggregatedNSR)
                 {
                     // The aggregated Noise / Signal ratio improved by adding a pixel, so include the pixel in the mask
 
                     aggregatedVariance           += varianceMap(rowIndex[i], colIndex[i]);
-                    aggregatedSingleTargetFlux   += singleTargetMap(rowIndex[i], colIndex[i]);
+                    aggregatedSingleTargetFlux   += singleTargetMap(rowIndex[i], colIndex[i]) * throughputMap(rowIndex[i], colIndex[i]);
                     aggregatedObservedTargetFlux += image(rowIndex[i], colIndex[i]);
                     aggregatedNSR = temp;
                     maskSizeTarget.at(starID).back() += 1;
