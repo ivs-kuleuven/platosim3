@@ -356,7 +356,7 @@ class SimFile (object):
     #--------------------------------------------------------------#
 
 
-    def getMap(self, imageMap, imageNr=None):
+    def getMap(self, imageMap, imageNr=False):
 
         """Get the a simulated image map from the HDF5 file.
 
@@ -399,7 +399,7 @@ class SimFile (object):
 
         # Cases when on or more images are requested
 
-        if imageNr is None:
+        if imageNr is False:
             
             # Fetch images names
 
@@ -2104,7 +2104,7 @@ class SimFile (object):
         
         image = np.array(image)
         if count == 'ADU':
-            clabel = r'Counts [ADU]]'
+            clabel = r'Counts [ADU]'
         elif count == 'kADU':
             clabel = r'Counts [kADU]'
             image  = image / 1000.
@@ -2190,7 +2190,7 @@ class SimFile (object):
                                                                    maxMag=maxMag)
             # Set linewidth of marker
 
-            lw = 0.1 * fontSize
+            lw = 0.08 * fontSize
             
             # Allow differentiating between a target and its contaminants
             
@@ -2212,7 +2212,7 @@ class SimFile (object):
                 # Add magnitude label above star position
                 
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.20), color='darkorange', weight='bold')
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='darkorange', weight='bold')
                     
             # Or hightligth all stars the same
             
@@ -2302,7 +2302,7 @@ class SimFile (object):
         # Plot with or without a slider
 
         if imageNr is False and Nimg > 1:
-
+            
             # Function to update slider
             def update_image(n=0):
                 image = images[n]
@@ -2312,7 +2312,7 @@ class SimFile (object):
             # Create slider
             slider = widgets.IntSlider(description='Image:',
                                        value=0, min=0, max=Nimg-1, step=1,
-                                       layout=widgets.Layout(width='70%'))
+                                       layout=widgets.Layout(width='50%'))
             widgets.interact(update_image, n=slider)
 
         else:
