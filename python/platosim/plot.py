@@ -3323,12 +3323,12 @@ def plotDetectedPlanets():
 
     
 def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
-                          frameRate=50, skipNimages=None, numImages=False,
+                          frameRate=50, dpi=100, skipNimages=None, numImages=False,
                           colorMap="cubehelix", clipPercentile=8.0, 
                           showStarPositions=False, showPointLikeGhostPositions=False,
                           minVmag=None, maxVmag=None,
-                          showStarIDs=False, showMaskOfStarID=None,
-                          useTitle=True, showGrid=True, figsize=(6,6)):
+                          showStarIDs=False, showMaskOfStarID=None, tarMarkerSize=200,
+                          useTitle=True, showGrid=True, fontSize=15, figsize=(6,6)):
 
     """Create and plot an animation of a set of subfields.
 
@@ -3417,47 +3417,78 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         imagePlot.set_clim(np.percentile(image, clipPercentile),
                            np.percentile(image, 100-clipPercentile))
 
-
         # Add either default title or defined by user
+        
         if useTitle:
             time  = cadence/86400 * imgNumber
             title = ax.text(0.5, 1.05, f"Elapsed time: {time:.2f} days",
                             horizontalalignment='center', transform=ax.transAxes)
         elif isinstance(useTitle, str) and int(imgNumber) == 0:
-            ax.set_title(useTitle, fontsize=15)
+            ax.set_title(useTitle, fontsize=fontSize)
 
-        # OVERPLOT STAR POSITIONS
+        # If requiered, overplot a gray semi-transparent grid
+        # Note: this is only meaningsful for smaller imagettes
+
+        if showGrid is True:
+            ax.grid(c='gray', ls='-', alpha=0.3)
+
+        # Overplot rectangles over those pixels that are part of the mask
+        # NOTE: imshow reverses rows and columns
+
+        if showMaskOfStarID is not None:
+            rowIndices, colIndices, _, _, _ = simfile.getApertureMask(showMaskOfStarID, imgNumber)
+            for k in range(len(rowIndices)):
+                rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
+                                         edgecolor='royalblue', facecolor='none', hatch="/",
+                                         zorder=2)
+                ax.add_patch(rect)
+                
+        # If required, overplot the true averaged star positions
 
         if showStarPositions:
 
-            # Extract the arays from HDF5 file
-
             ID, row, col, Xmm, Ymm, flux = simfile.getStarCoordinates(imgNumber-imgNumbers[0])
 
-            # Allow differentiating between a (PIC) target and its contaminants
+            # Set linewidth of marker
+
+            lw = 0.1 * fontSize
+            
+            # Allow differentiating between a target and its contaminants
             
             if showStarPositions == 'PIC':
-                
-                tarMarkerSize = 200
-                mag = -2.5*np.log10(flux)
-                coor_tar = ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
-                                      edgecolor='k', linewidth=1, zorder=4)
-                if len(col) > 1:
-                    conMarkerSize = (tarMarkerSize /
-                                     (mag[1:] - mag[0]*np.ones(len(col)-1))).astype(int)
-                    coor_con = ax.scatter(col[1:], row[1:], s=conMarkerSize, linewidth=1,
-                                          marker='o', c='gold', edgecolor='k', zorder=4)
 
+                mag = -2.5*np.log10(flux) + 25
+                coor_tar = ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
+                            edgecolor='k', linewidth=lw, zorder=4)
+
+                # Scale contaminant circle with area
+                
+                if len(col) > 1:
+                    # Scale contaminant circle with area
+                    conDeltaMag   = mag[1:] - mag[0]
+                    conMarkerSize = tarMarkerSize * (mag[0]/mag[1:])**2
+                    coor_con = ax.scatter(col[1:], row[1:], s=conMarkerSize, marker='o', c='orange',
+                                          edgecolor='k', linewidth=lw, zorder=4)
+
+                # Add magnitude label above star position
+                
+                for m,i,j in zip(mag[1:], col[1:], row[1:]):
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.20), color='darkorange', weight='bold')
+                    
             # Or hightligth all stars the same
             
             else:
-                ax.scatter(col, row, marker='x', c='g')
-                
-            if showStarIDs:
-                for k in range(len(ID)):
-                    label = "{0}".format(ID[k])
-                    ax.annotate(label, (col[k], row[k]), fontsize='small',
-                                fontweight='extra bold', color="black")
+                ax.scatter(col, row, s=int(tarMarkerSize/3), marker='o',
+                           facecolors='royalblue', edgecolors='k',
+                           linewidth=lw, zorder=4)
+
+            # If requested, add star IDs to plot
+            
+            # if showStarIDs:
+            #     for k in range(len(ID)):
+            #         label = "{0}".format(ID[k])
+            #         ax.annotate(label, (col[k], row[k]), fontsize='small',
+            #                     fontweight='extra bold', color="black")
                     
         # Ensure that the axis limits are properly set
         
@@ -3487,24 +3518,6 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
             plt.yticks(np.arange(0, Ncols, 10))
             plt.tight_layout()
             
-        # Overplot rectangles over those pixels that are part of the mask
-        # Note: imshow reverses rows and columns
-
-        if showMaskOfStarID is not None:
-
-            mask = simfile.getApertureMask(showMaskOfStarID, imgNumber)
-            rowIndices, colIndices = mask[0], mask[1] 
-            for k in range(len(rowIndices)):
-                rect = patches.Rectangle((colIndices[k], rowIndices[k]),
-                                          1, 1, linewidth=2.0, edgecolor='b', facecolor='none')
-                mask = ax.add_patch(rect)
-
-        # If requiered, overplot a gray semi-transparent grid
-        # Note: this is only meaningsful for smaller imagettes
-
-        if showGrid is True:
-            ax.grid(c='gray', ls='-', alpha=0.3)
-
         # Add x and y axis labels
         
         plt.xlabel(r'Pixel column, $i$', fontsize=15)
@@ -3528,9 +3541,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
     
     if outputFileName is not False:
         print('Saving animation, be patient..')
-        ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=100)
+        ani.save(f'{outputFileName}.gif', fps=frameRate, dpi=dpi)
 
     # Show animation
-    
-    plt.draw()
-    plt.plot()
+
+    os.system(f'xdg-open {outputFileName}.gif')

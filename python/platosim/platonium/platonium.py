@@ -235,6 +235,7 @@ class PLATOnium(object):
         self.tic0 = datetime.datetime.now()            
 
 
+
             
         
     def load_stars(self):
@@ -814,6 +815,7 @@ class PLATOnium(object):
         # Calculate radial distance of coordinate away from OA
         self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
                                                                        focalLength));
+        # TODO make rOA limit dependent on SimFile
         if self.rOA > 19.555:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
@@ -1106,9 +1108,11 @@ class PLATOnium(object):
         outputFile = f'{self.outputSimName}.hdf5'
 
         
-        # Save full-frame catalogue for first exposure
+        # FULL-FRAME CCD IMAGE
+        
         if self.fullFrame:
 
+            # Save full-frame catalogue for first exposure
             # Fetch simulation and stellar positions
             f = SimFile(outputFile)
             ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
@@ -1138,7 +1142,8 @@ class PLATOnium(object):
             df.to_feather(f'{self.outputSimName}.ftr')
 
             
-        # Make a animation if requested
+        # SUBFIELD ANIMATION
+        
         if self.animation:
             
             # Adjust number of images to skip and frame rate
@@ -1151,7 +1156,7 @@ class PLATOnium(object):
                                   frameRate=fps,
                                   skipNimages=nskip,
                                   numImages=False,
-                                  colorMap="gist_stern",
+                                  colorMap="magma",
                                   clipPercentile=8.0, 
                                   showStarPositions='PIC',
                                   showMaskOfStarID='1',
@@ -1160,7 +1165,8 @@ class PLATOnium(object):
                                   figsize=(6,6))
 
             
-        # Resources
+        # RESOURCES
+        
         if self.verbose > 0:
 
             # Execution time of module
@@ -1190,7 +1196,7 @@ class PLATOnium(object):
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5')
-
+        
         
         # GAPS AND TRANSIENTS
 
@@ -1228,7 +1234,14 @@ class PLATOnium(object):
             if self.verbose > 0:
                 print(f'Running {self.detrend} detrending')
 
-            lc.detrend(model=self.detrend, degree=1, replace=True, plot=self.plotPost)
+            # Avoid destroying stellar signal
+            if len(lc.mask_update_events()) > 1:
+                degree = 1
+            else:
+                degree = 2
+
+            # Perform detrending
+            lc.detrend(model=self.detrend, degree=degree, replace=True, plot=self.plotPost)
             
             if self.verbose > 0:
                 self.tocDetrend = datetime.datetime.now() - self.tic
@@ -1237,10 +1250,11 @@ class PLATOnium(object):
 
         # STITCH MASK-UPDATES
 
-        if self.verbose > 0 :
-            print('Checking for mask-updates to stitch')
-        
-        df = lc.stitch(medpoint=1000, replace=True, plot=self.plotPost)
+        if len(lc.mask_update_events()) > 1:
+            if self.verbose > 0 :
+                print('Checking for mask-updates to stitch')
+
+            lc.stitch(medpoint=1000, replace=True, plot=self.plotPost)
 
 
         # OUTLIER REJECTION
@@ -1277,6 +1291,7 @@ class PLATOnium(object):
         
         # Save dataset
         #df = df.drop(columns=['time'])
+        df = lc.data()
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
