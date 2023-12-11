@@ -248,7 +248,7 @@ Notes on PIC catalogue creation:
         if args.mag is None:
             self.magRange = [0, 21]
         else:
-            self.magRange = ut.convertMagnitudeRange(magRange)
+            self.magRange = ut.convertMagnitudeRange(args.mag)
         
         # Visibility by N-cams
         if args.ncams in [None, 6, 12, 18, 24]:
@@ -344,7 +344,7 @@ Notes on PIC catalogue creation:
 
         self.df0 = pd.read_feather(inputFileTar)
         self.dc0 = pd.read_feather(inputFileCon)
-        
+        self.dx = self.df0
 
     
 
@@ -362,18 +362,23 @@ Notes on PIC catalogue creation:
         else:
             inputFileTar = [self.inputFiles[1]]
             inputFileCon = [self.inputFiles[0]]
-
+            
         # Append each catalog if several are parsed
         N = int(len(self.inputFiles)/2.)
         for i in range(N):
             if i == 0:
-                self.df0 = pd.read_feather(inputFileTar[i])
-                self.dc0 = pd.read_feather(inputFileCon[i])
+                self.df = pd.read_feather(inputFileTar[i])
+                self.dc = pd.read_feather(inputFileCon[i])
             else:
-                self.df0 = pd.concat(self.df, pd.read_feather(inputFileTar[i]))
-                self.dc0 = pd.concat(self.dc, pd.read_feather(inputFileCon[i]))
+                self.df = pd.concat([self.df, pd.read_feather(inputFileTar[i])])
+                self.dc = pd.concat([self.dc, pd.read_feather(inputFileCon[i])])
 
+        # For --incat and sample distribution
+        self.dx  = self.df0
+        self.df0 = self.df
+        
 
+        
 
 
                 
@@ -604,7 +609,7 @@ Notes on PIC catalogue creation:
         if self.plot: plt.show()
 
         # Plot sample distribution in Teff vs. Radius
-        _, ds, sg, dK, dG, dF, sgK, sgG, sgF = self.getStellarClass(self.df0)
+        _, ds, sg, dK, dG, dF, sgK, sgG, sgF = self.getStellarClass(self.dx)
         self.fig2, ax = pt.plotTeffvsRadius(ds, dK, dG, dF, sg, sgK, sgG, sgF, df,
                                             self.title)
         if self.plot: plt.show()
@@ -1175,18 +1180,20 @@ elif args.vizier:
     
 # Query stars from the PIC     
 elif args.pic:
+
+    p.initPIC()
+    p.loadPIC()
     
     # Old picsim catalogue    
-    if args.incat:
+    if args.incat:    
         p.loadOldPIC()
+        p.queryTargetsPIC()
         p.plotTargetsPIC()
         p.plotContaminantsPIC()
         p.prologuePIC()
         
     # New picsim catalogue
     else:
-        p.initPIC()
-        p.loadPIC()
         p.queryTargetsPIC()
         p.plotTargetsPIC()
         p.queryContaminantsPIC()
