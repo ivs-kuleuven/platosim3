@@ -1137,7 +1137,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             arma::Mat<float> singleTargetMap(numRowsPixelMap, numColumnsPixelMap);
             arma::Mat<float> contaminantMap(numRowsPixelMap, numColumnsPixelMap);
 
-            // Create a noiseless subfield as if there was only the flux of this single target
+            // Create a noiseless subfield as if there was only the flux of this single target (throughput not taken into account).
             // Units of singleTargetMap: [photons/exposure]
 
             singleTargetMap.zeros();
