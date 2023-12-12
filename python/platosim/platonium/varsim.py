@@ -275,7 +275,7 @@ class VarSim(object):
             Teff = 5777. * u.K
             logg = 4.5
             Z    = 0.0
-
+            
         if source == 'WASP-33':  # A5 V
             # http://exoplanet.eu/catalog/wasp-33_b/
             M = 1.59 * u.M_sun
@@ -292,6 +292,15 @@ class VarSim(object):
             logg = 4.5
             Z    = 0.0
 
+        #----------------------------------
+
+        if source == 'roAp':
+            M = 1.26 * u.M_sun
+            R = 1.20 * u.R_sun
+            Teff = 6071 * u.K
+            logg = 4.0
+            Z    = 0.0
+        
         if source == 'dSct':
             M = 1.26 * u.M_sun
             R = 1.20 * u.R_sun
@@ -354,7 +363,7 @@ class VarSim(object):
         dT : float
            Day-night temperature contrast [astropy.units]
         """
-
+        
         if source == 'Jupiter':
             # Parameters are drawn from astropy
             params = {'t0': 10 * u.d,
@@ -723,7 +732,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         params = [self.Teff, self.R, self.M, self.L]
-        model  = SolarLikeOscillator(self.time, params, self.idir, seed=False)
+        model  = SolarLikeOscillator(self.time, params, self.idir, seed=self.seed)
 
         # Default scaling relations
         if args.gran is None:
@@ -732,7 +741,7 @@ class VarSim(object):
             args.puls = 'Corsaro2013'
         
         # Model granulation
-        if not args.gran == None:
+        if args.gran is not None:
             params_gran = model.init_granulation(scaling=args.gran)
             self.lc['gran'] = model.eval_granulation() * self.bol_coeff
             self.df['A_gran_ppm'] = ut.rootMeanSquare(self.lc.gran)
@@ -740,7 +749,7 @@ class VarSim(object):
                 print(f'Granulation amplitude : {self.df.A_gran_ppm:.2f} ppm')
 
         # Model stochastic oscillations
-        if not args.puls == None:
+        if args.puls is not None:
             params_puls = model.init_oscillations(scaling=args.puls)
             self.params_puls = params_puls[:3]
             self.lc['puls'] = model.eval_oscillations() * self.bol_coeff
@@ -866,7 +875,7 @@ class VarSim(object):
 
         # Initialize class
         time  = self.time.to('d').value
-        model = SurfaceModulations(time, seed=False)
+        model = SurfaceModulations(time, seed=self.seed)
 
         # Prepare model parameters
         params = model.initToyModel()
@@ -906,7 +915,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = GravityOscillator(time, power=2.2, seed=None) # TODO code is wrong?
+        model = GravityOscillator(time, power=2.2, seed=self.seed) # TODO code is wrong?
         
         # Check if a file with pulsations are parsed
         if args.puls == 'gang2020':
@@ -1640,9 +1649,9 @@ class VarSim(object):
             self.lc['time'] += self.timeStart * 86400
         
         # Variability classes
-        stars    = ['std', 'dSct', 'gDor', 'Ceph']
+        stars    = ['roAp', 'dSct', 'gDor', 'Ceph']
         binaries = ['SMBH']
-            
+
         # Combine all signals for solar-like stars
         if (not self.star in stars and
             not self.binary in binaries and
@@ -2015,7 +2024,7 @@ obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Photometric 
 obs_group.add_argument('--seed',    metavar='INT',  type=int, help='Option to bootstrap seed to reproduce results')
 
 star_group = parser.add_argument_group('STAR PARAMETERS')
-star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star [None, Sun, gDor, dSct, roAp, <Object>]')
+star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star [None, Sun, roAp, <Object>]') # TODO gDor, dSct
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
                         help='Stellar model parameters [M/Msun, R/Rsun, Teff/K, logg/dex, Z/dex]')
 star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, None]')
@@ -2030,7 +2039,7 @@ star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark ec
 
 
 planet_group = parser.add_argument_group('PLANET PARAMETERS')
-planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet [None, Earth, hotJupiter, <object>]')
+planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet [None, Earth, Jupiter, <object>]')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
                           help='Planet model parameters [t0/days, P/days, i/deg, w/deg, Rp/Rearth, Mp/Mearth]')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')

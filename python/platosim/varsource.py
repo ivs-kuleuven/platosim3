@@ -1118,7 +1118,7 @@ class SurfaceModulations(object):
     PLATO passband.
     """
 
-    def __init__(self, time, seed=False):
+    def __init__(self, time, seed=None):
         
         self.time = time
         self.rng  = ut.rng(seed)

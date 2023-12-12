@@ -67,7 +67,7 @@ def rng(seed=None):
     if seed is None:
         return np.random.default_rng()
     else:
-        return np.random.default_rng(seed)        
+        return np.random.default_rng(seed=seed)        
 
 
 
