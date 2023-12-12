@@ -2411,16 +2411,16 @@ class SimFile (object):
 
 
     
-    def showPSF(self, datasetName, showPixelGrid=False,
-                colorBar=True, colorMap="gist_stern",
-                useTitle=False, figsize=(7,6)):
+    def showPSF(self, datasetName, rebinToPixels=False, normalizeHighestPixelValue=False, showPixelGrid=False, colorBar=True, 
+                colorMap="gist_stern", useTitle=False, figsize=(7,6)):
 
         """Plot the requested PSF.
 
-        INPUT: datasetName: the name of the dataset that contains the PSF in the HDF5 file
-               This is set by the Simulator and is currently:
-                    rebinnedPSFpixel, rebinnedPSFsubPixel,  or  rotatedPSF
-               useTitle: True is a title should be plotted, False otherwise
+        INPUT: datasetName:                the name of the PSF. Currently either: "highResPSF" or "diffusedPSF"
+               rebinToPixels:              True if the subpixel PSF is to be rebinned to pixel level.
+                                           Rebinning is done by summing the subpixel values within each pixel.
+               normalizeHighestPixelValue: rescale the PSF so that the highest pixel has value 1.0
+               useTitle:                   True is a title should be plotted, False otherwise
 
         OUTPUT: None
         """
@@ -2432,15 +2432,24 @@ class SimFile (object):
 
 
         psf = np.rot90(np.fliplr(self.getPSF(datasetName)))
-        Nrows, Ncols = psf.shape
+
+        # If requested: rebin to pixel level. Recall that the original pixel contains 8 pixels (square)
+        # each of 128 subpixels.
+
+        if rebinToPixels:
+            psf = psf.reshape(8,128,8,128).sum(axis=3).sum(axis=1)
+
+        # If requested: rescale the PSF so that the highest pixel value is 1.0. This makes the colorbar easier to read.
+
+        if normalizeHighestPixelValue:
+           psf /= psf.max()
 
         # Plot the image.
 
         fig, ax = plt.subplots(1, 1, sharex=True, sharey=True, figsize=figsize)
 
-
-        image = ax.imshow(psf, cmap=colorMap, interpolation="nearest",
-                          origin='lower', extent=[0, Nrows, 0, Ncols])
+        Nrows, Ncols = psf.shape
+        image = ax.imshow(psf, cmap=colorMap, interpolation="nearest", origin='lower', extent=[0, Nrows, 0, Ncols])
 
         # If requested, set a default title
 
@@ -2452,14 +2461,17 @@ class SimFile (object):
         # If requested, set colorbar
 
         if colorBar:
-            cbar = plt.colorbar(image, orientation='vertical', extend='max',
-                                cmap=colorMap, aspect=15, fraction=0.06)
+            cbar = plt.colorbar(image, orientation='vertical', extend='max', cmap=colorMap, aspect=15, fraction=0.06)
             cbar.formatter.set_powerlimits((0, 0))
             
         # Labels
 
-        ax.set_xlabel(r"$x$ [subpixel]")
-        ax.set_ylabel(r"$y$ [subpixel]")
+        if rebinToPixels:
+            ax.set_xlabel(r"$x$ [pixel]")
+            ax.set_ylabel(r"$y$ [pixel]")
+        else:
+            ax.set_xlabel(r"$x$ [subpixel]")
+            ax.set_ylabel(r"$y$ [subpixel]")
 
         # Limits
 
