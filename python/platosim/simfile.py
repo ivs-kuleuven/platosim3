@@ -430,6 +430,9 @@ class SimFile (object):
     def getPSF(self, psfName):
 
         """Get the PSF from the HDF5 file.
+
+        INPUT: psfName: either "highResPSF" or "diffusedPSF"
+
         """
 
         return self.getMap(psfName, imageNr=0)
@@ -1031,6 +1034,7 @@ class SimFile (object):
 
         Parameters
         ----------
+        groupName: either "StarPositions", "PointLikeGhostPositions", or "ExtendedGhostPositions"  
         imageNr : int 
             Integer sequential number of the image in the HDF5 file.
         minMag : int, float
