@@ -3,7 +3,7 @@ Tutorials
 
 PLATOnium is PlatoSim's user friendly command-line interface to quickly setup a large scale multi-camera and multi-quarter simulation, using the PLATO Input Catalogue (PIC), stellar variability input, and realistic instrumental systematics. Thus, almost all simulations will involve the four following steps provided by the software:
 
-#. ``picsim``    : Tool to generate a PIC star catalogue
+#. ``picsim``    : Tool to generate stellar catalogues
 #. ``varsim``    : Tool to generate noise-less light curves
 #. ``payload``   : Tool to generate instrumental systematics
 #. ``platonium`` : Tool to run a PlatoSim multi-camera and multi-quarter simulation
@@ -38,9 +38,16 @@ picsim
 
 **Create a customised PIC**
 
-To speed up the process of running realistic simulations a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the `asPIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_  created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
+To speed up the process of running realistic simulations a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the PLATO Input Catalogue (PIC) created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
 
-Since ``picsim`` relies on the old version of asPIC, currently stars can only be drawn from the old North PLATO Field (NPF; :math:`l=65^{\circ}`, :math:`b=+30^{\circ}`) and South PLATO Field (SPF; :math:`l=253^{\circ}`, :math:`b=-30^{\circ}`). A total number of :math:`302\,743` PLATO targets compose the PIC samples (P1, P2, P4, and P5), of which :math:`8\,587\,898` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below shows all P1 sample stars from both the NPF and SPF colour coded by their magnitude.
+The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and (accodingly called PLATO Fields from the) `PIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_). Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
+
+- LOP South 2 (LOPS2): :math:`\ \ \ \ \ \   \alpha = \ \ 95.31043^{\circ}, \ \ \ \ \ \ \delta=-47.88693^{\circ}, \ \ \ \ \ \ \ \kappa=+13.9947^{\circ}`
+- LOP North 1 (LOPN1): :math:`\ \ \ \ \ \ \ \alpha = 277.18023^{\circ},    \ \ \ \ \ \ \delta=+52.85952^{\circ}, \ \ \ \ \ \ \ \kappa=-13.9947^{\circ}`
+- South PLATO Field (SPF): :math:`\alpha = \ \ 86.79870508^{\circ}, \, \delta=-46.39594703^{\circ}, \,  \kappa=+10.0^{\circ}`
+- North PLATO Field (NPF): :math:`\alpha = 265.08002279^{\circ},    \, \delta=+39.5836954^{\circ},  \ \ \kappa=-10.0^{\circ}`
+
+These catalogues compose more than :math:`300\,000` PLATO targets from the samples (P1, P2, P4, and P5), of which more than :math:`8\,000\,000` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below illustrates all P1 sample stars from from the PIC 1.1.0 colour coded by their magnitude.
 
 .. image:: ../figures/platonium_P1SampleAllsky.png
    :align: center
@@ -52,43 +59,51 @@ Since ``picsim`` relies on the old version of asPIC, currently stars can only be
 
    picsim -h
       
-**Prelook:** As a simple example, say we want to create a catalogue of 100 P1 stars from the SPF. As a sanity check you can parse the flag ``-t`` which produce a few plots of your *target* star selection. If you also want to see the number statistic for the contaminants simply parse the plotting flag ``-p`` instead. Hence try to launch the following commands yourself:
-   
-.. code-block::
-
-   picsim 100 P1 SPF -t
-   picsim 100 P1 SPF -p
-
 **General examples:** To elaborate on the usage, we here show a few useful examples:
   
 .. code-block::
 
-   picsim 100 P1 NPF --group 1 --camera 24 --project <project_name>
-   picsim 100 P5 SPF --spec G --lum V --mag 9.5-12.2 -o </path/to/outdir>
-   picsim all P1 NPF --mag_limit 18 --dis_limit 30 -o </path/to/outdir>
+   picsim --pic 100 P1 LOPN1 --group 1 --ncams 24 --project <project_name>
+   picsim --pic 100 P5 LOPN1 --dist 30 --dmag 8   --project <project_name>
+   picsim --pic all P1 LOPS2 --spec G  --lum V --mag 9.5-11.2 -o </path/to/outdir>   
    
-* In the first example we draw 100 P1 stars from the NPF but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs.
-* In the second example we draw 100 P5 stars from the SPF but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.
-* In the last example we select all P1 stars from the NPF but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
+* In the first example we draw 100 P1 stars from the LOPN1 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs.
+* In the second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
+* In the last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.
 
 Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges the stellar catalogues are saved to the binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``).
 
-**Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` again using the argument ``-i`` as follows:
+**Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` again using the argument ``--incat`` as follows:
 
 .. code-block::
 
-   picsim all all SPF -i </path/to/indir>/starcat**.ftr --project <project_name> -p
+   picsim --pic all all LOPS2 --incat </path/to/indir>/starcat**.ftr --project <project_name> -p
 
-Note we here use the asteriks ``**`` to specify that all files should start with ``starcat`` (which is the default output prefix of ``picsim``) and all files needs to be in feather format ``.ftr``. To make sure that all targets are selected we have here slected ``all`` for the two first mandatory arguments. Currently it is **not** possible to combine catalogues from different PLATO pointing fields.
+Note we here use the asteriks ``**`` to specify that all files should start with ``starcat`` (which is the default output prefix of ``picsim``) and all files needs to be in feather format ``.ftr``. To make sure that all targets are selected we have here selected ``all`` for the two first mandatory arguments. Currently it is **not** possible to combine catalogues from different PLATO pointing fields.
 
+**Query a Simbad object:** It is possible to query a circular celestial sky region around a known object from the `CDS/Simbad <http://simbad.cds.unistra.fr/simbad/>`_ database. E.g. say that we want to query the star Mizar and all it stellar contaminants that are within a radial distance of 60 arcsec and no brighter than 5 mag compared to Mizar, we simple use: 
 
+.. code-block::
 
+   picsim --simbad Mizar --dist 60 --dmag 5 --project <project_name> -p
 
+**Query a PLATO pointing field:** In order to generate realistic simulations of full-frame CCD images with PlatoSim, we have expanded the query method to include large celestial regions than combined over a full PLATO field. Although this options queries stars from the Gaia DR3, it is just yet another `CDS/VizieR <https://vizier.cds.unistra.fr/viz-bin/VizieR>`_, and hence this query option is doubted ``vizier``. Say we want to query Gaia stars from the LOPS2, simply use:
+
+.. code-block::
+
+   picsim --vizier LOPS2 --project <project_name> -p
+
+By default only Gaia star fainter than 15 mag are queried, but, like before, you can alter this. We recommend to create seperate catalogues if stars fainter than 15 mag are needed and then combine these catalogues, instead of quering all star say up to 18 mag in one go (the Gaia query method has a maximum number of targets typically exceeded if quering stars fainter 16 mag for PLATO fields close to the Galactic plane).
 
 .. raw:: html
 
    <hr>
 
+
+
+
+
+   
 .. _varsim:
 
 varsim
@@ -122,36 +137,35 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
 
 .. code-block::
 
-   varsim --star_params 5777 4.5 0.0 --planet_params 100 50 0 90 0 1 1 --time 365 -p
-   varsim --star_params 5777 4.5 0.0 --planet_params 100 50 0 90 0 1 1 --quarter 1-8 -o </path/to/varsource.txt>
+   varsim --star_params 1 1 5777 4.5 0.0 --planet_params 100 50 0 90 0 1 1 --time 365 -p
+   varsim --star_params 1 1 5777 4.5 0.0 --planet_params 100 50 0 90 0 1 1 --quarter 1-8 -o </path/to/varsource.txt>
 
 In both examples we parse the stellar- and planet parameters, respectively. Note that the ``--quarter`` argument represent mission quarters (i.e. one 1 quarter is 30 days) and, if invoked, this argument overwrites the ``--time`` argument (likewise given in units of days). The quarter arguments is especially handy as it allows you to e.g. produce noise-less light curves with a time column suited for simulations starting beyond mission BOL (e.g. use ``--quarter 5-8`` to get a ligth curve starting after one year of mission BOL).
 
-Intuitively the the user always needs to parse a star argument: either ``--star`` or ``--star_params``. By default the granulation and pulsation signals are activated, but all other stellar vaiability signals (i.e. spots for now) needs to be activated by parsing the corresponding flag. You can exclude the granulation and pulsations independetly by parsing ``none`` as argument for their scaling relations:
+..
+   Intuitively the the user always needs to parse a star argument: either ``--star`` or ``--star_params``. By default the granulation and pulsation signals are activated, but all other stellar vaiability signals (i.e. spots for now) needs to be activated by parsing the corresponding flag. You can exclude the granulation and pulsations independetly by parsing ``none`` as argument for their scaling relations:
+
+   .. code-block::
+
+      varsim --star_params 1 1 6000 4.5 0.0 --gran none --puls none --spot --time 100 -p
+
+   This example shows how to include only stellar spot modulation in the final light curve.
+
+
+   **Case studies:** To make it easier for the user to quickly fetch a favorit star-planet system, it is possible to respectively save your favorit star and your favorit planet to the file ``source_star.py`` and ``source_plaent.py`` placed in the folder ``$/python/platosim/varsim``. Simply copy one of the existing code block starting with ``source == "<name>"`` and add the star/planet parameters. Note you need to obey the unit convention by `Astropy <https://www.astropy.org/>`_ (i.e. multiplying with ``u.<unit>``). A few systems exists by default, and you can likewise cross-match different systems such as: 
+
+   .. code-block::
+
+      varsim --star Sun --planet CoRoT-1b --time 30 -p
+
+
+**Photometric standards:** Photometric standard stars can be simulated by the following example:
 
 .. code-block::
 
-   varsim --star_params 6000 4.5 0.0 --gran none --puls none --spot --time 100 -p
-
-This example shows how to include only stellar spot modulation in the final light curve.
-
+   varsim --star roAp --quarter 2-4 -p
    
-**Case studies:** To make it easier for the user to quickly fetch a favorit star-planet system, it is possible to respectively save your favorit star and your favorit planet to the file ``source_star.py`` and ``source_plaent.py`` placed in the folder ``$/python/platosim/varsim``. Simply copy one of the existing code block starting with ``source == "<name>"`` and add the star/planet parameters. Note you need to obey the unit convention by `Astropy <https://www.astropy.org/>`_ (i.e. multiplying with ``u.<unit>``). A few systems exists by default, and you can likewise cross-match different systems such as: 
-
-.. code-block::
-
-   varsim --star Sun --planet CoRoT-1b --time 30 -p
-
-
-**Photometric standards:** Regarding photometric standard stars the following examples are two potential solutions:
-
-.. code-block::
-
-   varsim --quarter 2-4 -p
-   varsim --star std --quarter 2-4 -p
-   
-By parsing nothing else than the time/quarter duration, the first example is simply a constant star. The second example calls a simple script that models a short-period rotationally modulated
-A type (Ap) star as simple sinusoidal vairations with occasional contribution of the second harmonic. The rotational period is randomly drawn from a uniform distribution between 1-3 days and we assume that a typically distribution of 10-30 mmag in the Kepler passband (due to current limited knowledge of the typical amplitudes of these stars in the PLATO passband).
+This is a simple toy model of a short-period rotationally modulated A-type (Ap) star. The model includes a simple sinusoidal vairation with an occasional contribution of the second harmonic. The rotational period is randomly drawn from a uniform distribution between 1-3 days and we assume that a typically distribution of 10-30 mmag in the Kepler passband (due to current limited knowledge of the typical amplitudes of these stars in the PLATO passband).
 
 
 
@@ -209,7 +223,7 @@ Note also the lenght of each data gap event is randomly drawn to match closer to
    
 .. code-block::
 
-   payload --project <project_name> -p
+   payload 100 LOPS2 --project <project_name> -p
 
 While using the ``--project`` output path, the files will be generated directly into your working directory and will immediately be known and used when running ``platonium`` later.
    
@@ -255,7 +269,6 @@ This script uses the PIC targets and their contaminants (created with ``picsim``
 	          └── varSourceFile.txt
 
    When set properly, one can simply parse the argument ``--project <project_name>`` to ``platonium`` and all files within ``</path/to/plato_workdir/project_name>`` will be read automatically.  
-
 #. The general rule while using ``platonium`` is that any argument parsed from the terminal will overwrite the configured parameter within your ``inputfile.yaml`` if it exists. E.g. the optional input argument ``--cadence <cycle_time>`` will overwrite the parameter called ``CycleTime`` given in the input YAML file.
  
 **Usage function:** To get an overview of its usage simply type:
@@ -292,3 +305,23 @@ In the first example we change the default cadence from 25s to 50s. Next example
    platonium 3 2 6 24 --project <project_name> --varlist </path/to/varSourceList.txt>
 
 Notice the difference between ``varSourceFile`` and ``varSourceList``. The first is the ascii file containing the noise-less light curve, and the lastter is a ascii file containing the star indices as a first column and the full path and filename of each ``varSourceFile`` you want to include. Thus, first example only adds a variable signal for your target stars, whereas the second example can be used to include variable signals for the stellar contaminants as well (particularly important to get a realistic distribution of *false-positive* detections of exoplanet transits).
+
+
+**Full-frame CCD images:** Given that you have generated a stellar catalogue using ``picsim --vizier``, it is possible to generate full-frame CCD images with ``platonium`` (as seen in the figure below of the LOPS2 observed with all four CCDs of camera group 4).
+
+.. image:: ../figures/fullFrameImage.png
+   :align: center
+   :width: 800
+
+Compared to the general usage of ``platonium``, we only have to two changes:
+
+1. The first argument of the four mandatory arguments is now representing the CCD ID (i.e. :math:`n_{\text{CCD}} \in \{1, 2, 3, 4\}`) and not the target ID.
+2. The full-frame mode has to be activated by parsing the argument ``--fullframe``.
+
+Hence, an example-call is:
+
+.. code-block::
+
+   platonium 1 4 1 1 --fullframe --nexp 1 --project <project_name>
+
+In this example we simulate CCD 1, N-CAM 4.1 for the first exposure of mission quarter 1 (which is the CCD for which the LMC is located in the above figure). Depending on how many (million of) stars that your star catalogue include, a single exposure may take anything from 15 minutes to several hours. More information about the structure of the output files, please consult the technical note `PLATO-DLR-PL-TN-0108 <https://s2e2.cosmos.esa.int/confluence/display/PPWS/Simulated+datasets?preview=/173005308/528416806/PLATO-DLR-PL-TN-0108_i1.0draft1_DPS_simulations.pdf>`_.

@@ -119,9 +119,9 @@ For the normal cameras, the latter is the total readout time; for the fast camer
 
 Flux of a star of zero magnitude (:math:`m_{\lambda} = 0`) in the passband of the magnitudes that are listed in the star catalogue below.
 
-For an exposure of :math:`t_{\rm exp}` seconds, the measured flux :math:`F_{\gamma}` of a star, expressed in photons :math:`\gamma`, is computed from its catalogue magnitude :math:`m_{\lambda}`, the effective light-collecting area :math:`A` (in :math:`\text{cm}^2`) of the telescope, the transmission efficiency :math:`T_{\lambda}` of the optical system, the quantum efficiency :math:`Q` of the detector, and the flux per second :math:`F_0` of a star with zero magnitude (:math:`m_{\lambda} = 0`) from the equation:
+For an exposure of :math:`t_{\rm exp}` seconds, the measured flux :math:`F_{\gamma}` of a star, expressed in photons :math:`\gamma`, is computed from its catalogue magnitude :math:`m_{\lambda}`, the effective light-collecting area :math:`A` (in :math:`\text{cm}^2`) of the telescope, the transmission efficiency :math:`T_{\lambda}` of the optical system, the quantum efficiency :math:`Q_{\lambda}` of the detector, and the flux per second :math:`F_0` of a star with zero magnitude (:math:`m_{\lambda} = 0`) from the equation:
 
-:math:`F_{\lambda} = t_{\rm exp} \ F_0\ T_{\lambda}\ Q \ A \ 10^{-0.4 \, m_{\lambda}}` 
+:math:`F_{\lambda} = t_{\rm exp} \ F_0\ T_{\lambda}\ Q_{\lambda} \ A \ 10^{-0.4 \, m_{\lambda}}` 
 
 where the :math:`\lambda` refers to the wavelength range in which the simulation is performed.
 
@@ -275,7 +275,7 @@ The **Platform** block of the configuration file contains all the information th
 
 **Orientation:**
 
-The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (:math:`\alpha`, :math:`\delta`, :math:`\kappa`) or using so-called a `Quaternion <https://en.wikipedia.org/wiki/Quaternion>`_.
+The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (:math:`\alpha`, :math:`\delta`, :math:`\kappa`) or using a so-called `Quaternion <https://en.wikipedia.org/wiki/Quaternion>`_.
      
   Angles/**RApointing:** :guilabel:`Allowed values` :math:`\alpha \in [0, 360]` deg
 
@@ -289,7 +289,7 @@ The orientation of the spacecraft can be configured either through the the sky (
 
   Orientation angle of the solar panel. This is the roll angle of the platform, which enables orienting the solar panels towards the Sun each quarter, i.e. at the beginning of each quarter the roll angle must be increased by 90 degrees (being either 0, 90, 180, and 270). Note that to properly account for the re-orientation of the solar panels, simulations must be chopped up in chunks of maximum three months (one mission quarter).
 
-  Quaternion/**Components:** :guilabel:`Allowed values` :math:`\in [-1, 1]` for all 4 component. 
+  Quaternion/**Components:** :guilabel:`Allowed values` :math:`\in [-1, 1]` for all four component. 
 
   A unit quaternion to transform from the equatorial to the platfrom reference frame.
   
@@ -338,11 +338,11 @@ Timescale of the jitter (i.e. time between two subsequent jitter positions). Thi
 If ``JitterSource = FromFile``, a jitter time series must be provided in a file ascii format. This file should contain four columns, separated by a space, holding the following information:
 
 * Time  [s]
-* Yaw   [arsec]
+* Yaw   [arcsec]
 * Pitch [arcsec]
 * Roll  [arcsec]
 
-.. attention::
+.. warning::
 
    To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the exposure time. 
 
@@ -391,13 +391,13 @@ The telescope group identifier can be used to select a camera group. As shown in
 
    **Fig. 4**: FOV for the different camera groups.
 
-**TiltAngle:** :guilabel:`Allowed values` :math:`\in` [0, 90] deg
+**TiltAngle:** :guilabel:`Allowed values` :math:`\in [0, 90]` deg
 
 Tilt angle of the telescope. This angle, together with the azimuth angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used if ``GroupID = Custom``.
 
 The tilt angle is the offset between the camera optical axis and the platform pointing, i.e. the angle between the camera line-of-sight (positive :math:`Z_{\rm CAM}` axis and the positive :math:`Z_{\rm PLM}` axis (see Fig. 4).
 
-**AzimuthAngle:** :guilabel:`Allowed values` :math:`\in` [0, 360] deg
+**AzimuthAngle:** :guilabel:`Allowed values` :math:`\in [0, 360]` deg
 
 Azimuth angle of the telescope, expressed in degrees. This angle, together with the tilt angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used if ``GroupID = Custom``.
 
@@ -417,11 +417,11 @@ Light-collecting area of one telescope.
 
 The transmission efficiency of the optical system, considering the passband and the spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue degrades linearly over the mission lifetime. The following two parameters are used to model the (linear) degradation in transmission efficiency over the mission lifetime:
 
-  TransmissionEfficiency/**BOL:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  TransmissionEfficiency/**BOL:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue, at the beginning of the mission (BOL).
 
-  TransmissionEfficiency/**EOL:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  TransmissionEfficiency/**EOL:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the ``Fluxm0`` parameter and the magnitudes in the star catalogue, at the end of the mission (EOL).
 
@@ -440,7 +440,7 @@ The Euler angles (yaw, pitch, roll) are defined as the rotation angles around th
    **Fig. 6**: Reference transformation from the platform to the camera reference system.
 
 
-The camera reference frame can be obtained from the payload module reference frame by first rotating the :math:`(X_{\rm PLM} \,,Y_{\rm PLM})` plane around the pointing axis :math:`Z_{\rm PLM}` over an angle :math:`\eta_{\rm CAM}` (left panel), then rotating the resulting :math:`Z'_{\rm PLM}` axis over a tilt angle :math:`\rho_{\rm CAM}` around the :math:`Y'_{\rm PLM}` axis (middle panel), and finally rotating over an angle :math:`2π − \eta_{\rm CAM} = -\eta_{\rm CAM}` around the :math:`Z''_{\rm PLM}` (right panel).
+The camera reference frame can be obtained from the payload module reference frame by first rotating the :math:`(X_{\rm PLM} \,,Y_{\rm PLM})` plane around the pointing axis :math:`Z_{\rm PLM}` over an angle :math:`\eta_{\rm CAM}` (left panel), then rotating the resulting :math:`Z'_{\rm PLM}` axis over a tilt angle :math:`\rho_{\rm CAM}` around the :math:`Y'_{\rm PLM}` axis (middle panel), and finally rotating over an angle :math:`(2π − \eta_{\rm CAM} = -\eta_{\rm CAM})` around the :math:`Z''_{\rm PLM}` (right panel).
 
 **DriftSource:** :guilabel:`Allowed values` ``FromRedNoise`` and ``FromFile``
 
@@ -470,7 +470,7 @@ Timescale of the drift (i.e. time between two subsequent drift positions). This 
 If ``DriftSource = FromFile``, camera drift file must be provided in ascii format. This file should contain four columns, separated by a space, holding the following information:
 
 * Time  [s]
-* Yaw   [arsec]
+* Yaw   [arcsec]
 * Pitch [arcsec]
 * Roll  [arcsec]
 
@@ -550,7 +550,7 @@ The optical axis :math:`Z_{\rm FP}` is the blue dot in the middle of the 4 CCDs 
 
   Indicates whether the value of the focal-plane orientation angle must be constant or is allowed to vary over time, according to the values read from a file.
 
-  FocalPlaneOrientation/**ConstantValue:** :guilabel:`Allowed values` :math:`\in` [0, 360] deg
+  FocalPlaneOrientation/**ConstantValue:** :guilabel:`Allowed values` :math:`\in [0, 360]` deg
 
   Orientation angle of the focal plane. This entry is only applicable if ``FocalPlaneOrientation/Source = ConstantValue``.
   
@@ -605,7 +605,7 @@ The calculation of the aberration correction is based on a elliptic earth orbit 
   The orbit file needs to be provided in ascii format and consist of four columns, each seperated by a space:
 
   * Time [s]
-  * Coordinates of the spacecraft :math:`(x, y, z)` []
+  * Coordinates of the spacecraft :math:`(x, y, z)`
   * Velocity of the spacecraft :math:`(v_x, v_y, v_z)` [m/s]
   * Speed of the spacecraft [m/s].
 
@@ -626,11 +626,11 @@ The field distortion is represented by Distortion model from `Wang et al. (2007)
 
   Indicates that the field distortion is calculated from a ``ConstantVlaue`` (constant in time) or ``FromFile`` (time dependent). The latter needs to be a time series of the field distortion coefficients and their inverse in two files in ascii format. 
 
-  FieldDistortion/**ConstantCoefficients:** :guilabel:`Allowed values` Any number
+  FieldDistortion/**ConstantCoefficients:** :guilabel:`Allowed values` :math:`\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}\}`
 
   Coefficients for the Wang model that converts the normalised undistorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the distortion, expressed in normalised pixel coordinates. This entry is only applicable if ``FieldDistortion/Source = ConstantValue``.
   
-  FieldDistortion/**ConstantInverseCoefficients:** :guilabel:`Allowed values` Any number
+  FieldDistortion/**ConstantInverseCoefficients:** :guilabel:`Allowed values` :math:`\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}\}`
 
   Inverse coefficients for the Wang model that converts the normalised distorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the (negative) distortion, expressed in normalised pixel coordinates. This entry is only applicable if ``FieldDistortion/Source = ConstantValue``.
   
@@ -812,7 +812,7 @@ The following parameters are only applicable if ``Model = AnalyticNonGaussian``:
       
 **AnalyticGaussian:**
 
-.. attention::
+.. warning::
 
    Note that this very crude model was used for beta-testing and is thus not recommend!
 
@@ -905,7 +905,7 @@ The actual gain for the FEE will be different for both ADCs. A reference value i
 
   Change in gain (for both ADCs) with temperature deviations from the nominal operating temperature
 
-  Gain/**AllowedDifference:** :guilabel:`Allowed values` :math:`\in` [0, 100] :math:`\%`
+  Gain/**AllowedDifference:** :guilabel:`Allowed values` :math:`\in [0, 100] \%`
 
   Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.
   
@@ -925,13 +925,13 @@ The electronic offset or bias level is added to the digital signal in order to a
 
 Indicates whether or not to include F-FEE over-/undershoot.
 
-.. attention::
+.. warning::
 
-   Currently only availble for fast cameras (``GroupID = Fast``). 
+   Over-/undershoot is currently only availble for fast cameras (``GroupID = Fast``). 
 
 **OverAndUnderShoot:**
 
-Over-/undershoot has been noticed in F-FEE measurements. Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance :math:`\Delta x`. For a difference in signal between two such pixels, :math:`\Delta S`, the induced over-/undershoot will be
+Over-/undershoot has been noticed in F-FEE measurements. Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance :math:`\Delta x`. For a difference in signal between two such pixels, :math:`\Delta S`, the induced over-/undershoot will be:
 
 :math:`a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}.`
 
@@ -987,7 +987,8 @@ Both detector halves are treated independently.
 	 RefValueLeft:                2.14            
 	 RefValueRight:               2.21            
 	 Stability:                   -0.001          
-	 AllowedDifference:           15.0            
+	 AllowedDifference:           15.0
+         Nonlinearity:                [0.0, -0.0042789409, 0.0000002365]
      QuantumEfficiency:
 	 MeanQuantumEfficiency:       0.6218          
 	 MeanAngleDependency:         1.01            
@@ -1055,8 +1056,9 @@ Both detector halves are treated independently.
      IncludeFullWellSaturation:       yes             
      IncludeDigitalSaturation:        yes             
      IncludeQuantisation:             yes             
+     IncludeGainNonlinearity:         yes
 
-     
+   
 **Position:** :guilabel:`Allowed values` ``1``, ``2``, ``3``, ``4``, and ``Custom``
 
 The CCD position can be used to select a specific predefined CCD or a custom one. The predefined CCD positions are shown in the Fig. 11 and 12.
@@ -1075,16 +1077,16 @@ The CCD position can be used to select a specific predefined CCD or a custom one
 
 When you specify ``Position=Custom``, the origin offset ``OriginOffsetX`` and ``OriginOffsetY``, the orientation, number of rows, and columns, and the first exposed row of the CCD are read from the configuration parameters in the :ref:`CCD block <run_input_parameters_ccdpos>`. 
 
-**OriginOffsetX:** :guilabel:`Allowed values` Any [mm]
+**OriginOffsetX:** :guilabel:`Allowed values` :math:`\in \mathbb{R}` mm
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction. The origin of the CCD is defined as the point where the readout register is located. See Fig. 7 for more details (:math:`\Delta x_{\rm CCD}`). Parameter used if ``Position = Custom``.
 
-**OriginOffsetY:** :guilabel:`Allowed values` Any [mm]
+**OriginOffsetY:** :guilabel:`Allowed values` :math:`\in \mathbb{R}` mm
 
 Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction. The origin of the CCD is defined as the point where the readout register is located. See Fig. 7 for more details (:math:`\Delta y_{\rm CCD}`). Parameter used if ``Position = Custom``.
 
 
-**Orientation:** :guilabel:`Allowed values` :math:`\ge` [0, 360] deg
+**Orientation:** :guilabel:`Allowed values` :math:`\in [0, 360]` deg
 
 Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 7 for more details (:math:`\gamma_{\rm CCD}`). Parameter used if ``Position = Custom``
 
@@ -1100,7 +1102,7 @@ Number of pixels of the CCD in the y-direction (i.e. number of rows). Parameter 
 
 Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0). Parameter used if ``Position = Custom``.
 
-**TimeShift:** :guilabel:`Allowed values` :math:`\ge 0` sec
+**TimeShift:** :guilabel:`Allowed values` :math:`\ge 0` s
 
 Time shift between the readout of the CCDs [s]. Parameter used if ``Position = Custom``.
 
@@ -1110,7 +1112,7 @@ Nominal pixel size.
 
 **BFE:**
 
-The Brighter-Fatter Effect (BFE) is modelled following the method proposed in `Guyonnet et al. 2015 <https://arxiv.org/abs/1501.01577>`_.
+Brighter-Fatter Effect (BFE) modelled following the method proposed by `Guyonnet et al. 2015 <https://arxiv.org/abs/1501.01577>`_.
 
   BFE/**CoefficientsFileName:** Path to _`BFE Coefficients` file
 
@@ -1128,44 +1130,51 @@ The actual gain for the CCD will be different for both detector halves. A refere
 
   Reference value of the gain of ACD2 of the FEE at its nominal operating temperature.
 
-  Gain/**Stability:** :guilabel:`Allowed values` Any [:math:`\mu\text{V}/\text{e}^-/\text{K}`]
+  Gain/**Stability:** :guilabel:`Allowed values` :math:`\in \mathbb{R} \ \mu\text{V}/\text{e}^-/\text{K}`
 
   Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature.
 
-  Gain/**AllowedDifference:** :guilabel:`Allowed values` :math:`\text{[0, 100]} \,\, \mu\text{V}/\text{e}^-`.
+  Gain/**AllowedDifference:** :guilabel:`Allowed values` :math:`\in [0, 100] \ \mu\text{V}/\text{e}^-`.
 
   Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.
 
+  Gain/**Nonlinearity:** :guilabel:`Allowed values` :math:`\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}\}`
+
+  CCD gain non-linearity model coefficients of the polynomial:
+
+  :math:`O = B + I + a0 + a_1 \cdot I + a_2 \cdot I^2`,
+
+  with :math:`O` being the output signal [ADU], :math:`B` the bias level [ADU], and :math:`I` is the input signal [ADU].
+  
 **QuantumEfficiency:**
 
 Quantum efficiency is the ratio of the number of collected electrons to the number of incident photons, considering the passband and the spectral energy distribution of the stars given the ``Fluxm0`` and the magnitude of the stars in the star catalogue.
 
-  QuantumEfficiency/**MeanQuantumEfficiency:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  QuantumEfficiency/**MeanQuantumEfficiency:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).
 
-  QuantumEfficiency/**MeanAngleDependency:** :guilabel:`Allowed values` :math:`\in` [1, 2]
+  QuantumEfficiency/**MeanAngleDependency:** :guilabel:`Allowed values` :math:`\in [1, 2]`
 
   Reference angle for the throughput efficiency due to the quantum efficiency.
 
-**FullWellSaturation:** :guilabel:`Allowed values` :math:`> 0 \, \text{e}^- \, \text{pixel}^{-1}` 
+**FullWellSaturation:** :guilabel:`Allowed values` :math:`> 0 \ \text{e}^- \, \text{pixel}^{-1}` 
      
 Full-well saturation limit of a single CCD pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called *blooming*. The electrons reaching the edge of the CCD will not be detected.
 
-**DigitalSaturation:** :guilabel:`Allowed values` :math:`> 0 \, \text{ADU} \, \text{pixel}^{-1}` 
-<i>Allowed values:</i> > 0
+**DigitalSaturation:** :guilabel:`Allowed values` :math:`> 0 \ \text{ADU} \ ,\text{pixel}^{-1}`
 
 Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is :math:`655\,36` ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.
 
-**ReadoutNoise:** :guilabel:`Allowed values` :math:`\ge 0 \, \text{e}^- \, \text{pixel}^{-1}`
+**ReadoutNoise:** :guilabel:`Allowed values` :math:`\ge 0 \ \text{e}^- \, \text{pixel}^{-1}`
 
 Mean readout noise of the detector. Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the square-root of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).
 
-**SerialTransferTime:** :guilabel:`Allowed values` :math:`\ge 0` ns
+**SerialTransferTime:** :guilabel:`Allowed values` :math:`> 0` ns
 
 Time required to shift the content of the readout register over one pixel, towards the output node.  This is not only relevant for the image area but also for the serial prescan (i.e. bias register map) and the serial over-scan (which has not been implemented).
 
-**ParallelTransferTime:** :guilabel:`Allowed values` :math:`\ge 0 \, \mu\text{s}`
+**ParallelTransferTime:** :guilabel:`Allowed values` :math:`> 0 \, \mu\text{s}`
 
 Time required to shift the charges one row down (towards the readout register) in case the readout register will be read out by the FEE. The difference with ``ParallelTransferTimeFast`` is due to two delay parameters recommended by Teledyne e2v for clock settling. Settling times are to ensure one clock has reached its low level before another clock starts to rise. It ensures good charge transfer, as without it you could cause charge to be lost. This is particularly the case when dealing with the (parallel) transfer into the readout register, as the rise and fall times of the image clocks are a lot slower than those of the register clocks.
 
@@ -1215,7 +1224,7 @@ On top of the (time-dependent) transmission efficiency, the overall relative tra
 
   Radius of the FOV. Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.
 
-  RelativeTransmissivity/**ExpectedValue:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  RelativeTransmissivity/**ExpectedValue:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).
 
@@ -1223,7 +1232,7 @@ On top of the (time-dependent) transmission efficiency, the overall relative tra
 
 Optical elements induce a preferred direction for the propagation of light. This effect is called polarisation.
 
-  Polarization/**ExpectedValue:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  Polarization/**ExpectedValue:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector). Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.
 
@@ -1234,11 +1243,11 @@ The contribution to contamination is two-fold:
 * Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency
 * Molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).
 
-  Contamination/**ParticulateContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  Contamination/**ParticulateContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Throughput efficiency due to particulate contamination.
 
-  Contamination/**MolecularContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+  Contamination/**MolecularContaminationEfficiency:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
   Throughput efficiency due to molecular contamination.
 
@@ -1246,21 +1255,21 @@ The contribution to contamination is two-fold:
 
 Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.
 
-  DarkSignal/**DarkCurrent:** :guilabel:`Allowed values` :math:`> 0 \, \text{e}^-`
+  DarkSignal/**DarkCurrent:** :guilabel:`Allowed values` :math:`> 0 \ \text{e}^-`
 
   Dark current of detector. This is the nominal value of the dark signal.
 
-  DarkSignal/**DSNU:** :guilabel:`Allowed values` :math:`\in` [0, 100] :math:`\%`
+  DarkSignal/**DSNU:** :guilabel:`Allowed values` :math:`\in [0, 100] \%`
 
   Dark Signal Non-Uniformity (DSNU), expressed as a percentage of the dark current. This is the systematic (fixed-pattern) deviation of a pixel's dark current from its nominal value.
 
-  DarkSignal/**Stability:** :guilabel:`Allowed values` :math:`\ge \, \text{K}^{-1} \, \text{s}^{-1}`
+  DarkSignal/**Stability:** :guilabel:`Allowed values` :math:`\ge 0 \ \text{K}^{-1} \, \text{s}^{-1}`
 
   Temperature stability of the dark current.
 
 **CTI:**
 
-Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of "charge trails"). This is known as imperfect Charge-Transfer Efficiency (CTE) or alternatively as Charge-Transfer Inefficiency (CTI).
+Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of *charge trails*). This is known as Charge-Transfer Inefficiency (CTI).
 
 The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.
   
@@ -1268,14 +1277,14 @@ The charge trails impact photometry, noise, and astrometry of sources. CTI remov
 
   PlatoSim offers two implementation of the CTI:
 
-  * The simple implementation (``Simple``) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind.  It will be released by later row transfers.
+  * The simple implementation (``Simple``) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.
   * A more sophisticated implementation (``Short2013``) is based on the paper by `Short et al. (2013) <http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf>`_, in which only parallel readout is taken into account.
 
     CTI/**Simple:**
     
     The simple implementation (``Simple``) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.
 
-      CTI/Simple/**MeanCTE:** :guilabel:`Allowed values` :math:`\in` [0, 1]
+      CTI/Simple/**MeanCTE:** :guilabel:`Allowed values` :math:`\in [0, 1]`
 
       Mean CTE of the detector. The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.
       
@@ -1315,7 +1324,7 @@ The charge trails impact photometry, noise, and astrometry of sources. CTI remov
 
       CTI/Short2013/**TrapCaptureCrossSection:** :guilabel:`Allowed values` :math:`> \{0, 0, 0, 0\} \, \text{m}^2`
 
-      Array holding the trap capture cross-section :math:`\sigma` for each of the considered trap species. This is used to calculated the :math:`\alpha` value in Eq. (22) of Short et al. (2013). In this formula, the charge transfer time is used as value for :math:`$t`.
+      Array holding the trap capture cross-section :math:`\sigma` for each of the considered trap species. This is used to calculated the :math:`\alpha` value in Eq. (22) of Short et al. (2013). In this formula, the charge transfer time is used as value for :math:`t`.
 
       CTI/Short2013/**ReleaseTime:** :guilabel:`Allowed values` :math:`> \{0, 0, 0, 0\}` s
 
@@ -1325,7 +1334,7 @@ The charge trails impact photometry, noise, and astrometry of sources. CTI remov
 
     Allows to specify trap densities that vary spatially over the CCD.
 
-      CTI/Short2013FromFile/**CTIFileName:** :guilabel:`Allowed values` Path to ( _`CTI File`)
+      CTI/Short2013FromFile/**CTIFileName:** :guilabel:`Allowed values` Path to _`CTI File`
 
       Path to the CTI file holding information about trap densities.
       
@@ -1337,7 +1346,7 @@ Settings for the charge injection.
 
   Percentage of the full well to be filled.
 
-  ChargeInjection/**RowInterval:** :guilabel:`Allowed values` :math:`\in` [1, CCD:numRows] pixel
+  ChargeInjection/**RowInterval:** :guilabel:`Allowed values` :math:`\in [1, n-n_{\text{CCD}}]` pixel
 
   The interval around which Charge Injection will happen. For a value of :math:`n`, the charge will be injected every :math:`n`-th row of the CCD after the ``FirstRow``:
 
@@ -1497,9 +1506,9 @@ Number of columns in the prescan strip (see Fig. 11). There are two such strips,
 
 Number of rows in the parallel overscan strip (see Fig. 11). This strip is located at the top of the sub-field that is modelled in detail and contains the star smearing due to the absence of a shutter. The flux in this strip is also affected by the electronic offset, readout noise, and shot noise. Not included are the PRNU, cosmic hits, and charge-transfer inefficiency (CTI).
 
-**SubPixels:** :guilabel:`Allowed values` power of 2 (:math:`\le 128`) subpixel
+**SubPixels:** :guilabel:`Allowed values` :math:`\in [1, 128]` subpixel
 
-Number of subpixels per pixel in both directions. If you want a pixel of :math:`16 \times 16 = 256` subpixels, you should specify in the configuration file ``16``. By default this parameter is only ``8`` subpixels to keep the computational resources low.
+Number of subpixels squared. If you want a pixel of :math:`16 \times 16 = 256` subpixels, you should set this value to 16 subpixels. By default this parameter is only 8 subpixels to keep the computational resources low.
 
 
 
@@ -1526,7 +1535,7 @@ The **Photometry** block of the configuration file contains all information to r
      MaskUpdateInterval:              14.0
      TargetFileName:                  inputfiles/photometry.txt
 
-PlatoSim utilieses the optimal aperture photometry algortihm from `Marchiori et al. (2019) <https://arxiv.org/abs/1906.00892>`_. This method is optimised to lower the photometric noise relevant for planet transit search. This algorithm allows for updating the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a :math:`V=11` star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).
+PlatoSim utilises the *optimal aperture photometry* algortihm from `Marchiori et al. (2019) <https://arxiv.org/abs/1906.00892>`_. This method is optimised to lower the photometric noise relevant for planet transit searches. This algorithm allows to update the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a :math:`V=11` star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).
 
 .. figure:: ../figures/photometry.png
    :align: center
@@ -1611,9 +1620,9 @@ Seed for the random-number generators for the cosmics.
 
 Seed for the random-number generators for the dark signal.
 
-.. attention::
+.. warning::
 
-   To avoid jumps in the power spectrum when using auto-generated **jitter** and/or **drift** values, it is advised to generate the these values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
+   To avoid jumps in the power spectrum when using auto-generated red noise **jitter** and/or **drift** models, it is advised to take special care in setting the random seeds. Another options is to generate these red noise time series for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.
 
 
    
@@ -1663,7 +1672,7 @@ This entry controls the exact output structure of the groups ``StarPositions``, 
 * If ``yes``: all information is saved in folders **per exposure**
 * if ``no`` : all information is saved **per star ID**.
 
-For long baseline simulations (more than :math:`100\,000` exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each.
+For long baseline simulations (more than :math:`100\,000` exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each if ``GroupByExposure = no``.
 
 **WritePixelImages:** :guilabel:`Allowed values` ``yes`` and ``no``
 
@@ -1808,11 +1817,11 @@ Number of seconds of not receiving jitter positions (from the jitter server), af
 *Camera Groups*
 ...............
 
-.. attention::
+.. warning::
 
    You are **not** supposed to alter this section of the configuration file!
 
-The **CameraGroups** block in the configuration file is used in case a predefined camera groups (``1``, ``2``, ``3``, ``4``, or ``Fast``) was selected via the ``Telescope/GroupID`` parameter. The structure of this block is the following:
+The **CameraGroups** block in the configuration file is used in case of a predefined camera groups (``1``, ``2``, ``3``, ``4``, or ``Fast``) was selected via the ``Telescope/GroupID`` parameter. The structure of this block is the following:
 
 .. code-block::
 
@@ -1837,11 +1846,11 @@ For more information, consult our technical note: `PLATO-KUL-PL-TN-0001 <https:/
 *CCD Positions*
 ...............
 
-.. attention::
+.. warning::
 
    You are **not** supposed to alter this section of the configuration file!
 
-The **CCDPositions** block in the configuration file is used in case a predefined CCD position (1, 2, 3, or 4) was selected via the ``CCD/Position`` parameter. The structure of this block is the following:
+The **CCDPositions** block in the configuration file is used in case of a predefined CCD position (1, 2, 3, or 4) was selected via the ``CCD/Position`` parameter. The structure of this block is the following:
 
 .. code-block::
 

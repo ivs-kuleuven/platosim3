@@ -45,7 +45,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Pipeline" href="platonium_pipeline.html" />
-    <link rel="prev" title="Overview" href="platonium_overview.html" /> 
+    <link rel="prev" title="Prerequisites" href="platonium_prerequisites.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -92,29 +92,29 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorials</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#picsim">picsim</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#varsim">varsim</a></li>
@@ -198,7 +198,7 @@
 <h1>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h1>
 <p>PLATOnium is PlatoSim’s user friendly command-line interface to quickly setup a large scale multi-camera and multi-quarter simulation, using the PLATO Input Catalogue (PIC), stellar variability input, and realistic instrumental systematics. Thus, almost all simulations will involve the four following steps provided by the software:</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">picsim</span></code>    : Tool to generate a PIC star catalogue</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">picsim</span></code>    : Tool to generate stellar catalogues</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">varsim</span></code>    : Tool to generate noise-less light curves</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">payload</span></code>   : Tool to generate instrumental systematics</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">platonium</span></code> : Tool to run a PlatoSim multi-camera and multi-quarter simulation</p></li>
@@ -220,35 +220,46 @@
 <hr><div class="section" id="picsim">
 <span id="id1"></span><h2>picsim<a class="headerlink" href="#picsim" title="Permalink to this headline">¶</a></h2>
 <p><strong>Create a customised PIC</strong></p>
-<p>To speed up the process of running realistic simulations a script called <code class="docutils literal notranslate"><span class="pre">picsim</span></code> (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the <a class="reference external" href="https://archive.stsci.edu/hlsp/aspic">asPIC 1.1.0</a>  created by <a class="reference external" href="https://arxiv.org/abs/2108.13712">Montalto et al. (2021)</a>.</p>
-<p>Since <code class="docutils literal notranslate"><span class="pre">picsim</span></code> relies on the old version of asPIC, currently stars can only be drawn from the old North PLATO Field (NPF; <span class="math notranslate nohighlight">\(l=65^{\circ}\)</span>, <span class="math notranslate nohighlight">\(b=+30^{\circ}\)</span>) and South PLATO Field (SPF; <span class="math notranslate nohighlight">\(l=253^{\circ}\)</span>, <span class="math notranslate nohighlight">\(b=-30^{\circ}\)</span>). A total number of <span class="math notranslate nohighlight">\(302\,743\)</span> PLATO targets compose the PIC samples (P1, P2, P4, and P5), of which <span class="math notranslate nohighlight">\(8\,587\,898\)</span> photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below shows all P1 sample stars from both the NPF and SPF colour coded by their magnitude.</p>
+<p>To speed up the process of running realistic simulations a script called <code class="docutils literal notranslate"><span class="pre">picsim</span></code> (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the PLATO Input Catalogue (PIC) created by <a class="reference external" href="https://arxiv.org/abs/2108.13712">Montalto et al. (2021)</a>.</p>
+<p>The script <code class="docutils literal notranslate"><span class="pre">picsim</span></code> can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and (accodingly called PLATO Fields from the) <a class="reference external" href="https://archive.stsci.edu/hlsp/aspic">PIC 1.1.0</a>). Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:</p>
+<ul class="simple">
+<li><p>LOP South 2 (LOPS2): <span class="math notranslate nohighlight">\(\ \ \ \ \ \   \alpha = \ \ 95.31043^{\circ}, \ \ \ \ \ \ \delta=-47.88693^{\circ}, \ \ \ \ \ \ \ \kappa=+13.9947^{\circ}\)</span></p></li>
+<li><p>LOP North 1 (LOPN1): <span class="math notranslate nohighlight">\(\ \ \ \ \ \ \ \alpha = 277.18023^{\circ},    \ \ \ \ \ \ \delta=+52.85952^{\circ}, \ \ \ \ \ \ \ \kappa=-13.9947^{\circ}\)</span></p></li>
+<li><p>South PLATO Field (SPF): <span class="math notranslate nohighlight">\(\alpha = \ \ 86.79870508^{\circ}, \, \delta=-46.39594703^{\circ}, \,  \kappa=+10.0^{\circ}\)</span></p></li>
+<li><p>North PLATO Field (NPF): <span class="math notranslate nohighlight">\(\alpha = 265.08002279^{\circ},    \, \delta=+39.5836954^{\circ},  \ \ \kappa=-10.0^{\circ}\)</span></p></li>
+</ul>
+<p>These catalogues compose more than <span class="math notranslate nohighlight">\(300\,000\)</span> PLATO targets from the samples (P1, P2, P4, and P5), of which more than <span class="math notranslate nohighlight">\(8\,000\,000\)</span> photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below illustrates all P1 sample stars from from the PIC 1.1.0 colour coded by their magnitude.</p>
 <a class="reference internal image-reference" href="_images/platonium_P1SampleAllsky.png"><img alt="_images/platonium_P1SampleAllsky.png" class="align-center" src="_images/platonium_P1SampleAllsky.png" style="width: 800px;" /></a>
 <p><strong>Usage function:</strong> To get an overview of its usage simply type:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="o">-</span><span class="n">h</span>
 </pre></div>
 </div>
-<p><strong>Prelook:</strong> As a simple example, say we want to create a catalogue of 100 P1 stars from the SPF. As a sanity check you can parse the flag <code class="docutils literal notranslate"><span class="pre">-t</span></code> which produce a few plots of your <em>target</em> star selection. If you also want to see the number statistic for the contaminants simply parse the plotting flag <code class="docutils literal notranslate"><span class="pre">-p</span></code> instead. Hence try to launch the following commands yourself:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="mi">100</span> <span class="n">P1</span> <span class="n">SPF</span> <span class="o">-</span><span class="n">t</span>
-<span class="n">picsim</span> <span class="mi">100</span> <span class="n">P1</span> <span class="n">SPF</span> <span class="o">-</span><span class="n">p</span>
-</pre></div>
-</div>
 <p><strong>General examples:</strong> To elaborate on the usage, we here show a few useful examples:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="mi">100</span> <span class="n">P1</span> <span class="n">NPF</span> <span class="o">--</span><span class="n">group</span> <span class="mi">1</span> <span class="o">--</span><span class="n">camera</span> <span class="mi">24</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span>
-<span class="n">picsim</span> <span class="mi">100</span> <span class="n">P5</span> <span class="n">SPF</span> <span class="o">--</span><span class="n">spec</span> <span class="n">G</span> <span class="o">--</span><span class="n">lum</span> <span class="n">V</span> <span class="o">--</span><span class="n">mag</span> <span class="mf">9.5</span><span class="o">-</span><span class="mf">12.2</span> <span class="o">-</span><span class="n">o</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">outdir</span><span class="o">&gt;</span>
-<span class="n">picsim</span> <span class="nb">all</span> <span class="n">P1</span> <span class="n">NPF</span> <span class="o">--</span><span class="n">mag_limit</span> <span class="mi">18</span> <span class="o">--</span><span class="n">dis_limit</span> <span class="mi">30</span> <span class="o">-</span><span class="n">o</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">outdir</span><span class="o">&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="o">--</span><span class="n">pic</span> <span class="mi">100</span> <span class="n">P1</span> <span class="n">LOPN1</span> <span class="o">--</span><span class="n">group</span> <span class="mi">1</span> <span class="o">--</span><span class="n">ncams</span> <span class="mi">24</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span>
+<span class="n">picsim</span> <span class="o">--</span><span class="n">pic</span> <span class="mi">100</span> <span class="n">P5</span> <span class="n">LOPN1</span> <span class="o">--</span><span class="n">dist</span> <span class="mi">30</span> <span class="o">--</span><span class="n">dmag</span> <span class="mi">8</span>   <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span>
+<span class="n">picsim</span> <span class="o">--</span><span class="n">pic</span> <span class="nb">all</span> <span class="n">P1</span> <span class="n">LOPS2</span> <span class="o">--</span><span class="n">spec</span> <span class="n">G</span>  <span class="o">--</span><span class="n">lum</span> <span class="n">V</span> <span class="o">--</span><span class="n">mag</span> <span class="mf">9.5</span><span class="o">-</span><span class="mf">11.2</span> <span class="o">-</span><span class="n">o</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">outdir</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>In the first example we draw 100 P1 stars from the NPF but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs.</p></li>
-<li><p>In the second example we draw 100 P5 stars from the SPF but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.</p></li>
-<li><p>In the last example we select all P1 stars from the NPF but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.</p></li>
+<li><p>In the first example we draw 100 P1 stars from the LOPN1 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs.</p></li>
+<li><p>In the second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.</p></li>
+<li><p>In the last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.</p></li>
 </ul>
 <p>Notice that for all examples shown, we parse the argument <code class="docutils literal notranslate"><span class="pre">--project</span></code> or <code class="docutils literal notranslate"><span class="pre">-o</span></code> which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges the stellar catalogues are saved to the binary format called <a class="reference external" href="https://arrow.apache.org/docs/python/feather.html">feather</a> (with file extension <code class="docutils literal notranslate"><span class="pre">.ftr</span></code>).</p>
-<p><strong>Combine or replot catalogue(s):</strong> Notice that <code class="docutils literal notranslate"><span class="pre">picsim</span></code> also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to <code class="docutils literal notranslate"><span class="pre">picsim</span></code> again using the argument <code class="docutils literal notranslate"><span class="pre">-i</span></code> as follows:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="nb">all</span> <span class="nb">all</span> <span class="n">SPF</span> <span class="o">-</span><span class="n">i</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">indir</span><span class="o">&gt;/</span><span class="n">starcat</span><span class="o">**.</span><span class="n">ftr</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
+<p><strong>Combine or replot catalogue(s):</strong> Notice that <code class="docutils literal notranslate"><span class="pre">picsim</span></code> also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to <code class="docutils literal notranslate"><span class="pre">picsim</span></code> again using the argument <code class="docutils literal notranslate"><span class="pre">--incat</span></code> as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="o">--</span><span class="n">pic</span> <span class="nb">all</span> <span class="nb">all</span> <span class="n">LOPS2</span> <span class="o">--</span><span class="n">incat</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">indir</span><span class="o">&gt;/</span><span class="n">starcat</span><span class="o">**.</span><span class="n">ftr</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
 </pre></div>
 </div>
-<p>Note we here use the asteriks <code class="docutils literal notranslate"><span class="pre">**</span></code> to specify that all files should start with <code class="docutils literal notranslate"><span class="pre">starcat</span></code> (which is the default output prefix of <code class="docutils literal notranslate"><span class="pre">picsim</span></code>) and all files needs to be in feather format <code class="docutils literal notranslate"><span class="pre">.ftr</span></code>. To make sure that all targets are selected we have here slected <code class="docutils literal notranslate"><span class="pre">all</span></code> for the two first mandatory arguments. Currently it is <strong>not</strong> possible to combine catalogues from different PLATO pointing fields.</p>
+<p>Note we here use the asteriks <code class="docutils literal notranslate"><span class="pre">**</span></code> to specify that all files should start with <code class="docutils literal notranslate"><span class="pre">starcat</span></code> (which is the default output prefix of <code class="docutils literal notranslate"><span class="pre">picsim</span></code>) and all files needs to be in feather format <code class="docutils literal notranslate"><span class="pre">.ftr</span></code>. To make sure that all targets are selected we have here selected <code class="docutils literal notranslate"><span class="pre">all</span></code> for the two first mandatory arguments. Currently it is <strong>not</strong> possible to combine catalogues from different PLATO pointing fields.</p>
+<p><strong>Query a Simbad object:</strong> It is possible to query a circular celestial sky region around a known object from the <a class="reference external" href="http://simbad.cds.unistra.fr/simbad/">CDS/Simbad</a> database. E.g. say that we want to query the star Mizar and all it stellar contaminants that are within a radial distance of 60 arcsec and no brighter than 5 mag compared to Mizar, we simple use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="o">--</span><span class="n">simbad</span> <span class="n">Mizar</span> <span class="o">--</span><span class="n">dist</span> <span class="mi">60</span> <span class="o">--</span><span class="n">dmag</span> <span class="mi">5</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
+</pre></div>
+</div>
+<p><strong>Query a PLATO pointing field:</strong> In order to generate realistic simulations of full-frame CCD images with PlatoSim, we have expanded the query method to include large celestial regions than combined over a full PLATO field. Although this options queries stars from the Gaia DR3, it is just yet another <a class="reference external" href="https://vizier.cds.unistra.fr/viz-bin/VizieR">CDS/VizieR</a>, and hence this query option is doubted <code class="docutils literal notranslate"><span class="pre">vizier</span></code>. Say we want to query Gaia stars from the LOPS2, simply use:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">picsim</span> <span class="o">--</span><span class="n">vizier</span> <span class="n">LOPS2</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
+</pre></div>
+</div>
+<p>By default only Gaia star fainter than 15 mag are queried, but, like before, you can alter this. We recommend to create seperate catalogues if stars fainter than 15 mag are needed and then combine these catalogues, instead of quering all star say up to 18 mag in one go (the Gaia query method has a maximum number of targets typically exceeded if quering stars fainter 16 mag for PLATO fields close to the Galactic plane).</p>
 <hr></div>
 <div class="section" id="varsim">
 <span id="id2"></span><h2>varsim<a class="headerlink" href="#varsim" title="Permalink to this headline">¶</a></h2>
@@ -268,27 +279,16 @@
 </pre></div>
 </div>
 <p><strong>General usage:</strong> Seen from the usage function there are several ways to create a noise-less light curve using <code class="docutils literal notranslate"><span class="pre">varsim</span></code>. The following two examples show the most standard way to run <code class="docutils literal notranslate"><span class="pre">varsim</span></code>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">varsim</span> <span class="o">--</span><span class="n">star_params</span> <span class="mi">5777</span> <span class="mf">4.5</span> <span class="mf">0.0</span> <span class="o">--</span><span class="n">planet_params</span> <span class="mi">100</span> <span class="mi">50</span> <span class="mi">0</span> <span class="mi">90</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">time</span> <span class="mi">365</span> <span class="o">-</span><span class="n">p</span>
-<span class="n">varsim</span> <span class="o">--</span><span class="n">star_params</span> <span class="mi">5777</span> <span class="mf">4.5</span> <span class="mf">0.0</span> <span class="o">--</span><span class="n">planet_params</span> <span class="mi">100</span> <span class="mi">50</span> <span class="mi">0</span> <span class="mi">90</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">quarter</span> <span class="mi">1</span><span class="o">-</span><span class="mi">8</span> <span class="o">-</span><span class="n">o</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">varsource</span><span class="o">.</span><span class="n">txt</span><span class="o">&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">varsim</span> <span class="o">--</span><span class="n">star_params</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">5777</span> <span class="mf">4.5</span> <span class="mf">0.0</span> <span class="o">--</span><span class="n">planet_params</span> <span class="mi">100</span> <span class="mi">50</span> <span class="mi">0</span> <span class="mi">90</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">time</span> <span class="mi">365</span> <span class="o">-</span><span class="n">p</span>
+<span class="n">varsim</span> <span class="o">--</span><span class="n">star_params</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">5777</span> <span class="mf">4.5</span> <span class="mf">0.0</span> <span class="o">--</span><span class="n">planet_params</span> <span class="mi">100</span> <span class="mi">50</span> <span class="mi">0</span> <span class="mi">90</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">quarter</span> <span class="mi">1</span><span class="o">-</span><span class="mi">8</span> <span class="o">-</span><span class="n">o</span> <span class="o">&lt;/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">varsource</span><span class="o">.</span><span class="n">txt</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>In both examples we parse the stellar- and planet parameters, respectively. Note that the <code class="docutils literal notranslate"><span class="pre">--quarter</span></code> argument represent mission quarters (i.e. one 1 quarter is 30 days) and, if invoked, this argument overwrites the <code class="docutils literal notranslate"><span class="pre">--time</span></code> argument (likewise given in units of days). The quarter arguments is especially handy as it allows you to e.g. produce noise-less light curves with a time column suited for simulations starting beyond mission BOL (e.g. use <code class="docutils literal notranslate"><span class="pre">--quarter</span> <span class="pre">5-8</span></code> to get a ligth curve starting after one year of mission BOL).</p>
-<p>Intuitively the the user always needs to parse a star argument: either <code class="docutils literal notranslate"><span class="pre">--star</span></code> or <code class="docutils literal notranslate"><span class="pre">--star_params</span></code>. By default the granulation and pulsation signals are activated, but all other stellar vaiability signals (i.e. spots for now) needs to be activated by parsing the corresponding flag. You can exclude the granulation and pulsations independetly by parsing <code class="docutils literal notranslate"><span class="pre">none</span></code> as argument for their scaling relations:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">varsim</span> <span class="o">--</span><span class="n">star_params</span> <span class="mi">6000</span> <span class="mf">4.5</span> <span class="mf">0.0</span> <span class="o">--</span><span class="n">gran</span> <span class="n">none</span> <span class="o">--</span><span class="n">puls</span> <span class="n">none</span> <span class="o">--</span><span class="n">spot</span> <span class="o">--</span><span class="n">time</span> <span class="mi">100</span> <span class="o">-</span><span class="n">p</span>
+<p><strong>Photometric standards:</strong> Photometric standard stars can be simulated by the following example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">varsim</span> <span class="o">--</span><span class="n">star</span> <span class="n">roAp</span> <span class="o">--</span><span class="n">quarter</span> <span class="mi">2</span><span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="n">p</span>
 </pre></div>
 </div>
-<p>This example shows how to include only stellar spot modulation in the final light curve.</p>
-<p><strong>Case studies:</strong> To make it easier for the user to quickly fetch a favorit star-planet system, it is possible to respectively save your favorit star and your favorit planet to the file <code class="docutils literal notranslate"><span class="pre">source_star.py</span></code> and <code class="docutils literal notranslate"><span class="pre">source_plaent.py</span></code> placed in the folder <code class="docutils literal notranslate"><span class="pre">$/python/platosim/varsim</span></code>. Simply copy one of the existing code block starting with <code class="docutils literal notranslate"><span class="pre">source</span> <span class="pre">==</span> <span class="pre">&quot;&lt;name&gt;&quot;</span></code> and add the star/planet parameters. Note you need to obey the unit convention by <a class="reference external" href="https://www.astropy.org/">Astropy</a> (i.e. multiplying with <code class="docutils literal notranslate"><span class="pre">u.&lt;unit&gt;</span></code>). A few systems exists by default, and you can likewise cross-match different systems such as:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">varsim</span> <span class="o">--</span><span class="n">star</span> <span class="n">Sun</span> <span class="o">--</span><span class="n">planet</span> <span class="n">CoRoT</span><span class="o">-</span><span class="mi">1</span><span class="n">b</span> <span class="o">--</span><span class="n">time</span> <span class="mi">30</span> <span class="o">-</span><span class="n">p</span>
-</pre></div>
-</div>
-<p><strong>Photometric standards:</strong> Regarding photometric standard stars the following examples are two potential solutions:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">varsim</span> <span class="o">--</span><span class="n">quarter</span> <span class="mi">2</span><span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="n">p</span>
-<span class="n">varsim</span> <span class="o">--</span><span class="n">star</span> <span class="n">std</span> <span class="o">--</span><span class="n">quarter</span> <span class="mi">2</span><span class="o">-</span><span class="mi">4</span> <span class="o">-</span><span class="n">p</span>
-</pre></div>
-</div>
-<p>By parsing nothing else than the time/quarter duration, the first example is simply a constant star. The second example calls a simple script that models a short-period rotationally modulated
-A type (Ap) star as simple sinusoidal vairations with occasional contribution of the second harmonic. The rotational period is randomly drawn from a uniform distribution between 1-3 days and we assume that a typically distribution of 10-30 mmag in the Kepler passband (due to current limited knowledge of the typical amplitudes of these stars in the PLATO passband).</p>
+<p>This is a simple toy model of a short-period rotationally modulated A-type (Ap) star. The model includes a simple sinusoidal vairation with an occasional contribution of the second harmonic. The rotational period is randomly drawn from a uniform distribution between 1-3 days and we assume that a typically distribution of 10-30 mmag in the Kepler passband (due to current limited knowledge of the typical amplitudes of these stars in the PLATO passband).</p>
 <hr></div>
 <div class="section" id="payload">
 <span id="id3"></span><h2>payload<a class="headerlink" href="#payload" title="Permalink to this headline">¶</a></h2>
@@ -321,7 +321,7 @@ A type (Ap) star as simple sinusoidal vairations with occasional contribution of
 </pre></div>
 </div>
 <p><strong>General usage:</strong> As a simple example type:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">payload</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">payload</span> <span class="mi">100</span> <span class="n">LOPS2</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span>
 </pre></div>
 </div>
 <p>While using the <code class="docutils literal notranslate"><span class="pre">--project</span></code> output path, the files will be generated directly into your working directory and will immediately be known and used when running <code class="docutils literal notranslate"><span class="pre">platonium</span></code> later.</p>
@@ -375,6 +375,18 @@ A type (Ap) star as simple sinusoidal vairations with occasional contribution of
 </pre></div>
 </div>
 <p>Notice the difference between <code class="docutils literal notranslate"><span class="pre">varSourceFile</span></code> and <code class="docutils literal notranslate"><span class="pre">varSourceList</span></code>. The first is the ascii file containing the noise-less light curve, and the lastter is a ascii file containing the star indices as a first column and the full path and filename of each <code class="docutils literal notranslate"><span class="pre">varSourceFile</span></code> you want to include. Thus, first example only adds a variable signal for your target stars, whereas the second example can be used to include variable signals for the stellar contaminants as well (particularly important to get a realistic distribution of <em>false-positive</em> detections of exoplanet transits).</p>
+<p><strong>Full-frame CCD images:</strong> Given that you have generated a stellar catalogue using <code class="docutils literal notranslate"><span class="pre">picsim</span> <span class="pre">--vizier</span></code>, it is possible to generate full-frame CCD images with <code class="docutils literal notranslate"><span class="pre">platonium</span></code> (as seen in the figure below of the LOPS2 observed with all four CCDs of camera group 4).</p>
+<a class="reference internal image-reference" href="_images/fullFrameImage.png"><img alt="_images/fullFrameImage.png" class="align-center" src="_images/fullFrameImage.png" style="width: 800px;" /></a>
+<p>Compared to the general usage of <code class="docutils literal notranslate"><span class="pre">platonium</span></code>, we only have to two changes:</p>
+<ol class="arabic simple">
+<li><p>The first argument of the four mandatory arguments is now representing the CCD ID (i.e. <span class="math notranslate nohighlight">\(n_{\text{CCD}} \in \{1, 2, 3, 4\}\)</span>) and not the target ID.</p></li>
+<li><p>The full-frame mode has to be activated by parsing the argument <code class="docutils literal notranslate"><span class="pre">--fullframe</span></code>.</p></li>
+</ol>
+<p>Hence, an example-call is:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">platonium</span> <span class="mi">1</span> <span class="mi">4</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">fullframe</span> <span class="o">--</span><span class="n">nexp</span> <span class="mi">1</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>In this example we simulate CCD 1, N-CAM 4.1 for the first exposure of mission quarter 1 (which is the CCD for which the LMC is located in the above figure). Depending on how many (million of) stars that your star catalogue include, a single exposure may take anything from 15 minutes to several hours. More information about the structure of the output files, please consult the technical note <a class="reference external" href="https://s2e2.cosmos.esa.int/confluence/display/PPWS/Simulated+datasets?preview=/173005308/528416806/PLATO-DLR-PL-TN-0108_i1.0draft1_DPS_simulations.pdf">PLATO-DLR-PL-TN-0108</a>.</p>
 </div>
 </div>
 
@@ -385,7 +397,7 @@ A type (Ap) star as simple sinusoidal vairations with occasional contribution of
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="platonium_pipeline.html" class="btn btn-neutral float-right" title="Pipeline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="platonium_overview.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="platonium_prerequisites.html" class="btn btn-neutral float-left" title="Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

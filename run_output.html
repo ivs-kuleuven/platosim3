@@ -44,7 +44,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Overview" href="platonium_overview.html" />
-    <link rel="prev" title="Run simulations" href="run_simulations.html" /> 
+    <link rel="prev" title="Input files" href="run_input.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,29 +91,29 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
 </ul>
@@ -189,7 +189,7 @@
             
   <div class="section" id="output-files">
 <h1>Output files<a class="headerlink" href="#output-files" title="Permalink to this headline">¶</a></h1>
-<p>The output files of PlatoSim is so-called <a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5 format</a>, and the following figure shows the output structure:</p>
+<p>The output files of PlatoSim is in a so-called <a class="reference external" href="https://www.hdfgroup.org/solutions/hdf5/">HDF5 format</a>. The following figure shows the structure of the HDF5 file:</p>
 <div class="figure align-center">
 <a class="reference internal image-reference" href="_images/platosim_structureOfHDF5.png"><img alt="_images/platosim_structureOfHDF5.png" src="_images/platosim_structureOfHDF5.png" style="width: 1000px;" /></a>
 </div>
@@ -200,11 +200,11 @@
 <li><p>The third level shows all the groups that contain single frame image data. These are the <code class="docutils literal notranslate"><span class="pre">PSF</span></code>, <code class="docutils literal notranslate"><span class="pre">BackgroundMap</span></code>, <code class="docutils literal notranslate"><span class="pre">FlatField</span></code>, and the <code class="docutils literal notranslate"><span class="pre">CTI</span></code>. Notice that the latter contains a map for each CTI trap specy that is included in the used model (hence 4 species for the Short model).</p></li>
 <li><p>The fourth level shows all the groups that contains a mix of stellar parameters, payload parameters, and coordinates. The group <code class="docutils literal notranslate"><span class="pre">StarCatalog</span></code> contains the sky coordinates, the pixel coordinates, and the focal plane coordinates of all the stars that were detected during any exposure. The <code class="docutils literal notranslate"><span class="pre">starIDs</span></code> map the ID from the input starCatalog that is supplied with the configuration. The two groups <code class="docutils literal notranslate"><span class="pre">ASC</span></code> and <code class="docutils literal notranslate"><span class="pre">Telescope</span></code> contains time series of the displacement of the platform and camera, respectively. The groups <code class="docutils literal notranslate"><span class="pre">StarPositions</span></code>, <code class="docutils literal notranslate"><span class="pre">PointLikeGhostPositions</span></code>, and <code class="docutils literal notranslate"><span class="pre">ExtendedGhostPositions</span></code> contain information about the different source images produced, and <code class="docutils literal notranslate"><span class="pre">Cosmics</span></code> contains information about the cosmic rays detected within the subfield. The output structure of the four latter groups depend on the <a class="reference internal" href="run_input.html#run-input-parameters-hdf5"><span class="std std-ref">GroupByExposure</span></a> setting.</p></li>
 </ul>
-<p>We recommend you to use the command-line tool <a class="reference external" href="https://pypi.org/project/argos/">argos</a> to inspect the output files for quick-look purposes. When installed (which is part of PlatoSim’s default Python suite) this can simply be done with:</p>
+<p>We recommend you to use the command-line tool <a class="reference external" href="https://pypi.org/project/argos/">argos</a> (which is part of PlatoSim’s default Poetry installation) to inspect the output files for quick-look purposes. Open a HDF5 with:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>argos<span class="w"> </span>&lt;outputFileName&gt;.hdf5
 </pre></div>
 </div>
-<p>To extract information from the HDF5 file we strongly recommend you to use PlatoSim’s build-in Python functionalities. We show these works in our <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">Python Tuturials</a>.</p>
+<p>To extract information from the HDF5 file we strongly recommend you to use PlatoSim’s build-in Python functionalities. We show how these tools work in our <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">Python Tuturials</a>.</p>
 </div>
 
 
@@ -214,7 +214,7 @@
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="platonium_overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="run_simulations.html" class="btn btn-neutral float-left" title="Run simulations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="run_input.html" class="btn btn-neutral float-left" title="Input files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

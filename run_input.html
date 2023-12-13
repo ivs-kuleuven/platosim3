@@ -44,8 +44,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Run simulations" href="run_simulations.html" />
-    <link rel="prev" title="Prerequisites" href="run_prerequisites.html" /> 
+    <link rel="next" title="Output files" href="run_output.html" />
+    <link rel="prev" title="Run simulations" href="run_simulations.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -92,22 +92,22 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Input files</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-parameters">Configuration parameters</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#general"><em>General</em></a></li>
@@ -132,12 +132,12 @@
 <li class="toctree-l2"><a class="reference internal" href="#psf-data-packages">PSF data packages</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
 </ul>
@@ -282,8 +282,8 @@
 <p>For the normal cameras, the latter is the total readout time; for the fast cameras, it is the time for the frame transfer (i.e. to transfer the content of the upper CCD half to the lower CCD half).</p>
 <p><strong>Fluxm0:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \gamma \, \text{s}^{-1} \, \text{cm}^{-2}\)</span></p>
 <p>Flux of a star of zero magnitude (<span class="math notranslate nohighlight">\(m_{\lambda} = 0\)</span>) in the passband of the magnitudes that are listed in the star catalogue below.</p>
-<p>For an exposure of <span class="math notranslate nohighlight">\(t_{\rm exp}\)</span> seconds, the measured flux <span class="math notranslate nohighlight">\(F_{\gamma}\)</span> of a star, expressed in photons <span class="math notranslate nohighlight">\(\gamma\)</span>, is computed from its catalogue magnitude <span class="math notranslate nohighlight">\(m_{\lambda}\)</span>, the effective light-collecting area <span class="math notranslate nohighlight">\(A\)</span> (in <span class="math notranslate nohighlight">\(\text{cm}^2\)</span>) of the telescope, the transmission efficiency <span class="math notranslate nohighlight">\(T_{\lambda}\)</span> of the optical system, the quantum efficiency <span class="math notranslate nohighlight">\(Q\)</span> of the detector, and the flux per second <span class="math notranslate nohighlight">\(F_0\)</span> of a star with zero magnitude (<span class="math notranslate nohighlight">\(m_{\lambda} = 0\)</span>) from the equation:</p>
-<p><span class="math notranslate nohighlight">\(F_{\lambda} = t_{\rm exp} \ F_0\ T_{\lambda}\ Q \ A \ 10^{-0.4 \, m_{\lambda}}\)</span></p>
+<p>For an exposure of <span class="math notranslate nohighlight">\(t_{\rm exp}\)</span> seconds, the measured flux <span class="math notranslate nohighlight">\(F_{\gamma}\)</span> of a star, expressed in photons <span class="math notranslate nohighlight">\(\gamma\)</span>, is computed from its catalogue magnitude <span class="math notranslate nohighlight">\(m_{\lambda}\)</span>, the effective light-collecting area <span class="math notranslate nohighlight">\(A\)</span> (in <span class="math notranslate nohighlight">\(\text{cm}^2\)</span>) of the telescope, the transmission efficiency <span class="math notranslate nohighlight">\(T_{\lambda}\)</span> of the optical system, the quantum efficiency <span class="math notranslate nohighlight">\(Q_{\lambda}\)</span> of the detector, and the flux per second <span class="math notranslate nohighlight">\(F_0\)</span> of a star with zero magnitude (<span class="math notranslate nohighlight">\(m_{\lambda} = 0\)</span>) from the equation:</p>
+<p><span class="math notranslate nohighlight">\(F_{\lambda} = t_{\rm exp} \ F_0\ T_{\lambda}\ Q_{\lambda} \ A \ 10^{-0.4 \, m_{\lambda}}\)</span></p>
 <p>where the <span class="math notranslate nohighlight">\(\lambda\)</span> refers to the wavelength range in which the simulation is performed.</p>
 <p><strong>StarCatalogFile:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="star-catalog-file">Star Catalog File</span></p>
 <p>Path to the star catalogue file containing three columns, separated by a space, holding the following information:</p>
@@ -382,7 +382,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 </pre></div>
 </div>
 <p><strong>Orientation:</strong></p>
-<p>The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (<span class="math notranslate nohighlight">\(\alpha\)</span>, <span class="math notranslate nohighlight">\(\delta\)</span>, <span class="math notranslate nohighlight">\(\kappa\)</span>) or using so-called a <a class="reference external" href="https://en.wikipedia.org/wiki/Quaternion">Quaternion</a>.</p>
+<p>The orientation of the spacecraft can be configured either through the the sky (coordinate) angles (<span class="math notranslate nohighlight">\(\alpha\)</span>, <span class="math notranslate nohighlight">\(\delta\)</span>, <span class="math notranslate nohighlight">\(\kappa\)</span>) or using a so-called <a class="reference external" href="https://en.wikipedia.org/wiki/Quaternion">Quaternion</a>.</p>
 <blockquote>
 <div><p>Angles/<strong>RApointing:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\alpha \in [0, 360]\)</span> deg</p>
 <p>Right ascension of the platform pointing.</p>
@@ -390,7 +390,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Declination of the platform pointing.</p>
 <p>Angles/<strong>SolarPanelOrientation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\kappa \in [0, 360]\)</span> deg</p>
 <p>Orientation angle of the solar panel. This is the roll angle of the platform, which enables orienting the solar panels towards the Sun each quarter, i.e. at the beginning of each quarter the roll angle must be increased by 90 degrees (being either 0, 90, 180, and 270). Note that to properly account for the re-orientation of the solar panels, simulations must be chopped up in chunks of maximum three months (one mission quarter).</p>
-<p>Quaternion/<strong>Components:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [-1, 1]\)</span> for all 4 component.</p>
+<p>Quaternion/<strong>Components:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [-1, 1]\)</span> for all four component.</p>
 <p>A unit quaternion to transform from the equatorial to the platfrom reference frame.</p>
 </div></blockquote>
 <p><strong>UseJitter:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
@@ -421,12 +421,12 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>If <code class="docutils literal notranslate"><span class="pre">JitterSource</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a jitter time series must be provided in a file ascii format. This file should contain four columns, separated by a space, holding the following information:</p>
 <ul class="simple">
 <li><p>Time  [s]</p></li>
-<li><p>Yaw   [arsec]</p></li>
+<li><p>Yaw   [arcsec]</p></li>
 <li><p>Pitch [arcsec]</p></li>
 <li><p>Roll  [arcsec]</p></li>
 </ul>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>To ensure a realistic modelling of the jitter, the time step in the jitter time series must be smaller than the exposure time.</p>
 </div>
 <hr></div>
@@ -457,10 +457,10 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <a class="reference internal image-reference" href="_images/config_cameraGroups.png"><img alt="_images/config_cameraGroups.png" src="_images/config_cameraGroups.png" style="width: 400px;" /></a>
 <p class="caption"><span class="caption-text"><strong>Fig. 4</strong>: FOV for the different camera groups.</span><a class="headerlink" href="#id12" title="Permalink to this image">¶</a></p>
 </div>
-<p><strong>TiltAngle:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 90] deg</p>
+<p><strong>TiltAngle:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 90]\)</span> deg</p>
 <p>Tilt angle of the telescope. This angle, together with the azimuth angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used if <code class="docutils literal notranslate"><span class="pre">GroupID</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
 <p>The tilt angle is the offset between the camera optical axis and the platform pointing, i.e. the angle between the camera line-of-sight (positive <span class="math notranslate nohighlight">\(Z_{\rm CAM}\)</span> axis and the positive <span class="math notranslate nohighlight">\(Z_{\rm PLM}\)</span> axis (see Fig. 4).</p>
-<p><strong>AzimuthAngle:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 360] deg</p>
+<p><strong>AzimuthAngle:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 360]\)</span> deg</p>
 <p>Azimuth angle of the telescope, expressed in degrees. This angle, together with the tilt angle, characterises the orientation of the telescope pointing (i.e. telescope optical axis) w.r.t. the platform pointing. This parameter is only used if <code class="docutils literal notranslate"><span class="pre">GroupID</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
 <p>The azimuth angle is the position angle of the rotation of the telescope around the positive <span class="math notranslate nohighlight">\(z_{\rm PLM}\)</span> axis (see Figs. 4 and 5).</p>
 <div class="figure align-center" id="id13">
@@ -472,9 +472,9 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p><strong>TransmissionEfficiency:</strong></p>
 <p>The transmission efficiency of the optical system, considering the passband and the spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue degrades linearly over the mission lifetime. The following two parameters are used to model the (linear) degradation in transmission efficiency over the mission lifetime:</p>
 <blockquote>
-<div><p>TransmissionEfficiency/<strong>BOL:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<div><p>TransmissionEfficiency/<strong>BOL:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue, at the beginning of the mission (BOL).</p>
-<p>TransmissionEfficiency/<strong>EOL:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<p>TransmissionEfficiency/<strong>EOL:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Tranmission efficiency of the optical system, considering the passband and spectral energy distribution of the stars, given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> parameter and the magnitudes in the star catalogue, at the end of the mission (EOL).</p>
 </div></blockquote>
 <p><strong>UseDrift:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
@@ -485,7 +485,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <a class="reference internal image-reference" href="_images/config_cameraGroupRotation.png"><img alt="_images/config_cameraGroupRotation.png" src="_images/config_cameraGroupRotation.png" style="width: 800px;" /></a>
 <p class="caption"><span class="caption-text"><strong>Fig. 6</strong>: Reference transformation from the platform to the camera reference system.</span><a class="headerlink" href="#id14" title="Permalink to this image">¶</a></p>
 </div>
-<p>The camera reference frame can be obtained from the payload module reference frame by first rotating the <span class="math notranslate nohighlight">\((X_{\rm PLM} \,,Y_{\rm PLM})\)</span> plane around the pointing axis <span class="math notranslate nohighlight">\(Z_{\rm PLM}\)</span> over an angle <span class="math notranslate nohighlight">\(\eta_{\rm CAM}\)</span> (left panel), then rotating the resulting <span class="math notranslate nohighlight">\(Z'_{\rm PLM}\)</span> axis over a tilt angle <span class="math notranslate nohighlight">\(\rho_{\rm CAM}\)</span> around the <span class="math notranslate nohighlight">\(Y'_{\rm PLM}\)</span> axis (middle panel), and finally rotating over an angle <span class="math notranslate nohighlight">\(2π − \eta_{\rm CAM} = -\eta_{\rm CAM}\)</span> around the <span class="math notranslate nohighlight">\(Z''_{\rm PLM}\)</span> (right panel).</p>
+<p>The camera reference frame can be obtained from the payload module reference frame by first rotating the <span class="math notranslate nohighlight">\((X_{\rm PLM} \,,Y_{\rm PLM})\)</span> plane around the pointing axis <span class="math notranslate nohighlight">\(Z_{\rm PLM}\)</span> over an angle <span class="math notranslate nohighlight">\(\eta_{\rm CAM}\)</span> (left panel), then rotating the resulting <span class="math notranslate nohighlight">\(Z'_{\rm PLM}\)</span> axis over a tilt angle <span class="math notranslate nohighlight">\(\rho_{\rm CAM}\)</span> around the <span class="math notranslate nohighlight">\(Y'_{\rm PLM}\)</span> axis (middle panel), and finally rotating over an angle <span class="math notranslate nohighlight">\((2π − \eta_{\rm CAM} = -\eta_{\rm CAM})\)</span> around the <span class="math notranslate nohighlight">\(Z''_{\rm PLM}\)</span> (right panel).</p>
 <p><strong>DriftSource:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">FromRedNoise</span></code> and <code class="docutils literal notranslate"><span class="pre">FromFile</span></code></p>
 <p>Indicates from where to read the drift:</p>
 <ul class="simple">
@@ -504,7 +504,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>If <code class="docutils literal notranslate"><span class="pre">DriftSource</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, camera drift file must be provided in ascii format. This file should contain four columns, separated by a space, holding the following information:</p>
 <ul class="simple">
 <li><p>Time  [s]</p></li>
-<li><p>Yaw   [arsec]</p></li>
+<li><p>Yaw   [arcsec]</p></li>
 <li><p>Pitch [arcsec]</p></li>
 <li><p>Roll  [arcsec]</p></li>
 </ul>
@@ -563,7 +563,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <blockquote>
 <div><p>FocalPlaneOrientation/<strong>Source:</strong> <span class="guilabel">Allowed values</span>  <code class="docutils literal notranslate"><span class="pre">ConstantValue</span></code> and <code class="docutils literal notranslate"><span class="pre">FromFile</span></code></p>
 <p>Indicates whether the value of the focal-plane orientation angle must be constant or is allowed to vary over time, according to the values read from a file.</p>
-<p>FocalPlaneOrientation/<strong>ConstantValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 360] deg</p>
+<p>FocalPlaneOrientation/<strong>ConstantValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 360]\)</span> deg</p>
 <p>Orientation angle of the focal plane. This entry is only applicable if <code class="docutils literal notranslate"><span class="pre">FocalPlaneOrientation/Source</span> <span class="pre">=</span> <span class="pre">ConstantValue</span></code>.</p>
 <p>FocalPlaneOrientation/<strong>FromFile:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="focal-plane-orientation-file">Focal Plane Orientation File</span></p>
 <p>If <code class="docutils literal notranslate"><span class="pre">FocalPlaneOrientation/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a focal-plane orientation time series must be provided in an acsii file. This file should contain two columns, separated by a space, holding the following information:</p>
@@ -601,7 +601,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>The orbit file needs to be provided in ascii format and consist of four columns, each seperated by a space:</p>
 <ul class="simple">
 <li><p>Time [s]</p></li>
-<li><p>Coordinates of the spacecraft <span class="math notranslate nohighlight">\((x, y, z)\)</span> []</p></li>
+<li><p>Coordinates of the spacecraft <span class="math notranslate nohighlight">\((x, y, z)\)</span></p></li>
 <li><p>Velocity of the spacecraft <span class="math notranslate nohighlight">\((v_x, v_y, v_z)\)</span> [m/s]</p></li>
 <li><p>Speed of the spacecraft [m/s].</p></li>
 </ul>
@@ -615,9 +615,9 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <blockquote>
 <div><p>FieldDistortion/<strong>Source:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">ConstantValue</span></code> and  <code class="docutils literal notranslate"><span class="pre">FromFile</span></code></p>
 <p>Indicates that the field distortion is calculated from a <code class="docutils literal notranslate"><span class="pre">ConstantVlaue</span></code> (constant in time) or <code class="docutils literal notranslate"><span class="pre">FromFile</span></code> (time dependent). The latter needs to be a time series of the field distortion coefficients and their inverse in two files in ascii format.</p>
-<p>FieldDistortion/<strong>ConstantCoefficients:</strong> <span class="guilabel">Allowed values</span> Any number</p>
+<p>FieldDistortion/<strong>ConstantCoefficients:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}\}\)</span></p>
 <p>Coefficients for the Wang model that converts the normalised undistorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the distortion, expressed in normalised pixel coordinates. This entry is only applicable if <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">ConstantValue</span></code>.</p>
-<p>FieldDistortion/<strong>ConstantInverseCoefficients:</strong> <span class="guilabel">Allowed values</span> Any number</p>
+<p>FieldDistortion/<strong>ConstantInverseCoefficients:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}, \mathbb{R}\}\)</span></p>
 <p>Inverse coefficients for the Wang model that converts the normalised distorted pixel coordinates (i.e. pixel coordinates divided by the focal length in pixels) to the (negative) distortion, expressed in normalised pixel coordinates. This entry is only applicable if <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">ConstantValue</span></code>.</p>
 <p>FieldDistortion/<strong>CoefficientsFromFile:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="field-distortion">Field Distortion</span> file</p>
 <p>If <code class="docutils literal notranslate"><span class="pre">FieldDistortion/Source</span> <span class="pre">=</span> <span class="pre">FromFile</span></code>, a time series of the change in field distortion must be provided in a acsii file. This file should contain two columns, separated by a space, holding the following information:</p>
@@ -743,8 +743,8 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 </div></blockquote>
 </div></blockquote>
 <p><strong>AnalyticGaussian:</strong></p>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>Note that this very crude model was used for beta-testing and is thus not recommend!</p>
 </div>
 <p>The PSF is an elongated Gaussian (the symmetry axes being parallel to the <span class="math notranslate nohighlight">\(x\)</span> and <span class="math notranslate nohighlight">\(y\)</span> axis), for which the width and the height are given at the centre of the FOV and at <span class="math notranslate nohighlight">\(18^{\circ}\)</span> from the optical axis. The following parameters are only applicable if <code class="docutils literal notranslate"><span class="pre">Model</span> <span class="pre">=</span> <span class="pre">AnalyticGaussian</span></code>:</p>
@@ -803,7 +803,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Reference value of the gain of ACD2 of the FEE at its nominal operating temperature.</p>
 <p>Gain/<strong>Stability:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \ \text{ADU} \, \mu\text{V}^{-1} \, \text{K}^{-1}\)</span></p>
 <p>Change in gain (for both ADCs) with temperature deviations from the nominal operating temperature</p>
-<p>Gain/<strong>AllowedDifference:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 100] <span class="math notranslate nohighlight">\(\%\)</span></p>
+<p>Gain/<strong>AllowedDifference:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 100] \%\)</span></p>
 <p>Percentage of the reference values for the gain of ADC1 and ADC2 that indicates the maximum allowed difference between these gain values.</p>
 </div></blockquote>
 <p><strong>ElectronicOffset:</strong></p>
@@ -816,12 +816,12 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 </div></blockquote>
 <p><strong>IncludeOverAndUnderShoot:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not to include F-FEE over-/undershoot.</p>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
-<p>Currently only availble for fast cameras (<code class="docutils literal notranslate"><span class="pre">GroupID</span> <span class="pre">=</span> <span class="pre">Fast</span></code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Over-/undershoot is currently only availble for fast cameras (<code class="docutils literal notranslate"><span class="pre">GroupID</span> <span class="pre">=</span> <span class="pre">Fast</span></code>).</p>
 </div>
 <p><strong>OverAndUnderShoot:</strong></p>
-<p>Over-/undershoot has been noticed in F-FEE measurements. Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance <span class="math notranslate nohighlight">\(\Delta x\)</span>. For a difference in signal between two such pixels, <span class="math notranslate nohighlight">\(\Delta S\)</span>, the induced over-/undershoot will be</p>
+<p>Over-/undershoot has been noticed in F-FEE measurements. Looking at the content of a readout register at any given time, the charges in any pixels will affect the next pixels in the readout register, further away from the readout register, e.g. at a distance <span class="math notranslate nohighlight">\(\Delta x\)</span>. For a difference in signal between two such pixels, <span class="math notranslate nohighlight">\(\Delta S\)</span>, the induced over-/undershoot will be:</p>
 <p><span class="math notranslate nohighlight">\(a \cdot \Delta S \cdot \exp{(- \lambda \cdot \Delta x^b)}.\)</span></p>
 <p>Both detector halves are treated independently.</p>
 <blockquote>
@@ -855,6 +855,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
       <span class="n">RefValueRight</span><span class="p">:</span>               <span class="mf">2.21</span>
       <span class="n">Stability</span><span class="p">:</span>                   <span class="o">-</span><span class="mf">0.001</span>
       <span class="n">AllowedDifference</span><span class="p">:</span>           <span class="mf">15.0</span>
+      <span class="n">Nonlinearity</span><span class="p">:</span>                <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0042789409</span><span class="p">,</span> <span class="mf">0.0000002365</span><span class="p">]</span>
   <span class="n">QuantumEfficiency</span><span class="p">:</span>
       <span class="n">MeanQuantumEfficiency</span><span class="p">:</span>       <span class="mf">0.6218</span>
       <span class="n">MeanAngleDependency</span><span class="p">:</span>         <span class="mf">1.01</span>
@@ -922,6 +923,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
   <span class="n">IncludeFullWellSaturation</span><span class="p">:</span>       <span class="n">yes</span>
   <span class="n">IncludeDigitalSaturation</span><span class="p">:</span>        <span class="n">yes</span>
   <span class="n">IncludeQuantisation</span><span class="p">:</span>             <span class="n">yes</span>
+  <span class="n">IncludeGainNonlinearity</span><span class="p">:</span>         <span class="n">yes</span>
 </pre></div>
 </div>
 <p><strong>Position:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, <code class="docutils literal notranslate"><span class="pre">4</span></code>, and <code class="docutils literal notranslate"><span class="pre">Custom</span></code></p>
@@ -935,11 +937,11 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p class="caption"><span class="caption-text"><strong>Fig. 12</strong>: Layout of the CCDs for the F-CAMs.</span><a class="headerlink" href="#id20" title="Permalink to this image">¶</a></p>
 </div>
 <p>When you specify <code class="docutils literal notranslate"><span class="pre">Position=Custom</span></code>, the origin offset <code class="docutils literal notranslate"><span class="pre">OriginOffsetX</span></code> and <code class="docutils literal notranslate"><span class="pre">OriginOffsetY</span></code>, the orientation, number of rows, and columns, and the first exposed row of the CCD are read from the configuration parameters in the <a class="reference internal" href="#run-input-parameters-ccdpos"><span class="std std-ref">CCD block</span></a>.</p>
-<p><strong>OriginOffsetX:</strong> <span class="guilabel">Allowed values</span> Any [mm]</p>
+<p><strong>OriginOffsetX:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \mathbb{R}\)</span> mm</p>
 <p>Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction. The origin of the CCD is defined as the point where the readout register is located. See Fig. 7 for more details (<span class="math notranslate nohighlight">\(\Delta x_{\rm CCD}\)</span>). Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
-<p><strong>OriginOffsetY:</strong> <span class="guilabel">Allowed values</span> Any [mm]</p>
+<p><strong>OriginOffsetY:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \mathbb{R}\)</span> mm</p>
 <p>Offset of the CCD origin from the centre of the optical plane (i.e. the intersection of the optical axis with the focal plane) in the y-direction. The origin of the CCD is defined as the point where the readout register is located. See Fig. 7 for more details (<span class="math notranslate nohighlight">\(\Delta y_{\rm CCD}\)</span>). Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
-<p><strong>Orientation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge\)</span> [0, 360] deg</p>
+<p><strong>Orientation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 360]\)</span> deg</p>
 <p>Orientation angle of the CCD w.r.t. the orientation of the focal plane, measured counterclockwise and expressed in degrees. This rotation is performed around the offset origin of the CCD. See Fig. 7 for more details (<span class="math notranslate nohighlight">\(\gamma_{\rm CCD}\)</span>). Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code></p>
 <p><strong>NumColumns:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> pixel</p>
 <p>Number of pixels of the CCD in the x-direction (i.e. number of columns). Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
@@ -947,12 +949,12 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Number of pixels of the CCD in the y-direction (i.e. number of rows). Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
 <p><strong>FirstRowExposed:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> pixel</p>
 <p>Row index of the first row in the CCD that is illuminated (the row closest to the readout register is row 0). Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
-<p><strong>TimeShift:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> sec</p>
+<p><strong>TimeShift:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> s</p>
 <p>Time shift between the readout of the CCDs [s]. Parameter used if <code class="docutils literal notranslate"><span class="pre">Position</span> <span class="pre">=</span> <span class="pre">Custom</span></code>.</p>
 <p><strong>PixelSize:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> micron</p>
 <p>Nominal pixel size.</p>
 <p><strong>BFE:</strong></p>
-<p>The Brighter-Fatter Effect (BFE) is modelled following the method proposed in <a class="reference external" href="https://arxiv.org/abs/1501.01577">Guyonnet et al. 2015</a>.</p>
+<p>Brighter-Fatter Effect (BFE) modelled following the method proposed by <a class="reference external" href="https://arxiv.org/abs/1501.01577">Guyonnet et al. 2015</a>.</p>
 <blockquote>
 <div><p>BFE/<strong>CoefficientsFileName:</strong> Path to <span class="target" id="bfe-coefficients">BFE Coefficients</span> file</p>
 <p>Path to the HDF5 file comprising the coefficients <code class="docutils literal notranslate"><span class="pre">a</span></code> for the BFE.</p>
@@ -964,29 +966,32 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Reference value of the gain of the left- and right-hand side of the CCD at its nominal operating temperature.</p>
 <p>Gain/<strong>RefValueRight:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \mu\text{V}/\text{e}^-\)</span>.</p>
 <p>Reference value of the gain of ACD2 of the FEE at its nominal operating temperature.</p>
-<p>Gain/<strong>Stability:</strong> <span class="guilabel">Allowed values</span> Any [<span class="math notranslate nohighlight">\(\mu\text{V}/\text{e}^-/\text{K}\)</span>]</p>
+<p>Gain/<strong>Stability:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \mathbb{R} \ \mu\text{V}/\text{e}^-/\text{K}\)</span></p>
 <p>Change in gain (for both CCD halves) with temperature deviations from the nominal operating temperature.</p>
-<p>Gain/<strong>AllowedDifference:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\text{[0, 100]} \,\, \mu\text{V}/\text{e}^-\)</span>.</p>
+<p>Gain/<strong>AllowedDifference:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 100] \ \mu\text{V}/\text{e}^-\)</span>.</p>
 <p>Percentage of the reference values for the gain of the left- and right-hand side of the CCD that indicates the maximum allowed difference between these gain values.</p>
+<p>Gain/<strong>Nonlinearity:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in \{\mathbb{R}, \mathbb{R}, \mathbb{R}\}\)</span></p>
+<p>CCD gain non-linearity model coefficients of the polynomial:</p>
+<p><span class="math notranslate nohighlight">\(O = B + I + a0 + a_1 \cdot I + a_2 \cdot I^2\)</span>,</p>
+<p>with <span class="math notranslate nohighlight">\(O\)</span> being the output signal [ADU], <span class="math notranslate nohighlight">\(B\)</span> the bias level [ADU], and <span class="math notranslate nohighlight">\(I\)</span> is the input signal [ADU].</p>
 </div></blockquote>
 <p><strong>QuantumEfficiency:</strong></p>
 <p>Quantum efficiency is the ratio of the number of collected electrons to the number of incident photons, considering the passband and the spectral energy distribution of the stars given the <code class="docutils literal notranslate"><span class="pre">Fluxm0</span></code> and the magnitude of the stars in the star catalogue.</p>
 <blockquote>
-<div><p>QuantumEfficiency/<strong>MeanQuantumEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<div><p>QuantumEfficiency/<strong>MeanQuantumEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Mean throughput efficiency due to quantum efficiency (i.e. the mean over all pixels of one detector).</p>
-<p>QuantumEfficiency/<strong>MeanAngleDependency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [1, 2]</p>
+<p>QuantumEfficiency/<strong>MeanAngleDependency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [1, 2]\)</span></p>
 <p>Reference angle for the throughput efficiency due to the quantum efficiency.</p>
 </div></blockquote>
-<p><strong>FullWellSaturation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \, \text{e}^- \, \text{pixel}^{-1}\)</span></p>
+<p><strong>FullWellSaturation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \text{e}^- \, \text{pixel}^{-1}\)</span></p>
 <p>Full-well saturation limit of a single CCD pixel. If a pixels receives more electrons than its full-well saturation limit, the additional electrons flow evenly distributed in positive and negative charge-transfer direction, a phenomenon called <em>blooming</em>. The electrons reaching the edge of the CCD will not be detected.</p>
-<p><strong>DigitalSaturation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \, \text{ADU} \, \text{pixel}^{-1}\)</span>
-&lt;i&gt;Allowed values:&lt;/i&gt; &gt; 0</p>
+<p><strong>DigitalSaturation:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \text{ADU} \ ,\text{pixel}^{-1}\)</span></p>
 <p>Digital saturation limit of the CCD to which pixel values are topped off. This value depends on the A/D convertor of the detector. For a 16-bit convertor, the digital saturation limit is <span class="math notranslate nohighlight">\(655\,36\)</span> ADU. The gain of the front-end electronics and detector should be such that the full-well saturation results in values below the digital saturation limit.</p>
-<p><strong>ReadoutNoise:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \, \text{e}^- \, \text{pixel}^{-1}\)</span></p>
+<p><strong>ReadoutNoise:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \ \text{e}^- \, \text{pixel}^{-1}\)</span></p>
 <p>Mean readout noise of the detector. Readout noise occurs due to the imperfect nature of the CCD amplifiers. When the electrons are transferred to the amplifier, the induced voltage is measured. However, this measurement is not perfect, but gives a value which is on average too high by an amount of the readout noise, with the square-root of the readout noise as standard deviation (we add the readout noise of the FEE and the CCD in quadrature).</p>
-<p><strong>SerialTransferTime:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> ns</p>
+<p><strong>SerialTransferTime:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0\)</span> ns</p>
 <p>Time required to shift the content of the readout register over one pixel, towards the output node.  This is not only relevant for the image area but also for the serial prescan (i.e. bias register map) and the serial over-scan (which has not been implemented).</p>
-<p><strong>ParallelTransferTime:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \, \mu\text{s}\)</span></p>
+<p><strong>ParallelTransferTime:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \, \mu\text{s}\)</span></p>
 <p>Time required to shift the charges one row down (towards the readout register) in case the readout register will be read out by the FEE. The difference with <code class="docutils literal notranslate"><span class="pre">ParallelTransferTimeFast</span></code> is due to two delay parameters recommended by Teledyne e2v for clock settling. Settling times are to ensure one clock has reached its low level before another clock starts to rise. It ensures good charge transfer, as without it you could cause charge to be lost. This is particularly the case when dealing with the (parallel) transfer into the readout register, as the rise and fall times of the image clocks are a lot slower than those of the register clocks.</p>
 <p><strong>ParallelTransferTimeFast:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \, \mu\text{s}\)</span></p>
 <p>Time required to shift the charges one row down (towards the readout register) in case the readout register will not be read out by the FEE. In that case clock settling is not needed, hence the difference with <code class="docutils literal notranslate"><span class="pre">ParallelTransferTime</span></code>.</p>
@@ -1017,14 +1022,14 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p><span class="math notranslate nohighlight">\(P(\theta) = k_1 \cdot \theta^2 + k_2 \cdot \theta^4 + k_3 \cdot \theta^6\)</span>.</p>
 <p>RelativeTransmissivity/<strong>RadiusFOV:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0\)</span> deg</p>
 <p>Radius of the FOV. Beyond this radius all incoming flux (apart from the cosmic hits) is shielded off.</p>
-<p>RelativeTransmissivity/<strong>ExpectedValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<p>RelativeTransmissivity/<strong>ExpectedValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Expected value of the throughput efficiency due to the overall relative transmissivity (i.e. the mean over all pixels of one detector, within the FOV).</p>
 </li>
 </ul>
 <p><strong>Polarization:</strong></p>
 <p>Optical elements induce a preferred direction for the propagation of light. This effect is called polarisation.</p>
 <blockquote>
-<div><p>Polarization/<strong>ExpectedValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<div><p>Polarization/<strong>ExpectedValue:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Expected value of the throughput efficiency due to polarisation (i.e. the mean over all pixels of one detector). Currently no information on the angle dependency of polarisation is available and hence this value will be used for the whole FOV, until further notice.</p>
 </div></blockquote>
 <p><strong>Contamination:</strong></p>
@@ -1032,35 +1037,35 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <ul>
 <li><p>Particulate contamination is the unintended presence of particles on (optical) surfaces, which leads to straylight and influences the effciency</p></li>
 <li><p>Molecular contamination is caused chiefly by outgassing of materials in the first phase of the mission and affects all surfaces (the down side of L2 and the CCD will be affected the most).</p>
-<p>Contamination/<strong>ParticulateContaminationEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<p>Contamination/<strong>ParticulateContaminationEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Throughput efficiency due to particulate contamination.</p>
-<p>Contamination/<strong>MolecularContaminationEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<p>Contamination/<strong>MolecularContaminationEfficiency:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Throughput efficiency due to molecular contamination.</p>
 </li>
 </ul>
 <p><strong>DarkSignal:</strong></p>
 <p>Dark signal is the relatively small electric current that is generated in the CCD when no outside radiation is entering the device.</p>
 <blockquote>
-<div><p>DarkSignal/<strong>DarkCurrent:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \, \text{e}^-\)</span></p>
+<div><p>DarkSignal/<strong>DarkCurrent:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \ \text{e}^-\)</span></p>
 <p>Dark current of detector. This is the nominal value of the dark signal.</p>
-<p>DarkSignal/<strong>DSNU:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 100] <span class="math notranslate nohighlight">\(\%\)</span></p>
+<p>DarkSignal/<strong>DSNU:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 100] \%\)</span></p>
 <p>Dark Signal Non-Uniformity (DSNU), expressed as a percentage of the dark current. This is the systematic (fixed-pattern) deviation of a pixel’s dark current from its nominal value.</p>
-<p>DarkSignal/<strong>Stability:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge \, \text{K}^{-1} \, \text{s}^{-1}\)</span></p>
+<p>DarkSignal/<strong>Stability:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0 \ \text{K}^{-1} \, \text{s}^{-1}\)</span></p>
 <p>Temperature stability of the dark current.</p>
 </div></blockquote>
 <p><strong>CTI:</strong></p>
-<p>Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of “charge trails”). This is known as imperfect Charge-Transfer Efficiency (CTE) or alternatively as Charge-Transfer Inefficiency (CTI).</p>
+<p>Because of detector defects, electrons can get trapped in the readout process. The trapped charge ends up getting dissociated from its original pixel and eventually gets released into another pixel. The result is that the original image gets smeared out in the direction away from the readout amplifier (visible in the appearance of <em>charge trails</em>). This is known as Charge-Transfer Inefficiency (CTI).</p>
 <p>The charge trails impact photometry, noise, and astrometry of sources. CTI removes flux from the central pixel and thus degrades the expected S/N for an observation. CTI trails bias measurements of source along the trail direction, which can severely impact high-precision astrometry.</p>
 <blockquote>
 <div><p>CTI/<strong>Model:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">Simple</span></code>, <code class="docutils literal notranslate"><span class="pre">Short2013</span></code>, <code class="docutils literal notranslate"><span class="pre">Short2013FromFile</span></code></p>
 <p>PlatoSim offers two implementation of the CTI:</p>
 <ul>
-<li><p>The simple implementation (<code class="docutils literal notranslate"><span class="pre">Simple</span></code>) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind.  It will be released by later row transfers.</p></li>
+<li><p>The simple implementation (<code class="docutils literal notranslate"><span class="pre">Simple</span></code>) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.</p></li>
 <li><p>A more sophisticated implementation (<code class="docutils literal notranslate"><span class="pre">Short2013</span></code>) is based on the paper by <a class="reference external" href="http://mnras.oxfordjournals.org/content/430/4/3078.full.pdf">Short et al. (2013)</a>, in which only parallel readout is taken into account.</p>
 <p>CTI/<strong>Simple:</strong></p>
 <p>The simple implementation (<code class="docutils literal notranslate"><span class="pre">Simple</span></code>) assumes that for each row transfer (in the direction of the readout register) a fraction of the charge is not transferred to the next row, but stays behind. It will be released by later row transfers.</p>
 <blockquote>
-<div><p>CTI/Simple/<strong>MeanCTE:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [0, 1]</p>
+<div><p>CTI/Simple/<strong>MeanCTE:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 1]\)</span></p>
 <p>Mean CTE of the detector. The fraction of the charge that is successfully transferred from one row to the next row is expressed by this parameter.</p>
 </div></blockquote>
 <p>CTI/<strong>Short2013:</strong></p>
@@ -1084,14 +1089,14 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Array holding the trap density <span class="math notranslate nohighlight">\(n_t\)</span> at EOL for each of the considered trap species. This is used to calculate the <span class="math notranslate nohighlight">\(\gamma\)</span> value in Eq. (22) of Short et al. (2013).</p>
 </div></blockquote>
 <p>CTI/Short2013/<strong>TrapCaptureCrossSection:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; \{0, 0, 0, 0\} \, \text{m}^2\)</span></p>
-<p>Array holding the trap capture cross-section <span class="math notranslate nohighlight">\(\sigma\)</span> for each of the considered trap species. This is used to calculated the <span class="math notranslate nohighlight">\(\alpha\)</span> value in Eq. (22) of Short et al. (2013). In this formula, the charge transfer time is used as value for <span class="math notranslate nohighlight">\($t\)</span>.</p>
+<p>Array holding the trap capture cross-section <span class="math notranslate nohighlight">\(\sigma\)</span> for each of the considered trap species. This is used to calculated the <span class="math notranslate nohighlight">\(\alpha\)</span> value in Eq. (22) of Short et al. (2013). In this formula, the charge transfer time is used as value for <span class="math notranslate nohighlight">\(t\)</span>.</p>
 <p>CTI/Short2013/<strong>ReleaseTime:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; \{0, 0, 0, 0\}\)</span> s</p>
 <p>Array holding the trap release time constants <span class="math notranslate nohighlight">\(\tau_r\)</span> for each of the considered trap species.</p>
 </div></blockquote>
 <p>CTI/<strong>Short2013FromFile:</strong></p>
 <p>Allows to specify trap densities that vary spatially over the CCD.</p>
 <blockquote>
-<div><p>CTI/Short2013FromFile/<strong>CTIFileName:</strong> <span class="guilabel">Allowed values</span> Path to ( <span class="target" id="cti-file">CTI File</span>)</p>
+<div><p>CTI/Short2013FromFile/<strong>CTIFileName:</strong> <span class="guilabel">Allowed values</span> Path to <span class="target" id="cti-file">CTI File</span></p>
 <p>Path to the CTI file holding information about trap densities.</p>
 </div></blockquote>
 </li>
@@ -1102,7 +1107,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <blockquote>
 <div><p>ChargeInjection/<strong>InjectionLevel:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [0, 100] \, \%\)</span></p>
 <p>Percentage of the full well to be filled.</p>
-<p>ChargeInjection/<strong>RowInterval:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in\)</span> [1, CCD:numRows] pixel</p>
+<p>ChargeInjection/<strong>RowInterval:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [1, n-n_{\text{CCD}}]\)</span> pixel</p>
 <p>The interval around which Charge Injection will happen. For a value of <span class="math notranslate nohighlight">\(n\)</span>, the charge will be injected every <span class="math notranslate nohighlight">\(n\)</span>-th row of the CCD after the <code class="docutils literal notranslate"><span class="pre">FirstRow</span></code>:</p>
 <p>ChargeInjection/<strong>FirstRow:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0\)</span> pixel</p>
 <p>The first row that will be injected with charge.</p>
@@ -1189,8 +1194,8 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Number of columns in the prescan strip (see Fig. 11). There are two such strips, on either side of the detector image (serial prescan and overscan), and they contain the electronic offset and readout noise of the adjacent detector half.</p>
 <p><strong>NumSmearingOverscanRows:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\ge 0\)</span> pixel</p>
 <p>Number of rows in the parallel overscan strip (see Fig. 11). This strip is located at the top of the sub-field that is modelled in detail and contains the star smearing due to the absence of a shutter. The flux in this strip is also affected by the electronic offset, readout noise, and shot noise. Not included are the PRNU, cosmic hits, and charge-transfer inefficiency (CTI).</p>
-<p><strong>SubPixels:</strong> <span class="guilabel">Allowed values</span> power of 2 (<span class="math notranslate nohighlight">\(\le 128\)</span>) subpixel</p>
-<p>Number of subpixels per pixel in both directions. If you want a pixel of <span class="math notranslate nohighlight">\(16 \times 16 = 256\)</span> subpixels, you should specify in the configuration file <code class="docutils literal notranslate"><span class="pre">16</span></code>. By default this parameter is only <code class="docutils literal notranslate"><span class="pre">8</span></code> subpixels to keep the computational resources low.</p>
+<p><strong>SubPixels:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(\in [1, 128]\)</span> subpixel</p>
+<p>Number of subpixels squared. If you want a pixel of <span class="math notranslate nohighlight">\(16 \times 16 = 256\)</span> subpixels, you should set this value to 16 subpixels. By default this parameter is only 8 subpixels to keep the computational resources low.</p>
 <hr></div>
 <div class="section" id="photometry">
 <span id="run-input-parameters-photometry"></span><h3><em>Photometry</em><a class="headerlink" href="#photometry" title="Permalink to this headline">¶</a></h3>
@@ -1203,7 +1208,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
   <span class="n">TargetFileName</span><span class="p">:</span>                  <span class="n">inputfiles</span><span class="o">/</span><span class="n">photometry</span><span class="o">.</span><span class="n">txt</span>
 </pre></div>
 </div>
-<p>PlatoSim utilieses the optimal aperture photometry algortihm from <a class="reference external" href="https://arxiv.org/abs/1906.00892">Marchiori et al. (2019)</a>. This method is optimised to lower the photometric noise relevant for planet transit search. This algorithm allows for updating the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a <span class="math notranslate nohighlight">\(V=11\)</span> star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).</p>
+<p>PlatoSim utilises the <em>optimal aperture photometry</em> algortihm from <a class="reference external" href="https://arxiv.org/abs/1906.00892">Marchiori et al. (2019)</a>. This method is optimised to lower the photometric noise relevant for planet transit searches. This algorithm allows to update the aperture mask with a user defined interval. Fig. 12 shows an example of an extracted light curve for a <span class="math notranslate nohighlight">\(V=11\)</span> star using a mask-update of 14 days (enhanced by the 1 hour running median filter shown in green).</p>
 <div class="figure align-center" id="id22">
 <a class="reference internal image-reference" href="_images/photometry.png"><img alt="_images/photometry.png" src="_images/photometry.png" style="width: 600px;" /></a>
 <p class="caption"><span class="caption-text"><strong>Fig. 12</strong>: Optimal aperture photometry with mask-updates every 14 days.</span><a class="headerlink" href="#id22" title="Permalink to this image">¶</a></p>
@@ -1246,9 +1251,9 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <p>Seed for the random-number generators for the cosmics.</p>
 <p><strong>DarkSignalSeed:</strong> <span class="guilabel">Allowed values</span> <span class="math notranslate nohighlight">\(&gt; 0 \, \text{and} \, -1\)</span></p>
 <p>Seed for the random-number generators for the dark signal.</p>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
-<p>To avoid jumps in the power spectrum when using auto-generated <strong>jitter</strong> and/or <strong>drift</strong> values, it is advised to generate the these values for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>To avoid jumps in the power spectrum when using auto-generated red noise <strong>jitter</strong> and/or <strong>drift</strong> models, it is advised to take special care in setting the random seeds. Another options is to generate these red noise time series for the whole simulation beforehand, write these values to a file, and reading in that file when simulating the different chunks.</p>
 </div>
 <hr></div>
 <div class="section" id="control-hdf5-content">
@@ -1282,7 +1287,7 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <li><p>If <code class="docutils literal notranslate"><span class="pre">yes</span></code>: all information is saved in folders <strong>per exposure</strong></p></li>
 <li><p>if <code class="docutils literal notranslate"><span class="pre">no</span></code> : all information is saved <strong>per star ID</strong>.</p></li>
 </ul>
-<p>For long baseline simulations (more than <span class="math notranslate nohighlight">\(100\,000\)</span> exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each.</p>
+<p>For long baseline simulations (more than <span class="math notranslate nohighlight">\(100\,000\)</span> exposures), we recommend to use the latter option since this can significantly lower the computational resources (time and memory). Note that the information about the cosmic rays are never saved per star, however, it is saved into subfolders of 1000 exposures each if <code class="docutils literal notranslate"><span class="pre">GroupByExposure</span> <span class="pre">=</span> <span class="pre">no</span></code>.</p>
 <p><strong>WritePixelImages:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
 <p>Indicates whether or not the pixel maps must be stored in the output file.</p>
 <p><strong>WriteBiasMaps:</strong> <span class="guilabel">Allowed values</span> <code class="docutils literal notranslate"><span class="pre">yes</span></code> and <code class="docutils literal notranslate"><span class="pre">no</span></code></p>
@@ -1349,11 +1354,11 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <hr></div>
 <div class="section" id="camera-groups">
 <span id="run-input-parameters-groups"></span><h3><em>Camera Groups</em><a class="headerlink" href="#camera-groups" title="Permalink to this headline">¶</a></h3>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>You are <strong>not</strong> supposed to alter this section of the configuration file!</p>
 </div>
-<p>The <strong>CameraGroups</strong> block in the configuration file is used in case a predefined camera groups (<code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, <code class="docutils literal notranslate"><span class="pre">4</span></code>, or <code class="docutils literal notranslate"><span class="pre">Fast</span></code>) was selected via the <code class="docutils literal notranslate"><span class="pre">Telescope/GroupID</span></code> parameter. The structure of this block is the following:</p>
+<p>The <strong>CameraGroups</strong> block in the configuration file is used in case of a predefined camera groups (<code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, <code class="docutils literal notranslate"><span class="pre">4</span></code>, or <code class="docutils literal notranslate"><span class="pre">Fast</span></code>) was selected via the <code class="docutils literal notranslate"><span class="pre">Telescope/GroupID</span></code> parameter. The structure of this block is the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CameraGroups</span><span class="p">:</span>
 
   <span class="n">AzimuthAngle</span><span class="p">:</span>                    <span class="p">[</span><span class="mf">45.0</span><span class="p">,</span> <span class="mf">135.0</span><span class="p">,</span> <span class="mf">225.0</span><span class="p">,</span> <span class="mf">315.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
@@ -1364,11 +1369,11 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
 <hr></div>
 <div class="section" id="ccd-positions">
 <span id="run-input-parameters-ccdpos"></span><h3><em>CCD Positions</em><a class="headerlink" href="#ccd-positions" title="Permalink to this headline">¶</a></h3>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
 <p>You are <strong>not</strong> supposed to alter this section of the configuration file!</p>
 </div>
-<p>The <strong>CCDPositions</strong> block in the configuration file is used in case a predefined CCD position (1, 2, 3, or 4) was selected via the <code class="docutils literal notranslate"><span class="pre">CCD/Position</span></code> parameter. The structure of this block is the following:</p>
+<p>The <strong>CCDPositions</strong> block in the configuration file is used in case of a predefined CCD position (1, 2, 3, or 4) was selected via the <code class="docutils literal notranslate"><span class="pre">CCD/Position</span></code> parameter. The structure of this block is the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">CCDPositions</span><span class="p">:</span>
 
   <span class="n">UsePositionsFromFile</span><span class="p">:</span>            <span class="n">no</span>
@@ -1459,8 +1464,8 @@ If <code class="docutils literal notranslate"><span class="pre">no</span></code>
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="run_simulations.html" class="btn btn-neutral float-right" title="Run simulations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="run_prerequisites.html" class="btn btn-neutral float-left" title="Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="run_output.html" class="btn btn-neutral float-right" title="Output files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="run_simulations.html" class="btn btn-neutral float-left" title="Run simulations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

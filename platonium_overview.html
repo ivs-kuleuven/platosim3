@@ -43,7 +43,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Tutorials" href="platonium_tutorials.html" />
+    <link rel="next" title="Prerequisites" href="platonium_prerequisites.html" />
     <link rel="prev" title="Output files" href="run_output.html" /> 
 </head>
 
@@ -91,32 +91,29 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#setup-platonium">Setup PLATOnium</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
 </ul>
@@ -192,45 +189,11 @@
             
   <div class="section" id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h1>
-<p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilizing Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. This toolkit can speed up the (often) lengthly procedure of generating multi-camera simulations in a highly realistic manner. PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
-<p>PLATOnium is only available when cloning the PlatoSim GitHub repository. We strongly recommend to use <strong>Python 3.9</strong>, Conda as your environment manager, and Poetry as your package manager (as we will do in the following) Also note that the setup of PLATOnium and the LESIA pipeline is only tested for Linux users, since these tools should be used on a computing cluster where Linux is the standard. Mac users may have to adapt especially the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script.</p>
-</div>
-<hr><div class="section" id="setup-platonium">
-<span id="platonium-overview-setup"></span><h2>Setup PLATOnium<a class="headerlink" href="#setup-platonium" title="Permalink to this headline">¶</a></h2>
-<ol class="arabic">
-<li><p>First create a new Conda environment and activate it:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>platonium<span class="w"> </span><span class="nv">python</span><span class="o">=</span><span class="m">3</span>.9
-conda<span class="w"> </span>activate<span class="w"> </span>platonium
-</pre></div>
-</div>
-</li>
-<li><p>Install all Python dependencies using Poetry from within the <strong>PlatoSim3</strong> folder:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>platonium
-</pre></div>
-</div>
-<p>If all packages are installed successful, then Poetry will report that <code class="docutils literal notranslate"><span class="pre">platosim</span> <span class="pre">3.6.0</span></code> is installed. You can also verify this by listing the installed packages either using Poetry (<code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">show</span></code>) or Conda (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">list</span></code>).</p>
-</li>
-<li><p>Lastly, from within the <strong>PlatoSim3</strong> folder run:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./setup<span class="w"> </span>&lt;path/to/plato_workdir&gt;
-</pre></div>
-</div>
-<p>The script will finalize your setup doing the following:</p>
-<ul class="simple">
-<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code></p></li>
-<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code></p></li>
-<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PYTHONPATH</span></code></p></li>
-<li><p>Make all the PLATOnium scripts globally executable (see <a class="reference internal" href="platonium_tutorials.html"><span class="doc">Tutorials</span></a>)</p></li>
-<li><p>Create a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file within your <strong>PlatoSim3</strong> folder</p></li>
-</ul>
-<p>If you want to change your working directory at a later stage, simply run <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> again.</p>
-</li>
-</ol>
+<p>Welcome to <strong>PLATOsim’s Numerical Imaging testbed Utilising Multi-disciplinary</strong> (PLATOnium) simulations! In short, PLATOnium is a Python wrapper around PlatoSim and thus takes advantages of all the utilities and scripts that continuously are being developed for PlatoSim. This toolkit can speed up the (often) lengthly procedure of generating multi-camera simulations in a highly realistic manner, as illustration with the single-camera, multi-quarter light curve below (from the PlatoSim paper). PLATOnium was initially developed in order to bridge the payload development activities with the (core and complementary) science activities of the PLATO mission.</p>
+<a class="reference internal image-reference" href="_images/platonium_simulation.png"><img alt="_images/platonium_simulation.png" class="align-center" src="_images/platonium_simulation.png" style="width: 850px;" /></a>
 <div class="admonition-acronym-fun-fact admonition">
 <p class="admonition-title">Acronym fun fact</p>
 <p><em>Platonium, named after the Ancient Greek philosopher Plato, is a hypothetical element with atomic number of 1030. Like all elements after lead (excluding stable isotopium), Platonium (Pto) has no stable isotopes, but its most stable isotope is supposedly 2576Pto.</em></p>
-</div>
 </div>
 </div>
 
@@ -240,7 +203,7 @@ conda<span class="w"> </span>activate<span class="w"> </span>platonium
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="platonium_tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="platonium_prerequisites.html" class="btn btn-neutral float-right" title="Prerequisites" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="run_output.html" class="btn btn-neutral float-left" title="Output files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

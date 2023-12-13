@@ -3308,6 +3308,16 @@ Logger.h
 StringUtilities.h
 ../include/StringUtilities.h
 
+../include/Polynomial2D.h
+iostream
+-
+Exceptions.h
+../include/Exceptions.h
+Logger.h
+../include/Logger.h
+StringUtilities.h
+../include/StringUtilities.h
+
 ../include/Quaternion.h
 array
 -
@@ -3562,6 +3572,10 @@ DriftGenerator.h
 
 ../include/Units.h
 
+/lhome/nicholas/software/PlatoSim3/source/ArrayOperations.cpp
+ArrayOperations.h
+/lhome/nicholas/software/PlatoSim3/source/ArrayOperations.h
+
 /lhome/nicholas/software/PlatoSim3/source/Camera.cpp
 Camera.h
 /lhome/nicholas/software/PlatoSim3/source/Camera.h
@@ -3569,6 +3583,28 @@ Camera.h
 /lhome/nicholas/software/PlatoSim3/source/ClosedLoopDetectorClasses.cpp
 ClosedLoopDetectorClasses.h
 /lhome/nicholas/software/PlatoSim3/source/ClosedLoopDetectorClasses.h
+
+/lhome/nicholas/software/PlatoSim3/source/ClosedLoopUtility.cpp
+ClosedLoopUtility.h
+/lhome/nicholas/software/PlatoSim3/source/ClosedLoopUtility.h
+
+/lhome/nicholas/software/PlatoSim3/source/ConfigurationException.cpp
+iostream
+-
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/Exceptions.h
+
+/lhome/nicholas/software/PlatoSim3/source/ConfigurationParameters.cpp
+ConfigurationParameters.h
+/lhome/nicholas/software/PlatoSim3/source/ConfigurationParameters.h
+Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/Exceptions.h
+
+/lhome/nicholas/software/PlatoSim3/source/Convolver.cpp
+Convolver.h
+/lhome/nicholas/software/PlatoSim3/source/Convolver.h
 
 /lhome/nicholas/software/PlatoSim3/source/Detector.cpp
 Detector.h
@@ -3586,9 +3622,33 @@ DetectorWithAnalyticNonGaussianPSF.h
 DetectorWithMappedPSF.h
 /lhome/nicholas/software/PlatoSim3/source/DetectorWithMappedPSF.h
 
+/lhome/nicholas/software/PlatoSim3/source/FileException.cpp
+iostream
+-
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/Exceptions.h
+
+/lhome/nicholas/software/PlatoSim3/source/FileUtilities.cpp
+cstdio
+-
+FileUtilities.h
+/lhome/nicholas/software/PlatoSim3/source/FileUtilities.h
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+
 /lhome/nicholas/software/PlatoSim3/source/FrontEndElectronics.cpp
 FrontEndElectronics.h
 /lhome/nicholas/software/PlatoSim3/source/FrontEndElectronics.h
+
+/lhome/nicholas/software/PlatoSim3/source/HDF5Exceptions.cpp
+iostream
+-
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+HDF5Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/HDF5Exceptions.h
 
 /lhome/nicholas/software/PlatoSim3/source/HDF5File.cpp
 HDF5File.h
@@ -3597,6 +3657,26 @@ HDF5File.h
 /lhome/nicholas/software/PlatoSim3/source/HDF5Writer.cpp
 HDF5Writer.h
 /lhome/nicholas/software/PlatoSim3/source/HDF5Writer.h
+
+/lhome/nicholas/software/PlatoSim3/source/Heartbeat.cpp
+Heartbeat.h
+/lhome/nicholas/software/PlatoSim3/source/Heartbeat.h
+
+/lhome/nicholas/software/PlatoSim3/source/IOException.cpp
+iostream
+-
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/Exceptions.h
+
+/lhome/nicholas/software/PlatoSim3/source/IllegalArgumentException.cpp
+iostream
+-
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/Exceptions.h
 
 /lhome/nicholas/software/PlatoSim3/source/JitterFromFile.cpp
 JitterFromFile.h
@@ -3609,6 +3689,14 @@ JitterFromNetwork.h
 /lhome/nicholas/software/PlatoSim3/source/JitterFromRedNoise.cpp
 JitterFromRedNoise.h
 /lhome/nicholas/software/PlatoSim3/source/JitterFromRedNoise.h
+
+/lhome/nicholas/software/PlatoSim3/source/Logger.cpp
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+
+/lhome/nicholas/software/PlatoSim3/source/Mathematics.cpp
+Mathematics.h
+/lhome/nicholas/software/PlatoSim3/source/Mathematics.h
 
 /lhome/nicholas/software/PlatoSim3/source/NoDrift.cpp
 NoDrift.h
@@ -3632,6 +3720,22 @@ Units.h
 PointSpreadFunction.h
 /lhome/nicholas/software/PlatoSim3/source/PointSpreadFunction.h
 
+/lhome/nicholas/software/PlatoSim3/source/Polynomial1D.cpp
+Polynomial1D.h
+/lhome/nicholas/software/PlatoSim3/source/Polynomial1D.h
+
+/lhome/nicholas/software/PlatoSim3/source/Polynomial2D.cpp
+Polynomial2D.h
+/lhome/nicholas/software/PlatoSim3/source/Polynomial2D.h
+
+/lhome/nicholas/software/PlatoSim3/source/Quaternion.cpp
+Quaternion.h
+/lhome/nicholas/software/PlatoSim3/source/Quaternion.h
+
+/lhome/nicholas/software/PlatoSim3/source/Random.cpp
+Random.h
+/lhome/nicholas/software/PlatoSim3/source/Random.h
+
 /lhome/nicholas/software/PlatoSim3/source/Simulation.cpp
 Simulation.h
 /lhome/nicholas/software/PlatoSim3/source/Simulation.h
@@ -3639,6 +3743,14 @@ Simulation.h
 /lhome/nicholas/software/PlatoSim3/source/Sky.cpp
 Sky.h
 /lhome/nicholas/software/PlatoSim3/source/Sky.h
+
+/lhome/nicholas/software/PlatoSim3/source/SkyCoordinates.cpp
+SkyCoordinates.h
+/lhome/nicholas/software/PlatoSim3/source/SkyCoordinates.h
+
+/lhome/nicholas/software/PlatoSim3/source/StringUtilities.cpp
+StringUtilities.h
+/lhome/nicholas/software/PlatoSim3/source/StringUtilities.h
 
 /lhome/nicholas/software/PlatoSim3/source/Telescope.cpp
 Telescope.h
@@ -3655,6 +3767,14 @@ ThermoElasticDriftFromFile.h
 /lhome/nicholas/software/PlatoSim3/source/ThermoElasticDriftFromRedNoise.cpp
 ThermoElasticDriftFromRedNoise.h
 /lhome/nicholas/software/PlatoSim3/source/ThermoElasticDriftFromRedNoise.h
+
+/lhome/nicholas/software/PlatoSim3/source/UnsupportedException.cpp
+iostream
+-
+Logger.h
+/lhome/nicholas/software/PlatoSim3/source/Logger.h
+Exceptions.h
+/lhome/nicholas/software/PlatoSim3/source/Exceptions.h
 
 generated/version.h
 
