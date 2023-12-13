@@ -91,46 +91,38 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">For users (via Conda)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#create-a-conda-environment"><em>Create a Conda environment</em></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#activate-and-deactivate-a-conda-environment"><em>Activate and deactivate a Conda environment</em></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#installing-and-updating">Installing (and updating)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#master-branch"><em>Master branch</em></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#developer-branch"><em>Developer branch</em></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#credential"><em>Credential</em></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#a-word-about-jenkins">A word about Jenkins</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites"><em>Prerequisites</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing"><em>Installing</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#updating"><em>Updating</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#python-packages"><em>Python packages</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-word-about-jenkins"><em>A word about Jenkins</em></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html#troubleshooting">Troubleshooting</a></li>
 </ul>
 
             
@@ -204,81 +196,81 @@
             
   <div class="section" id="for-users-via-conda">
 <h1>For users (via Conda)<a class="headerlink" href="#for-users-via-conda" title="Permalink to this headline">¶</a></h1>
-<p>To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we have started using <a class="reference external" href="https://www.jenkins.io/">Jenkins</a> to automatically build PlatoSim, enabling you to download the latest successfully built version or the <span class="xref std std-ref">master or develop branch</span>, or any specific version(s) of these. The flowchart below summarises the steps you have to take.</p>
+<p>To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we use <a class="reference external" href="https://www.jenkins.io/">Jenkins</a> to automatically build PlatoSim. Jenkins enables you to download the latest successfully built version of the <span class="xref std std-ref">master or develop branch</span>, or any specific version(s) of these. See <a class="reference internal" href="#install-conda-jenkins"><span class="std std-ref">A word about Jenkins</span></a> for more information. The flowchart below summarises the steps you have to take.</p>
 <a class="reference internal image-reference" href="_images/flowchart_installPlatoSimViaConda.png"><img alt="Alternative text" class="align-center" src="_images/flowchart_installPlatoSimViaConda.png" style="width: 1000px;" /></a>
-<div class="admonition-overview-of-user-installation admonition">
-<p class="admonition-title">Overview of user installation</p>
-<p>To be able to install PlatoSim via Conda, have a look at the following steps:</p>
-<ul class="simple">
-<li><p><a class="reference internal" href="#install-conda-prerequisites"><span class="std std-ref">Prerequisites</span></a>: needed to download and update PlatoSim.</p></li>
-<li><p><a class="reference internal" href="#install-conda-installing"><span class="std std-ref">Installing (and Updating)</span></a>: PlatoSim in a dedicated Conda environment.</p></li>
-<li><p><a class="reference internal" href="#install-conda-jenkins"><span class="std std-ref">A Word about Jenkins</span></a>: to monitor the status of the PlatoSim builds.</p></li>
-</ul>
-</div>
 <hr><div class="section" id="prerequisites">
-<span id="install-conda-prerequisites"></span><h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="create-a-conda-environment">
-<h3><em>Create a Conda environment</em><a class="headerlink" href="#create-a-conda-environment" title="Permalink to this headline">¶</a></h3>
-<p>To be able to install PlatoSim via conda, you have to have the Python distribution <a class="reference external" href="https://docs.continuum.io/anaconda/install/">Anaconda</a> installed. You have to create an <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">Conda environments</a>, here called platosim, as follows:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>platosim<span class="w"> </span><span class="nv">python</span><span class="o">=</span>&lt;Python<span class="w"> </span>version&gt;
+<span id="install-conda-prerequisites"></span><h2><em>Prerequisites</em><a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>To be able to install PlatoSim via Conda you need to have the Python distribution <a class="reference external" href="https://docs.continuum.io/anaconda/install/">Anaconda</a> installed. Well tested Jenkins builds are with <strong>Python version 3.8 and 3.9</strong>.</p>
+</div>
+<p>First, create a Conda environment (e.g. called <code class="docutils literal notranslate"><span class="pre">platosim</span></code>):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>&lt;environment<span class="w"> </span>name&gt;<span class="w"> </span><span class="nv">python</span><span class="o">=</span>&lt;Python<span class="w"> </span>version&gt;
 </pre></div>
 </div>
-<p>but it is advisable to use multiple conda environments if you want to be able to switch between version and/or branches in a smooth way (e.g. <code class="docutils literal notranslate"><span class="pre">platosimMaster</span></code> and <code class="docutils literal notranslate"><span class="pre">platosimDevel</span></code>). <strong>Supported Python versions are 3.8 and 3.9</strong>. Please note that when you switch to a different version of Python it is advised to create a new conda environment rather than trying to update your existing one. It will save you a lot of trouble if you do it like this.</p>
-<p>To get an overview of all your conda environments, type:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>list
-</pre></div>
-</div>
-<p>The active environments will be marked with <code class="docutils literal notranslate"><span class="pre">*</span></code>.</p>
-</div>
-<div class="section" id="activate-and-deactivate-a-conda-environment">
-<h3><em>Activate and deactivate a Conda environment</em><a class="headerlink" href="#activate-and-deactivate-a-conda-environment" title="Permalink to this headline">¶</a></h3>
-<p>Each time you install a different version of PlatoSim or if you want to use a specific version of PlatoSim you have installed (via conda) on your system, you have to activate the appropriate conda environment, which is done as follows:</p>
+<p>Activate your new conda environment:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>&lt;environment<span class="w"> </span>name&gt;
 </pre></div>
 </div>
-<p>To de-activate the environment you are currently on, type</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>deactivate
-</pre></div>
-</div>
+<p>It is advised to use multiple Conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. between <code class="docutils literal notranslate"><span class="pre">platosim_master</span></code> and <code class="docutils literal notranslate"><span class="pre">platosim_develop</span></code>). We also recommend to create a new Conda environment, rather than trying to update your existing one, when you switch to a different version of Python. Find more information on how to use and manage <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">Conda environments</a>.</p>
 <hr></div>
+<div class="section" id="installing">
+<span id="install-conda-installing"></span><h2><em>Installing</em><a class="headerlink" href="#installing" title="Permalink to this headline">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>To install the PlatoSim software you need a set of credentials (<strong>username</strong> and <strong>password</strong>). If you have not received these, please contact one of the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">PlatoSim developers</a> and request them. Having the credentials at hand, use them in the installation procedure below by replacing the entries <code class="docutils literal notranslate"><span class="pre">&lt;username&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;password&gt;</span></code> with the given username and password, respectively.</p>
 </div>
-<div class="section" id="installing-and-updating">
-<span id="install-conda-installing"></span><h2>Installing (and updating)<a class="headerlink" href="#installing-and-updating" title="Permalink to this headline">¶</a></h2>
-<p>Before you install another version of PlatoSim3, you must activate the desired conda environment. It is not necessary to create a new conda environment every time you install a different version of the software, unless you want to use multiple versions in parallel.</p>
-<p>The installation procedure will automatically detect which operating system your are running and will install the appropriate packages for you.</p>
+<p>Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system your are running and will install the appropriate packages for you.</p>
 <p>Before you install PlatoSim via conda, for the first time in this environment, type:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>config<span class="w"> </span>--add<span class="w"> </span>channels<span class="w"> </span>conda-forge
 </pre></div>
 </div>
-<div class="section" id="master-branch">
-<h3><em>Master branch</em><a class="headerlink" href="#master-branch" title="Permalink to this headline">¶</a></h3>
-<p>To install the latest successfully built version of the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch, type:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>https://jenkins.miricle.org/platosim/<span class="w"> </span>platosim
+<p>We recommend to install the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch, unless you are interested in a feature that only exists on the <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch. To install the latest version of the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch use:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>https://&lt;username&gt;:&lt;password&gt;@jenkins.miricle.org/platosim/<span class="w"> </span>platosim
 </pre></div>
 </div>
-<p>To install a specific version (only for the master branch), just append <code class="docutils literal notranslate"><span class="pre">&lt;version&gt;=</span></code> to this command.</p>
-</div>
-<div class="section" id="developer-branch">
-<h3><em>Developer branch</em><a class="headerlink" href="#developer-branch" title="Permalink to this headline">¶</a></h3>
-<p>For the develop branch, these commands must be replaced by</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>https://jenkins.miricle.org/platosim.devel/<span class="w"> </span>platosim
+<p>To install the latest version of the <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch, use:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>-c<span class="w"> </span>https://&lt;username&gt;:&lt;password&gt;@jenkins.miricle.org/platosim.devel/<span class="w"> </span>platosim
 </pre></div>
 </div>
-<p>and:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>update<span class="w"> </span>--force-reinstall<span class="w"> </span>-c<span class="w">  </span>https://jenkins.miricle.org/platosim.devel/<span class="w"> </span>platosim
-</pre></div>
-</div>
-<p>respectively.</p>
-</div>
-<div class="section" id="credential">
-<h3><em>Credential</em><a class="headerlink" href="#credential" title="Permalink to this headline">¶</a></h3>
-<p>If no pop-up window, asking for the credentials, appears, adapt the conda install commands from above, by replacing <code class="docutils literal notranslate"><span class="pre">https://jenkins</span></code> with <code class="docutils literal notranslate"><span class="pre">https://&lt;username&gt;:&lt;password&gt;&#64;jenkins</span></code>. Please request the <code class="docutils literal notranslate"><span class="pre">&lt;username&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;password&gt;</span></code> from one of the PlatoSim developers.</p>
+<p>To install a specific version of either the <code class="docutils literal notranslate"><span class="pre">master</span></code> or <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch, simply append <code class="docutils literal notranslate"><span class="pre">&lt;version&gt;=</span></code> to the above commands.</p>
 <hr></div>
+<div class="section" id="updating">
+<span id="install-conda-updating"></span><h2><em>Updating</em><a class="headerlink" href="#updating" title="Permalink to this headline">¶</a></h2>
+<p>You may wish to update your installation when a new PlatoSim release becomes available. To update the <code class="docutils literal notranslate"><span class="pre">master</span></code> branch, simply use:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>update<span class="w"> </span>--force-reinstall<span class="w"> </span>-c<span class="w">  </span>https://&lt;username&gt;:&lt;password&gt;@jenkins.miricle.org/platosim/<span class="w"> </span>platosim
+</pre></div>
 </div>
+<p>Accordingly, if you want to update the <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch, type:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>update<span class="w"> </span>--force-reinstall<span class="w"> </span>-c<span class="w">  </span>https://&lt;username&gt;:&lt;password&gt;@jenkins.miricle.org/platosim.devel/<span class="w"> </span>platosim
+</pre></div>
+</div>
+<hr></div>
+<div class="section" id="python-packages">
+<span id="install-conda-python"></span><h2><em>Python packages</em><a class="headerlink" href="#python-packages" title="Permalink to this headline">¶</a></h2>
+<p>Conda, for which Jenkins depends on, is unfortunately not capable of installing the full suite of Python packages needed to use PlatoSim’s built-in Python interface. Thus, minimally you need to install the packages listed under the section <code class="docutils literal notranslate"><span class="pre">tool.poetry.dependencies</span></code> in the file <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml">pyproject.toml</a>. As an alternative to installing each of the Python libraries one-by-one yourself using Conda/PyPi, in the following we show how to use <a class="reference external" href="https://python-poetry.org/">Poetry</a> to handle the package managing and install all packages with one command. Poetry manages your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. on a computing cluster).</p>
+<p><strong>Install Poetry</strong></p>
+<p>First install Poetry by following <a class="reference external" href="https://python-poetry.org/docs/">Poetry’s documentation</a>.</p>
+<p><strong>Install Python packages</strong></p>
+<p>As a user, you need to download the <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file from either the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml">master branch</a> or the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml">develop branch</a>, depending on which branch you have installed. We recommend to store this file in your <code class="docutils literal notranslate"><span class="pre">$CONDA_PREFIX/python</span></code> directory which accordingly points to your active Conda environment.</p>
+<p>Move to the directory where the <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file is located and install the packages with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install<span class="w"> </span>--no-root
+</pre></div>
+</div>
+<p>Verify the success of the installation by typing <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">show</span></code> (any failed installations will show up in red). Also verify that Poetry successfully installed all packages into your Conda environment by typing <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">list</span></code> (see packages installed with PyPi).</p>
+<p>You have now installed the default Python package distribution of PlatoSim, which is sufficient for running the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">Jupyter noteboook tutorials</a> and to use most of PlatoSim’s Python modules for scripting. Always remember to activate your Conda environment before using PlatoSim’s Python interface.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Some users may find that Poetry stalls during the installation procedure. If that happens it is typically caused by a bad <em>keyring</em> setting in Poetry. Simple run the following command and retry the installation:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHON_KEYRING_BACKEND</span><span class="o">=</span>keyring.backends.fail.Keyring
+</pre></div>
+</div>
+</div>
+<hr></div>
 <div class="section" id="a-word-about-jenkins">
-<span id="install-conda-jenkins"></span><h2>A word about Jenkins<a class="headerlink" href="#a-word-about-jenkins" title="Permalink to this headline">¶</a></h2>
-<p>We have started using <a class="reference external" href="https://www.jenkins.io/">Jenkins</a> to automatically build PlatoSim and make pre-built software available for a myriad of operating systems. The figure below summarises how we want to use it.</p>
-<p>Each time code is pushed to the repository (either to the <code class="docutils literal notranslate"><span class="pre">master</span></code> or the <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch) or a pull request is merged in GitHub, Jenkins will start building the new code, resolves the dependencies for you, and makes it available via the conda installation command. In case the build was successful, users can install this build on their system.</p>
+<span id="install-conda-jenkins"></span><h2><em>A word about Jenkins</em><a class="headerlink" href="#a-word-about-jenkins" title="Permalink to this headline">¶</a></h2>
+<p>We are using <a class="reference external" href="https://www.jenkins.io/">Jenkins</a> to automatically build PlatoSim and make pre-built software available for a myriad of operating systems. The figure below summarises how we want to use it.</p>
+<p>Each time code is pushed to the repository (either to the <code class="docutils literal notranslate"><span class="pre">master</span></code> or the <code class="docutils literal notranslate"><span class="pre">develop</span></code> branch) or a pull request is merged in GitHub, Jenkins will start building the new code, resolve the dependencies for you, and make it available via the Conda installation command. In case the build was successful, users can install this build on their system.</p>
 <p>To monitor the status of the PlatoSim builds, check <a class="reference external" href="https://jenkins.miricle.org/view/Platosim/">here</a>.</p>
 <a class="reference internal image-reference" href="_images/github_jenkins.png"><img alt="_images/github_jenkins.png" class="align-center" src="_images/github_jenkins.png" style="width: 1000px;" /></a>
 </div>

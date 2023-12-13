@@ -1,7 +1,7 @@
 Output files
 ============
 
-The output files of PlatoSim is so-called `HDF5 format <https://www.hdfgroup.org/solutions/hdf5/>`_, and the following figure shows the output structure: 
+The output files of PlatoSim is in a so-called `HDF5 format <https://www.hdfgroup.org/solutions/hdf5/>`_. The following figure shows the structure of the HDF5 file: 
 
 .. figure:: ../figures/platosim_structureOfHDF5.png
    :align: center
@@ -14,12 +14,10 @@ The blue boxes show the top-level directories, which can contain information abo
 * The third level shows all the groups that contain single frame image data. These are the ``PSF``, ``BackgroundMap``, ``FlatField``, and the ``CTI``. Notice that the latter contains a map for each CTI trap specy that is included in the used model (hence 4 species for the Short model).
 * The fourth level shows all the groups that contains a mix of stellar parameters, payload parameters, and coordinates. The group ``StarCatalog`` contains the sky coordinates, the pixel coordinates, and the focal plane coordinates of all the stars that were detected during any exposure. The ``starIDs`` map the ID from the input starCatalog that is supplied with the configuration. The two groups ``ASC`` and ``Telescope`` contains time series of the displacement of the platform and camera, respectively. The groups ``StarPositions``, ``PointLikeGhostPositions``, and ``ExtendedGhostPositions`` contain information about the different source images produced, and ``Cosmics`` contains information about the cosmic rays detected within the subfield. The output structure of the four latter groups depend on the :ref:`GroupByExposure <run_input_parameters_hdf5>` setting.  
 
-We recommend you to use the command-line tool `argos <https://pypi.org/project/argos/>`_ to inspect the output files for quick-look purposes. When installed (which is part of PlatoSim's default Python suite) this can simply be done with:
+We recommend you to use the command-line tool `argos <https://pypi.org/project/argos/>`_ (which is part of PlatoSim's default Poetry installation) to inspect the output files for quick-look purposes. Open a HDF5 with:
 
 .. code-block:: shell
 
    argos <outputFileName>.hdf5
 
-To extract information from the HDF5 file we strongly recommend you to use PlatoSim's build-in Python functionalities. We show these works in our `Python Tuturials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_.
-
-   
+To extract information from the HDF5 file we strongly recommend you to use PlatoSim's build-in Python functionalities. We show how these tools work in our `Python Tuturials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_.

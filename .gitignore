@@ -1,0 +1,22 @@
+# Files from master/develop branch
+build/CMakeCache.txt
+build/CMakeFiles/
+build/Makefile
+build/cmake_install.cmake
+build/connectionTest
+build/generated/
+build/libplatosimLibrary.a
+build/platosim
+dependencies/
+docs/
+inputfiles/
+python/
+tests/
+poetry.lock
+pyproject.toml
+.bash_profile
+
+# Files from sphinx
+_images
+_static
+

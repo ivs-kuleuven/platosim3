@@ -43,7 +43,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Migration tool" href="install_migtool.html" />
+    <link rel="next" title="Overview" href="run_overview.html" />
     <link rel="prev" title="For users (via Conda)" href="install_conda.html" /> 
 </head>
 
@@ -91,10 +91,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul class="current">
@@ -112,22 +112,21 @@
 <li class="toctree-l2"><a class="reference internal" href="#python-packages"><em>Python packages</em></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html#troubleshooting">Troubleshooting</a></li>
 </ul>
 
             
@@ -223,11 +222,9 @@
 <p>The PlatoSim code is under version control in GitHub. To be able to get the latest version of the code on your local machine and to share possible contributions with other people in the project, you need to install Git on your computer. Installation instructions can be found in the <a class="reference external" href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">Git reference documentation</a>.</p>
 <a class="reference internal image-reference" href="_images/logo_git.png"><img alt="Alternative text" class="align-center" src="_images/logo_git.png" style="width: 200px;" /></a>
 <p><strong>GitHub</strong></p>
-<p>The PlatoSim code is located in a <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">private repository in GitHub</a>. To be able to access it, we have to grant you access explicitly. Please, send your GitHub username to the development team and you will be granted read access to the repository. You will then get an invitation by email to join.</p>
+<p>The PlatoSim code is located in a <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">private repository on GitHub</a>. To be able to access it, we have to grant you access explicitly. Please, send your GitHub username to the development team and you will be granted read access to the repository. You will then get an invitation by email to join.</p>
 <p>If you have not done so already, you can make an <a class="reference external" href="https://github.com/">account on GitHub</a> for free.</p>
 <a class="reference internal image-reference" href="_images/logo_github.png"><img alt="Alternative text" class="align-center" src="_images/logo_github.png" style="width: 300px;" /></a>
-<p><strong>Operating system</strong></p>
-<p>PlatoSim3 has been tested on recent Mac OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support Windows systems at the moment, so we advise Windows users to install a Virtual Machine (VM), and run the PLATO Simulator inside the VM. Alternatively, if you’re using Windows 10, you can use <a class="reference external" href="https://docs.microsoft.com/en-us/windows/wsl/install">Windows Subsystems for Linux (WSL)</a> instead.</p>
 <p><strong>Installed software packages</strong></p>
 <p>To be able to install the dependencies and build the code, the following software must be installed on your computer:</p>
 <ul class="simple">
@@ -236,7 +233,7 @@
 <li><p><a class="reference external" href="http://www.openblas.net/">BLAS</a> and <a class="reference external" href="https://netlib.org/lapack/">LAPACK</a>. Without these, the simulator will likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install them.</p></li>
 </ul>
 <div class="admonition-want-to-change-the-system-default-compiler admonition">
-<p class="admonition-title">Want to change the System Default Compiler?</p>
+<p class="admonition-title">Want to change the system default compiler?</p>
 <p>If you want to use a different compiler than the system default to build the code, you have to export two additional environment variables, CCX and CC, as follows:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">CXX</span><span class="o">=</span>g++-5
 <span class="nb">export</span><span class="w"> </span><span class="nv">CC</span><span class="o">=</span>gcc-5
@@ -248,21 +245,21 @@
 <div class="section" id="forking-cloning">
 <span id="install-source-forking"></span><h2><em>Forking &amp; Cloning</em><a class="headerlink" href="#forking-cloning" title="Permalink to this headline">¶</a></h2>
 <blockquote>
-<div><p>The PlatoSim repository can be found on the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">IvS-KULeuven GitHub pages</a>. This repository is referred to as <strong>upstream</strong>. This section describes the process shown in the diagram below.</p>
+<div><p>The PlatoSim repository can be found on the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">IvS-KULeuven GitHub pages</a>. This repository is referred to as <em>upstream</em>. This section describes the process shown in the diagram below.</p>
 </div></blockquote>
 <a class="reference internal image-reference" href="_images/github_forkAndClone.png"><img alt="Alternative text" class="align-center" src="_images/github_forkAndClone.png" style="width: 900px;" /></a>
 <p><strong>Fork</strong></p>
 <p>To be able to not only use the code but also to contribute to it, you have to <em>fork</em> this repository. To do this, you have to go to the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3">upstream GitHub page</a>, shown in the figure below. Just press the <code class="docutils literal notranslate"><span class="pre">Fork</span></code> button at the top right (encircled in red in the screenshot above) and follow the instructions. Your personal copy of the PlatoSim repository will then show up on your personal GitHub pages. This copy is referred to as <em>origin</em>.</p>
 <a class="reference internal image-reference" href="_images/github_forkPlatoSim.png"><img alt="Alternative text" class="align-center" src="_images/github_forkPlatoSim.png" style="width: 900px;" /></a>
 <p><strong>Clone</strong></p>
-<p>From there you can <em>clone</em> it to a designated directory on your local machine, with the following command (mind the dot at the end of the command!):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;GitHub-username&gt;/PlatoSim3.git<span class="w"> </span>.
+<p>From there you can <em>clone</em> it to a designated directory on your local machine. The following command will download the source code folder called <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/&lt;Your<span class="w"> </span>GitHub<span class="w"> </span>username&gt;/PlatoSim3.git
 </pre></div>
 </div>
 <p>It is possible that you will be asked for a usename and password. In that case, follow the next section <em>Credentials</em>.</p>
-<p>After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called dependencies) before you can actually build and run the PlatoSim. How to do this, is described <a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">here</span></a>.</p>
-<p>Note that it is also possible to clone the repository directly onto your local machine, without forking it first. You will be able to update the software but not to contribute to it. We therefore strongly discourage this approach. If you only want to use PlatoSim (without changing the code), you may want to follow the <a class="reference internal" href="install_conda.html"><span class="doc">user installation procedure</span></a> instead.</p>
-<p><strong>Credentials</strong></p>
+<p>After you have downloaded PlatoSim’s source code, you first have to install a few packages (so-called dependencies) before you can actually build and run PlatoSim (<a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">see next section</span></a>).</p>
+<p>Note that it is also possible to clone the repository directly onto your local machine, without forking it first. Doing so you will be able to update the software but not to contribute to it, hence, we strongly discourage this approach. If you only want to use PlatoSim (without changing the code), you may want to follow the <a class="reference internal" href="install_conda.html"><span class="doc">user installation procedure</span></a> instead.</p>
+<p><strong>GitHub credentials</strong></p>
 <p>When cloning the repository to your local machine your GitHub username and <a class="reference external" href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token">personal acces tokens</a> will be needed. If you want your machine to remember these in the future, write the following command:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>config<span class="w"> </span>credential.helper<span class="w"> </span>store
 </pre></div>
@@ -275,14 +272,14 @@
 <div class="section" id="dependencies">
 <span id="install-source-dependencies"></span><h2><em>Dependencies</em><a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h2>
 <p>PlatoSim relies on a number software packages, which are all included in the PlatoSim distribution for your convenience. Everything concerning the dependencies can be found in the <code class="docutils literal notranslate"><span class="pre">/dependencies</span></code> directory. The <code class="docutils literal notranslate"><span class="pre">/dependency/Downloads</span></code> sub-directory contains the tarball or zipball file of all required packages. In the <code class="docutils literal notranslate"><span class="pre">/installscripts</span></code> sub-directory you can find Python scripts that help you to unzip or untar these files into the <code class="docutils literal notranslate"><span class="pre">/dependency/Installs</span></code> directory.</p>
-<p>You can install all the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded):</p>
+<p>You can install all the required dependencies and build the code in one go by typing (from the PlatoSim3 directory):</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh
 </pre></div>
 </div>
-<p>Running this script will create the <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executable needed to simulations from bash.</p>
+<p>Running this script will create the <code class="docutils literal notranslate"><span class="pre">platosim</span></code> executable needed to run simulations from bash.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
-<p>If problems would arise when executing this command, we recommend to install the dependencies one-by-one to pinpoint the problem. You can do this for one dependency at a time, like this (in the directory in which PlatoSim3 was downloaded):</p>
+<p>If problems would arise when executing the <code class="docutils literal notranslate"><span class="pre">./install.sh</span></code> command, we recommend to install the dependencies one-by-one to pinpoint the problem. Hence, copy-and-paste and run each of the following commands (also from the PlatoSim3 directory):</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>./dependencies/installscripts/install_hdf5.py
 python<span class="w"> </span>./dependencies/installscripts/install_yaml.py
 python<span class="w"> </span>./dependencies/installscripts/install_armadillo.py
@@ -292,7 +289,7 @@ python<span class="w"> </span>./dependencies/installscripts/install_zeromq.py
 </pre></div>
 </div>
 <p><strong>Still experiencing problems?</strong></p>
-<p>If you are still experiencing problems with the installation above, <a class="reference internal" href="basic_troubleshooting.html"><span class="doc">please raise an issue</span></a>! It’s convenient if you can send us the full error log, which you can get hold of as follows:</p>
+<p>If you are still experiencing problems with the installation above, <a class="reference internal" href="basic_troubleshooting.html"><span class="doc">please raise an issue</span></a>! It’s convenient if you can send us the full error log, which you can get using the command:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./install.sh<span class="w"> </span>&gt;<span class="w"> </span>output.txt<span class="w"> </span><span class="m">2</span>&gt;<span class="w"> </span>errors.txt
 </pre></div>
 </div>
@@ -301,7 +298,7 @@ python<span class="w"> </span>./dependencies/installscripts/install_zeromq.py
 <div class="section" id="building-the-code">
 <span id="install-source-build"></span><h2><em>Building the code</em><a class="headerlink" href="#building-the-code" title="Permalink to this headline">¶</a></h2>
 <p><strong>Software changes</strong></p>
-<p>In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself) or in case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. From the folder <code class="docutils literal notranslate"><span class="pre">/build</span></code> type:</p>
+<p>In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself), or in case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. From the directory <code class="docutils literal notranslate"><span class="pre">/build</span></code> type:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>..
 make<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
 </pre></div>
@@ -317,11 +314,11 @@ make<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
 <hr></div>
 <div class="section" id="remote-repositories">
 <span id="install-source-remote"></span><h2><em>Remote repositories</em><a class="headerlink" href="#remote-repositories" title="Permalink to this headline">¶</a></h2>
-<p>To be able to <em>pull</em> the latest version of the upstream software into your local copy (we’ll come back to this), we advise you to add upstream to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):</p>
+<p>To <em>pull</em> or <em>fetch</em> the latest version of the upstream software into your local copy (we’ll come back to this) we advise you to add <em>upstream</em> to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>remote<span class="w"> </span>-v
 </pre></div>
 </div>
-<p>This should give output, similar to this:</p>
+<p>This should give output similar to this:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">origin</span>    <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/&lt;</span><span class="n">your</span> <span class="n">GitHub</span> <span class="n">username</span><span class="o">&gt;/</span><span class="n">PlatoSim3</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">fetch</span><span class="p">)</span>
 <span class="n">origin</span>    <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/&lt;</span><span class="n">your</span> <span class="n">GitHub</span> <span class="n">username</span><span class="o">&gt;/</span><span class="n">PlatoSim3</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">push</span><span class="p">)</span>
 <span class="n">upstream</span>  <span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">IvS</span><span class="o">-</span><span class="n">KULeuven</span><span class="o">/</span><span class="n">PlatoSim3</span><span class="o">.</span><span class="n">git</span> <span class="p">(</span><span class="n">fetch</span><span class="p">)</span>
@@ -416,47 +413,39 @@ make<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
 <hr></div>
 <div class="section" id="python-packages">
 <span id="install-source-python"></span><h2><em>Python packages</em><a class="headerlink" href="#python-packages" title="Permalink to this headline">¶</a></h2>
-<p>To be able to run the PlatoSim and inspect the output using our build-in Python interface, a few Python libraries are needed. We advise you to install <a class="reference external" href="https://docs.continuum.io/anaconda/install/">Anaconda</a> and use this as your Python environment manger, as this already has most of the required packages installed. It comes with a GUI, called Spyder, from which you can run your Python scripts.</p>
-<p>In the following <a class="reference external" href="https://python-poetry.org/">Poetry</a> will be used to handle the package managing (which is far better than conda) as it manage your project installation easily over multiple platforms in a deterministic way. This has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine.</p>
-<p><strong>Create and activate a Conda environment</strong></p>
-<p>Frist install <a class="reference external" href="https://docs.conda.io/en/latest/">Conda</a> (or <a class="reference external" href="https://docs.conda.io/en/latest/miniconda.html">Miniconda</a>) and then create a new environment:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>platosim<span class="w"> </span><span class="nv">python</span><span class="o">=</span>&lt;python-version&gt;
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>To install PlatoSim’s Python distribution we strongly recommend to install <a class="reference external" href="https://docs.continuum.io/anaconda/install/">Anaconda</a> and use Conda to manage your Python environments. Note that well tested package builds are currently with <strong>Python version 3.8 and 3.9</strong>.</p>
+</div>
+<p><strong>Create a Conda environment</strong></p>
+<p>First, create a Conda environment (e.g. <code class="docutils literal notranslate"><span class="pre">platosim</span></code>):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>create<span class="w"> </span>-n<span class="w"> </span>&lt;environment<span class="w"> </span>name&gt;<span class="w"> </span><span class="nv">python</span><span class="o">=</span>&lt;Python<span class="w"> </span>version&gt;
 </pre></div>
 </div>
-<p><strong>Supported Python versions are 3.8 and 3.9</strong>. To avoid conflict between dependencies, we recommend to create a new conda environment (rather than trying to update your existing one) when switching to a different Python version. This means you (as a developer) will have to re-install all Python packages (see below), but it will on the other hand save you a lot of trouble.</p>
-<p>Now activate your new conda environment:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>platosim
+<p>Activate your new conda environment:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>&lt;environment<span class="w"> </span>name&gt;
 </pre></div>
 </div>
-<p><strong>Install Python packages with Poetry</strong></p>
-<p>If not done so, first install Poetry:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-sSL<span class="w"> </span>https://install.python-poetry.org<span class="w"> </span><span class="p">|</span><span class="w"> </span>python<span class="w"> </span>-
+<p>It is advisable to use multiple conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. <code class="docutils literal notranslate"><span class="pre">platosim_master</span></code> and <code class="docutils literal notranslate"><span class="pre">platosim_develop</span></code>). Please note that when you switch to a different version of Python it is advised to create a new Conda environment rather than trying to update your existing one. Find more information on how to use and manage <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">Conda environments</a>.</p>
+<p><strong>Install Poetry</strong></p>
+<p>Minimally you need to install all packages listed under the section <code class="docutils literal notranslate"><span class="pre">tool.poetry.dependencies</span></code> in the file <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml">pyproject.toml</a>. As an alternative to install each of the Python libraries one-by-one yourself using Conda/PyPi, we show how you can use <a class="reference external" href="https://python-poetry.org/">Poetry</a> to handle the package managing. Poetry manages your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. on a computing cluster).</p>
+<p>The first step is to install Poetry by following <a class="reference external" href="https://python-poetry.org/docs/">Poetry’s documentation</a>.</p>
+<p><strong>Install Python packages</strong></p>
+<p>Move to the base of the PlatoSim repository and install the Python packages with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install<span class="w"> </span>--with<span class="w"> </span>docs
 </pre></div>
 </div>
-<p>The default installation location of Poetry is <code class="docutils literal notranslate"><span class="pre">$HOME/.local/bin/poetry</span></code>. You can find more information on how to change this location in <a class="reference external" href="https://python-poetry.org/docs/">Poetry’s documentation</a>, however, since Poetry is a small package we keep the default location here.</p>
-<p>From the base of the PlatoSim repository, simply install the Python packages with:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install
+<p>This will install the minimal package distribution of PlatoSim, which is sufficient for running the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">Jupyter noteboook tutorials</a> and to use most of PlatoSim’s Python modules for scripting. Additionally it installs the Sphinx packages needed to modify this documentation (see <code class="docutils literal notranslate"><span class="pre">sphinx</span></code> branch).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Some users may find that Poetry stalls during the installation procedure. If that happens it is typically caused by a bad <em>keyring</em> setting in Poetry. Simple run the following command and retry the installation:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHON_KEYRING_BACKEND</span><span class="o">=</span>keyring.backends.fail.Keyring
 </pre></div>
 </div>
-<p>Poetry will by default install the minimal package distribution of PlatoSim, which is sufficient for running the <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">Jupyter noteboook tutorials</a> and to use most PlatoSim’s Python modules to make your own scripts. Additionally you can add the following flags:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">docs</span></code>: install packages needed to modify this (Sphinx) documentation</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">platonium</span></code>: install packages needed for the PlatoSim’s toolkit: <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium</span></a></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">platonium</span> <span class="pre">--with</span> <span class="pre">pipeline</span></code>: full suite to run the end-to-end <em>post-processing pipeline</em></p></li>
-</ul>
-<p>You should now have all the required Python packages (including the PlatoSim package) installed into your Conda environment. To verify that this type:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>list
-</pre></div>
-</div>
-<p>Always remember to activate your Conda environment before using PlatoSim’s Python interface.</p>
-<p><strong>Updating Python packages</strong></p>
-<p>If the Python dependencies has been updated, with your Conda environment activated, use the following command to update these:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>update
-</pre></div>
 </div>
 <p><strong>Running the validation suite</strong></p>
-<p>As a good practice software building, PlatoSim3 has an automated test framework, a test harnesses, consisting of a collection of modules and test data configured to test the software unit. Hence, the test harnesses is a first sanity check post your installation.</p>
-<p>In order to be able to run the test harnesses, you must first build the code and export the required environment variables, as explained above. Simply run the cammand:</p>
+<p>As a good practice in software building, PlatoSim has an automated test harnesses consisting of a collection of modules and test data configured to validate the software unit. Hence, as a developer, the test harnesses is a mandatory sanity check before your push code and open a pull-request.</p>
+<p>In order to be able to run the test harnesses, you must first build the code and <a class="reference internal" href="run_prerequisites.html"><span class="doc">export the required environment variables</span></a>. From the PlatoSim3 directory, simply run the command:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tests/validations/scripts/run.py
 </pre></div>
 </div>
@@ -469,7 +458,7 @@ make<span class="w"> </span>-j<span class="w"> </span><span class="m">4</span>
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="install_migtool.html" class="btn btn-neutral float-right" title="Migration tool" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="run_overview.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="install_conda.html" class="btn btn-neutral float-left" title="For users (via Conda)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

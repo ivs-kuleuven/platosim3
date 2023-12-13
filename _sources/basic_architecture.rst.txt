@@ -1,13 +1,9 @@
 Architecture
 ============
 
-The goal of PlatoSim's C++ code is to model a part of one CCD of a single telescope on the platform. We refer to this as the ``subfield``. On this page we describe the steps that are executed within a simulation in more detail.
+Compared to PlatoSim v2, PlatoSim v3 has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. We have in particular minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained. As part of a healthy software development, our software now also includes an object-oriented design and proper unit testing.
 
-PlatoSim v3 has been rewritten from scratch in order to get rid of historical baggage and inefficient code constructions that had been built up for years. The PlatoSim v2 became impossible to maintain and it was very hard to add new features with confidence.
-
-We therefore started from scratch with an object-oriented design and proper testing. We minimised the dependencies to external libraries and replaced inactive libraries with code that is still actively maintained.
-
-
+The core software of PlatoSim is written in C++ but is best controlled and configured through our built-in Python interface. The goal of PlatoSim's C++ code is to model a part of one CCD of a single camera on the platform - we refer to this as the CCD ``subfield``. On this page we give an detailed describtion of the remaining building blocks and the steps that are executed during a simulation.
 
 
 .. raw:: html
@@ -52,7 +48,7 @@ Each of these main components has its own set of responsibilities:
     * ``Detector`` controls all the different (sub)pixel maps.
     * ``FEE`` controls the readout procedure and parameters for the electronics,
       
-The blue file icons attached to several boxes indicate that information about its responsibility is provided in the YAML configuration file, while the green file icons indicate that the component is writing information into the HDF5 output file.
+The blue file icons, attached to several boxes, indicate that information about its responsibility is provided in the YAML configuration file, while the green file icons indicate that the component is writing information to the HDF5 output file.
 
 
 
@@ -66,14 +62,14 @@ The blue file icons attached to several boxes indicate that information about it
 Control flow
 ------------
 
-Each PlatoSim simulation can be divided into two parts that happens sequential in time as shown in Fig. 3. Upon execution, PlatoSim first (a) read the configuration YAML file and initialises the Simulation object with these parameters. It further setup the random red noise generators, if requested by the user. Next (b) the actual computation of the pixel images begins. This happens in a loop over the number of exposures that is requested in the YAML configuration file. The two main steps in the simulation process are the integration of the light on the detector and the readout process.   
+Each PlatoSim simulation can be divided into two parts that happens sequential in time as shown in Fig. 3. Upon execution, PlatoSim first (a) read the configuration YAML file and initialises the Simulation object with these parameters. It further sets up the random red noise generators, if requested by the user. Next (b) the actual computation of the pixel images begins. This happens in a loop over the number of exposures that is requested in the YAML configuration file.
 
 .. figure:: ../figures/platosim_controlFlow.png
    :align: center
    :width: 800
 	   
    **Fig. 3**: Initialisation and execution of PlatoSim.
-      
-The flux of each star in the subfield is added to the sub-pixel map with the time interval of the pointing jitter and the duration of the exposure time. The background flux is then added and the subpixel map and is convolved with a rebinned PSF. After applying the flatfield, the subpixel map is rebinned to a pixel map, and the (geometric) vignetting is applied.
 
-During the readout process all the noise features are applied on the pixel map. Many of the features can be switched **on** or **off** in the YAML configuration file, some features need to get a value of ``yes`` (``True``) or ``no`` (``False``) in order to be included or ignored, respectively. After processing each exposure, the pixel map is written to the output HDF5 file and the option to write also the subpixel maps can be enabled in the YAML configuration file. Details about detected stars, their positions, and the pointing information is finally written to the output HDF5 file.
+The two main steps in the simulation process are the integration of the light on the detector and the readout process. The computational steps are essentially divided into those phenomena who need to be tracked on a time scale much shorter than the exposure time (i.e. defined by PlatoSim's *heartbeat*), and those phenomena that with good approximation can be modelled once per exposure.
+
+Note that PlatoSim is completely modular, meaning that all effects can be switched **on** or **off** in the YAML configuration file using either ``yes`` (``True``) or ``no`` (``False``), respectively. After processing each exposure, the requested pixel maps are written to the output HDF5 file together with the photometric data if enabled in the YAML configuration file. Details about detected stars, their positions, and the pointing information is finally written to the output HDF5 file. For more details about each effect implemented in PlatoSim, please consult the :doc:`PlatoSim paper <basic_acknowledgements>`.  

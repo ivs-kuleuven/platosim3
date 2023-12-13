@@ -43,8 +43,8 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Output files" href="run_output.html" />
-    <link rel="prev" title="Input files" href="run_input.html" /> 
+    <link rel="next" title="Input files" href="run_input.html" />
+    <link rel="prev" title="Prerequisites" href="run_prerequisites.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -91,36 +91,35 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Run simulations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#command-line"><em>Command line</em></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python"><em>Python</em></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html#troubleshooting">Troubleshooting</a></li>
 </ul>
 
             
@@ -194,7 +193,15 @@
             
   <div class="section" id="run-simulations">
 <h1>Run simulations<a class="headerlink" href="#run-simulations" title="Permalink to this headline">¶</a></h1>
-<p>To run simulations with PlatoSim, you will have to feed a <a class="reference internal" href="run_input.html#run-input-parameters"><span class="std std-ref">Configuration file</span></a> as input to the simulator, possibly together with a few additional <a class="reference internal" href="run_input.html#run-input-files"><span class="std std-ref">Supplementary files</span></a>. Launching simulations can be done either from the <a class="reference internal" href="#run-command-line"><span class="std std-ref">command line</span></a> or in <a class="reference internal" href="#run-python"><span class="std std-ref">Python</span></a>.</p>
+<p>To run simulations with PlatoSim, you will have to feed a <a class="reference internal" href="run_input.html#run-input-parameters"><span class="std std-ref">Configuration file</span></a> as input to the simulator, possibly together with a few additional <a class="reference internal" href="run_input.html#run-input-files"><span class="std std-ref">Supplementary files</span></a>. Launching simulations can be done either from the <a class="reference internal" href="#run-command-line"><span class="std std-ref">command line</span></a> or in <a class="reference internal" href="#run-python"><span class="std std-ref">Python</span></a> as explained on this page.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If you encounter that PlatoSim raises an error message, please have a look the log messages before raising a new GitHub issue. The two most frequent <em>error codes</em> are:</p>
+<ul class="simple">
+<li><p><strong>Error code 1</strong>: The HDF5 file already exists, hence remove it and try again</p></li>
+<li><p><strong>Error code 6</strong>: Wrong formatting or typesetting of the YAML file or a supplementary file</p></li>
+</ul>
+</div>
 <hr><div class="section" id="command-line">
 <span id="run-command-line"></span><h2><em>Command line</em><a class="headerlink" href="#command-line" title="Permalink to this headline">¶</a></h2>
 <p>To run a simulation from the command line, simply type:</p>
@@ -203,11 +210,15 @@
 </div>
 <p>The log level is an integer value that allows to configure what kind of log messages is written to the log file:</p>
 <ol class="arabic simple">
-<li><p>messages: <code class="docutils literal notranslate"><span class="pre">error</span></code>, <code class="docutils literal notranslate"><span class="pre">warning</span></code>;</p></li>
+<li><p>messages: <code class="docutils literal notranslate"><span class="pre">error</span></code>, <code class="docutils literal notranslate"><span class="pre">warning</span></code> (default);</p></li>
 <li><p>messages: <code class="docutils literal notranslate"><span class="pre">error</span></code>, <code class="docutils literal notranslate"><span class="pre">warning</span></code>, <code class="docutils literal notranslate"><span class="pre">info</span></code>;</p></li>
 <li><p>messages: <code class="docutils literal notranslate"><span class="pre">error</span></code>, <code class="docutils literal notranslate"><span class="pre">warning</span></code>, <code class="docutils literal notranslate"><span class="pre">info</span></code>, <code class="docutils literal notranslate"><span class="pre">debug</span></code>.</p></li>
 </ol>
-<p>The output file is a HDF5 file.</p>
+<p>A simple test simulation looks like:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>inputfile.yaml<span class="w"> </span>out.hdf5
+</pre></div>
+</div>
+<p>This will generate two files: the HDF5 output file containing the simulation and a ascii log file with the log messages from PlatoSim.</p>
 <hr></div>
 <div class="section" id="python">
 <span id="run-python"></span><h2><em>Python</em><a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h2>
@@ -230,23 +241,23 @@
 </pre></div>
 </div>
 <p><strong>Input configuration file</strong></p>
-<p>The configurationFile parameter is optional and contains the full path to the configuration file that will be used as a reference. A copy of this file will be stored in the output directory (with the name <code class="docutils literal notranslate"><span class="pre">runName.yaml</span></code>) and only the copy (and not the original file) will be modified. We will show later how to do this.</p>
-<p>If not specified, the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> configuration file from the <code class="docutils literal notranslate"><span class="pre">inputfiles/</span></code> directory will be used (provided you have exported the <code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code> environment variable). It is possible to also set the path to the reference input file as follows:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">configurationFile</span></code> parameter is optional and contains the full path to the configuration file that will be used as a reference. A copy of this file will be stored in the output directory (with the name <code class="docutils literal notranslate"><span class="pre">&lt;outputFile&gt;.yaml</span></code>) and only the copy (and not the original file) will be modified. We will show later how to do this.</p>
+<p>It is possible to also set the path to the reference input file as follows:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">readConfigurationFile</span><span class="p">(</span><span class="o">&lt;</span><span class="n">full</span> <span class="n">path</span> <span class="n">to</span> <span class="n">the</span> <span class="n">configuration</span> <span class="n">file</span><span class="o">&gt;</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>In that case, all changes to the configuration parameters you may have applied, will be overwritten.</p>
 <p><strong>Output directory</strong></p>
-<p>Also the outputDir parameter is optional. This contains the full path to the output directory. This must be specified before you can start the simulation. The output directory can be set can also be set as follows:</p>
+<p>Also the <code class="docutils literal notranslate"><span class="pre">outputDir</span></code> parameter is optional. This contains the full path to the output directory. This must be specified before you can start the simulation. The output directory can be set can also be set as follows:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">outputDir</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">full</span> <span class="n">path</span> <span class="n">to</span> <span class="n">the</span> <span class="n">output</span> <span class="n">directory</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>In this directory, the following information will be stored when running the simulation:</p>
 <blockquote>
 <div><ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">runName.yaml</span></code>: copy of the input file with the chosen configuration parameters (copied from the reference configuration file and possibly modified, as shown below);</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">runName.hdf5</span></code>: resulting exposures (images, PSF, etc.);</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">runName.log</span></code>: log file (to report any problems).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;outputFile&gt;.yaml</span></code>: copy of the input file with the chosen configuration parameters (copied from the reference configuration file and possibly modified, as shown below);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;outputFile&gt;.hdf5</span></code>: resulting exposures (images, PSF, etc.);</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;outputFile&gt;.log</span></code>: log file (to report any problems).</p></li>
 </ul>
 </div></blockquote>
 <p><strong>Modify configuration parameters</strong></p>
@@ -260,11 +271,11 @@
 </div>
 <p>for parameters in sub-block in the YAML file (e.g. <code class="docutils literal notranslate"><span class="pre">sim[&quot;Platform/Orientation/Angles/RAPointing&quot;]</span> <span class="pre">=</span> <span class="pre">90.0</span></code>). Note that the original YAML file is not modified. Only the copy of this fill gets modified. In case you change the configuration file of the Simulation object, the copy <code class="docutils literal notranslate"><span class="pre">runName.yaml</span></code> file will be overwritten and all changes to the configuration parameters you have applied, will be lost.</p>
 <p><strong>Run the simulation</strong></p>
-<p>The simulation can be executed with the following command:</p>
+<p>The simulation can be launched with the following command:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>By setting the optional input parameter <code class="docutils literal notranslate"><span class="pre">removeOutputFile</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>, any files with the same names in the specified output directory will be deleted first:</p>
+<p>By setting the optional input parameter <code class="docutils literal notranslate"><span class="pre">removeOutputFile</span></code> to <code class="docutils literal notranslate"><span class="pre">True</span></code>, any previous simulatedata with the same name within a given folder will be overwritten:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">removeOutputFile</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -277,8 +288,8 @@
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="run_output.html" class="btn btn-neutral float-right" title="Output files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-        <a href="run_input.html" class="btn btn-neutral float-left" title="Input files" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="run_input.html" class="btn btn-neutral float-right" title="Input files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="run_prerequisites.html" class="btn btn-neutral float-left" title="Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>

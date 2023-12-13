@@ -43,7 +43,7 @@ The PlatoSim code is under version control in GitHub. To be able to get the late
 
 **GitHub**
 
-The PlatoSim code is located in a `private repository in GitHub <https://github.com/IvS-KULeuven/PlatoSim3>`_. To be able to access it, we have to grant you access explicitly. Please, send your GitHub username to the development team and you will be granted read access to the repository. You will then get an invitation by email to join.
+The PlatoSim code is located in a `private repository on GitHub <https://github.com/IvS-KULeuven/PlatoSim3>`_. To be able to access it, we have to grant you access explicitly. Please, send your GitHub username to the development team and you will be granted read access to the repository. You will then get an invitation by email to join.
 
 If you have not done so already, you can make an `account on GitHub <https://github.com/>`_ for free.
 
@@ -51,10 +51,6 @@ If you have not done so already, you can make an `account on GitHub <https://git
    :align: center
    :width: 300
    :alt: Alternative text 
-
-**Operating system**
-
-PlatoSim3 has been tested on recent Mac OS X and recent Linux (Fedora, Ubuntu, Debian) systems. We cannot support Windows systems at the moment, so we advise Windows users to install a Virtual Machine (VM), and run the PLATO Simulator inside the VM. Alternatively, if you're using Windows 10, you can use `Windows Subsystems for Linux (WSL) <https://docs.microsoft.com/en-us/windows/wsl/install>`_ instead.
 
 **Installed software packages**
 
@@ -64,7 +60,7 @@ To be able to install the dependencies and build the code, the following softwar
 * `CMake <https://cmake.org/>`_: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)
 * `BLAS <http://www.openblas.net/>`_ and `LAPACK <https://netlib.org/lapack/>`_. Without these, the simulator will likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install them.
 
-.. admonition:: Want to change the System Default Compiler?
+.. admonition:: Want to change the system default compiler?
 
    If you want to use a different compiler than the system default to build the code, you have to export two additional environment variables, CCX and CC, as follows:
 
@@ -90,7 +86,7 @@ To be able to install the dependencies and build the code, the following softwar
 *Forking & Cloning*
 -------------------
 
- The PlatoSim repository can be found on the `IvS-KULeuven GitHub pages <https://github.com/IvS-KULeuven/PlatoSim3>`_. This repository is referred to as **upstream**. This section describes the process shown in the diagram below.
+ The PlatoSim repository can be found on the `IvS-KULeuven GitHub pages <https://github.com/IvS-KULeuven/PlatoSim3>`_. This repository is referred to as *upstream*. This section describes the process shown in the diagram below.
 
 .. image:: ../figures/github_forkAndClone.png
    :align: center
@@ -108,19 +104,19 @@ To be able to not only use the code but also to contribute to it, you have to *f
 
 **Clone**
 
-From there you can *clone* it to a designated directory on your local machine, with the following command (mind the dot at the end of the command!):
+From there you can *clone* it to a designated directory on your local machine. The following command will download the source code folder called ``PlatoSim3``:
 
 .. code-block:: shell
 
-   git clone https://github.com/<GitHub-username>/PlatoSim3.git .
+   git clone https://github.com/<Your GitHub username>/PlatoSim3.git
 
 It is possible that you will be asked for a usename and password. In that case, follow the next section *Credentials*.
 
-After you have downloaded the PlatoSim3 code, you first have to install a few packages (so-called dependencies) before you can actually build and run the PlatoSim. How to do this, is described :ref:`here <install_source_dependencies>`.
+After you have downloaded PlatoSim's source code, you first have to install a few packages (so-called dependencies) before you can actually build and run PlatoSim (:ref:`see next section <install_source_dependencies>`).
 
-Note that it is also possible to clone the repository directly onto your local machine, without forking it first. You will be able to update the software but not to contribute to it. We therefore strongly discourage this approach. If you only want to use PlatoSim (without changing the code), you may want to follow the :doc:`user installation procedure <install_conda>` instead. 
+Note that it is also possible to clone the repository directly onto your local machine, without forking it first. Doing so you will be able to update the software but not to contribute to it, hence, we strongly discourage this approach. If you only want to use PlatoSim (without changing the code), you may want to follow the :doc:`user installation procedure <install_conda>` instead. 
 	 
-**Credentials**
+**GitHub credentials**
 
 When cloning the repository to your local machine your GitHub username and `personal acces tokens <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token>`_ will be needed. If you want your machine to remember these in the future, write the following command:
 
@@ -150,17 +146,17 @@ PlatoSim can then be cloned to your local machine using the command:
 
 PlatoSim relies on a number software packages, which are all included in the PlatoSim distribution for your convenience. Everything concerning the dependencies can be found in the ``/dependencies`` directory. The ``/dependency/Downloads`` sub-directory contains the tarball or zipball file of all required packages. In the ``/installscripts`` sub-directory you can find Python scripts that help you to unzip or untar these files into the ``/dependency/Installs`` directory.
 
-You can install all the required dependencies and build the code in one go by typing (also in the directory in which PlatoSim3 was downloaded): 
+You can install all the required dependencies and build the code in one go by typing (from the PlatoSim3 directory): 
 
 .. code-block:: shell
 
    ./install.sh
 
-Running this script will create the ``platosim`` executable needed to simulations from bash.
+Running this script will create the ``platosim`` executable needed to run simulations from bash.
    
 .. attention::
 
-   If problems would arise when executing this command, we recommend to install the dependencies one-by-one to pinpoint the problem. You can do this for one dependency at a time, like this (in the directory in which PlatoSim3 was downloaded):
+   If problems would arise when executing the ``./install.sh`` command, we recommend to install the dependencies one-by-one to pinpoint the problem. Hence, copy-and-paste and run each of the following commands (also from the PlatoSim3 directory):
 
    .. code-block:: shell
 
@@ -173,7 +169,7 @@ Running this script will create the ``platosim`` executable needed to simulation
 
    **Still experiencing problems?**
 
-   If you are still experiencing problems with the installation above, :doc:`please raise an issue <basic_troubleshooting>`! It's convenient if you can send us the full error log, which you can get hold of as follows:
+   If you are still experiencing problems with the installation above, :doc:`please raise an issue <basic_troubleshooting>`! It's convenient if you can send us the full error log, which you can get using the command:
 
    .. code-block:: shell
 		   
@@ -186,8 +182,6 @@ Running this script will create the ``platosim`` executable needed to simulation
 
 
 
-
-
    
 .. _install_source_build:
 
@@ -196,7 +190,7 @@ Running this script will create the ``platosim`` executable needed to simulation
 
 **Software changes**
 
-In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself) or in case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. From the folder ``/build`` type:
+In case of code changes (after retrieving the latest version from GitHub or after introducing changes to the code yourself), or in case you have updated the PlatoSim3 code but the dependencies remain unchanged, you only have to re-build the software but not resolve the dependencies again. This saves you a tremendous amount of time. From the directory ``/build`` type:
 
 .. code-block:: shell
 
@@ -214,26 +208,26 @@ At some stage, we will want to update (some of) the dependencies. You will be no
 
 As you can read :ref:`here <install_source_branching>`, we don't just use the master branch. If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software.
 
-
-
-
-
 .. raw:: html
 
    <hr>
 
+
+
+
+   
 .. _install_source_remote:
 
 *Remote repositories*
 ---------------------
 
-To be able to *pull* the latest version of the upstream software into your local copy (we'll come back to this), we advise you to add upstream to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):
+To *pull* or *fetch* the latest version of the upstream software into your local copy (we'll come back to this) we advise you to add *upstream* to your list of remote repositories. To check your list of remote repositories, execute the following command in the the installation folder (or one of its sub-folders):
 
 .. code-block:: shell
 		
    git remote -v
 
-This should give output, similar to this:
+This should give output similar to this:
 
 .. code-block::
 
@@ -284,6 +278,7 @@ To get the latest version on your local machine, execute the following command f
 Note that this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the ``/inputfiles`` and the ``/build`` folder, where you can add files.
 
 Please note that you have to re-build the code each time you fetch software changes. How to do this is explained :ref:`here <install_source_build>`.
+
 
 
 
@@ -409,87 +404,72 @@ We will send around the tag name for new release candidates and releases once th
 **Switching between branches**
 
 If you switch to another branch and want to run simulations with the current branch, you will have to re-build the software, as described in :ref:`Building the Code <install_source_build>`.
-   
+
+
+
+
+
 .. raw:: html
 
    <hr>
 
-
-
-
-
-   
 .. _install_source_python:
    
 *Python packages*
 -----------------
+
+.. important::
    
-To be able to run the PlatoSim and inspect the output using our build-in Python interface, a few Python libraries are needed. We advise you to install `Anaconda <https://docs.continuum.io/anaconda/install/>`_ and use this as your Python environment manger, as this already has most of the required packages installed. It comes with a GUI, called Spyder, from which you can run your Python scripts.
+   To install PlatoSim's Python distribution we strongly recommend to install `Anaconda <https://docs.continuum.io/anaconda/install/>`_ and use Conda to manage your Python environments. Note that well tested package builds are currently with **Python version 3.8 and 3.9**.
 
-In the following `Poetry <https://python-poetry.org/>`_ will be used to handle the package managing (which is far better than conda) as it manage your project installation easily over multiple platforms in a deterministic way. This has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine.
+**Create a Conda environment**
 
-
-**Create and activate a Conda environment**
-
-Frist install `Conda <https://docs.conda.io/en/latest/>`_ (or `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`_) and then create a new environment:
+First, create a Conda environment (e.g. ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n platosim python=<python-version>
+   conda create -n <environment name> python=<Python version>
 
-**Supported Python versions are 3.8 and 3.9**. To avoid conflict between dependencies, we recommend to create a new conda environment (rather than trying to update your existing one) when switching to a different Python version. This means you (as a developer) will have to re-install all Python packages (see below), but it will on the other hand save you a lot of trouble.
-
-Now activate your new conda environment:
+Activate your new conda environment:
 
 .. code-block:: shell
 
-   conda activate platosim
+   conda activate <environment name>		
+   
+It is advisable to use multiple conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. ``platosim_master`` and ``platosim_develop``). Please note that when you switch to a different version of Python it is advised to create a new Conda environment rather than trying to update your existing one. Find more information on how to use and manage `Conda environments <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
 
-		
-**Install Python packages with Poetry**
+**Install Poetry**
 
-If not done so, first install Poetry:
+Minimally you need to install all packages listed under the section ``tool.poetry.dependencies`` in the file `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/pyproject.toml>`_. As an alternative to install each of the Python libraries one-by-one yourself using Conda/PyPi, we show how you can use `Poetry <https://python-poetry.org/>`_ to handle the package managing. Poetry manages your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. on a computing cluster).
+
+The first step is to install Poetry by following `Poetry's documentation <https://python-poetry.org/docs/>`_.
+
+**Install Python packages**
+
+Move to the base of the PlatoSim repository and install the Python packages with:
 
 .. code-block:: shell
+
+   poetry install --with docs
+
+This will install the minimal package distribution of PlatoSim, which is sufficient for running the `Jupyter noteboook tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and to use most of PlatoSim's Python modules for scripting. Additionally it installs the Sphinx packages needed to modify this documentation (see ``sphinx`` branch).
+
+.. warning::
+
+   Some users may find that Poetry stalls during the installation procedure. If that happens it is typically caused by a bad *keyring* setting in Poetry. Simple run the following command and retry the installation:
+
+   .. code-block:: shell
+		   
+      export PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring
+
   
-   curl -sSL https://install.python-poetry.org | python -
-
-The default installation location of Poetry is ``$HOME/.local/bin/poetry``. You can find more information on how to change this location in `Poetry's documentation <https://python-poetry.org/docs/>`_, however, since Poetry is a small package we keep the default location here.
-   	 
-From the base of the PlatoSim repository, simply install the Python packages with:
-
-.. code-block:: shell
-
-   poetry install
-
-Poetry will by default install the minimal package distribution of PlatoSim, which is sufficient for running the `Jupyter noteboook tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and to use most PlatoSim's Python modules to make your own scripts. Additionally you can add the following flags:
-
-* ``--with docs``: install packages needed to modify this (Sphinx) documentation
-* ``--with platonium``: install packages needed for the PlatoSim's toolkit: :doc:`PLATOnium <platonium_overview>`
-* ``--with platonium --with pipeline``: full suite to run the end-to-end *post-processing pipeline* 
-
-You should now have all the required Python packages (including the PlatoSim package) installed into your Conda environment. To verify that this type:
-
-.. code-block:: shell
-
-   conda list
-
-Always remember to activate your Conda environment before using PlatoSim's Python interface.		
-
-**Updating Python packages**
-
-If the Python dependencies has been updated, with your Conda environment activated, use the following command to update these:
-
-.. code-block:: shell
-
-   poetry update
-
 **Running the validation suite**
 
-As a good practice software building, PlatoSim3 has an automated test framework, a test harnesses, consisting of a collection of modules and test data configured to test the software unit. Hence, the test harnesses is a first sanity check post your installation.
+As a good practice in software building, PlatoSim has an automated test harnesses consisting of a collection of modules and test data configured to validate the software unit. Hence, as a developer, the test harnesses is a mandatory sanity check before your push code and open a pull-request.
 
-In order to be able to run the test harnesses, you must first build the code and export the required environment variables, as explained above. Simply run the cammand:
+In order to be able to run the test harnesses, you must first build the code and :doc:`export the required environment variables <run_prerequisites>`. From the PlatoSim3 directory, simply run the command:
 
 .. code-block:: shell
 		
    python tests/validations/scripts/run.py
+   

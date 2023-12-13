@@ -1,0 +1,76 @@
+Python setup
+============
+
+   
+
+
+.. raw:: html
+
+   <hr>
+   
+.. _install_conda_prerequisites:
+
+Conda environment
+-----------------
+
+.. important::
+   
+   To be able to install PlatoSim via conda and/or use the our Python interface, you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ installed. Well tested software builds used **Python version 3.8 and 3.9**.
+
+
+First, create a Conda environment (e.g. ``platosim``):
+
+.. code-block:: shell
+		
+   conda create -n platosim python=<Python version>
+
+Activate your new conda environment:
+
+.. code-block:: shell
+
+   conda activate <environment name>		
+   
+It is advisable to use multiple conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. ``platosim_master`` and ``platosim_develop``). Please note that when you switch to a different version of Python it is advised to create a new Conda environment rather than trying to update your existing one. Find more information on how to use and manage `Conda environments <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
+
+
+
+
+.. raw:: html
+
+   <hr>
+   
+.. _install_conda_prerequisites:
+
+Install Python packages
+-----------------------
+
+For users Jenkins is unfortunately not cable of installing the full suite of Python packages needed to run PlatoSim and inspect the output using our build-in Python interface. Thus, as an alternative to install each of the Python libraries one by one yourself using Conda, we show how you efficiently can use `Poetry <https://python-poetry.org/>`_ to handle the package managing (which is far better than Conda). Poetry manage your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. a computing cluster).
+
+**Install Poetry**
+
+The first step is to `Install Poetry <https://python-poetry.org/docs/>`_. The default installation location of Poetry is ``$HOME/.local/bin/poetry``. You can find more information on how to change this location in `Poetry's documentation <https://python-poetry.org/docs/>`_, however, since Poetry is a small package we keep the default location here.
+
+**Install Python packages**
+
+.. important::
+
+   If you are a user (and have installed PlatoSim via Conda) you need to download the ``pyproject.toml`` file from the `master branch <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_ before continuing. We recommend to store this file in your ``$CONDA_PREFIX/python`` directory dedicated to your activated Conda environment.
+   	 
+Move to the directory where the ``pyproject.toml`` file is located (for developers this will be the base of the PlatoSim repository). Now install the Python packages with:
+
+.. code-block:: shell
+
+   poetry install
+
+Poetry will by default install the minimal package distribution of PlatoSim, which is sufficient for running the `Jupyter noteboook tutorials <https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials>`_ and to use most of PlatoSim's Python modules for scripting. Additionally you can add the following flags:
+
+- ``--with docs``: packages needed to modify this documentation (for developers)
+- ``--with platonium``: packages needed for the PlatoSim's toolkit: :doc:`PLATOnium <platonium_overview>`
+  
+You should now have all the required Python packages (including the PlatoSim package) installed into your Conda environment. To verify that this type:
+
+.. code-block:: shell
+
+   conda list
+
+Always remember to activate your Conda environment before using PlatoSim's Python interface.

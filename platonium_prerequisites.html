@@ -7,7 +7,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
-  <title>Prerequsites &mdash; PlatoSim 3.5.4 documentation</title>
+  <title>Prerequisites &mdash; PlatoSim 3.5.4 documentation</title>
   
 
   
@@ -43,7 +43,7 @@
     
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Troubleshooting" href="platonium_troubleshooting.html" />
+    <link rel="next" title="Tutorials" href="platonium_tutorials.html" />
     <link rel="prev" title="Overview" href="platonium_overview.html" /> 
 </head>
 
@@ -91,34 +91,31 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input Files</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Running Simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Prerequsites</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#installing-the-l1-pipeline"><em>Installing the L1 pipeline</em></a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
-<li class="toctree-l1"><a class="reference internal" href="platonium_cluster.html">Parallel Computing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_pipeline.html">Pipeline</a></li>
 </ul>
 
             
@@ -171,7 +168,7 @@
     
       <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
         
-      <li>Prerequsites</li>
+      <li>Prerequisites</li>
     
     
       <li class="wy-breadcrumbs-aside">
@@ -190,48 +187,40 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="prerequsites">
-<h1>Prerequsites<a class="headerlink" href="#prerequsites" title="Permalink to this headline">¶</a></h1>
-<p>Since PLATOnium is a Python wrapper around PlatoSim it thus takes advantages of all the utilities and scripts that continuously are being develop for PlatoSim. Naturally PLATOnium share the same path environment variable <code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code> as PlatoSim, which we strongly recommend to use for your working directory of your simulation projects - an elaboration will follow in the section of <span class="xref std std-ref">General information</span>.</p>
-<blockquote>
-<div><hr></div></blockquote>
-<div class="section" id="installing-the-l1-pipeline">
-<h2><em>Installing the L1 pipeline</em><a class="headerlink" href="#installing-the-l1-pipeline" title="Permalink to this headline">¶</a></h2>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
-<p>Note that if you are using the OpenBLAS library then BLAS and occationally LAPACK becomes redundant. Thus, several prerequites may be needed to succesfully install the PLATO LESIA repository containing the script of the provisional L1-pipeline. Please have a look at the <span class="xref std std-doc">Troubleshooting</span> page.</p>
-</div>
-<ol class="arabic">
-<li><p>The LESIA repository is a SVN (subversion) repository. Hence first install svn (using <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">apt</span> <span class="pre">install</span> <span class="pre">&lt;subversion&gt;</span></code>). Create a directory called <code class="docutils literal notranslate"><span class="pre">plato</span></code> (preferably on your <code class="docutils literal notranslate"><span class="pre">$DATA</span></code> storage if installing on a cluster) and enter the directory:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>&lt;/path/to/plato&gt;
-<span class="nb">cd</span><span class="w"> </span>&lt;/path/to/plato&gt;
+  <div class="section" id="prerequisites">
+<h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h1>
+<p>This section gives a detailed explaination on how to finalise your setup to use PLATOnium. At this stage you should be able to run PlatoSim both from the command line and from a Python shell.</p>
+<p><strong>Extra Python packages</strong></p>
+<p>To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file is located (if you followed our suggestin during the installation this would be <code class="docutils literal notranslate"><span class="pre">$CONDA_PREFIX/python</span></code>). Depending on your needs, run the Poetry install command again but now with the additional argument(s):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">platonium</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">platonium</span> <span class="pre">--with</span> <span class="pre">pipeline</span></code></p></li>
+</ul>
+<p>The first add-on command is sufficient for running the <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium tutorials</span></a>. Only add-on the second command if you want to run the (experimental) setup between the PLATOnium toolkit and the <a class="reference internal" href="platonium_pipeline.html"><span class="doc">LESIA prototype pipeline</span></a>.</p>
+<p><strong>Script executeables</strong></p>
+<p>Before you continue, verify that the following path variables are defined (preferably in a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file which are read by the configuration file of your shell environment):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
+<span class="nb">echo</span><span class="w"> </span><span class="nv">$PYTHONPATH</span>
 </pre></div>
 </div>
-<p>Now download the SVN repository by providing your <code class="docutils literal notranslate"><span class="pre">username</span></code> and <code class="docutils literal notranslate"><span class="pre">password</span></code>:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>svn<span class="w"> </span>checkout<span class="w"> </span>https://version-lesia.obspm.fr/repos/PLATO/algorithms/<span class="w"> </span>--username<span class="w"> </span>&lt;username&gt;<span class="w"> </span>--password<span class="w"> </span>&lt;password&gt;
+<p>PLATOnium consist of four command line scripts that needs to be copied to the <code class="docutils literal notranslate"><span class="pre">bin</span></code> directory of your Conda environment. If you are a user, make sure that <code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code> points to your <code class="docutils literal notranslate"><span class="pre">CONDA_PREFIX</span></code> path. Now define the following path variable:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">PLATONIUM</span><span class="o">=</span><span class="nv">$PLATO_PROJECT_HOME</span>/python/platosim/platonium
 </pre></div>
 </div>
-</li>
-<li><p>Prior to the installation you need to run setup script called <code class="docutils literal notranslate"><span class="pre">/PLATOnium/setup.sh</span></code>, also explained in the general <span class="xref std std-ref">step-by-step installation instructions</span>. This scirpt takes in fact two arguments; the frist being <code class="docutils literal notranslate"><span class="pre">&lt;/path/to/plato_workdir&gt;</span></code> and the second being the path to your newly created folder <code class="docutils literal notranslate"><span class="pre">&lt;/path/to/plato&gt;</span></code>. Thus, simply run:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>--setup<span class="w"> </span>&lt;/path/to/plato_workdir&gt;<span class="w"> </span>&lt;/path/to/plato&gt;
+<p>Copy the following scripts into your Conda environment:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/picsim.py<span class="w">    </span><span class="nv">$CONDA_PREFIX</span>/bin/picsim
+cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/varsim.py<span class="w">    </span><span class="nv">$CONDA_PREFIX</span>/bin/varsim
+cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/payload.py<span class="w">   </span><span class="nv">$CONDA_PREFIX</span>/bin/payload
+cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/platonium.py<span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/bin/platonium
 </pre></div>
 </div>
-</li>
-<li><p>First make sure that your PLATOnium (Poetry) Python environment is activated, and then install PLATO by:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$PLATO</span>/algorithms
-make<span class="w"> </span>install
+<p>Lastly, make them executable with:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>chmod<span class="w"> </span>+x<span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/bin/picsim
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/bin/varsim
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/bin/payload
+chmod<span class="w"> </span>+x<span class="w"> </span><span class="nv">$CONDA_PREFIX</span>/bin/platonium
 </pre></div>
-</div>
-</li>
-</ol>
-<div class="admonition-update-plato-repository admonition">
-<p class="admonition-title">Update PLATO repository</p>
-<p>To update the repository (whenever a new change is made) simply go to <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">$PLATO/algortihms</span></code> and do:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>svn<span class="w"> </span>update
-sudo<span class="w"> </span>make
-</pre></div>
-</div>
-</div>
 </div>
 </div>
 
@@ -241,7 +230,7 @@ sudo<span class="w"> </span>make
           </div>
           <footer>
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-        <a href="platonium_troubleshooting.html" class="btn btn-neutral float-right" title="Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="platonium_tutorials.html" class="btn btn-neutral float-right" title="Tutorials" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
         <a href="platonium_overview.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 

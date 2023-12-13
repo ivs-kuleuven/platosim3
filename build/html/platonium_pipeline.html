@@ -90,38 +90,38 @@
             
               <p class="caption" role="heading"><span class="caption-text">General:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="basic_intro.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
-<li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_migtool.html">Migration tool</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
-<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Pipeline</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#run-the-pipeline">Run the pipeline</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#output-files">Output files</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#makefile-errors"><em>Makefile errors</em></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#python-errors"><em>Python errors</em></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#cannot-find-script"><em>Cannot find script</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation"><em>Installation</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-examples"><em>Run examples</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output-files"><em>Output files</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting"><em>Troubleshooting</em></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#installation-errors-python">Installation errors: Python</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#installation-errors-makefile">Installation errors: Makefile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#executables-missing">Executables missing</a></li>
 </ul>
 </li>
 </ul>
@@ -199,12 +199,9 @@
             
   <div class="section" id="pipeline">
 <h1>Pipeline<a class="headerlink" href="#pipeline" title="Permalink to this headline">¶</a></h1>
-<p>The following guide explains how to install, setup, and run the LESIA pipeline as an integrated part of PLATOnium.</p>
-<hr><div class="section" id="installation">
-<span id="pipeline-run"></span><h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
-<div class="admonition attention">
-<p class="admonition-title">Attention</p>
-<p>Before installing the LESIA pipeline, first <a class="reference internal" href="platonium_overview.html#platonium-overview-setup"><span class="std std-ref">Setup PLATOnium</span></a>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The following guide explains how to install, setup, and run the LESIA pipeline as an integrated part of PLATOnium. <strong>A (Linux) bash shell is required to install this setup</strong> since this tool should be used on a computing cluster where Linux is the standard. Mac users may have to adapt especially the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script.</p>
 <p>In order to have a frozen functional setup between PlatoSim/PLATOnium and the LESIA pipeline, the lastest tested versions are:</p>
 <p><strong>PlatoSim develop branch:</strong></p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>checkout<span class="w"> </span><span class="m">3</span>.6.0-225-g552813f9
@@ -215,14 +212,15 @@
 </pre></div>
 </div>
 </div>
-<ol class="arabic">
-<li><p>The LESIA pipeline is a SVN (subversion) repository, hence, if not installed, first install SVN</p>
+<hr><div class="section" id="installation">
+<span id="pipeline-run"></span><h2><em>Installation</em><a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>The LESIA pipeline is a SVN (subversion) repository, hence, if not installed, first install SVN</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>update
 sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>subversion<span class="w"> </span>-y
 </pre></div>
 </div>
 <p>Confirm the installation by viewing the version: <code class="docutils literal notranslate"><span class="pre">svn</span> <span class="pre">--version</span></code>.</p>
-<p>Next create a directory called <strong>plato</strong> located in the same (software) folder where <strong>PlatoSim3</strong> is located, and enter the directory:</p>
+<p>Next create a directory called <code class="docutils literal notranslate"><span class="pre">plato</span></code>. Users are recommended to create this folder in the <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code> directory. Developers are on the other hand encouraged to place this folder in the same (software) directory to where <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code> is located. Hence, type:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>&lt;/path/to/plato&gt;
 <span class="nb">cd</span><span class="w"> </span>&lt;/path/to/plato&gt;
 </pre></div>
@@ -231,19 +229,28 @@ sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> <
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>svn<span class="w"> </span>checkout<span class="w"> </span>https://version-lesia.obspm.fr/repos/PLATO/algorithms/<span class="w"> </span>--username<span class="w"> </span>&lt;username&gt;<span class="w"> </span>--password<span class="w"> </span>&lt;password&gt;
 </pre></div>
 </div>
-</li>
-<li><p>Install the LESIA pipeline with:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;/path/to/plato&gt;/algorithms
-make<span class="w"> </span>install
-</pre></div>
-</div>
-</li>
-<li><p>Finally, run the <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> script (again) located within the <strong>PlatoSim3</strong> folder. To setup the pipeline, two arguments need to be parsed; the first being the path to your PlatoSim working directory (<code class="docutils literal notranslate"><span class="pre">&lt;/path/to/plato_workdir&gt;</span></code>) and the second being the path to your newly created folder <strong>plato</strong> folder (<code class="docutils literal notranslate"><span class="pre">&lt;/path/to/plato&gt;</span></code>). Thus, simply run:</p>
+<p>If you are a user, first download the script (<a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/setup.sh">setup.sh script from Github</a>) and place it in your <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code> directory. Being a developer, this script already exists.</p>
+<p>To setup and install the pipeline, two arguments need to be parsed; the first being the path to your PlatoSim working directory (<code class="docutils literal notranslate"><span class="pre">&lt;/path/to/plato_workdir&gt;</span></code>) and the second being the path to your newly created <strong>plato</strong> folder (<code class="docutils literal notranslate"><span class="pre">&lt;/path/to/plato&gt;</span></code>). Thus, simply run:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>./setup<span class="w"> </span>&lt;/path/to/plato_workdir&gt;<span class="w"> </span>&lt;/path/to/plato&gt;
 </pre></div>
 </div>
-</li>
-</ol>
+<p>This script will create a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file in the <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code> directory and:</p>
+<ul class="simple">
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME</span></code></p></li>
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO_WORKDIR</span></code></p></li>
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PLATO</span></code></p></li>
+<li><p>Export the environment variable <code class="docutils literal notranslate"><span class="pre">$PYTHONPATH</span></code></p></li>
+<li><p>Create the directory tree needed to install the LESIA pipeline</p></li>
+<li><p>Installs the LESIA pipeline</p></li>
+<li><p>Make the LESIA pipeline scripts globally executable</p></li>
+<li><p>Make the PLATOnium scripts globally executable</p></li>
+</ul>
+<p>If you want to change your working directory at a later stage, simply run <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> again. The script will automatically detect of the LESIA pipeline is already installed. You can force a new install of the LESIA pipeline by parsing the argument <code class="docutils literal notranslate"><span class="pre">--reinstall</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In case of installation errors, we recomment to pin down the issue by installing each dependency one-by-one. Have a look inside the file <code class="docutils literal notranslate"><span class="pre">$PLATO/algorithms/Makefile</span></code>. This file contains the instructions for <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> and <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">clean</span></code>.</p>
+<p>Moreover, well known problems with the installation can be found in the <a class="reference internal" href="#platonium-pipeline-troubleshooting"><span class="std std-ref">Troubleshooting</span></a> section below.</p>
+</div>
 <div class="admonition-update-the-lesia-pipeline admonition">
 <p class="admonition-title">Update the LESIA pipeline:</p>
 <p>To update the SVN repository, simply go to <code class="docutils literal notranslate"><span class="pre">cd</span> <span class="pre">$PLATO/algortihms</span></code> and do:</p>
@@ -257,8 +264,8 @@ sudo<span class="w"> </span>make
 </div>
 </div>
 <hr></div>
-<div class="section" id="run-the-pipeline">
-<span id="id1"></span><h2>Run the pipeline<a class="headerlink" href="#run-the-pipeline" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="run-examples">
+<span id="id1"></span><h2><em>Run examples</em><a class="headerlink" href="#run-examples" title="Permalink to this headline">¶</a></h2>
 <p>Compared to the previous tutorial on how to run <code class="docutils literal notranslate"><span class="pre">platonium</span></code>, we now only have to parse the <code class="docutils literal notranslate"><span class="pre">--sample</span> <span class="pre">&lt;plato_sample&gt;</span></code> to activate the LESIA pipeline. If <code class="docutils literal notranslate"><span class="pre">P1</span></code> is parsed, the on-ground pipeline is activated, and if <code class="docutils literal notranslate"><span class="pre">P5</span></code> is parsed, the on-board pipeline is activated. E.g. say that we already made two seperate stellar catalogues of respectively P1 and P5 sample stars using <code class="docutils literal notranslate"><span class="pre">picsim</span></code>. A simple test of 30 exposures for each chain of the pipeline looks like the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">platonium</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">sample</span> <span class="n">P1</span> <span class="o">--</span><span class="n">nexp</span> <span class="mi">30</span>
 <span class="n">platonium</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">1</span> <span class="o">--</span><span class="n">project</span> <span class="o">&lt;</span><span class="n">project_name</span><span class="o">&gt;</span> <span class="o">--</span><span class="n">sample</span> <span class="n">P5</span> <span class="o">--</span><span class="n">nexp</span> <span class="mi">30</span>
@@ -267,52 +274,13 @@ sudo<span class="w"> </span>make
 <p>Note that a lot of information is printed to bash. When running on a computing cluster, this behavior is typically not desired and hence the flag <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">0</span></code> avoid printing to bash.</p>
 <hr></div>
 <div class="section" id="output-files">
-<span id="pipeline-extract"></span><h2>Output files<a class="headerlink" href="#output-files" title="Permalink to this headline">¶</a></h2>
+<span id="pipeline-output"></span><h2><em>Output files</em><a class="headerlink" href="#output-files" title="Permalink to this headline">¶</a></h2>
 <p>The output files produced by PLATOnium when the LESIA pipeline is activated is in the form of so-called <strong>feather</strong> binary files.</p>
 <hr></div>
 <div class="section" id="troubleshooting">
-<span id="platonium-pipeline-troubleshooting"></span><h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="makefile-errors">
-<span id="pipeline-troubleshooting-errors"></span><h3><em>Makefile errors</em><a class="headerlink" href="#makefile-errors" title="Permalink to this headline">¶</a></h3>
-<p>A few obstacles can happen writing a code assuming full sudo rights (and assuming that apt get is available). In order to successfully install the L1 pipeline on a cluster, the following ajustments may need to be inforced:</p>
-<p><strong>Disabled environment:</strong> Make sure that the <code class="docutils literal notranslate"><span class="pre">$PLATO</span></code> path is defined. If added to your <code class="docutils literal notranslate"><span class="pre">.bashrc</span></code> or <code class="docutils literal notranslate"><span class="pre">.profile</span></code> file this path should automatically be loaded every time you enter a compute node on any machine/cluster. However, it occured that it was not and the installation will link to a wrong location and fail.</p>
-<p><strong>aswsim3:</strong> This library <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> sometimes cause problems and since we do not need to PLATOnium we can simply skip this library. However, <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> depends on the library <code class="docutils literal notranslate"><span class="pre">platosimlib</span></code>, hence, simply replace <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> with <code class="docutils literal notranslate"><span class="pre">platosimlib</span></code> in the section <code class="docutils literal notranslate"><span class="pre">install:</span> <span class="pre">all</span></code> listed within in <code class="docutils literal notranslate"><span class="pre">Makefile</span></code>. Note the problem is typically that GLS packages cannot be found here, like:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>../src/test_gsl.c:2:24:<span class="w"> </span>fatal<span class="w"> </span>error:<span class="w"> </span>gsl_matrix.h:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
-<span class="c1">#include &lt;gsl_matrix.h&gt;</span>
-</pre></div>
-</div>
-<p><strong>OpenBLAS vs. BLAS/LAPACK:</strong> If using OpenBLAS as a BLAS (and LAPACK) implementation the <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> link arguments would be appropriate when linking to the reference BLAS/LAPACK libraries from NetLib, which are typically called <code class="docutils literal notranslate"><span class="pre">libblas.so</span></code> and <code class="docutils literal notranslate"><span class="pre">liblapack.so</span></code>. However, with OpenBLAS both are in the same shared library called <code class="docutils literal notranslate"><span class="pre">libopenblas.so</span></code>.</p>
-<ol class="arabic simple">
-<li><p>The first installation error you may encounter is thus from the library <code class="docutils literal notranslate"><span class="pre">WP/326100/spline2dbase</span></code>. This library uses the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script within for the installation which link to the <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code>. Thus, if using OpenBLAS you will need to replace <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> with <code class="docutils literal notranslate"><span class="pre">openblas</span></code> in the following line:</p></li>
-</ol>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">libraries</span><span class="o">=[</span><span class="s2">&quot;m&quot;</span>,<span class="s2">&quot;blas&quot;</span>,<span class="s2">&quot;lapack&quot;</span><span class="o">]</span>,
-
-to
-
-<span class="nv">libraries</span><span class="o">=[</span><span class="s2">&quot;m&quot;</span>,<span class="s2">&quot;openblas&quot;</span><span class="o">]</span>,
-</pre></div>
-</div>
-<p>For the rest of the libraries you need to look into the <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> of each package.</p>
-<ol class="arabic simple" start="2">
-<li><p>Within the main installation Makefile (<code class="docutils literal notranslate"><span class="pre">$PLATO/algorithms/Makefile</span></code>) the inversion modules named <code class="docutils literal notranslate"><span class="pre">WP/32100/voxel/..</span></code> link to the openblas libray. If you get a message that <code class="docutils literal notranslate"><span class="pre">-llapack</span> <span class="pre">not</span> <span class="pre">found</span></code> then a potential solution is to remove this flag completely since it is already included within openblas. Hence remove <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> from the following line in each file you encounter this error:</p></li>
-</ol>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">LDLIBS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-lcvxs<span class="w"> </span>-lm<span class="w"> </span>-llapack<span class="w"> </span>-lopenblas<span class="w"> </span>-lpthread
-</pre></div>
-</div>
-<p><strong>Man pages:</strong> Since the user do not generally have sudo right on a computing cluster the inversion module tries to install the man pages for the packges <code class="docutils literal notranslate"><span class="pre">WP/32100/voxel/..</span></code>. This can result in the following error:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>warning:<span class="w"> </span>failed<span class="w"> </span>to<span class="w"> </span>load<span class="w"> </span>external<span class="w"> </span>entity<span class="w"> </span><span class="s2">&quot;/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl&quot;</span>
-cannot<span class="w"> </span>parse<span class="w"> </span>/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl
-</pre></div>
-</div>
-<p>These are really not needed for our computations and hence</p>
-<ol class="arabic simple">
-<li><p>Remove the <code class="docutils literal notranslate"><span class="pre">.1</span></code> and <code class="docutils literal notranslate"><span class="pre">.txt</span></code> files from <code class="docutils literal notranslate"><span class="pre">all</span> <span class="pre">:</span></code> that will be installed</p></li>
-<li><p>Comment out the line <code class="docutils literal notranslate"><span class="pre">install</span> <span class="pre">-m</span> <span class="pre">644</span> <span class="pre">combine-mat.1</span> <span class="pre">$(PLATOMAN1)/..</span></code></p></li>
-<li><p>Run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> again</p></li>
-</ol>
-</div>
-<div class="section" id="python-errors">
-<h3><em>Python errors</em><a class="headerlink" href="#python-errors" title="Permalink to this headline">¶</a></h3>
+<span id="platonium-pipeline-troubleshooting"></span><h2><em>Troubleshooting</em><a class="headerlink" href="#troubleshooting" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="installation-errors-python">
+<span id="platonium-pipeline-troubleshooting-python"></span><h3>Installation errors: Python<a class="headerlink" href="#installation-errors-python" title="Permalink to this headline">¶</a></h3>
 <p><strong>pymt64:</strong> The package <code class="docutils literal notranslate"><span class="pre">pymt64</span></code> can sometimes cause porblems. A well known issue for this pacakage is the following error:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>import<span class="w"> </span>pymt64
 File<span class="w"> </span><span class="s2">&quot;pymt64.pyx&quot;</span>,<span class="w"> </span>line<span class="w"> </span><span class="m">1</span>,<span class="w"> </span><span class="k">in</span><span class="w"> </span>init<span class="w"> </span>pymt64
@@ -325,9 +293,49 @@ pip<span class="w"> </span>install<span class="w"> </span>--no-cache-dir<span cl
 </pre></div>
 </div>
 </div>
-<div class="section" id="cannot-find-script">
-<h3><em>Cannot find script</em><a class="headerlink" href="#cannot-find-script" title="Permalink to this headline">¶</a></h3>
-<p>Sometimes the following scripts: <code class="docutils literal notranslate"><span class="pre">combine-mat</span></code>, <code class="docutils literal notranslate"><span class="pre">invert-rls</span></code>, <code class="docutils literal notranslate"><span class="pre">spline2real</span></code>, and <code class="docutils literal notranslate"><span class="pre">find-amp</span></code> cannot be found globally (typically true on a computing cluster by the local node you are running simulations on). By default these scripts are installed into your <code class="docutils literal notranslate"><span class="pre">$PLATO/bin</span></code> folder, however, the script <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> should take care of copying these files to your Conda environment <strong>bin</strong> folder. If the above script are not directly executeable from bash (e.g. <code class="docutils literal notranslate"><span class="pre">combine-mat</span> <span class="pre">-h</span></code>) then the PLATOnium setup script most likely failed. Thus, simply copy all of these files to your Conda environment <strong>bin</strong> folder. You can find this location by first activating your Conda environment and thereafter type <code class="docutils literal notranslate"><span class="pre">which</span> <span class="pre">python</span></code>. Copy the files into the <strong>bin</strong> folder and not the <strong>bin/python</strong> folder!</p>
+<div class="section" id="installation-errors-makefile">
+<span id="platonium-pipeline-troubleshooting-makefile"></span><h3>Installation errors: Makefile<a class="headerlink" href="#installation-errors-makefile" title="Permalink to this headline">¶</a></h3>
+<p>A few obstacles can happen writing a code assuming full sudo rights (and assuming that apt get is available). In order to successfully install the LESIA pipeline on a cluster, the following ajustments may need to be inforced:</p>
+<p><strong>Disabled environment:</strong> Make sure that the <code class="docutils literal notranslate"><span class="pre">$PLATO</span></code> path is defined. If added to your <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file this path should automatically be loaded every time you enter a compute node on any machine/cluster. However, it occured that it was not and the installation will link to a wrong location and fail.</p>
+<p><strong>aswsim3:</strong> This library <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> sometimes cause problems and since we do not need to PLATOnium we can simply skip this library. However, <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> depends on the library <code class="docutils literal notranslate"><span class="pre">platosimlib</span></code>, hence, simply replace <code class="docutils literal notranslate"><span class="pre">aswsim3</span></code> with <code class="docutils literal notranslate"><span class="pre">platosimlib</span></code> in the section <code class="docutils literal notranslate"><span class="pre">install:</span> <span class="pre">all</span></code> listed within in <code class="docutils literal notranslate"><span class="pre">Makefile</span></code>. Note the problem is typically that GLS packages cannot be found here, like:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>../src/test_gsl.c:2:24:<span class="w"> </span>fatal<span class="w"> </span>error:<span class="w"> </span>gsl_matrix.h:<span class="w"> </span>No<span class="w"> </span>such<span class="w"> </span>file<span class="w"> </span>or<span class="w"> </span>directory
+<span class="c1">#include &lt;gsl_matrix.h&gt;</span>
+</pre></div>
+</div>
+<p><strong>OpenBLAS vs. BLAS/LAPACK:</strong> If using OpenBLAS as a BLAS (and LAPACK) implementation the <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> link arguments would be appropriate when linking to the reference BLAS/LAPACK libraries from NetLib, which are typically called <code class="docutils literal notranslate"><span class="pre">libblas.so</span></code> and <code class="docutils literal notranslate"><span class="pre">liblapack.so</span></code>. However, with OpenBLAS both are in the same shared library called <code class="docutils literal notranslate"><span class="pre">libopenblas.so</span></code>.</p>
+<ol class="arabic">
+<li><p>The first installation error you may encounter is thus from the library <code class="docutils literal notranslate"><span class="pre">WP/326100/spline2dbase</span></code>. This library uses the <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> script within for the installation which link to the <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code>. Thus, if using OpenBLAS you will need to replace <code class="docutils literal notranslate"><span class="pre">-lblas</span></code> and <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> with <code class="docutils literal notranslate"><span class="pre">openblas</span></code> in the following line:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">libraries</span><span class="o">=[</span><span class="s2">&quot;m&quot;</span>,<span class="s2">&quot;blas&quot;</span>,<span class="s2">&quot;lapack&quot;</span><span class="o">]</span>,
+</pre></div>
+</div>
+<p>to</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">libraries</span><span class="o">=[</span><span class="s2">&quot;m&quot;</span>,<span class="s2">&quot;openblas&quot;</span><span class="o">]</span>,
+</pre></div>
+</div>
+<p>For the rest of the libraries you need to look into the <code class="docutils literal notranslate"><span class="pre">Makefile</span></code> of each package.</p>
+</li>
+<li><p>Within the main installation Makefile (<code class="docutils literal notranslate"><span class="pre">$PLATO/algorithms/Makefile</span></code>) the inversion modules named <code class="docutils literal notranslate"><span class="pre">WP/32100/voxel/..</span></code> link to the openblas libray. If you get a message that <code class="docutils literal notranslate"><span class="pre">-llapack</span> <span class="pre">not</span> <span class="pre">found</span></code> then a potential solution is to remove this flag completely since it is already included within openblas. Hence remove <code class="docutils literal notranslate"><span class="pre">-llapack</span></code> from the following line in each file you encounter this error:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">LDLIBS</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>-lcvxs<span class="w"> </span>-lm<span class="w"> </span>-llapack<span class="w"> </span>-lopenblas<span class="w"> </span>-lpthread
+</pre></div>
+</div>
+</li>
+</ol>
+<p><strong>Man pages:</strong> Since the user do not generally have sudo right on a computing cluster the inversion module tries to install the man pages for the packges <code class="docutils literal notranslate"><span class="pre">WP/32100/voxel/..</span></code>. This can result in the following error:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>warning:<span class="w"> </span>failed<span class="w"> </span>to<span class="w"> </span>load<span class="w"> </span>external<span class="w"> </span>entity<span class="w"> </span><span class="s2">&quot;/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl&quot;</span>
+cannot<span class="w"> </span>parse<span class="w"> </span>/usr/share/xml/docbook/stylesheet/nwalsh/html/docbook.xsl
+</pre></div>
+</div>
+<p>These are really not needed for our computations and hence</p>
+<ol class="arabic simple">
+<li><p>Remove the <code class="docutils literal notranslate"><span class="pre">.1</span></code> and <code class="docutils literal notranslate"><span class="pre">.txt</span></code> files from <code class="docutils literal notranslate"><span class="pre">all</span> <span class="pre">:</span></code> that will be installed</p></li>
+<li><p>Comment out the line <code class="docutils literal notranslate"><span class="pre">install</span> <span class="pre">-m</span> <span class="pre">644</span> <span class="pre">combine-mat.1</span> <span class="pre">$(PLATOMAN1)/..</span></code></p></li>
+<li><p>Run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">install</span></code> again</p></li>
+</ol>
+</div>
+<div class="section" id="executables-missing">
+<span id="platonium-pipeline-troubleshooting-executables"></span><h3>Executables missing<a class="headerlink" href="#executables-missing" title="Permalink to this headline">¶</a></h3>
+<p>Sometimes the following scripts: <code class="docutils literal notranslate"><span class="pre">combine-mat</span></code>, <code class="docutils literal notranslate"><span class="pre">invert-rls</span></code>, <code class="docutils literal notranslate"><span class="pre">spline2real</span></code>, and <code class="docutils literal notranslate"><span class="pre">find-amp</span></code> cannot be found globally (typically true on a computing cluster by the local node you are running simulations on). By default these scripts are installed into your <code class="docutils literal notranslate"><span class="pre">$PLATO/bin</span></code> folder, however, the script <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> should take care of copying these files to your Conda environment <strong>bin</strong> folder.</p>
+<p>If the above script are not directly executeable from bash (e.g. <code class="docutils literal notranslate"><span class="pre">combine-mat</span> <span class="pre">-h</span></code>) then the PLATOnium setup script most likely failed. Thus, simply copy all of these files to your Conda environment <strong>bin</strong> folder. You can find this location by first activating your Conda environment and thereafter type <code class="docutils literal notranslate"><span class="pre">which</span> <span class="pre">python</span></code>. Copy the files into the <strong>bin</strong> folder and not the <strong>bin/python</strong> folder!</p>
 </div>
 </div>
 </div>

@@ -1,6 +1,5 @@
 # PlatoSim's Sphinx documentation
 
-
 ## Setting up a Sphinx documentation
 
 The documentation was set up following:
@@ -19,8 +18,7 @@ Changes needs to be made to the files within `source/`. Note all figures are pla
 
 If you just want to see the changes in a locally you first need to:
 
-	make html
-	firefox build/html/index.rst
+	make html; firefox build/html/index.rst
 
 We here use firefox as a browser to visualise the html pages.
 
@@ -30,7 +28,7 @@ When you're happy with the changes simply run:
 
 This will both create the html files and copy them to root. Now commit your changes:
 
-	git add *.html *.js *.inv build/ source/ _sources/
+	git add *
 	git commit -m "<message-of-update>
 
 Note that the above command add all files that have changed. Now push it to your fork:
