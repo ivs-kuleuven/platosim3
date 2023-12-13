@@ -268,40 +268,44 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False, fullFrame=Fals
     if plot:
         if umax < imax: nmax = umax
         else: nmax = imax
-        fig, ax = plt.subplots(1, 1, figsize=(8, int(2.5+0.1*nmax)))
+        fig, ax = plt.subplots(1, 1, figsize=(8, int(3.0+0.1*nmax)))
 
     dex, walltime = [], []
     for i in tqdm(unique, bar_format=ut.tqdmBar()):
         df0 = df[df.sim == i]
-        
-        if df0.shape[0] == 2:
+
+        # Completed CPUs
+        if df0.shape[0] == 2 and df0.state.to_numpy()[1] == 'completed':
             walltime.append(df0.datetime.iloc[1].timestamp() - df0.datetime.iloc[0].timestamp())
             if plot and i < imax:
 
                 if fullFrame:
                     if i <= 24: c = 'blue'
-                    elif i > 24 and i <= 48: c = 'cyan'
-                    elif i > 48 and i <= 72: c = 'yellow'
-                    else: c = 'red'
+                    elif i > 24 and i <= 48: c = 'turquoise'
+                    elif i > 48 and i <= 72: c = 'orange'
+                    else: c = 'deeppink'
                 else:
                     c = 'b'
                 
-                ax.hlines(df0.sim.iloc[0], df0.datetime.iloc[0], df0.datetime.iloc[1], color='b', alpha=0.2)
+                ax.hlines(df0.sim.iloc[0], df0.datetime.iloc[0], df0.datetime.iloc[1], color=c, alpha=0.5)
                 ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], c=c, marker='>', mec='k', ms=6)
                 ax.plot(df0.datetime.iloc[1], df0.sim.iloc[1], 'lime', marker='s', mec='k', ms=6)
-                
-        elif df0.shape[0] == 1:
+
+        # Failed CPUs
+        elif (df0.shape[0] == 1 or
+              df0.shape[0] == 2 and df0.state.to_numpy()[1] == 'failed'):
             dex.append(df0.sim.iloc[0]-1)
             print(f'Simulation {df0.sim.iloc[0]} did not finish!')
             if plot and i < imax:
                 ax.plot(df0.datetime.iloc[0], df0.sim.iloc[0], 'r', marker='>', mec='k', ms=6)
 
-    if plot:    
+    if plot:
         plt.title('Overview of worker')
         plt.xlabel('Date-time')
         plt.ylabel('Simulation no.')
         plt.xticks(rotation=30)
         plt.ylim(0, nmax+1)
+        plt.grid()
         plt.tight_layout()
         plt.show()
 
@@ -317,8 +321,8 @@ def workerOverview(workerLog, paramFile, ofile=False, plot=False, fullFrame=Fals
             df1.to_csv(ofile)
     else:
         errorcode('message', 'All simulations finished successfully!')
-        print(f'Average walltime per cpu  : {np.mean(walltime)/60:.3f} h')
-        print(f'Fastest walltime for cpus : {np.min(walltime)/60:.3f} h')
-        print(f'Slowest walltime for cpus : {np.max(walltime)/60:.3f} h')
+        print(f'Average walltime per cpu  : {np.mean(walltime)/3600:.3f} h')
+        print(f'Fastest walltime for cpus : {np.min(walltime)/3600:.3f} h')
+        print(f'Slowest walltime for cpus : {np.max(walltime)/3600:.3f} h')
         
     return df, np.array(walltime)
