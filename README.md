@@ -33,9 +33,9 @@ This will both create the html files and copy them to root. Now commit your chan
 
 Note that the above command add all files that have changed. Now push it to your fork:
 
-	git push origin docs
+	git push origin sphinx
 	
-Compare your fork `docs` with the upstream branch `docs` and merge the branches.
+Compare your fork `sphinx` with the upstream branch `sphinx` and merge the branches.
 
 Wait 1-5 min for the webpage to change. 
 
