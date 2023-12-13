@@ -17,6 +17,4 @@ pyproject.toml
 .bash_profile
 
 # Files from sphinx
-_images
 _static
-
