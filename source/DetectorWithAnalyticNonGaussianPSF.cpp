@@ -1280,6 +1280,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     varFluxTarget.at(starID).at(zeroBasedExposureNr) = aggregatedVariance;
                     NSRtarget.at(starID).push_back(aggregatedNSR);
 
+                    Log.debug("Detector::applyPhotometry: star ID " + to_string(starID) + " has a mask of " + to_string(i) + " pixels"
+                              " with aggregated S/N = " + to_string(1/aggregatedNSR));
+
                     // Disregard all other pixels of the window around the target star: they all contribute more to the noise than to the signal.
 
                     break;
