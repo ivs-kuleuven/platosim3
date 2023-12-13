@@ -1071,9 +1071,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
     double varianceQuant = 0.0;
     if (subFieldZeroPointColumn < numColumns / 2) {
-        varianceQuant = 1.0/combinedGainLeft / 12.0;
+        varianceQuant = 1.0/(combinedGainLeft*combinedGainLeft) / 12.0;
     } else {
-        varianceQuant = 1.0/combinedGainRight / 12.0;
+        varianceQuant = 1.0/(combinedGainRight*combinedGainRight) / 12.0;
     }
 
     // Subtract the sky background
