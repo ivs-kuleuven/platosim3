@@ -1071,9 +1071,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
     double varianceQuant = 0.0;
     if (subFieldZeroPointColumn < numColumns / 2) {
-        varianceQuant = 1.0/combinedGainLeft / 12.0;
+        varianceQuant = 1.0/(combinedGainLeft*combinedGainLeft) / 12.0;
     } else {
-        varianceQuant = 1.0/combinedGainRight / 12.0;
+        varianceQuant = 1.0/(combinedGainRight*combinedGainRight) / 12.0;
     }
 
     // Subtract the sky background
@@ -1279,6 +1279,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     estimatedFluxTarget.at(starID).at(zeroBasedExposureNr) = aggregatedObservedTargetFlux;
                     varFluxTarget.at(starID).at(zeroBasedExposureNr) = aggregatedVariance;
                     NSRtarget.at(starID).push_back(aggregatedNSR);
+
+                    Log.debug("Detector::applyPhotometry: star ID " + to_string(starID) + " has a mask of " + to_string(i) + " pixels"
+                              " with aggregated S/N = " + to_string(1/aggregatedNSR));
 
                     // Disregard all other pixels of the window around the target star: they all contribute more to the noise than to the signal.
 
