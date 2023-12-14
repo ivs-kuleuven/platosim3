@@ -1076,6 +1076,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         varianceQuant = 1.0/(combinedGainRight*combinedGainRight) / 12.0;
     }
 
+    Log.debug("Detector::applyPhotometry: exposure " + to_string(exposureNr) + ": var RON = " + 
+              to_string(varianceRON) + "e-/pix, var quant = " + to_string(varianceQuant) + " e-/pix");
+
     // Subtract the sky background
 
     const double skyBackground = camera. getTotalSkyBackground();                // [photons/pixel/exposure]
