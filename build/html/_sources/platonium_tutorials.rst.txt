@@ -8,7 +8,7 @@ PLATOnium is PlatoSim's user friendly command-line interface to quickly setup a 
 #. ``payload``   : Tool to generate instrumental systematics
 #. ``platonium`` : Tool to run a PlatoSim multi-camera and multi-quarter simulation
 
-Both ``picsim``, ``varsim``, ``payload`` creates immediate userable input files to run ``platonium`` in an easy and generic way.
+Both ``picsim``, ``varsim``, and ``payload`` creates immediate userable input files to run ``platonium`` in an easy and generic way.
 
 Notice all the abovescripts share the same architecture for default I/O argument parsing:
 
@@ -17,11 +17,12 @@ Notice all the abovescripts share the same architecture for default I/O argument
 * ``-v`` : Verbosity (a.k.a log level)
 * ``-p`` : Flag for plotting
 
-Furthermore, both ``varsim`` and ``platonium`` have adjustable verbosity levels (i.e. log levels), which particularly becomes important when running simulations on a computing cluster. The verbosity is also identical to PlatoSim usage:
+Furthermore, all scripts have an adjustable verbosity level (i.e. log level), which particularly becomes important when running simulations on a computing cluster. The verbosity is also identical to PlatoSim usage, with the exception of the added ``cluster mode`` and the removal of the PlatoSim log file with the exception of this action in ``debug mode``:
 
-* ``-v 0`` : Cluster mode: Disabling print and warnings, and no log files are saved
-* ``-v 1`` : Default mode: Print details to bash but do not save log files (Default)
-* ``-v 3`` : Debug mode  : Print details to bash and saves all log files
+* ``-v 0`` : Cluster mode: ``error``
+* ``-v 1`` : Warning mode: ``error``, ``warning``
+* ``-v 2`` : Default mode: ``error``, ``warning``, ``info``
+* ``-v 3`` : Debug mode  : ``error``, ``warning``, ``info``, ``debug``, and save all log files
 
 
    
@@ -40,7 +41,7 @@ picsim
 
 To speed up the process of running realistic simulations a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the PLATO Input Catalogue (PIC) created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
 
-The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and (accodingly called PLATO Fields from the) `PIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_). Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
+The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and (accodingly called PLATO Fields from the) `PIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_. Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
 
 - LOP South 2 (LOPS2): :math:`\ \ \ \ \ \   \alpha = \ \ 95.31043^{\circ}, \ \ \ \ \ \ \delta=-47.88693^{\circ}, \ \ \ \ \ \ \ \kappa=+13.9947^{\circ}`
 - LOP North 1 (LOPN1): :math:`\ \ \ \ \ \ \ \alpha = 277.18023^{\circ},    \ \ \ \ \ \ \delta=+52.85952^{\circ}, \ \ \ \ \ \ \ \kappa=-13.9947^{\circ}`
@@ -52,13 +53,13 @@ These catalogues compose more than :math:`300\,000` PLATO targets from the sampl
 .. image:: ../figures/platonium_P1SampleAllsky.png
    :align: center
    :width: 800
-
+	   
 **Usage function:** To get an overview of its usage simply type:
 
 .. code-block::
 
    picsim -h
-      
+   
 **General examples:** To elaborate on the usage, we here show a few useful examples:
   
 .. code-block::
@@ -71,7 +72,11 @@ These catalogues compose more than :math:`300\,000` PLATO targets from the sampl
 * In the second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
 * In the last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.
 
-Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges the stellar catalogues are saved to the binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``).
+Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges, the stellar catalogues are saved to a binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``). A log file is likewise created with the settings you used to generate the catalogue (in case you forget).
+
+.. note::
+
+   We note that ``picsim`` automatically creates a directory called ``input`` within your parsed output directory. It also copies a YAML file (if it doesn't exists) where the parsed PLATO pointing field is configured. Furthermore, all outputs are turned off except for writing of pixel maps, which simply are done to lower the computational resources. 
 
 **Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` again using the argument ``--incat`` as follows:
 
@@ -95,12 +100,17 @@ Note we here use the asteriks ``**`` to specify that all files should start with
 
 By default only Gaia star fainter than 15 mag are queried, but, like before, you can alter this. We recommend to create seperate catalogues if stars fainter than 15 mag are needed and then combine these catalogues, instead of quering all star say up to 18 mag in one go (the Gaia query method has a maximum number of targets typically exceeded if quering stars fainter 16 mag for PLATO fields close to the Galactic plane).
 
+**SLURM setup:** If you want to run your simulation in parallel on a computing cluster using SLURM, you can add the flag ``--slurm`` and following two files are saved to your output directory:
+  
+  - ``cluster.slurm``     : A SLURM job script to run parallel computations
+  - ``cluster_<CAM>.data``: A SLURM parameterisation file
+
+
 .. raw:: html
 
    <hr>
 
-
-
+   
 
 
    
@@ -111,10 +121,10 @@ varsim
 
 **Generate variable source files**
 
-In order to help the process of generating variable input light curves for PlatoSim, as part of PLATonium the script ``varsim`` is made available. Given a star and a exoplent this script creates a synthetic stellar and exoplanet variability model directly inline with the cadence of your simulated observations. The script is developed around modelling:
+In order to help the process of generating variable input light curves for PlatoSim, as part of PLATonium the script ``varsim`` is made available. Given a star and an exoplent this script creates a synthetic stellar and exoplanet variability model directly inline with the cadence of your simulated observations. The script is developed around modelling:
 
-* Stellar activity modulations
-* Granulation
+* Stellar spot modulations
+* Granulation noise
 * Convection driven oscillations (p-modes)
 * Exoplanet transits
 * Phase curve variations (due to Doppler beaming and ellisoidal distorsion)
@@ -181,37 +191,13 @@ payload
 
 **Generate instrumental systematics**
 
-To help introduce more realistic (i.e. more noisy) simulations, we have developed the script called ``payload``. This script will generate the following files:
+To help introduce more realistic (i.e. more noisy) instrumental systematics, we have developed the script called ``payload``. This script will generate the following files by default:
 
-  - ``instrumentPRE.txt``  : Pointing errors for each mission quarter pointing
-  - ``instrumentAPE.txt``  : Alignment errors between cameras and the optical bench
-  - ``instrumentTED.txt``  : Long-term camera drift due to Thermo-Elastic Distortion
-  - ``instrumentGaps.txt`` : Realistic distribution of spacecraft down times
-    
-Beyond the input files that are possible to parse to PlatoSim (see `here <http://ivs-kuleuven.github.io/PlatoSim3/_input_file_description.html>`_) in PLATOnium the first three files generated by this script are so-called Pointing Error Sources (PES) files. I.e. systematic noise sources that directly impact the source PSF either in position, shape, or both. The output format of these two files are directly in an input PlatoSim can interpret:
-
-  - Pointing Repeatability Error (PRE) format: [Quarter (int), Yaw (:math:`"`), Pitch (:math:`"`) Roll (:math:`"`)]
-  - Absolute Pointing Error (APE) format: [Tilt (:math:`^{\circ}`), Azimuth (:math:`^{\circ}`)]
-
-The PRE and APE files are generated by drawing each error component from a Gaussian distribution with an translational and rotational error tolerence of :math:`3\sigma` as illustrated in a pixel displacement below:
-
-.. image:: ../figures/platonium_payloadPES.png
-   :align: center
-   :width: 800
-   	   
-Next the script generated a polynomial model of the long-term Thermo-Elastic Drift (TED) of each camera for each mission quarter. Such a model looks like the following:
-
-.. image:: ../figures/platonium_payloadTED.png
-   :align: center
-   :width: 800
-
-Since data gaps is very important for any type time series analysis, we here provide a script that random generates several gaps from: quarterly rolls, data dowlinks, loss of fine guidance, and safe mode events. We draw these from a known distribution of the *Kepler* mission and one example of gapped time series is seen below:
-	   
-.. image:: ../figures/platonium_payloadGaps.png
-   :align: center
-   :width: 800
-	   
-Note also the lenght of each data gap event is randomly drawn to match closer to the future observations.
+  - ``instrumentPRE.txt`` : Pointing errors for each mission quarter pointing
+  - ``instrumentAPE.txt`` : Alignment errors between cameras and the optical bench
+  - ``instrumentTED.txt`` : Long-term camera drift due to Thermo-Elastic Distortion
+  - ``instrumentGAP.txt`` : Realistic distribution of observational down time
+  - ``instrumentGTT.txt`` : Gain-thermal transients events after each re-pointing
 
 **Usage function:** To get an overview of its usage simply type:
 
@@ -219,15 +205,63 @@ Note also the lenght of each data gap event is randomly drawn to match closer to
 
    payload -h
       
-**General usage:** As a simple example type:
+**General usage:** Before further exploring this script, a simple usage example is:
    
 .. code-block::
 
    payload 100 LOPS2 --project <project_name> -p
 
-While using the ``--project`` output path, the files will be generated directly into your working directory and will immediately be known and used when running ``platonium`` later.
+HereWhile using the ``--project`` output path, the files will be generated directly into your working directory and will immediately be known and used when running ``platonium`` later.
    
 
+
+
+    
+Beyond the input files that are possible to parse to PlatoSim (see `here <http://ivs-kuleuven.github.io/PlatoSim3/_input_file_description.html>`_), the first three files listed above are so-called Pointing Error Sources (PES) files. I.e. systematic noise sources that directly impact the source PSF either in position, shape, or both. The output format of these two files are directly in an input format that PlatoSim can interpret:
+
+  - Pointing Repeatability Error (PRE) with four columns:
+    
+    - Quarter number (int)
+    - Yaw angle [ :math:`^"` ]
+    - Pitch angle [ :math:`^"` ]
+    - Roll angle [ :math:`^"` ]
+
+      
+    
+  - Absolute Pointing Error (APE) with two columns:
+
+    - Tilt angle [ :math:`^{\circ}` ]
+    - Azimuth angle [ :math:`^{\circ}` ]
+
+The PRE and APE files are generated by drawing each error component from a Gaussian distribution with an translational and rotational error tolerence of :math:`3\sigma` as illustrated in a pixel displacement below:
+
+.. image:: ../figures/platonium_payloadPES.png
+   :align: center
+   :width: 800
+   	   
+Next the script generates the long-term Thermo-Elastic Drift (TED) model of each camera for each mission quarter. The TED model is a second order polynomial whilst uniformly drawing the model coefficients under the restriction that the amplitude in yaw, pitch, and roll cannot exceed 15 arcsec. Such a model looks like the following:
+
+.. image:: ../figures/platonium_payloadTED.png
+   :align: center
+   :width: 800
+
+Since data gaps are very important for any type time series analysis, we here provide a script that randomly generates gaps due to: 1) quarterly rolls, 2) loss of fine guidance, and 3) safe mode events. We draw these from a known distribution of the *Kepler* mission and the lenght of each data gap event is randomly drawn. Note that data gaps are not removed by default (when running ``platonium``) but can easily be removed from the any simulation using the feather output ``instrumentGAP.tab``. From the content of this file, an example of a gapped time series is shown below:
+	   
+.. image:: ../figures/platonium_payloadGAP.png
+   :align: center
+   :width: 800
+
+As the the spacecraft changes its orientation throughout the mission, the motion and/or orientation of the spacecraft will cause the components of each camera (TOU, CCDs, FEE, etc.) to undergo a temperature change. This will in turn result in a temporarily increase of electron counts. This phenomena is known as a *thermal transient*. In Simple Aperture Photometry (SAP) a thermal transient event manifests in a positive flux jump followed by a *reheating* process seen as an exponentially decrease in flux back to the count level as before the event. The main cause of thermal trasients is due to the temperature dependece of the CCD gain (and to second order on a slightly change of the camera focus). The reheating timescale depends on the duration of the interruption, i.e. typically maximally up to a few days.
+
+By default PlatoSim does not account for thermal transients, hence, this model is included here. Again the model parameters used are similar to that estimated for the *Kepler* mission. The following figure shows the transient model induced by the data gaps from the above figure:
+	   
+.. image:: ../figures/platonium_payloadGTT.png
+   :align: center
+   :width: 800
+
+Note that gain-thermal transients only occur if the spacecraft orientation is changed (i.e. if the thermal profile of the spacecraft abruptly changes), which is not the case for events of large jitter noise due to the loss of fine guidance.
+	   
+	   
    
 
 

@@ -189,26 +189,26 @@
             
   <div class="section" id="prerequisites">
 <h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h1>
-<p>This section gives a detailed explaination on how to finalise your setup to use PLATOnium. At this stage you should be able to run PlatoSim both from the command line and from a Python shell.</p>
+<p>This section gives a detailed explaination on how to finalise your setup in order to use PLATOnium. At this stage you should be able to run PlatoSim both from the command line and from a Python shell.</p>
 <p><strong>Extra Python packages</strong></p>
-<p>To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file is located (if you followed our suggestin during the installation this would be <code class="docutils literal notranslate"><span class="pre">$CONDA_PREFIX/python</span></code>). Depending on your needs, run the Poetry install command again but now with the additional argument(s):</p>
+<p>To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> file is located (if you followed our suggestion during the installation, this would be <code class="docutils literal notranslate"><span class="pre">$CONDA_PREFIX/python</span></code>). Depending on your needs, run the Poetry install command again but now with the additional argument(s):</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">platonium</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--with</span> <span class="pre">platonium</span> <span class="pre">--with</span> <span class="pre">pipeline</span></code></p></li>
 </ul>
 <p>The first add-on command is sufficient for running the <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium tutorials</span></a>. Only add-on the second command if you want to run the (experimental) setup between the PLATOnium toolkit and the <a class="reference internal" href="platonium_pipeline.html"><span class="doc">LESIA prototype pipeline</span></a>.</p>
 <p><strong>Script executeables</strong></p>
-<p>Before you continue, verify that the following path variables are defined (preferably in a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file which are read by the configuration file of your shell environment):</p>
+<p>Before you continue, verify that the following path variables are defined (preferably in a <code class="docutils literal notranslate"><span class="pre">.bash_profile</span></code> file that are read by the configuration file of your shell environment):</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>
 <span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
 <span class="nb">echo</span><span class="w"> </span><span class="nv">$PYTHONPATH</span>
 </pre></div>
 </div>
-<p>PLATOnium consist of four command line scripts that needs to be copied to the <code class="docutils literal notranslate"><span class="pre">bin</span></code> directory of your Conda environment. If you are a user, make sure that <code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code> points to your <code class="docutils literal notranslate"><span class="pre">CONDA_PREFIX</span></code> path. Now define the following path variable:</p>
+<p>PLATOnium consists of four command line scripts that needs to be copied to the <code class="docutils literal notranslate"><span class="pre">bin</span></code> directory of your Conda environment. If you are a user, make sure that <code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code> points to your <code class="docutils literal notranslate"><span class="pre">CONDA_PREFIX</span></code> path. Now define the following path variable:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nv">PLATONIUM</span><span class="o">=</span><span class="nv">$PLATO_PROJECT_HOME</span>/python/platosim/platonium
 </pre></div>
 </div>
-<p>Copy the following scripts into your Conda environment:</p>
+<p>Copy the four scripts into your Conda environment:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/picsim.py<span class="w">    </span><span class="nv">$CONDA_PREFIX</span>/bin/picsim
 cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/varsim.py<span class="w">    </span><span class="nv">$CONDA_PREFIX</span>/bin/varsim
 cp<span class="w"> </span><span class="nv">$PLATONIUM</span>/payload.py<span class="w">   </span><span class="nv">$CONDA_PREFIX</span>/bin/payload
