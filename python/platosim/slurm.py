@@ -135,7 +135,7 @@ def getJobScript(ids, groups, cameras, quarters,
     SIMDIR=<storage_name>              # Directory to store output
     starID=$(printf "%09d" $id)        # 9-digit star ID to include varsource
 
-    # Export paths
+    # Export paths and secure 1 thread/cpu
     export TEMDIR=$VSC_SCRATCH_NODE
     export VARDIR=$VSC_SCRATCH/platosim/$PROJECT/varsource
     export OUTDIR=$VSC_SCRATCH/platosim/$PROJECT/$SIMDIR/$starID
@@ -145,12 +145,10 @@ def getJobScript(ids, groups, cameras, quarters,
     export PYTHONPATH=$PLATO:$PLATO_PROJECT_HOME/python
     export PLATONIUM=$PLATO_PROJECT_HOME/python/platosim/platonium/platonium.py
     export PATH=$VSC_DATA/miniconda3/bin:$PATH    
-
-    # Activate environment
-    source activate platonium
-
-    # Secure only 1 thread/cpu
     export OMP_NUM_THREADS=1
+
+    # Activate Conda environment
+    source activate platonium
 
     # Run PLATOnium
     python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress -v 0

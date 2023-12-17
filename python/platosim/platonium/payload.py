@@ -5,12 +5,14 @@ This script is an integrated part of PlatoSim's toolkit PLATOnium.
 Call this script prior to running your simulations with "platonium"
 to generate the following files:
 
-  - instrumentGaps.txt : Realistic distribution of spacecraft down times
-  - instrumentPRE.txt  : Pointing errors for each mission quarter pointing
-  - instrumentAPE.txt  : Alignment errors between cameras and the optical bench
+  - inputfile.yaml     : Updated YAML file (only if it doesn't exist)
+  - cluster.pbs        : SLURM job script
+  - cluster_<CAM>.data : SLURM parameterisation file
+  - instrumentPRE.txt  : Platform pointing errors for each mission quarter
+  - instrumentAPE.txt  : Camera alignment errors on the optical bench
   - instrumentTED.txt  : Long-term camera drift due to Thermo-Elastic Distortion
-  - run.pbs & data.pbs : Job and parameterisation file for SLURM parallelisation
-  - inputfile.yaml     : Copy and adjust a YAML file (only if it doesn't exist)
+  - instrumentGAP.txt  : Realistic distribution of spacecraft down times
+  - instrumentGTT.txt  : Gain-Thermal transients (increasing the flux) 
 
 While using the "--project" output path, the files will be generated
 directly into your working directory and will immediately be known
@@ -23,6 +25,7 @@ import os
 import shutil
 import argparse
 import datetime
+import warnings
 
 # PlatoSim standard
 import numpy as np
@@ -53,7 +56,7 @@ class Payload(object):
     """
 
     def __init__(self, filename, mode="single", ncam=False):
-
+        
         # Global parameters
         self.day2sec = 86400.
         self.prefix  = 'cluster'
@@ -63,6 +66,25 @@ class Payload(object):
         self.fcam = args.fcam
         self.aocs = args.aocs
 
+        # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
+        if args.verbose == 0:
+            self.verbose = 0            
+            warnings.filterwarnings("ignore")
+        elif args.verbose is None:
+            self.verbose = 2
+        else:
+            self.verbose = args.verbose
+
+        # Extra check for print tables
+        if self.verbose > 1:
+            self.table = True
+        else:
+            self.table = False
+            
+        # Print software name
+        if self.verbose > 1:
+            errorcode('software', '\nInstrumental Noise Simulator\n')
+            
         # Output directory
         if args.outdir:
             self.odir = Path(args.outdir).resolve()
@@ -78,10 +100,10 @@ class Payload(object):
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
             self.fileNameACS = f"{self.odir}/instrumentACS.txt"
-            self.fileNameGap = f"{self.odir}/instrumentGap.ftr"
-            self.fileNameCCD = f"{self.odir}/instrumentCCD.txt"
+            self.fileNameGAP = f"{self.odir}/instrumentGAP.ftr"
+            self.fileNameGTT = f"{self.odir}/instrumentGTT.txt"
         else:
-            self.fileNameGap = self.fileNameCCD = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
+            self.fileNameGAP = self.fileNameGTT = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
 
         # Number of images in a quarter
         self.nimg = round(ut.year() / 4 / 25)
@@ -105,14 +127,14 @@ class Payload(object):
         # When number is given (also check for obvious mistakes)
         if len(G) == 1:
             if int(G) > 4:
-                errorcode('warning', 'Maximum number of camera groups is 4!')
+                errorcode('error', 'Maximum number of camera groups is 4!')
                 parser.print_help()
             else:
                 G = [int(G)]
 
         if len(C) == 1:
             if int(C) > 6:
-                errorcode('warning', 'Maximum number of cameras in a group is 6!')
+                errorcode('error', 'Maximum number of cameras in a group is 6!')
                 parser.print_help()
             C = [int(C)]
 
@@ -122,14 +144,14 @@ class Payload(object):
         # When a range is given (also check for obvious mistakes)
         if len(G) == 3:
             if int(G[2]) > 4:
-                errorcode('warning', 'Maximum number of camera groups is 4!')
+                errorcode('error', 'Maximum number of camera groups is 4!')
                 parser.print_help()
             else:
                 G = range(int(G[0]), int(G[2])+1)
 
         if len(C) == 3:
             if int(C[2]) > 6:
-                errorcode('warning', 'Maximum number of cameras in a group is 6!')
+                errorcode('error', 'Maximum number of cameras in a group is 6!')
                 parser.print_help()
             else:
                 C = range(int(C[0]), int(C[2])+1)
@@ -173,13 +195,15 @@ class Payload(object):
         
         if self.odir:
             filename = f"{self.odir}/{self.prefix}_ncams.data"
-            print(f"Creating HPC parameterization file  : {filename}")
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, self.G, self.C, self.Q,
                             fcam=False, ofile=filename)
             
             if self.fcam:
                 filename = f"{self.odir}/{self.prefix}_fcams.data"
-                print(f"Creating HPC parameterization file  : {filename}")
+                if self.verbose > 1:
+                    print(f"Creating HPC parameterization file  : {filename}")
                 sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
                                 fcam=True, ofile=filename)
 
@@ -194,7 +218,8 @@ class Payload(object):
         if self.odir:
             errorcode('module', f'\nJob script for parallisation\n')
             filename = f"{self.odir}/{self.prefix}.slurm"
-            print(f"Creating parameterization job-script: {filename}")
+            if self.verbose > 1:
+                print(f"Creating parameterization job-script: {filename}")
             sm.getJobScript(self.N, self.G, self.C, self.Q,
                             ofile=filename)
 
@@ -209,10 +234,12 @@ class Payload(object):
         """
 
         # Generete PRE file
-        errorcode('module', '\nPointing repeatability error (PRE)')
+        if self.verbose > 1:
+            errorcode('module', '\nPointing repeatability error (PRE)')
         ns.getPRE(self.alpha, self.delta, self.kappa, self.Q, sigma=3,
-                  ofile=self.fileNamePRE, table=True, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNamePRE}")
+                  ofile=self.fileNamePRE, table=self.table, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNamePRE}")
 
         
 
@@ -225,10 +252,12 @@ class Payload(object):
         """
 
         # Generete APE file
-        errorcode('module', '\nAbsolute Pointing Error (APE)')
+        if self.verbose > 1:
+            errorcode('module', '\nAbsolute Pointing Error (APE)')
         ns.getAPE(self.alpha, self.delta, self.kappa, sigma=3,
-                  ofile=self.fileNameAPE, table=True, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameAPE}")
+                  ofile=self.fileNameAPE, table=self.table, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNameAPE}")
 
 
         
@@ -242,34 +271,42 @@ class Payload(object):
         """
 
         # Generete APE file
-        errorcode('module', '\nCCD and FEE gain variations')
+        if self.verbose > 1:
+            errorcode('module', '\nCCD and FEE gain variations')
         #ns.getGain(gain0CCD=, gain0FEE=, sigma=3,
-        #           ofile=self.fileNameAPE, table=True, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameAPE}")
+        #           ofile=self.fileNameAPE, table=self.table, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNameAPE}")
 
 
 
 
         
-    def createGap(self):
+    def createGAP(self):
 
         """Function to create a time columns including Data Gaps.
         Used to include data gaps relavant for space mission orbiting in L2.
         """
 
         # Generate a data-gap file
-        errorcode('module', '\nDate gaps & Thermal transients\n')
-        print('Downtime due to quater interuptions')
-        print('Downtime due to loss of fine guidance')
-        print('Downtime due to safe-mode events')
+        if self.verbose > 1:
+            errorcode('module', '\nData gaps and Downtime\n')
+            print('Downtime due to quater interuptions')
+            print('Downtime due to loss of fine guidance')
+            print('Downtime due to safe-mode events')
         _, self.t0, self.td = ns.getDataGaps(self.time, self.Q,
-                                             ofile=self.fileNameGap, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameGap}")
+                                             ofile=self.fileNameGAP, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNameGAP}")
 
         # Generate thermal transient file
+        if self.verbose > 1:
+            errorcode('module', '\nGain-Thermal Transients (GTT)\n')
+            print('Modelling gain-trasients using exponential decay')
         ns.temperatureTransients(self.time, self.t0, self.td, tempCCD=203.5,
-                                 ofile=self.fileNameCCD, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameCCD}")
+                                 ofile=self.fileNameGTT, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNameGTT}")
 
         
 
@@ -281,9 +318,11 @@ class Payload(object):
         """
         
         # Generate TED file
-        errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
-        ns.getTED(self.Q, ofile=self.fileNameTED, table=True, plot=self.plot)
-        if self.odir: print(f"File saved: {self.fileNameTED}")
+        if self.verbose > 1:
+            errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
+        ns.getTED(self.Q, ofile=self.fileNameTED, table=self.table, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNameTED}")
 
 
 
@@ -296,9 +335,11 @@ class Payload(object):
         
         # Generate ACS file
         if self.aocs and self.odir:
-            errorcode('module', '\nAttitude Control System (ACS)\n')
+            if self.verbose > 1:
+                errorcode('module', '\nAttitude Control System (ACS)\n')
             ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
-            if self.odir: print(f"File saved: {self.fileNameACS}")
+            if self.odir and self.verbose > 1:
+                print(f"File saved: {self.fileNameACS}")
 
 
 
@@ -308,10 +349,8 @@ class Payload(object):
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
 
-software = '\nInstrumental Noise Simulator'
 parser = argparse.ArgumentParser(epilog=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter,
-                                 description=errorcode('software', software))
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('ids',   type=str, help='Number of IDs (stars or CCDs=4)')
@@ -349,10 +388,11 @@ x.createJobScript()
 x.createPRE()
 x.createAPE()
 x.createTED()
-x.createGap()
+x.createGAP()
 x.createACS()
 
 # Finish with output
-if (args.verbose is None) or (args.verbose > 0):
+if (args.verbose is None) or (args.verbose > 1):
+    errorcode('module', '\nPrologue')
     toc = datetime.datetime.now()
     print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]\n')
