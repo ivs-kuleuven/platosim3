@@ -197,9 +197,9 @@
 <span id="run-prerequisites-export"></span><h2><em>Export environment variables</em><a class="headerlink" href="#export-environment-variables" title="Permalink to this headline">¶</a></h2>
 <p>To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code>: refer to the directory in which PlatoSim3 was installed</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code>: refer to your working directory <code class="docutils literal notranslate"><span class="pre">&lt;path/to/plato_workdir&gt;</span></code> were you should store your own configuration files and save your simulations (preferably not within <code class="docutils literal notranslate"><span class="pre">PlatoSim3/</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>: refer to the directory in which our Python scripts can be found</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PLATO_PROJECT_HOME</span></code>: refer to the directory in which PlatoSim3 was installed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code>: refer to your working directory were you should store your own configuration files and save your simulations (preferably not within the PlatoSim installation directory).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>: refer to the directory in which our Python scripts can be found.</p></li>
 </ul>
 <p>Before exporting any environment variables, first make sure to activate your Conda environment. If you have installed PlatoSim as a <a class="reference internal" href="install_conda.html"><span class="doc">user (via Conda)</span></a>, the home location of the PlatoSim project needs to be exported as:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PLATO_PROJECT_HOME</span><span class="o">=</span><span class="nv">$CONDA_PREFIX</span>
@@ -214,7 +214,7 @@
 <span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$PYTHONPATH</span>:<span class="nv">$PLATO_PROJECT_HOME</span>/python
 </pre></div>
 </div>
-<p>Lastly, check that the exported paths are set to the proper location with:</p>
+<p>Lastly, check that the exported paths are set to the proper locations with:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_PROJECT_HOME</span>
 <span class="nb">echo</span><span class="w"> </span><span class="nv">$PLATO_WORKDIR</span>
 <span class="nb">echo</span><span class="w"> </span><span class="nv">$PYTHONPATH</span>
@@ -235,8 +235,13 @@
 <hr></div>
 <div class="section" id="file-storage">
 <span id="run-prerequisites-storage"></span><h2><em>File storage</em><a class="headerlink" href="#file-storage" title="Permalink to this headline">¶</a></h2>
-<p>To avoid problems when updating the PlatoSim software, it is best to store your own input and output files in a designated working directory – i.e. <code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code> as described above. For developers we recommend to place this directory outside the <code class="docutils literal notranslate"><span class="pre">PlatoSim3/</span></code> directory. You can (but should not) add your input files to the <code class="docutils literal notranslate"><span class="pre">inputfiles/</span></code> directory, but under no circumstances change the original files in that directory!</p>
-<p>In case - as a user - you install a new version of the software in an existing Conda environment, all changes will be overwritten and newly added files will be removed from the intallation. So better store them outside of the installation. For all users that want to run PlatoSim from the terminal, we recommend that you as a developer copy the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> file and modify the copy rather than the original file. For users you can simply download the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> directly from GitHub.</p>
+<p>To avoid problems when updating the PlatoSim software, it is best to store your own input and output files in a designated working directory. We recommend to use the path environment <code class="docutils literal notranslate"><span class="pre">PLATO_WORKDIR</span></code> as described above.</p>
+<p>For all users that want to run PlatoSim from the terminal, we recommend that you copy the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> file (located within the directory <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME/inputfiles</span></code>) and modify the copy rather than the original file. Note that you can always download the <code class="docutils literal notranslate"><span class="pre">inputfile.yaml</span></code> directly from GitHub (from the branch matching your installation).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>For users:</strong> that installs a new version of PlatoSim in an existing Conda environment, all changes will be overwritten, and any files you may have added will be removed from the intallation directory. Hence, better store your files outside of the installation directory.</p>
+<p><strong>For developers:</strong> having downloaded the source code, should only make changes or add/remove files from the <code class="docutils literal notranslate"><span class="pre">PlatoSim3/inputfiles</span></code> directory (or any other directory) if a pull request is the end goal.</p>
+</div>
 </div>
 </div>
 
