@@ -63,7 +63,6 @@ class Payload(object):
         
         # Flags
         self.plot = args.plot
-        self.fcam = args.fcam
         self.aocs = args.aocs
 
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
@@ -194,18 +193,17 @@ class Payload(object):
         """
         
         if self.odir:
-            filename = f"{self.odir}/{self.prefix}_ncams.data"
+            filename = f"{self.odir}/{self.prefix}_ncam.data"
             if self.verbose > 1:
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, self.G, self.C, self.Q,
                             fcam=False, ofile=filename)
             
-            if self.fcam:
-                filename = f"{self.odir}/{self.prefix}_fcams.data"
-                if self.verbose > 1:
-                    print(f"Creating HPC parameterization file  : {filename}")
-                sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
-                                fcam=True, ofile=filename)
+            filename = f"{self.odir}/{self.prefix}_fcam.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
+                            fcam=True, ofile=filename)
 
 
 
@@ -366,7 +364,6 @@ obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
 obs_group.add_argument('--group',   metavar='INT', type=str, help='Group   number: 1, 2, .... (Default: 1-4 = all)')
 obs_group.add_argument('--camera',  metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
 obs_group.add_argument('--quarter', metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
-obs_group.add_argument('--fcam',    action='store_true', help='Flag to generate files for the F-CAMs')
 obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate a red noise AOCS jitter file')
 
 args = parser.parse_args()
