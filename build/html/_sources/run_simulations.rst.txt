@@ -3,13 +3,6 @@ Run simulations
 
 To run simulations with PlatoSim, you will have to feed a :ref:`Configuration file <run_input_parameters>` as input to the simulator, possibly together with a few additional :ref:`Supplementary files <run_input_files>`. Launching simulations can be done either from the :ref:`command line <run_command_line>` or in :ref:`Python <run_python>` as explained on this page.
 
-.. warning::
-   
-   If you encounter that PlatoSim raises an error message, please have a look the log messages before raising a new GitHub issue. The two most frequent *error codes* are:
-
-   - **Error code 1**: The HDF5 file already exists, hence remove it and try again
-   - **Error code 6**: Wrong formatting or typesetting of the YAML file or a supplementary file
-
 .. raw:: html
 
    <hr>
@@ -17,8 +10,7 @@ To run simulations with PlatoSim, you will have to feed a :ref:`Configuration fi
 
 
 
-   
-.. _run_command_line:
+.. _run_simulations_command:
 
 *Command line*
 --------------
@@ -50,7 +42,7 @@ This will generate two files: the HDF5 output file containing the simulation and
 
 
    
-.. _run_python:
+.. _run_simulations_python:
 
 *Python*
 --------
@@ -144,3 +136,22 @@ By setting the optional input parameter ``removeOutputFile`` to ``True``, any pr
 .. code-block:: python
 		
    sim.run(removeOutputFile = True)
+
+.. raw:: html
+
+   <hr>
+
+
+
+   
+
+
+.. _run_simulations_error:
+
+*Error codes*
+-------------
+		
+If PlatoSim raises an error message upon execution, please have a look the log messages before raising a new GitHub issue. The two most frequent *error codes* are:
+
+- **Error code -1**: The HDF5 file already exists, hence remove it and try again
+- **Error code 6**: Wrong formatting or typesetting of the YAML file or a supplementary file

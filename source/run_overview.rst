@@ -5,5 +5,5 @@ The scheme below shows an overview of the procedure to run the PlatoSim3 softwar
 
 .. image:: ../figures/flowchart_howToRunPlatoSim.png
    :align: center
-   :width: 500
+   :width: 450
    :alt: Alternative text

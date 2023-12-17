@@ -1,11 +1,11 @@
 Prerequisites
 =============
 
-This section gives a detailed explaination on how to finalise your setup to use PLATOnium. At this stage you should be able to run PlatoSim both from the command line and from a Python shell.
+This section gives a detailed explaination on how to finalise your setup in order to use PLATOnium. At this stage you should be able to run PlatoSim both from the command line and from a Python shell.
 
 **Extra Python packages**
 
-To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the ``pyproject.toml`` file is located (if you followed our suggestin during the installation this would be ``$CONDA_PREFIX/python``). Depending on your needs, run the Poetry install command again but now with the additional argument(s):
+To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the ``pyproject.toml`` file is located (if you followed our suggestion during the installation, this would be ``$CONDA_PREFIX/python``). Depending on your needs, run the Poetry install command again but now with the additional argument(s):
 
 - ``--with platonium``
 - ``--with platonium --with pipeline``
@@ -14,7 +14,7 @@ The first add-on command is sufficient for running the :doc:`PLATOnium tutorials
   
 **Script executeables**
 
-Before you continue, verify that the following path variables are defined (preferably in a ``.bash_profile`` file which are read by the configuration file of your shell environment):
+Before you continue, verify that the following path variables are defined (preferably in a ``.bash_profile`` file that are read by the configuration file of your shell environment):
 
 .. code-block:: shell
 
@@ -22,13 +22,13 @@ Before you continue, verify that the following path variables are defined (prefe
    echo $PLATO_WORKDIR
    echo $PYTHONPATH
 
-PLATOnium consist of four command line scripts that needs to be copied to the ``bin`` directory of your Conda environment. If you are a user, make sure that ``PLATO_PROJECT_HOME`` points to your ``CONDA_PREFIX`` path. Now define the following path variable:
+PLATOnium consists of four command line scripts that needs to be copied to the ``bin`` directory of your Conda environment. If you are a user, make sure that ``PLATO_PROJECT_HOME`` points to your ``CONDA_PREFIX`` path. Now define the following path variable:
 
 .. code-block:: shell
 		
    PLATONIUM=$PLATO_PROJECT_HOME/python/platosim/platonium
 
-Copy the following scripts into your Conda environment:
+Copy the four scripts into your Conda environment:
    
 .. code-block:: shell
 

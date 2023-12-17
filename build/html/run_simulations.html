@@ -109,6 +109,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Run simulations</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#command-line"><em>Command line</em></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python"><em>Python</em></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#error-codes"><em>Error codes</em></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
@@ -193,17 +194,9 @@
             
   <div class="section" id="run-simulations">
 <h1>Run simulations<a class="headerlink" href="#run-simulations" title="Permalink to this headline">¶</a></h1>
-<p>To run simulations with PlatoSim, you will have to feed a <a class="reference internal" href="run_input.html#run-input-parameters"><span class="std std-ref">Configuration file</span></a> as input to the simulator, possibly together with a few additional <a class="reference internal" href="run_input.html#run-input-files"><span class="std std-ref">Supplementary files</span></a>. Launching simulations can be done either from the <a class="reference internal" href="#run-command-line"><span class="std std-ref">command line</span></a> or in <a class="reference internal" href="#run-python"><span class="std std-ref">Python</span></a> as explained on this page.</p>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>If you encounter that PlatoSim raises an error message, please have a look the log messages before raising a new GitHub issue. The two most frequent <em>error codes</em> are:</p>
-<ul class="simple">
-<li><p><strong>Error code 1</strong>: The HDF5 file already exists, hence remove it and try again</p></li>
-<li><p><strong>Error code 6</strong>: Wrong formatting or typesetting of the YAML file or a supplementary file</p></li>
-</ul>
-</div>
+<p>To run simulations with PlatoSim, you will have to feed a <a class="reference internal" href="run_input.html#run-input-parameters"><span class="std std-ref">Configuration file</span></a> as input to the simulator, possibly together with a few additional <a class="reference internal" href="run_input.html#run-input-files"><span class="std std-ref">Supplementary files</span></a>. Launching simulations can be done either from the <span class="xref std std-ref">command line</span> or in <span class="xref std std-ref">Python</span> as explained on this page.</p>
 <hr><div class="section" id="command-line">
-<span id="run-command-line"></span><h2><em>Command line</em><a class="headerlink" href="#command-line" title="Permalink to this headline">¶</a></h2>
+<span id="run-simulations-command"></span><h2><em>Command line</em><a class="headerlink" href="#command-line" title="Permalink to this headline">¶</a></h2>
 <p>To run a simulation from the command line, simply type:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim<span class="w"> </span>&lt;inputFile&gt;<span class="w"> </span>&lt;outputFile&gt;<span class="w"> </span><span class="o">[</span>&lt;logFile&gt;<span class="w"> </span>&lt;logLevel&gt;<span class="o">]</span>
 </pre></div>
@@ -221,7 +214,7 @@
 <p>This will generate two files: the HDF5 output file containing the simulation and a ascii log file with the log messages from PlatoSim.</p>
 <hr></div>
 <div class="section" id="python">
-<span id="run-python"></span><h2><em>Python</em><a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h2>
+<span id="run-simulations-python"></span><h2><em>Python</em><a class="headerlink" href="#python" title="Permalink to this headline">¶</a></h2>
 <p><a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/docs/tutorials">A full suite of Jupyter notebook tutorials are made available</a>. Below we provide a minimal example of how to get started running PlatoSim using our Python interface. If you’re planning on creating your own scripts in Python, then besides reading our Jupyter notebooks, we recommend spending a bit of time investigating the different built in <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/tree/master/python/platosim">Python classes (and their utilities)</a>.</p>
 <p>We note that the <a class="reference internal" href="platonium_overview.html"><span class="doc">PLATOnium toolkit</span></a> can be used to setup a large scale simulation of imagttes/photometric time series within minutes. This toolkit can be used to generate stellar catalogue from the PIC, generate variable signals, generate instrumental effects, and takes care of the configuration of payload inline with the future observations of PLATO. This toolkit is meant for plug-and-play and in particalar to be used on a computing cluster.</p>
 <hr><p><strong>Create a simulation object</strong></p>
@@ -279,6 +272,14 @@
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">removeOutputFile</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
+<hr></div>
+<div class="section" id="error-codes">
+<span id="run-simulations-error"></span><h2><em>Error codes</em><a class="headerlink" href="#error-codes" title="Permalink to this headline">¶</a></h2>
+<p>If PlatoSim raises an error message upon execution, please have a look the log messages before raising a new GitHub issue. The two most frequent <em>error codes</em> are:</p>
+<ul class="simple">
+<li><p><strong>Error code -1</strong>: The HDF5 file already exists, hence remove it and try again</p></li>
+<li><p><strong>Error code 6</strong>: Wrong formatting or typesetting of the YAML file or a supplementary file</p></li>
+</ul>
 </div>
 </div>
 

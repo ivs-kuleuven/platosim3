@@ -12,9 +12,9 @@ Prerequisites
 
 To avoid having to hardcode any paths in configuration files, tutorials, etc., you must export three environment variables:
 
-* ``PLATO_PROJECT_HOME``: refer to the directory in which PlatoSim3 was installed
-* ``PLATO_WORKDIR``: refer to your working directory ``<path/to/plato_workdir>`` were you should store your own configuration files and save your simulations (preferably not within ``PlatoSim3/``)
-* ``PYTHONPATH``: refer to the directory in which our Python scripts can be found
+* ``PLATO_PROJECT_HOME``: refer to the directory in which PlatoSim3 was installed.
+* ``PLATO_WORKDIR``: refer to your working directory were you should store your own configuration files and save your simulations (preferably not within the PlatoSim installation directory).
+* ``PYTHONPATH``: refer to the directory in which our Python scripts can be found.
 
 Before exporting any environment variables, first make sure to activate your Conda environment. If you have installed PlatoSim as a :doc:`user (via Conda) <install_conda>`, the home location of the PlatoSim project needs to be exported as:
 
@@ -35,7 +35,7 @@ Next, choose a PlatoSim working directory and export the two following environme
    export PLATO_WORKDIR=<full/path/to/working/directory>
    export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
    
-Lastly, check that the exported paths are set to the proper location with:
+Lastly, check that the exported paths are set to the proper locations with:
 
 .. code-block:: shell
 
@@ -73,6 +73,12 @@ We recommend that you place these three environment variables in a ``.bash_profi
 *File storage*
 --------------
 
-To avoid problems when updating the PlatoSim software, it is best to store your own input and output files in a designated working directory -- i.e. ``PLATO_WORKDIR`` as described above. For developers we recommend to place this directory outside the ``PlatoSim3/`` directory. You can (but should not) add your input files to the ``inputfiles/`` directory, but under no circumstances change the original files in that directory!
+To avoid problems when updating the PlatoSim software, it is best to store your own input and output files in a designated working directory. We recommend to use the path environment ``PLATO_WORKDIR`` as described above.
 
-In case - as a user - you install a new version of the software in an existing Conda environment, all changes will be overwritten and newly added files will be removed from the intallation. So better store them outside of the installation. For all users that want to run PlatoSim from the terminal, we recommend that you as a developer copy the ``inputfile.yaml`` file and modify the copy rather than the original file. For users you can simply download the ``inputfile.yaml`` directly from GitHub.
+For all users that want to run PlatoSim from the terminal, we recommend that you copy the ``inputfile.yaml`` file (located within the directory ``$PLATO_PROJECT_HOME/inputfiles``) and modify the copy rather than the original file. Note that you can always download the ``inputfile.yaml`` directly from GitHub (from the branch matching your installation).
+
+.. warning::
+
+   **For users:** that installs a new version of PlatoSim in an existing Conda environment, all changes will be overwritten, and any files you may have added will be removed from the intallation directory. Hence, better store your files outside of the installation directory.
+
+   **For developers:** having downloaded the source code, should only make changes or add/remove files from the ``PlatoSim3/inputfiles`` directory (or any other directory) if a pull request is the end goal.
