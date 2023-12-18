@@ -88,17 +88,13 @@ class PicSim(object):
         self.plot = args.plot
 
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
-        # verbose = 0: Cluster mode: Disabling print, warnings, and saving of logs
-        # verbose = 1: Default mode: Print details to bash but do not save log files
-        # verbose = 3: Debug mode  : Print details to bash and saves all log files
         if args.verbose == 0:
             self.verbose = 0            
             warnings.filterwarnings("ignore")
-        elif args.verbose is None or args.verbose == 1:
-            self.verbose = 1
-            warnings.filterwarnings("ignore")
+        elif args.verbose is None:
+            self.verbose = 2
         else:
-            self.verbose = 3
+            self.verbose = args.verbose
 
         # Output directory
         if (args.outdir is not None) or (args.project is not None):
@@ -158,10 +154,10 @@ Notes on parsed argument "--pic":
   "field"  : PLATO pointing field [LOPS2, LOPN1, SPF, NPF]
         
 Notes on PLATO fields:
-  Number of stars in PIC200 LOPS2: (t:179,564, c:105,865,120)
-  Number of stars in PIC200 LOPN1: (t:175,597, c:112,917,958)
-  Number of stars in PIC110 SPF  : (t:163,772, c: )
-  Number of stars in PIC110 NPF  : (t:156,971, c: )
+  Number of stars in PIC200 LOPS2: 179,564
+  Number of stars in PIC200 LOPN1: 175,597
+  Number of stars in PIC110 SPF  : 163,772
+  Number of stars in PIC110 NPF  : 156,971
 
 Notes on Sample flag:
   P1: LOPS2:   8,835, LOPN1:   9,367, SPF:   6,817, NPF:   6,892
@@ -193,7 +189,7 @@ Notes on PIC catalogue creation:
         """Initialise the PIC input parameters.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('software', '\nPIC of Destiny')
 
         # Optinal parameters without checks
@@ -339,7 +335,7 @@ Notes on PIC catalogue creation:
             ut.downloadFromFTP(inputFileCon.name, self.inputDir, 'plato')
 
         # Load catalogues
-        if self.verbose > 0:
+        if self.verbose > 1:
             print('Loading stellar catalogues..')
 
         self.df0 = pd.read_feather(inputFileTar)
@@ -415,7 +411,7 @@ Notes on PIC catalogue creation:
 
         """Fetch PIC targets from feather files.
         """
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPIC targets')
         
         # Check parsing of old catalogue to select new unique targets
@@ -468,6 +464,8 @@ Notes on PIC catalogue creation:
             max_stars = np.sum(dex[0])
             if self.numTargets > max_stars:
                 self.numTargets = max_stars
+                if self.verbose > 0:
+                    errorcode('warning', f'Only {max_stars} stars are available after cuts!')
             df = df[dex[0]]
 
         # Check P passband magnitude range
@@ -477,7 +475,8 @@ Notes on PIC catalogue creation:
         # Check if too many stars are selected
         if len(df) < self.numTargets:
             if (self.stars != 'all'):
-                errorcode('warning', f'Only {len(df)} stars are available after cuts!')
+                if self.verbose > 0:
+                    errorcode('warning', f'Only {len(df)} stars are available after cuts!')
             self.numTargets = len(df)
             
 
@@ -528,7 +527,7 @@ Notes on PIC catalogue creation:
         self.t = PrettyTable(['N-cams', 'Targets', 'Time series'])
         for i in range(4):
             self.t.add_row([str(cameras[i]), countStars[i], countImagettes[i]])
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f'User catalog contains {numTargets} stars of ' +
                   f'{np.sum(countImagettes)} time series drawn from:')
             print(self.t)
@@ -550,7 +549,7 @@ Notes on PIC catalogue creation:
         catalog, hence, this step can take some time if the large
         catalog are to be used.
         """        
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPIC contaminants')
             print(f'Fetching contaminants within {self.disConLimit} arcsec ' +
                   f'and {self.dmagConLimit} mag from each target:')
@@ -640,13 +639,13 @@ Notes on PIC catalogue creation:
         
     def prologuePIC(self):
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPrologue')
         
         if self.outputDir is not None:
 
             # Copy the YAML file to the project if it doesn't exist
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print(f"Copying YAML configuration file")
             ut.copyInputYAML(self.field, self.outputDir)
 
@@ -668,7 +667,7 @@ Notes on PIC catalogue creation:
 
             # Save figures
             resolution = 200
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print('Saving all plots to {0}'.format(self.outputDir))
             self.fig0.savefig(self.outputDir / f'plot_{self.outputPrefix}_allsky.png',
                               bbox_inches='tight', dpi=resolution)
@@ -682,7 +681,7 @@ Notes on PIC catalogue creation:
                 
             # Save ascii catalog (PlatoSim) or feathers (PLATOnium)
             if self.saveAscii:
-                if self.verbose > 0:
+                if self.verbose > 1:
                     print(f'Saving file {self.outputFileCat}')
                 df0        = pd.concat([self.df.ra,  self.dc.ra])
                 df0['dec'] = pd.concat([self.df.dec, self.dc.dec])
@@ -693,16 +692,16 @@ Notes on PIC catalogue creation:
                 # We reset the index in order to save to feather
                 df = self.df.reset_index(drop=True)
                 dc = self.dc.reset_index(drop=True)
-                if self.verbose > 0:
+                if self.verbose > 1:
                     print(f'Saving file {self.outputFileTar}')
                 df.to_feather(self.outputFileTar)
-                if self.verbose > 0:
+                if self.verbose > 1:
                     print(f'Saving file {self.outputFileCon}')
                 dc.to_feather(self.outputFileCon)
 
                 # Output file name of HPC data
                 outputFileVarSim = f'{self.outputDir}/cluster_{self.outputPrefix}.data'
-                if self.verbose > 0:
+                if self.verbose > 1:
                     print(f'Saving file {outputFileVarSim}')
                 headerVar = 'ID,PIC,M,R,Teff'
                 df_hpc = pd.DataFrame()
@@ -838,7 +837,7 @@ Notes on PIC catalogue creation:
         """Initialise the Simbad input parameters.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('software', '\nSimbad target query')
         
         # Arguments for GaiaDR3 star query
@@ -855,7 +854,7 @@ Notes on PIC catalogue creation:
 
         # Query Gaia DR3 star
         df = sq.simbadQuery(self.simbad, radius=self.disConLimit)
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f'\nCatalogue for {self.simbad}:')
             print(df)
             
@@ -877,7 +876,7 @@ Notes on PIC catalogue creation:
         """Initialise the Simbad input parameters.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('software', '\nVizier PLATO FOV query')
 
         # Arguments for GaiaDR3 star query        
@@ -1042,7 +1041,7 @@ Notes on PIC catalogue creation:
         https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access
         """
                 
-        if self.verbose > 0:
+        if self.verbose > 1:
             print('\nStart Gaia DR3 query using magnitude limits: ' +
                   f'{self.magmin} - {self.magmax}')
             
@@ -1089,7 +1088,7 @@ Notes on PIC catalogue creation:
             df = pd.concat([df, df_sirius, df_canopus, df_epscma])
 
         # Keep only stars within the camera group FOV
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f'\nCreating catalogue for each camera group')
 
         for i in range(5):
@@ -1201,7 +1200,6 @@ elif args.pic:
         p.prologuePIC()
     
 # Finish with output
-if (args.verbose is None) or (args.verbose > 0):
+if (args.verbose is None) or (args.verbose > 1):
     toc = datetime.datetime.now()
-    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]')
-    print('')
+    print(f'\nTotal execution time: {toc-tic} [hh:mm:ss]\n')

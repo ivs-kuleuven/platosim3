@@ -54,12 +54,12 @@ else
     echo "export PLATO_WORKDIR=$PLATO_WORKDIR"   >> $PLATO_SETUP
 
     # Add Write a bash_profile that will be loaded
-    if grep -q "source $PLATO_SETUP" "$HOME/.bashrc"; then
-	echo ""                                          >> $HOME/.bashrc
-	echo "# >>> -- Export all PlatoSim paths -- <<<" >> $HOME/.bashrc
-	echo "source $PLATO_SETUP"                       >> $HOME/.bashrc
-	echo "# >>> ------------------------------- <<<" >> $HOME/.bashrc
-    fi
+    #if grep -q "source $PLATO_SETUP" "$HOME/.bashrc"; then
+    echo ""                                          >> $HOME/.bashrc
+    echo "# >>> -- Export all PlatoSim paths -- <<<" >> $HOME/.bashrc
+    echo "source $PLATO_SETUP"                       >> $HOME/.bashrc
+    echo "# >>> ------------------------------- <<<" >> $HOME/.bashrc
+    #fi
 
     # Add scripts to global executables
     cp -rf $PLATONIUM/picsim.py             $CONDA_PREFIX/bin/picsim

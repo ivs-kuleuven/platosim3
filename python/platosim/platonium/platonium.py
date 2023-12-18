@@ -274,17 +274,14 @@ class PLATOnium(object):
         
         if self.starcatFile is not None:
 
-            df = pd.read_csv(self.starcatFile, sep=' ',
-                             names=['PIC', 'ra', 'dec', 'mag', 'dis'])
-            
-            # Change IDs all to be the target
-            df.PIC = np.ones(len(df))
-            df.PIC = df.PIC.astype('int')
-            
+            # Read catalogue
+            df = pd.read_feather(self.starcatFile)
+            self.colID = 'gaiaDR3'
+
             # Define data frames
             self.df = df.loc[0]
-            dc = df.iloc[1:]
-
+            self.dc = df.iloc[1:]
+            
         # Fetch stars from the default PIC setup
             
         else:
@@ -340,14 +337,19 @@ class PLATOnium(object):
         if not self.fullFrame:
             
             # If requested select only the target, else include contaminants
+
+            if not self.starcatFile:
+                if self.noCon:
+                    self.dc = dc[dc[self.colID] == self.numCon]
+                else:
+                    self.dc = dc[dc[self.colID] == self.df[self.colID]]
+                    self.dc = self.dc.sort_values(by=['dis'])
+
             if self.noCon:
                 self.numCon = 0
-                self.dc = dc[dc[self.colID] == self.numCon]
             else:
-                self.dc = dc[dc[self.colID] == self.df[self.colID]]
-                self.dc = self.dc.sort_values(by=['dis'])
-                self.numCon = self.dc.shape[0] 
-
+                self.numCon = self.dc.shape[0]
+                    
             # Secure default "mag" naming
             if not 'mag' in df:
 
@@ -590,7 +592,7 @@ class PLATOnium(object):
                           'no matching quarters in instrumentPRE.txt!')
             else:
                 if self.verbose > 0:
-                    print('Applying pointing error      (PRE FromFile)')
+                    print('Applying pointing errors     (PRE FromFile)')
                 sim["Platform/Orientation/Angles/RAPointing"]            += PRE[dex, 1][0]
                 sim["Platform/Orientation/Angles/DecPointing"]           += PRE[dex, 2][0]
                 sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
@@ -664,12 +666,12 @@ class PLATOnium(object):
             print(f'Applying platform jitter     (ACS {source})')
 
         # Thermal transients from data gaps
-        # NOTE: Included if "instrumentCCD.txt" is available in input
-        inputFileCCD = self.inputDir.joinpath('instrumentCCD.txt')
-        if inputFileCCD.is_file():
+        # NOTE: Included if "instrumentGTT.txt" is available in input
+        inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
+        if inputFileGTT.is_file():
             sim["CCD/Temperature"]         = "FromFile"
-            sim["CCD/TemperatureFileName"] = inputFileCCD
-            print(f'Applying gain transients     (CCD FromFile)')
+            sim["CCD/TemperatureFileName"] = inputFileGTT
+            print(f'Applying thermal transients  (GTT FromFile)')
 
             
         # FULL-FRAME SIMULATION
@@ -1201,19 +1203,19 @@ class PLATOnium(object):
         # GAPS AND TRANSIENTS
 
         # Apply step if CCD(T) file exists
-        inputFileCCD = self.inputDir.joinpath('instrumentCCD.txt')
+        inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
         
-        if inputFileCCD.is_file():
+        if inputFileGTT.is_file():
             if self.verbose > 0 :
                 print('Running transient gain correction')
 
             # Load CCD gain temperature file
-            dt = pd.read_csv(inputFileCCD, sep=' ', names=['time', 'temp'])
+            dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
             dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
             temp = dt.temp.to_numpy()
 
             # Fetch the gap durations
-            inputFileGap = self.inputDir.joinpath('instrumentGap.tab')
+            inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
             dg = pd.read_feather(inputFileGap)
             tdur = dg.td.iloc[0] / 86400
 

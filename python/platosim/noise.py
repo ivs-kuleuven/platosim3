@@ -358,21 +358,39 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
 
     """Pointing Reproducibility Error (PRE) in PLM reference frame.
     
-    TODO finish doc string!
-
     Paramters
     ---------
+    alpha : float
+        Equtorial right ascension [rad]
+    delta : float
+        Equatorial declination [rad]
+    kappa : float
+        Orientation of the solar panel [rad]
+        This corresponds to (Q1, Q2, Q3, Q4) = (0, pi/2, pi, 3pi/2)
+    quarter : range(int, int)
+        Mission quarter range, e.g. [Q1, Q8] = range(1, 9)
+    sigma : float
+        Standard deviation to draw within
+    ofile : str
+        Output filename pointing to storage directory
+    table : bool
+        Option to print the table produced
+    plot : bool
+        Option to show the plot of the PRE data
 
     Return
     ------
+    - A pandas dataframe with PRE data
+    - Optionally a feather output file
     """
 
     # Sort input quarters
     
     n = len(quarter)
         
-    # Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
+    # PRE in the PLM reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]
+    # NOTE: Performance values "as required"
     
     t = 3.0/3600 
     b = 6.0/3600
@@ -483,19 +501,39 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
 def getAPE(alpha, delta, kappa, sigma=3,
            ofile=False, table=False, plot=False):
 
-    """TODO Finish doc string!
-    
-    Pointing Reproducibility Error (PRE) in P/L reference frame (yaw, pitch, roll)
-    The mission reuquirements are 4.5 arcmin in X and Y, and 9 arcmin rotation.
-    This gives a RMS value of 1.5 arcsec (6 pixel)
+    """Pointing Reproducibility Error (PRE) in P/L reference frame.
+
+    The mission reuquirements are 4.5 arcmin in X and Y, and 9 arcmin
+    for the rotation. This gives a RMS value of 1.5 arcsec (6 pixel)
     
     Paramters
     ---------
+    alpha : float
+        Equtorial right ascension [rad]
+    delta : float
+        Equatorial declination [rad]
+    kappa : float
+        Orientation of the solar panel [rad]
+        This corresponds to (Q1, Q2, Q3, Q4) = (0, pi/2, pi, 3pi/2)
+    sigma : float
+        Standard deviation to draw within
+    ofile : str
+        Output filename pointing to storage directory
+    table : bool
+        Option to print the table produced
+    plot : bool
+        Option to show the plot of the APE data
 
-    Returns
-    -------
+    Return
+    ------
+    - A pandas dataframe with APE data
+    - Optionally a feather output file
     """
 
+    # APE in the PLM reference frame (yaw, pitch, roll)
+    # Here t stands for transverse direction and [deg]    
+    # NOTE: Performance values "as required"
+    
     t = 4.5/60  # [deg]
     b = 9.0/60  # [deg]
         
@@ -578,85 +616,6 @@ def getAPE(alpha, delta, kappa, sigma=3,
     # That's it!
     
     return APE
-
-
-
-
-
-def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
-
-    """ointing Reproducibility Error (PRE) in PLM reference frame.
-    
-    TODO under construction!
-
-    Paramters
-    ---------
-
-    Return
-    ------
-    """
-
-    # Total number of CCD x 2 halves
-
-    nCCD = 104
-    
-    # Find distribution within 3 sigma of req.
-
-    if not gain0CCD: gain0CCD = 1.8
-    gainRef = gain0CCD / sigma
-    deltaGainF = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
-    deltaGainE = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
-    
-    # Plot distributions
-    
-    t *= 3600
-    b *= 3600
-    y = t/sigma
-    z = 3 * y
-    x = np.abs(b/sigma - z)
-    xx = np.linspace(-10*x, 10*x, 1000)
-
-    ra0  = (df1.RA-ra)   * 3600 / 18
-    dec0 = (df1.Dec-dec) * 3600 / 18
-
-    fig, ax = plt.subplots(1, 2, figsize=(9,4))
-
-    ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
-    ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
-    ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
-    ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
-    ax[0].set_ylabel('Probability (PDF) [\%]')
-    ax[0].set_xlim(xx[0], xx[-1])
-    ax[0].legend()
-
-    ax[1].grid(zorder=0)
-    ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
-    for i in range(len(ra0)):
-        ax[1].scatter(ra0[i], dec0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
-    ax[1].set_title('Distribution on Sky')
-    ax[1].set_xlabel('RA [pixel]')
-    ax[1].set_ylabel('Dec [pixel]')
-    ax[1].set_aspect('equal', adjustable='box')
-
-    lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
-    lim += lim/10.
-    ax[1].set_xlim(-lim, +lim)
-    ax[1].set_ylim(-lim, +lim)        
-    plt.tight_layout()
-
-    # Plot figure above 
-    
-    if plot: plt.show()
-        
-    # Save file with relative pointing errors [deg]
-    
-    if ofile:
-        df.to_csv(ofile, sep=" ", header=False, index=False)
-        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
-
-    # That's it!
-    
-    return PRE
 
 
 
@@ -886,7 +845,7 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
 
     # QUARTERLY ROLLS
 
-    roll_period   = 365.25/4
+    roll_period   = ut.quarter()
     roll_duration = 2.0
     roll_anomaly  = 0.5
 
@@ -903,7 +862,8 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
         roll[roll_dex] = True
 
     # DOWNLINK GAPS
-
+    # NOTE: Not applicable for PLATO!
+    
     # link_period   = 365.25/4/3
     # link_duration = 5/24.           # [d] i.e. 5 hours
     # link_anomaly  = 0.5/24.         # [d] i.e. 0.5 hour
@@ -926,25 +886,24 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
         
     # LOSS OF FINE GUIDANCE
 
-    freq = 180
-    t = quarter[0] * roll_period
+    jitter_freq = 120
+    jitter_offset = np.random.uniform(0, jitter_freq)
+    t = (quarter[0] - 1) * roll_period - jitter_offset
     jitter_duration = 0.5/24.
     jitter_anomaly  = 0.1/24.
     jitter_events   = []
-    
+
     while t < quarter[-1] * roll_period:            
-        jitter_event = np.random.poisson(lam=freq)
+        jitter_event = np.random.poisson(lam=jitter_freq)
         t += jitter_event
         jitter_events.append(t)
 
     n_jitter = len(jitter_events)
     jitter_event0 = np.zeros(n_jitter)
     jitter_event1 = np.zeros(n_jitter)
-    #event0 = np.concatenate((roll_event0, link_event0))
-    #event1 = np.concatenate((roll_event1, link_event1))        
-    event0 = roll_event0
-    event1 = roll_event1
-    
+    event0 = roll_event0 # np.concatenate((roll_event0, link_event0))
+    event1 = roll_event1 # np.concatenate((roll_event1, link_event1))
+
     for i, J in zip(range(n_jitter), jitter_events):
         jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
         jitter_event0[i] = (J - jitter_gap/2) * day2sec
@@ -959,17 +918,18 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
                 (jitter_event0[i] <= event1[j]) and (jitter_event1[i] >= event1[j])):
                 jitter_event0[i] += event1[j] - event0[j]
                 jitter_event1[i] += event1[j] - event0[j]
-        
-    # SAVE MODE EVENTS
 
-    freq = 270
-    t = quarter[0] * roll_period
+    # SAFE MODE EVENTS
+
+    safe_freq = 270
+    safe_offset = np.random.uniform(0, safe_freq)
+    t = (quarter[0] - 1) * roll_period - safe_offset
     safe_duration = 1
     safe_anomaly  = 12/24.
     safe_events   = []
 
     while t < quarter[-1] * roll_period:            
-        safe_event = np.random.poisson(lam=freq)
+        safe_event = np.random.poisson(lam=safe_freq)
         t += safe_event
         safe_events.append(t)
         
@@ -1092,7 +1052,7 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     plot : bool
         Flag to plot the generated model.
 
-    NOTE this is if we want to remove the data gaps from the df:
+    NOTE: The following code snippet removes the data gaps from the df:
     >> df0 = df.drop(df[(df.roll == True)   | (df.link == True) |
                         (df.jitter == True) | (df.safe == True)].index)
     """
@@ -1208,3 +1168,83 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     # That's it!
         
     return temp
+
+
+
+
+
+
+def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
+
+    """ointing Reproducibility Error (PRE) in PLM reference frame.
+    
+    TODO under construction!
+
+    Paramters
+    ---------
+
+    Return
+    ------
+    """
+
+    # Total number of CCD x 2 halves
+
+    nCCD = 104
+    
+    # Find distribution within 3 sigma of req.
+
+    if not gain0CCD: gain0CCD = 1.8
+    gainRef = gain0CCD / sigma
+    deltaGainF = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
+    deltaGainE = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
+    
+    # Plot distributions
+    
+    t *= 3600
+    b *= 3600
+    y = t/sigma
+    z = 3 * y
+    x = np.abs(b/sigma - z)
+    xx = np.linspace(-10*x, 10*x, 1000)
+
+    ra0  = (df1.RA-ra)   * 3600 / 18
+    dec0 = (df1.Dec-dec) * 3600 / 18
+
+    fig, ax = plt.subplots(1, 2, figsize=(9,4))
+
+    ax[0].set_title(f'PRE distributions at {sigma}$\sigma$')        
+    ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, x)*100, '-', c='b', label='Trans.')
+    ax[0].plot(xx, scipy.stats.norm.pdf(xx, 0, z)*100, '-', c='m', label='Rot.')
+    ax[0].set_xlabel('Platform pointing errors in FPA [pixel]')
+    ax[0].set_ylabel('Probability (PDF) [\%]')
+    ax[0].set_xlim(xx[0], xx[-1])
+    ax[0].legend()
+
+    ax[1].grid(zorder=0)
+    ax[1].plot(0, 0, 'k*', ms=10, zorder=2)
+    for i in range(len(ra0)):
+        ax[1].scatter(ra0[i], dec0[i], marker=f'${i+1}$', s=50, alpha=0.8, zorder=2)
+    ax[1].set_title('Distribution on Sky')
+    ax[1].set_xlabel('RA [pixel]')
+    ax[1].set_ylabel('Dec [pixel]')
+    ax[1].set_aspect('equal', adjustable='box')
+
+    lim = np.max([np.max(np.abs(ra0)), np.max(np.abs(dec0))])
+    lim += lim/10.
+    ax[1].set_xlim(-lim, +lim)
+    ax[1].set_ylim(-lim, +lim)        
+    plt.tight_layout()
+
+    # Plot figure above 
+    
+    if plot: plt.show()
+        
+    # Save file with relative pointing errors [deg]
+    
+    if ofile:
+        df.to_csv(ofile, sep=" ", header=False, index=False)
+        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+
+    # That's it!
+    
+    return PRE

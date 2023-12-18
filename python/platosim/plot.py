@@ -1027,7 +1027,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
                          cbarOrientation=None, cbarMap='rainbow',
-                         figsize=(13,9)):
+                         figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
 
@@ -1059,6 +1059,10 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
         Axes matplotlib.pyplot handle object to be modified by the user
     """
 
+    # Ignore warnings for this specific plot
+    import warnings
+    warnings.filterwarnings("ignore")
+    
     # Generate figure object
 
     fig = plt.subplots(figsize=figsize)
@@ -1145,7 +1149,7 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     ax.axis('off')
     plt.draw()
     plt.tight_layout()
-
+    
     # That's it
     
     return fig, axes

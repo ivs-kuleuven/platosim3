@@ -121,22 +121,16 @@ class VarSim(object):
             self.rng = np.random.default_rng(self.seed)
 
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
-        # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
-        # verbose = 1: Default mode: Print details to bash but do not save log files
-        # verbose = 3: Debug mode  : Print details to bash and saves all log files
         if args.verbose == 0:
-            self.verbose = 0
-            # Turn off warnings
+            self.verbose = 0            
             warnings.filterwarnings("ignore")
-        elif args.verbose is None or args.verbose == 1:
-            self.verbose = 1
-            # Turn off warnings
-            warnings.filterwarnings("ignore")
+        elif args.verbose is None:
+            self.verbose = 2
         else:
-            self.verbose = 3
+            self.verbose = args.verbose
 
         # Print software name
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('software', '\nVariable Source Simulator\n')
             
         # Data path for VarSim
@@ -214,7 +208,7 @@ class VarSim(object):
         # Define pandas data frame to store all signals
         self.lc = pd.DataFrame(data=self.time.to('s').value, columns=['time'])
         
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f'Simulating time series for : ' +
                   f'{len(self.time)} x {self.cadence.to("s")} ({self.timeDur.value} days)')
             print(f'Simulating {self.instrument} bandpass  : ' +
@@ -275,7 +269,7 @@ class VarSim(object):
             Teff = 5777. * u.K
             logg = 4.5
             Z    = 0.0
-
+            
         if source == 'WASP-33':  # A5 V
             # http://exoplanet.eu/catalog/wasp-33_b/
             M = 1.59 * u.M_sun
@@ -292,6 +286,15 @@ class VarSim(object):
             logg = 4.5
             Z    = 0.0
 
+        #----------------------------------
+
+        if source == 'roAp':
+            M = 1.26 * u.M_sun
+            R = 1.20 * u.R_sun
+            Teff = 6071 * u.K
+            logg = 4.0
+            Z    = 0.0
+        
         if source == 'dSct':
             M = 1.26 * u.M_sun
             R = 1.20 * u.R_sun
@@ -354,7 +357,7 @@ class VarSim(object):
         dT : float
            Day-night temperature contrast [astropy.units]
         """
-
+        
         if source == 'Jupiter':
             # Parameters are drawn from astropy
             params = {'t0': 10 * u.d,
@@ -501,7 +504,7 @@ class VarSim(object):
         """Select the stellar paramters.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nStellar parameters\n')
         
         # Check star source or use Sun as default
@@ -557,7 +560,7 @@ class VarSim(object):
         self.df['alpha']  = 0.0
             
         # Print available stellar model parameters
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f"Spectral type   : {self.star_source}")
             print(f"Stellar Teff    : {self.df.Teff_K:4.0f}")
             print(f"Surface gravity : {self.df.logg:.2f} dex")
@@ -575,7 +578,7 @@ class VarSim(object):
         """Select the stellar paramters of a binary system.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nBinary sources\n')
 
         
@@ -592,7 +595,7 @@ class VarSim(object):
         # NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nStellar spectrum\n')
         
        # Load parameters
@@ -673,7 +676,7 @@ class VarSim(object):
                           ut.diff(L2_bolometric, L1_bolometric))
         
         # Consistnecy check
-        if self.verbose > 0:
+        if self.verbose > 1:
             Lum = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux, wvl)
             print(f'Theoretical luminosity : {L.to("erg/s"):.3e}')
             print(f'Synthetic   luminosity : {Lum * u.erg/u.s:.3e}')            
@@ -692,7 +695,7 @@ class VarSim(object):
         # M_passband   = round(ut.diff(L2_passband, L1_passband) /
         #                      ut.diff(Teff_upper, Teff_lower), 2)
         # # Consistency check [mag]
-        # if self.verbose > 0:
+        # if self.verbose > 1:
         #     print(f'Absolute magnitude bol : {round(M_bolometric, 4)}')
         #     print(f'Absolute magnitude lam : {round(M_passband,   4)}')            
         
@@ -718,12 +721,12 @@ class VarSim(object):
         """Model convection driven oscillations.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nSolar-like oscillations\n')
 
         # Initialize and prepare model input
         params = [self.Teff, self.R, self.M, self.L]
-        model  = SolarLikeOscillator(self.time, params, self.idir, seed=False)
+        model  = SolarLikeOscillator(self.time, params, self.idir, seed=self.seed)
 
         # Default scaling relations
         if args.gran is None:
@@ -732,22 +735,22 @@ class VarSim(object):
             args.puls = 'Corsaro2013'
         
         # Model granulation
-        if not args.gran == None:
+        if args.gran is not None:
             params_gran = model.init_granulation(scaling=args.gran)
             self.lc['gran'] = model.eval_granulation() * self.bol_coeff
             self.df['A_gran_ppm'] = ut.rootMeanSquare(self.lc.gran)
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print(f'Granulation amplitude : {self.df.A_gran_ppm:.2f} ppm')
 
         # Model stochastic oscillations
-        if not args.puls == None:
+        if args.puls is not None:
             params_puls = model.init_oscillations(scaling=args.puls)
             self.params_puls = params_puls[:3]
             self.lc['puls'] = model.eval_oscillations() * self.bol_coeff
             self.df['A_puls_ppm']   = ut.rootMeanSquare(self.lc.puls)
             self.df['numax_muHz']   = self.params_puls[0]
             self.df['deltanu_muHz'] = self.params_puls[0]
-            if self.verbose > 0:
+            if self.verbose > 1:
                 print(f'Pulsation   amplitude : {self.df.A_puls_ppm:.2f} ppm')
                 print(f'Frequency   nu_max    : {params_puls[0]:.2f} microHz')
                 print(f'Splitting   Delta_nu  : {params_puls[1]:.2f} microHz')
@@ -770,7 +773,7 @@ class VarSim(object):
         """Model stellar spot modulations.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nStellar spot cycle\n')
 
         # Use a random uniform distribution
@@ -792,7 +795,7 @@ class VarSim(object):
                                     incl=incl)
         
         # print them to screen          
-        if self.verbose:
+        if self.verbose > 1:
             print(f'B-V           : {params[0]:.3f} mag')
             print(f"log R'_HK     : {params[1]:.3f}")
             print(f'Activity rate : {params[2]:.3f} solar')
@@ -830,7 +833,7 @@ class VarSim(object):
         """
 
         # Start script
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nSolar flares\n')
         
         # Initialise model
@@ -861,16 +864,16 @@ class VarSim(object):
         """
         
         # Start script
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nRotational variable (roAp)\n')
 
         # Initialize class
         time  = self.time.to('d').value
-        model = SurfaceModulations(time, seed=False)
+        model = SurfaceModulations(time, seed=self.seed)
 
         # Prepare model parameters
         params = model.initToyModel()
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f'Rotational period   : {round(params[0],3)} days')
             print(f'Random phase offset : {round(np.rad2deg(params[1]),1)} deg')
             print(f'Relative amplitude  : {round(params[2],3)}')
@@ -901,12 +904,12 @@ class VarSim(object):
         """
 
         # Start script
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPulsator: gamma-Dor (g-modes)\n')
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = GravityOscillator(time, power=2.2, seed=None) # TODO code is wrong?
+        model = GravityOscillator(time, power=2.2, seed=self.seed) # TODO code is wrong?
         
         # Check if a file with pulsations are parsed
         if args.puls == 'gang2020':
@@ -933,7 +936,7 @@ class VarSim(object):
         """
 
         # Start script
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPulsator: delta-Scuti (g-modes)\n')
 
         # Initialize and prepare model input
@@ -957,7 +960,7 @@ class VarSim(object):
         """
 
         # Start script
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPulsator: beta Cephei stars (g-modes)\n')
 
         # Initialize and prepare model input
@@ -985,7 +988,7 @@ class VarSim(object):
         this function will randomly select a star.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nClassical pulsators (RR Lyrae & Cepheids)\n')
 
         # Select a random object from the list and load Fourier data
@@ -1006,7 +1009,7 @@ class VarSim(object):
         filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
         starfile  = random.choice(filenames)
         fourier   = np.loadtxt(starfile)    
-        if self.verbose > 0:
+        if self.verbose > 1:
             print(f'Using file {starfile} with frequencies:')
             print(fourier)
             
@@ -1051,7 +1054,7 @@ class VarSim(object):
         """Function to generate a Eclipsing Binary (EB) light curve.
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nEclipsing binary\n')
 
         # Set the stellar source entry
@@ -1090,7 +1093,7 @@ class VarSim(object):
           3) The stochastic quasar variability
         """
 
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nSMBH binary\n')
 
         # Set the stellar source entry
@@ -1103,7 +1106,7 @@ class VarSim(object):
         # Fetch model parameters
         P, A_beam, A_lens, phi, tmax, tdur = model.initToyModel()
 
-        if self.verbose:
+        if self.verbose > 1:
             print(f'Model parameters of toy model:')
             print(f'Orbital period     : {P:.3f} day')
             print(f'Beaming amplitude  : {A_beam*1e3:.3f} mmag')
@@ -1221,8 +1224,10 @@ class VarSim(object):
             # Paper: Chen, J., & Kipping, D. M. 2018, MNRAS, 473, 2753
             # Code: https://github.com/chenjj2/forecaster
             # NOTE forecasting only valid between (0.05 < Rp/R_jup < 8.5) 
-            if self.verbose > 0: classifier = 'yes'
-            else: classifier = 'no'
+            if self.verbose > 1:
+                classifier = 'yes'
+            else:
+                classifier = 'no'
             Mp, _, _ = mr_forecast.Rstat2M(mean=Rp.to('R_jup').value, unit='Jupiter',
                                            std=0.01, sample_size=1000, grid_size=1000,
                                            classify=classifier)
@@ -1324,7 +1329,7 @@ class VarSim(object):
             errorcode('warning', 'Planet model do not have any physical eclipses!')
             
         # Show parameters apce
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPlanet eclipse model')
             print('')
             print("Planet name        : {}".format(args.planet))
@@ -1417,7 +1422,7 @@ class VarSim(object):
         self.tau = model.get_t_periastron(batman_params)
 
         # Print to bash
-        if self.verbose:
+        if self.verbose > 1:
             print(f"Mid-transit depth  : {np.abs(np.min(self.lc.tran)):.1f} ppm")
             print(f"LD coefficients    : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
 
@@ -1630,7 +1635,7 @@ class VarSim(object):
 
     def run_prolog(self):
         
-        if self.verbose > 0:
+        if self.verbose > 1:
             errorcode('module', '\nPrologue\n')
 
         # SORT LIGHT CURVE
@@ -1640,9 +1645,9 @@ class VarSim(object):
             self.lc['time'] += self.timeStart * 86400
         
         # Variability classes
-        stars    = ['std', 'dSct', 'gDor', 'Ceph']
+        stars    = ['roAp', 'dSct', 'gDor', 'Ceph']
         binaries = ['SMBH']
-            
+
         # Combine all signals for solar-like stars
         if (not self.star in stars and
             not self.binary in binaries and
@@ -1680,7 +1685,7 @@ class VarSim(object):
             ofile_parameters = self.ofile.parents[0] / f'{self.ofile.stem}_parameters.ftr'
             ofile_components = self.ofile.parents[0] / f'{self.ofile.stem}_components.ftr'
             
-            if self.verbose:
+            if self.verbose > 1:
                 print(f'Saving file : {self.ofile}')
                 print(f'Saving file : {ofile_parameters}')
                 print(f'Saving file : {ofile_components}')
@@ -1864,7 +1869,7 @@ class VarSim(object):
 
             # Fetch star and print
             self.df = df.iloc[i]
-            if self.verbose > 0:
+            if self.verbose > 1:
                 errorcode('message', f'\nSimulating star ID {i}')
                 
             
@@ -2015,7 +2020,7 @@ obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Photometric 
 obs_group.add_argument('--seed',    metavar='INT',  type=int, help='Option to bootstrap seed to reproduce results')
 
 star_group = parser.add_argument_group('STAR PARAMETERS')
-star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star [None, Sun, gDor, dSct, roAp, <Object>]')
+star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star [None, Sun, roAp, <Object>]') # TODO gDor, dSct
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
                         help='Stellar model parameters [M/Msun, R/Rsun, Teff/K, logg/dex, Z/dex]')
 star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, None]')
@@ -2030,7 +2035,7 @@ star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark ec
 
 
 planet_group = parser.add_argument_group('PLANET PARAMETERS')
-planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet [None, Earth, hotJupiter, <object>]')
+planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet [None, Earth, Jupiter, <object>]')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
                           help='Planet model parameters [t0/days, P/days, i/deg, w/deg, Rp/Rearth, Mp/Mearth]')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
@@ -2069,7 +2074,7 @@ else:
     v.mode_single()
 
 # Print run time
-if (args.verbose is None) or (args.verbose > 0):
+if (args.verbose is None) or (args.verbose > 1):
     toc = datetime.datetime.now()
     print(f'\nTotal execution time : {toc-tic} [hh:mm:ss]\n')
 
