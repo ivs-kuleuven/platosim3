@@ -274,17 +274,14 @@ class PLATOnium(object):
         
         if self.starcatFile is not None:
 
-            df = pd.read_csv(self.starcatFile, sep=' ',
-                             names=['PIC', 'ra', 'dec', 'mag', 'dis'])
-            
-            # Change IDs all to be the target
-            df.PIC = np.ones(len(df))
-            df.PIC = df.PIC.astype('int')
-            
+            # Read catalogue
+            df = pd.read_feather(self.starcatFile)
+            self.colID = 'gaiaDR3'
+
             # Define data frames
             self.df = df.loc[0]
-            dc = df.iloc[1:]
-
+            self.dc = df.iloc[1:]
+            
         # Fetch stars from the default PIC setup
             
         else:
@@ -340,14 +337,19 @@ class PLATOnium(object):
         if not self.fullFrame:
             
             # If requested select only the target, else include contaminants
+
+            if not self.starcatFile:
+                if self.noCon:
+                    self.dc = dc[dc[self.colID] == self.numCon]
+                else:
+                    self.dc = dc[dc[self.colID] == self.df[self.colID]]
+                    self.dc = self.dc.sort_values(by=['dis'])
+
             if self.noCon:
                 self.numCon = 0
-                self.dc = dc[dc[self.colID] == self.numCon]
             else:
-                self.dc = dc[dc[self.colID] == self.df[self.colID]]
-                self.dc = self.dc.sort_values(by=['dis'])
-                self.numCon = self.dc.shape[0] 
-
+                self.numCon = self.dc.shape[0]
+                    
             # Secure default "mag" naming
             if not 'mag' in df:
 
