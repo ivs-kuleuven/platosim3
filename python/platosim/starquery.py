@@ -238,7 +238,7 @@ def simbadQuery(star, radius=45, maglim=21):
 
     query_cone = f"""SELECT 
     DISTANCE( POINT({raStar},{decStar}), POINT(ra,dec) )
-    AS dist, source_id, ra, dec,
+    AS dis, source_id, ra, dec,
     phot_g_mean_mag, bp_rp,
     parallax, parallax_error,
     pmra, pmdec, ruwe,
@@ -247,7 +247,7 @@ def simbadQuery(star, radius=45, maglim=21):
     WHERE 1=CONTAINS(POINT({raStar}, {decStar}),
     CIRCLE(cat.ra, cat.dec, {radius}))
     AND cat.phot_g_mean_mag < {maglim} 
-    ORDER BY dist ASC
+    ORDER BY dis ASC
     """
 
     # Launch Gaia query 
@@ -284,14 +284,11 @@ def simbadQuery(star, radius=45, maglim=21):
     
     # Relocate distance column [arcsec]
     
-    df.dist = (df.dist-df.dist.iloc[0]) * 3600.
-    #col = df.dist.values.tolist()
-    #df  = df.drop(columns=['dist'])
-    #df.insert(5, 'dist', col)
+    df.dis = (df.dis-df.dis.iloc[0]) * 3600.
 
     # Sort and return
     
-    return df.sort_values(by=['dist'])
+    return df.sort_values(by=['dis'])
 
 
 
@@ -316,7 +313,7 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
     query_cone = f"""SELECT 
     DISTANCE( POINT({alpha},{delta}), POINT(ra,dec) )
-    AS dist, source_id, ra, dec,
+    AS dis, source_id, ra, dec,
     phot_g_mean_mag, bp_rp,
     parallax, parallax_error,
     pmra, pmdec, ruwe,
@@ -325,7 +322,7 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
     WHERE 1=CONTAINS(POINT({alpha}, {delta}),
     CIRCLE(cat.ra, cat.dec, {radius}))
     AND cat.phot_g_mean_mag < {maglim} 
-    ORDER BY dist ASC
+    ORDER BY dis ASC
     """
 
     # Launch Gaia query
@@ -351,8 +348,8 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
     
     df.dist = (df.dist-df.dist.iloc[0]) * 3600.
     col = df.dist.values.tolist()
-    df  = df.drop(columns=['dist'])
-    df.insert(5, 'dist', col)
+    df  = df.drop(columns=['dis'])
+    df.insert(5, 'dis', col)
 
     #
     df = df.fillna(0)
@@ -360,7 +357,7 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
     
     # Sort and return
     
-    return df.sort_values(by=['dist'])
+    return df.sort_values(by=['dis'])
 
 
 
