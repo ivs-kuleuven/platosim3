@@ -1217,7 +1217,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
                     varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) 
                                                 * throughputMap(irow, icol) 
-                                              + varianceRON + varianceQuant;
+                                              + varianceRON*varianceRON + varianceQuant;
                     NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / (singleTargetMap(irow, icol) * throughputMap(irow, icol));
                     flatNSRmap.push_back(NSRmap(irow, icol));
                 }
