@@ -1028,7 +1028,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 {
     const unsigned int zeroBasedExposureNr = exposureNr - beginExposureNr;
 
-    const double varianceRON = sqrt(pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2));      // [electrons / pixel]
+    const double varianceRON = pow(readoutNoise, 2) + pow(frontEndElectronics->getReadoutNoise(), 2);      // [electrons / pixel]
 
     // Make a (deep) copy of the pixelMap on which we can do some reductions without altering the original pixelMap
 
@@ -1052,6 +1052,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     image.each_row() -= arma::mean(smearingMap - meanBias, 0);
 
     // Convert from [ADU] to [electrons] using the gain
+    // The (potentially temperature dependent) combinedGainLeft/Right is only available after applyGain() was executed. 
+    // The "combined" means that it includes the gain of both the CCD and the FEE.
+    // The unit of combinedLeft is [ADU / e-].
 
     if (subFieldZeroPointColumn <  numColumns / 2)
     {
@@ -1077,7 +1080,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     }
 
     Log.debug("Detector::applyPhotometry: exposure " + to_string(exposureNr) + ": var RON = " + 
-              to_string(varianceRON) + "e-/pix, var quant = " + to_string(varianceQuant) + " e-/pix");
+              to_string(varianceRON) + "[e-^2], var quant = " + to_string(varianceQuant) + " [e-^2]");
 
     // Subtract the sky background
 
@@ -1217,7 +1220,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
                     varianceMap(irow, icol) = (singleTargetMap(irow, icol) + contaminantMap(irow, icol) + skyBackground) 
                                                 * throughputMap(irow, icol) 
-                                              + varianceRON*varianceRON + varianceQuant;
+                                              + varianceRON + varianceQuant;
                     NSRmap(irow, icol) = sqrt(varianceMap(irow, icol)) / (singleTargetMap(irow, icol) * throughputMap(irow, icol));
                     flatNSRmap.push_back(NSRmap(irow, icol));
                 }
