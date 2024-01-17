@@ -103,6 +103,7 @@ log.txt
 *.sqlite
 *.swp
 *.npy
+*.vot
 *~
 *#
 *.#*
