@@ -2060,6 +2060,23 @@ void HDF5File::writeVersionInformation()
 
 
 
+// /** TODO implement idependent time column!
+//  * \brief: include the tranmsissionEfficiency values to the HDF5 file.
+//  *
+//  */
+// void HDF5File::writeTime(double* array, int size)
+// {
+//     writeArray("Time/", "time", array, size);
+// }
+
+
+
+
+
+
+
+
+
 
 /**
  * \brief: include the tranmsissionEfficiency values to the HDF5 file.
@@ -2092,7 +2109,7 @@ void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
     myStream.str(string());      // insert empty string
     myStream.clear();            // clear eof bit
 
-    myStream << "throughputMap" << setfill('0') << setw(6) << exposureNr;
+    myStream << "throughputMap" << setfill('0') << setw(7) << exposureNr;
     string throughputMapName = myStream.str();
 
     // Add the throughput map to the "ThroughputMaps" group
@@ -2110,18 +2127,65 @@ void HDF5File::writeThroughput(int exposureNr, arma::Mat<float>& throughputMap)
 
 
 /**
+ * /brief: Write smearing map into the HDF5 file.
+ *
+ */
+void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuantisation, int exposureNr)
+{
+    // Clear the string stream and compose the smearing map name
+    stringstream myStream;
+    myStream.str(string());      // insert empty string
+    myStream.clear();            // clear eof bit
+
+    myStream << "smearingMap" << setfill('0') << setw(7) << exposureNr;
+    string smearingMapName = myStream.str();
+
+    // Add the smearing map to the "SmearingMaps" group
+
+    if (!includeQuantisation)
+    {
+        // Write the float array to HDF5
+        writeArray("/SmearingMaps", smearingMapName, smearingMap);
+    }
+    else
+    {
+        if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
+        {
+            throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16]");
+        }
+
+        // Convert the float matrix to an unsigned uint16_t matrix
+	
+        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
+        writeArray("/SmearingMaps", smearingMapName, uintMap);
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
  * \brief: includes the TelescopeACS to the HDF5 file.
  *
+ * NOTE Time columns is written here and includes CCD code offset.
  */
 void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vector<double>& dec,
 				 vector<double>& yaw, vector<double>& pitch, vector<double>& roll)
 {
-    writeArray("/Telescope/", "Time",           time.data(),    time.size());
-    writeArray("/Telescope/", "TelescopeRA",    RA.data(),      RA.size());         // [deg]
-    writeArray("/Telescope/", "TelescopeDec",   dec.data(),     dec.size());        // [deg]
-    writeArray("/Telescope/", "TelescopeYaw",   yaw.data(),     yaw.size());        // [arcsec]
-    writeArray("/Telescope/", "TelescopePitch", pitch.data(),   pitch.size());      // [arcsec]
-    writeArray("/Telescope/", "TelescopeRoll",  roll.data(),    roll.size());       // [arcsec]
+    writeArray("/Telescope/", "time",           time.data(),    time.size());
+    writeArray("/Telescope/", "telescopeRA",    RA.data(),      RA.size());         // [deg]
+    writeArray("/Telescope/", "telescopeDec",   dec.data(),     dec.size());        // [deg]
+    writeArray("/Telescope/", "telescopeYaw",   yaw.data(),     yaw.size());        // [arcsec]
+    writeArray("/Telescope/", "telescopePitch", pitch.data(),   pitch.size());      // [arcsec]
+    writeArray("/Telescope/", "telescopeRoll",  roll.data(),    roll.size());       // [arcsec]
 }
 
 
@@ -2138,8 +2202,8 @@ void HDF5File::writeTelescopeACS(vector<double>& time, vector<double>& RA, vecto
 
 /**
  * /brief: save the star positions to the HDF5 file.
- * /Note: This is the old way of doing things!
  *
+ * NOTE: keyValuePair is (key, value) pair, where key is also a pair consisting of the startTime and StarID
  */
 void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo, int beginExposureNr)
 {
@@ -2147,13 +2211,13 @@ void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<d
     Log.info("HDF5File: writing star positions to HDF5 file");
 
     vector<double> time;
-    for(auto keyValuePair: detectedStarInfo)
-    {
-      time.push_back(keyValuePair.first);
-    }
+    for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
+
+    // TODO Remove this and replace with more genric time column in a new release
+
     if (!time.empty())
     {
-      writeArray("StarPositions/", "Time", time.data(), time.size());
+      writeArray("StarPositions/", "time", time.data(), time.size());
     }
     else
     {
@@ -2169,7 +2233,7 @@ void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<d
       // Make the sub-group
 
       stringstream myStream;
-      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+      myStream << "Exposure" << setfill('0') << setw(7) << beginExposureNr + n;
       const string exposureGroupName = "/StarPositions/" + myStream.str();
       createGroup(exposureGroupName);
 
@@ -2230,15 +2294,18 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
     Log.info("HDF5File: writing star positions to HDF5 file");
     map<unsigned int, map<double, array<double, 6>>> transformedDetectedStarInfo;
     vector<double> time;
-    for(auto keyValuePair: detectedStarInfo)
-    {
-      time.push_back(keyValuePair.first);
-    }
-    if (!time.empty())
-    {
-      writeArray("StarPositions/", "Time", time.data(), time.size());
-    }
-    else
+    for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
+
+    // if (!time.empty())
+    // {
+    //   writeArray("StarPositions/", "Time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //   Log.warning("HDF5File: No star positions to write to HDF5 file.");
+    // }
+    
+    if (time.empty())
     {
       Log.warning("HDF5File: No star positions to write to HDF5 file.");
     }
@@ -2288,10 +2355,10 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
       {
         // Make the sub-group
         stringstream myStream;
-        myStream << "starID" << setfill('0') << setw(6) << 0 + starIDs[n];
+        myStream << "starID" << setfill('0') << setw(7) << 0 + starIDs[n];
         const string exposureGroupName = "/StarPositions/" + myStream.str();
         createGroup(exposureGroupName);
-        writeArray(exposureGroupName, "time", times.data(), times.size());
+        //writeArray(exposureGroupName, "time",   times.data(),   times.size());	
         writeArray(exposureGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
         writeArray(exposureGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
         writeArray(exposureGroupName, "rowPix", rowPix.data(),  rowPix.size());
@@ -2303,50 +2370,6 @@ void HDF5File::writeStarPositionByStarID(map<double, map<unsigned int, array<dou
 
 
 
-
-
-
-
-
-
-
-
-
-
-/**
- * /brief: Write smearing map into the HDF5 file.
- *
- */
-void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuantisation, int exposureNr)
-{
-    // Clear the string stream and compose the smearing map name
-    stringstream myStream;
-    myStream.str(string());      // insert empty string
-    myStream.clear();            // clear eof bit
-
-    myStream << "smearingMap" << setfill('0') << setw(6) << exposureNr;
-    string smearingMapName = myStream.str();
-
-    // Add the smearing map to the "SmearingMaps" group
-
-    if (!includeQuantisation)
-    {
-        // Write the float array to HDF5
-        writeArray("/SmearingMaps", smearingMapName, smearingMap);
-    }
-    else
-    {
-        if ((smearingMap.min() < 0) || (smearingMap.max() >= (1 << 16)))
-        {
-            throw ConfigurationException("Detector: quantisation was applied but smearing map values are not in [0, 2^16[");
-        }
-
-        // Convert the float matrix to an unsigned uint16_t matrix
-        arma::Mat<uint16_t> uintMap = arma::conv_to<arma::Mat<uint16_t>>::from(smearingMap);
-        writeArray("/SmearingMaps", smearingMapName, uintMap);
-    }
-
-}
 
 
 
@@ -2371,11 +2394,17 @@ void HDF5File::writePointlikeGhostByExposure(map<double, map<unsigned int, array
     createGroup("/PointLikeGhostPositions");
     vector<double> time;
     for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
-    if (!time.empty())
-    {
-        writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
-    }
-    else
+
+    // if (!time.empty())
+    // {
+    //     writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //     Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
+    // }
+    
+    if (time.empty())
     {
         Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
     }
@@ -2383,7 +2412,7 @@ void HDF5File::writePointlikeGhostByExposure(map<double, map<unsigned int, array
     for (int n = 0; n < time.size(); n++)
     {
       stringstream myStream;
-      myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+      myStream << "Exposure" << setfill('0') << setw(7) << beginExposureNr + n;
 
 
       vector<unsigned int> starIDs;
@@ -2461,11 +2490,17 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
     vector<unsigned int> starIDs;
     vector<double> time;
     for(auto keyValuePair: detectedPointLikeGhostInfo) time.push_back(keyValuePair.first);
-    if (!time.empty())
-    {
-        writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
-    }
-    else
+
+    // if (!time.empty())
+    // {
+    //     writeArray("PointLikeGhostPositions/", "Time", time.data(), time.size());
+    // }
+    // else
+    // {
+    //     Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
+    // }
+    
+    if (time.empty())
     {
         Log.warning("HDF5File: No point-like ghost positions to write to HDF5 file.");
     }
@@ -2519,10 +2554,10 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
       {
           // Make the subgroup
           stringstream myStream;
-          myStream << "StarID" << setfill('0') << setw(6) << 0 + starIDs[n];
+          myStream << "StarID" << setfill('0') << setw(7) << 0 + starIDs[n];
           const string pointLikeGhostGroupName = "/PointLikeGhostPositions/" + myStream.str();
           createGroup(pointLikeGhostGroupName);
-          writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());
+          //writeArray(pointLikeGhostGroupName, "time",   times.data(),   times.size());  
           writeArray(pointLikeGhostGroupName, "xFPmm",  xFPmm.data(),   xFPmm.size());
           writeArray(pointLikeGhostGroupName, "yFPmm",  yFPmm.data(),   yFPmm.size());
           writeArray(pointLikeGhostGroupName, "rowPix", rowPix.data(),  rowPix.size());
@@ -2532,7 +2567,6 @@ void HDF5File::writePointlikeGhostByStarID(map<double, map<unsigned int, array<d
 
       Log.info("HDF5File: writing point like ghost positions to HDF5 file");
 
-      times.clear();
       xFPmm.clear();
       yFPmm.clear();
       rowPix.clear();
@@ -2562,11 +2596,17 @@ void HDF5File::writeExtendedGhostByExposure(map<double, map<unsigned int, array<
   createGroup("/ExtendedGhostPositions");
   vector<double> time;
   for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
-  if (!time.empty())
-  {
-    writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
-  }
-  else
+
+  // if (!time.empty())
+  // {
+  //   writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+  // }
+  // else
+  // {
+  //   Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
+  // }
+  
+  if (time.empty())
   {
     Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
   }
@@ -2574,7 +2614,7 @@ void HDF5File::writeExtendedGhostByExposure(map<double, map<unsigned int, array<
   for (int n = 0; n < time.size(); n++)
   {
     stringstream myStream;
-    myStream << "Exposure" << setfill('0') << setw(6) << beginExposureNr + n;
+    myStream << "Exposure" << setfill('0') << setw(7) << beginExposureNr + n;
 
     // Write the info for the extended ghost star positions to HDF5
 
@@ -2652,11 +2692,17 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
   vector<unsigned int> starIDs;
   vector<double> time;
   for(auto keyValuePair: detectedExtendedGhostInfo) time.push_back(keyValuePair.first);
-  if (!time.empty())
-  {
-    writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
-  }
-  else
+
+  // if (!time.empty())
+  // {
+  //   writeArray("ExtendedGhostPositions/", "Time", time.data(), time.size());
+  // }
+  // else
+  // {
+  //   Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
+  // }
+  
+  if (time.empty())
   {
     Log.warning("HDF5File: No extended ghost positions to write to HDF5 file.");
   }
@@ -2709,10 +2755,10 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
     {
       // Make the subgroup
       stringstream myStream;
-      myStream << "Exposure" << setfill('0') << setw(6) << 0 + starIDs[n];
+      myStream << "Exposure" << setfill('0') << setw(7) << 0 + starIDs[n];
       const string extendedGhostGroupName = "/ExtendedGhostPositions/" + myStream.str();
       createGroup(extendedGhostGroupName);
-      writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());
+      //writeArray(extendedGhostGroupName, "times",  times.data(),       times.size());      
       writeArray(extendedGhostGroupName, "xFPmm",  xFPmm.data(),       xFPmm.size());
       writeArray(extendedGhostGroupName, "yFPmm",  yFPmm.data(),       yFPmm.size());
       writeArray(extendedGhostGroupName, "rowPix", rowPix.data(),      rowPix.size());
@@ -2723,7 +2769,6 @@ void HDF5File::writeExtendedGhostByStarID(map<double, map<unsigned int, array<do
 
     Log.info("HDF5File: writing extended ghost positions to HDF5 file");
 
-    times.clear();
     xFPmm.clear();
     yFPmm.clear();
     rowPix.clear();
@@ -2765,7 +2810,7 @@ void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vec
     // Define the name of sub group for every exposure.
 
     stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
+    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
     imageName = "/Cosmics/" + field + myStream.str();
 
     // add the columns vector
@@ -2775,25 +2820,25 @@ void HDF5File::writeCosmicsWhenGroupByExposure(int exposureNr, string field, vec
     {
         vector<unsigned int> noHitsUnsignedInt{0};
         vector<double> noHitsDouble{-1.0};
-        writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
-        writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
-        writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
-        writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+        writeArray(imageName, "entryRows",    noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "entryColumns", noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "entryAngles",  noHitsDouble.data(), 1);
+        writeArray(imageName, "intensities",  noHitsDouble.data(), 1);
+        writeArray(imageName, "trailLengths", noHitsDouble.data(), 1);
+        writeArray(imageName, "rows",         noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "columns",      noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "flux",         noHitsDouble.data(), 1);
     }
     else
     {
-        writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
-        writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
-        writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
-        writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
-        writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
-        writeArray(imageName, "Rows",         rows.data(), rows.size());
-        writeArray(imageName, "Columns",      cols.data(), cols.size());
-        writeArray(imageName, "Flux",         flux.data(), flux.size());
+        writeArray(imageName, "entryRows",    entryRows.data(), entryRows.size());
+        writeArray(imageName, "entryColumns", entryColumns.data(), entryColumns.size());
+        writeArray(imageName, "entryAngles",  entryAngles.data(), entryAngles.size());
+        writeArray(imageName, "intensities",  intensities.data(), intensities.size());
+        writeArray(imageName, "trailLengths", trailLengths.data(), trailLengths.size());
+        writeArray(imageName, "rows",         rows.data(), rows.size());
+        writeArray(imageName, "columns",      cols.data(), cols.size());
+        writeArray(imageName, "flux",         flux.data(), flux.size());
     }
 
 }
@@ -2831,7 +2876,7 @@ void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field,
     // Define the name of sub group for every exposure.
 
     stringstream myStream;
-    myStream << "/Exposure" << setfill('0') << setw(6) << exposureNr;
+    myStream << "/Exposure" << setfill('0') << setw(7) << exposureNr;
     imageGroup = "/Cosmics/" + field + subgroupStream.str();
     imageName  = imageGroup + myStream.str();
     
@@ -2844,37 +2889,28 @@ void HDF5File::writeCosmicsWhithoutGroupByExposure(int exposureNr, string field,
     {
         vector<unsigned int> noHitsUnsignedInt{0};
         vector<double> noHitsDouble{-1.0};
-        writeArray(imageName, "EntryRows",    noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "EntryColumns", noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "EntryAngles",  noHitsDouble.data(), 1);
-        writeArray(imageName, "Intensities",  noHitsDouble.data(), 1);
-        writeArray(imageName, "TrailLengths", noHitsDouble.data(), 1);
-        writeArray(imageName, "Rows",         noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "Columns",      noHitsUnsignedInt.data(), 1);
-        writeArray(imageName, "Flux",         noHitsDouble.data(), 1);
+        writeArray(imageName, "entryRows",    noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "entryColumns", noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "entryAngles",  noHitsDouble.data(), 1);
+        writeArray(imageName, "intensities",  noHitsDouble.data(), 1);
+        writeArray(imageName, "trailLengths", noHitsDouble.data(), 1);
+        writeArray(imageName, "rows",         noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "columns",      noHitsUnsignedInt.data(), 1);
+        writeArray(imageName, "flux",         noHitsDouble.data(), 1);
     }
     else
     {
-        writeArray(imageName, "EntryRows",    entryRows.data(), entryRows.size());
-        writeArray(imageName, "EntryColumns", entryColumns.data(), entryColumns.size());
-        writeArray(imageName, "EntryAngles",  entryAngles.data(), entryAngles.size());
-        writeArray(imageName, "Intensities",  intensities.data(), intensities.size());
-        writeArray(imageName, "TrailLengths", trailLengths.data(), trailLengths.size());
-        writeArray(imageName, "Rows",         rows.data(), rows.size());
-        writeArray(imageName, "Columns",      cols.data(), cols.size());
-        writeArray(imageName, "Flux",         flux.data(), flux.size());
+        writeArray(imageName, "entryRows",    entryRows.data(), entryRows.size());
+        writeArray(imageName, "entryColumns", entryColumns.data(), entryColumns.size());
+        writeArray(imageName, "entryAngles",  entryAngles.data(), entryAngles.size());
+        writeArray(imageName, "intensities",  intensities.data(), intensities.size());
+        writeArray(imageName, "trailLengths", trailLengths.data(), trailLengths.size());
+        writeArray(imageName, "rows",         rows.data(), rows.size());
+        writeArray(imageName, "columns",      cols.data(), cols.size());
+        writeArray(imageName, "flux",         flux.data(), flux.size());
     }
 
 }
-
-
-
-
-
-
-
-
-
 
 
 

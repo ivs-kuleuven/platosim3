@@ -71,13 +71,13 @@ class HDF5File
         void writeVersionInformation();
         void writeTransmissionEfficiencyValues(double* array, int size);
         void writeThroughput(int exposureNr, arma::Mat<float>& throughputMap);
+        void writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuantisation, int exposureNr);
         void writeTelescopeACS(vector<double>&, vector<double>&, vector<double>&, vector<double>&,
                                 vector<double>&, vector<double>&);
         void writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,
                                 int beginExposureNr);
         void writeStarPositionByStarID(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,
                                 vector<unsigned int> starIDs);
-        void writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuantisation, int exposureNr);
         void writePointlikeGhostByExposure(map<double, map<unsigned int, array<double, 6>>>&
                                  detectedPointLikeGhostInfo, int beginExposureNr);
         void writePointlikeGhostByStarID(std::map<double, std::map<unsigned int, std::array<double, 6>>>&

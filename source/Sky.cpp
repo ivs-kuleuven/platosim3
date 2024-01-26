@@ -74,14 +74,13 @@ Sky::Sky(ConfigurationParameters &configParams)
     // The path of the file  should have been set in configure().
     if (includeAberrationCorrection)
     {
-        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
         double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
 
         ifstream orbitFile(orbitPlatoFile);
         if (orbitFile.is_open())
         {
             string line;
-            unsigned int n = 0;
             while (getline(orbitFile, line))
             {
                 // Skip empty lines
@@ -105,7 +104,6 @@ Sky::Sky(ConfigurationParameters &configParams)
                     orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
                     if (numbers[1] > endTime){break;}
                 }
-                n++;
             }
             if (orbitDB.size() == 0.)
             {
@@ -181,7 +179,6 @@ void Sky::configure(ConfigurationParameters &configParams)
             unsigned int starID;
             string timeSeriesPath;
 
-            unsigned int n = 0;
             while (myfile >> starID >> timeSeriesPath)
             {
                 // Parameter<double> requires an absolute path, so make sure the path specified in
@@ -197,7 +194,6 @@ void Sky::configure(ConfigurationParameters &configParams)
                 // Store the user specified time series of delta Magnitude for this star in a map<>.
 
                 deltaMagnitude.emplace(starID, make_unique<Parameter<double>>(timeSeriesPath, 1));
-                n++;
             }
 
             myfile.close();

@@ -137,6 +137,8 @@ class Detector: public HDF5Writer
         arma::Mat<float> getSubfield();
 
         virtual void initHDF5Groups() override;
+        // TODO implement writing of time here
+        //virtual void writeTimeToHDF5(int exposureNr);
         virtual void writePixelMapsToHDF5(int exposureNr);
         virtual void writeCosmicHitsToHDF5WithoutGroupByExposure(int exposureNr);
         virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);
@@ -240,6 +242,7 @@ class Detector: public HDF5Writer
         int cosmicSubgroupIndex=-1;                      // Keeps track of which subgroup in HDF5 file is being filled when saving the cosmics
 
         vector<double> relTransmissivityCoefVector;      // To take into account the transmissivity, including the vignetting
+        vector<double> gainNonlinearityCoefficients;     // To take into account the non-linear behaviour of the gain
         double radiusFOV;                        // Radius of the FOV [radians]
         double expectedValueRelativeTransmissivity; // Expected value of the relative transmissivity for the sub-field
         double expectedValuePolarization;        // Expected value of the throughput efficiency due to polarisation
@@ -272,6 +275,7 @@ class Detector: public HDF5Writer
         bool writeBackgroundMap;                  // Wheter or not to write the background map to the HDF5 file.
         bool writeSmearingMaps;                  // Whether or not to write the smearing maps to the HDF5 file, for each exposure
         bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
+        bool writeFlatfieldMap;                  // Whether or not to write the flatfield map to the HDF5 file, for each exposure  
         bool writeCosmics;                       // Whether or not to write the cosmics row, column and flux to the HDF5 file, for each exposure
         bool writeCTI;                           // Whether or not to write the BOL/EOL trap density maps for each species to the HDF5 file
 
@@ -314,6 +318,7 @@ class Detector: public HDF5Writer
         bool includeFullWellSaturation;          // Whether or not full well saturation should be applied
         bool includeDigitalSaturation;           // Whether or not digital saturation should be applied
         bool includeQuantisation;                // Whether or not to include quantisation
+        bool includeGainNonlinearity;            // Whether or not to include a non-linear gain (e- -> ADU)
         double transmissionEfficiencyBOS;        // Transmission efficiency at the begining of the simulation.
 
         int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.
