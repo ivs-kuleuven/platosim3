@@ -3,16 +3,26 @@
 """
 Create distributions for several input aspects for PlatoSim.
 
-This SimFile class provides a direct interface to extract and inspect 
-the HDF5 output file that PlatoSim produce upon execution.
+This class provides a catalogue of distributions that can be
+used to generate more realistic simulation with PlatoSim.
 
-For usage see the Jupyter tutorial notebooks available at "PlatoSim/docs/tutorials".
+For usage, see the Jupyter tutorial notebooks available at:
+"PlatoSim/docs/tutorials"
 """
 
+# Built-in
 import random
+
+# PlatoSim standard
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from numpy.random import default_rng
+
+
+#==============================================================#
+#                         BEGIN CLASS                          #
+#==============================================================#
 
 
 class Distribution(object):
@@ -286,3 +296,24 @@ class Distribution(object):
         return rows, cols, mags, star
 
     
+
+
+
+
+# def picOfDestiny(distribution, prange):
+#     """
+#     This function randomly picks a value from any gievn distribution and returns it.
+#     The distribution must consist of values between 0 and 1 with its peak at 1. This function picks a
+#     random value from the allowed range and then uses a distribution to get a P number
+#     between 0 and 1, it then rolls a dice and chekcs wheter the dice roll is under the
+#     P number. If it is, then the picked value is returned. This ensures a recration of
+#     the distribution shape over thousands of picks
+#     """
+
+#     pick = random.random()*(prange[1]-prange[0]) + prange[0]
+#     p = distribution(pick)
+#     roll = random.random()
+#     if roll < p:
+#         return pick
+#     else:
+#         return distribution_pick(distribution, range)   

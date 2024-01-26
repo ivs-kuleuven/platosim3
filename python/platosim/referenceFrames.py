@@ -543,9 +543,9 @@ def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPa
                            [-np.sin(azimuthAngle), np.cos(azimuthAngle), 0],
                            [            0        ,            0,         1]])
 
-    rotTilt = np.array([[np.cos(tiltAngle),  0, np.sin(tiltAngle)],
-                        [        0        ,  1,           0      ],
-                        [-np.sin(tiltAngle), 0, np.cos(tiltAngle)]])
+    rotTilt = np.array([[np.cos(tiltAngle),  0, -np.sin(tiltAngle)],
+                        [        0        ,  1,            0      ],
+                        [np.sin(tiltAngle),  0,  np.cos(tiltAngle)]])
 
     rotPLM2CAM = np.dot(rotAzimuth.T, np.dot(rotTilt, rotAzimuth))
 
@@ -643,9 +643,9 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
                            [-np.sin(azimuthAngle),  np.cos(azimuthAngle), 0],
                            [            0        ,             0,         1]])
 
-    rotTilt = np.array([[ np.cos(tiltAngle), 0, np.sin(tiltAngle)],
-                        [        0         , 1,           0      ],
-                        [-np.sin(tiltAngle), 0, np.cos(tiltAngle)]])
+    rotTilt = np.array([[ np.cos(tiltAngle), 0, -np.sin(tiltAngle)],
+                        [        0         , 1,            0      ],
+                        [+np.sin(tiltAngle), 0,  np.cos(tiltAngle)]])
 
     rotPLM2CAM = np.dot(rotAzimuth.T, np.dot(rotTilt, rotAzimuth))
     rotCAM2PLM = rotPLM2CAM.T
@@ -736,10 +736,10 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
     ccdZeroPointY = CCD[ccdCode]["zeroPointYmm"]
     ccdAngle      = CCD[ccdCode]["angle"]
 
-    xmm, ymm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
-                                            ccdZeroPointX, ccdZeroPointY, ccdAngle)
-    angleFromOpticalAxis = gnomonicRadialDistanceFromOpticalAxis(xmm,ymm,focalLength)
-    azimuthFromXAxis = np.arctan2(ymm,xmm)
+    xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
+                                                ccdZeroPointX, ccdZeroPointY, ccdAngle)
+    angleFromOpticalAxis = gnomonicRadialDistanceFromOpticalAxis(xFPmm, yFPmm, focalLength)
+    azimuthFromXAxis     = np.arctan2(yFPmm,xFPmm)
 
     return angleFromOpticalAxis, azimuthFromXAxis
 
@@ -1101,20 +1101,32 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
     rightDistanceFromPointy = distanceFromPointy[distanceFromPointx >= 0]
 
     left_bottom_idx = idx_left[leftDistanceFromPointy < 0]
-    idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
-    idx_selected[0] = left_bottom_idx[idx_closest_idx]
+    if (len(left_bottom_idx) == 0):
+        return xFPmm, yFPmm
+    else:
+        idx_closest_idx = np.argmin(aDistanceFromPoint[left_bottom_idx])
+        idx_selected[0] = left_bottom_idx[idx_closest_idx]
 
     left_top_idx    = idx_left[leftDistanceFromPointy >=0]
-    idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
-    idx_selected[1] = left_top_idx[idx_closest_idx]
+    if (len(left_top_idx) == 0):
+        return xFPmm, yFPmm
+    else:
+        idx_closest_idx = np.argmin(aDistanceFromPoint[left_top_idx])
+        idx_selected[1] = left_top_idx[idx_closest_idx]
 
     right_bottom_idx = idx_right[rightDistanceFromPointy < 0]
-    idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
-    idx_selected[2]  = right_bottom_idx[idx_closest_idx]
+    if (len(right_bottom_idx) == 0):
+        return xFPmm, yFPmm
+    else:
+        idx_closest_idx  = np.argmin(aDistanceFromPoint[right_bottom_idx])
+        idx_selected[2]  = right_bottom_idx[idx_closest_idx]
 
     right_top_idx = idx_right[rightDistanceFromPointy >= 0]
-    idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
-    idx_selected[3] = right_top_idx[idx_closest_idx]
+    if (len(right_top_idx) == 0):
+        return xFpmm, yFPmm
+    else:
+        idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
+        idx_selected[3] = right_top_idx[idx_closest_idx]
 
     for i in np.arange(2):
         if (yUndis[idx_selected[2*i]] > yUndis[idx_selected[2*i+1]]):
@@ -1293,7 +1305,8 @@ def mappedDistortedToUndistortedFocalPlaneCoordinates(xFPdist, yFPdist, pathToPs
 
 
 
-def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX, ccdZeroPointY, CCDangle):
+def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize,
+                                 ccdZeroPointX, ccdZeroPointY, CCDangle):
 
     """From pixel to focal plane coordinates.
 
@@ -1330,12 +1343,14 @@ def pixelToFocalPlaneCoordinates(xCCDpixel, yCCDpixel, pixelSize, ccdZeroPointX,
 
     # Convert the CCD coordinates into FP coordinates [mm]
 
-    xFP = (xCCDmm - ccdZeroPointX) * np.cos(CCDangle) - (yCCDmm - ccdZeroPointY) * np.sin(CCDangle)
-    yFP = (xCCDmm - ccdZeroPointX) * np.sin(CCDangle) + (yCCDmm - ccdZeroPointY) * np.cos(CCDangle)
+    xFPmm = ((xCCDmm - ccdZeroPointX) * np.cos(CCDangle) -
+             (yCCDmm - ccdZeroPointY) * np.sin(CCDangle))
+    yFPmm = ((xCCDmm - ccdZeroPointX) * np.sin(CCDangle) +
+             (yCCDmm - ccdZeroPointY) * np.cos(CCDangle))
 
     # That's it
 
-    return xFP, yFP
+    return xFPmm, yFPmm
 
 
 
@@ -1411,21 +1426,32 @@ def gnomonicRadialDistanceFromOpticalAxis(xFP, yFP, focalLength):
         Rhe angular distance of the star w.r.t. the optical axis [rad]
     """
 
+    # Secure handling of float, list, and arrays
+    
+    if isinstance(xFP, float):
+        xFP = np.array([xFP])
+        yFP = np.array([yFP])
+
+    # Compute angular distance
+        
     tanx = xFP / focalLength
     tany = yFP / focalLength
-
     angularDistance = np.arccos(1.0/np.sqrt(1.0 + tanx*tanx + tany*tany));
 
     # Take care that the angle is between [0, 2*pi]
 
-    if angularDistance < 0.0:
-        angularDistance += 2.0 * np.pi
-    elif angularDistance > 2.0 * np.pi:
-        angularDistance -= 2.0 * np.pi
+    for i in range(len(xFP)):
+        if angularDistance[i] < 0.0:
+            angularDistance[i] += 2.0 * np.pi
+        elif angularDistance[i] > 2.0 * np.pi:
+            angularDistance[i] -= 2.0 * np.pi
 
     # That's it!
-
-    return angularDistance;
+        
+    if len(angularDistance) == 1:
+        return angularDistance[0]
+    else:
+        return angularDistance
 
 
 
@@ -1630,8 +1656,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
 
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
-                                                        zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
 
@@ -1652,7 +1677,8 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
 
 
-def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation, azimuthAngle, tiltAngle):
+def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation,
+                                           azimuthAngle, tiltAngle):
 
     """From platform to camera pointing coordinates.
 
@@ -1688,9 +1714,9 @@ def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOr
                            [-np.sin(azimuthAngle),  np.cos(azimuthAngle), 0],
                            [            0        ,             0        , 1]])
 
-    rotTilt = np.array([[ np.cos(tiltAngle), 0, np.sin(tiltAngle)],
-                        [         0        , 1,        0         ],
-                        [-np.sin(tiltAngle), 0, np.cos(tiltAngle)]])
+    rotTilt = np.array([[ np.cos(tiltAngle), 0, -np.sin(tiltAngle)],
+                        [         0        , 1,         0         ],
+                        [+np.sin(tiltAngle), 0,  np.cos(tiltAngle)]])
 
     rotCAM2PLM = np.dot(rotAzimuth.T, np.dot(rotTilt.T, rotAzimuth))
 
@@ -1761,7 +1787,7 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
         Declination of the pointing of the Platform [rad]
     solarPanelOrientation : float
         Orientation of the solar panel [rad]
-        This corresponds to (0, pi/2, pi, 3pi/2) for quarters (Q1,Q2,Q3,Q4)
+        This corresponds to (0, pi/2, pi, 3pi/2) for quarters (Q1, Q2, Q3, mQ4)
 
     Return
     ------
@@ -1773,25 +1799,23 @@ def getCameraGroupCoordinates(raPlatform, decPlatform, solarPanelOrientation=0):
 
     # Relative azimuth and tilt angles of each camera group w.r.t platform
 
-    azimuthAngles = [45.0, 135.0, 225.0, 315.0]
-    tiltAngles    = [9.2, 9.2, 9.2, 9.2]
+    azimuthAngles = np.deg2rad([45.0, 135.0, 225.0, 315.0])
+    tiltAngles    = np.deg2rad([ 9.2,   9.2,   9.2,   9.2])
 
     # Fetch RA and Dec for each camera group
 
-    raGroups  = []
-    decGroups = []
+    ra  = np.zeros(4)
+    dec = np.zeros(4)
 
-    for group in range(4):
-        ra, dec = platformToTelescopePointingCoordinates(np.deg2rad(raPlatform),
-                                                         np.deg2rad(decPlatform),
-                                                         np.deg2rad(azimuthAngles[group]),
-                                                         np.deg2rad(tiltAngles[group]))
-        raGroups.append(np.rad2deg(ra))
-        decGroups.append(np.rad2deg(dec))
-
+    for i in range(4):
+        ra[i], dec[i] = platformToTelescopePointingCoordinates(raPlatform,
+                                                               decPlatform,
+                                                               solarPanelOrientation,
+                                                               azimuthAngles[i],
+                                                               tiltAngles[i])
     # Finito!
 
-    return raGroups, decGroups
+    return ra, dec
 
 
 

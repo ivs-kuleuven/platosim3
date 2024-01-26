@@ -8,7 +8,7 @@ General:
     
 ObservingParameters:
 
-    MissionDuration:                 6.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
+    MissionDuration:                 4.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                 0               # Sequential number of first exposure (useful for slurm parallellisation)
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
@@ -18,9 +18,9 @@ ObservingParameters:
     
 Sky:
 
-    SkyBackground:
+    SkyBackground:                                   # Sky background (Built-in Zodiacal + Galactic, excl. transmission efficiency)
       UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
-      BackgroundValue:               -1              # Sky background: Zodiacal + Galactic (excl. transmission efficiency). Set negative to compute. [phot/pix/s]
+      BackgroundValue:               -1              # Sky background value. Set negative to compute. [phot/pix/s]
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -37,36 +37,36 @@ Platform:
     Orientation:
       Source:                        Angles          # Should be either "Angles" or "Quaternion" 
       Angles:
-        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate     [deg]
-        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate         [deg]
-        SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation.  [deg]
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
+        SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
         Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
                                                      # [q0, qx, qy, qz] with norm = 1.0
-    UseJitter:                       yes             # yes or no. If no, ignore everything below.
-    JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
-    JitterYawRms:                    0.038           # [arcsec]
-    JitterPitchRms:                  0.038           # [arcsec]
-    JitterRollRms:                   0.040           # [arcsec]
-    JitterTimeScale:                 250.            # [s]
+    UseJitter:                       yes             # Whether or not to incldue jitter. If no, ignore everything below.
+    JitterSource:                    FromRedNoise    # Jitter model: {FromFile, FromRedNoise, FromNetwork}
+    JitterYawRms:                    0.038           # RMS of RedNoise jitter in yaw   [arcsec]
+    JitterPitchRms:                  0.038           # RMS of RedNoise jitter in pitch [arcsec]
+    JitterRollRms:                   0.040           # RMS of RedNoise jitter in roll  [arcsec]
+    JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
 
 Telescope:
 
-    GroupID:                         Custom          # There are four camera groups: 1, 2, 3, 4, Fast, Custom
-    AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> when GroupID = Custom
-    TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> when GroupID = Custom
-    LightCollectingArea:             113.1           # Effective area of 1 telescope [cm^2]
+    GroupID:                         Custom          # Camera groups: {1, 2, 3, 4, Fast, Custom}
+    AzimuthAngle:                    0.0             # Azimuth angle of camera on the platform [deg] -> GroupID = Custom
+    TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> GroupID = Custom
+    LightCollectingArea:             113.1           # Effective light collecting area of a camera [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8135          # Beginning of Life value in [0,1]
-        EOL:                         0.7945          # End       of Life value in [0,1]
-    UseDrift:                        no              # yes or no. If no, ignore everything below.
-    DriftSource:                     FromRedNoise    # FromFile or FromRedNoise (use RMS and timescale below)
-    DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw   [arcsec]
-    DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
-    DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll  [arcsec]
-    DriftTimeScale:                  3600.           # Timescale of thermo-elastic drift [s]
+        BOL:                         0.8135          # Beginning of Life (BOL) value: [0, 1]
+        EOL:                         0.7945          # End       of Life (EOL) value: [0, 1]
+    UseDrift:                        no              # Include Thermo-Elastic Drift (TED): {yes, no}.
+    DriftSource:                     FromRedNoise    # TED model: {FromFile, FromRedNoise}
+    DriftYawRms:                     2.0             # RMS of RedNoise TED in yaw   [arcsec]
+    DriftPitchRms:                   2.0             # RMS of RedNoise TED in pitch [arcsec]
+    DriftRollRms:                    2.0             # RMS of RedNoise TED in roll  [arcsec]
+    DriftTimeScale:                  3600.           # Timescale of RedNoise TED [s]
     DriftFileName:                   inputfiles/drift.txt
 
 
@@ -103,7 +103,7 @@ Camera:
             DistanceCutOff:          8                          # Sources within this radius from the optical axis produce a point-like ghost [degrees]
         Extended:
             FluxRatio:               0.06                       # Flux ratio between the extended ghost and the originating source [%]
-            RadiusCoefficients:      [0.0062, -0.0251, 1.8402]  # Coefficients of the 2nd-degree polynomial (in distance from the optical axis), describing the radius of the (circular) extended source
+            RadiusCoefficients:      [0.0062, -0.0251, 1.8402]  # Coefficients of the 2nd-degree polynomial (distance from the optical axis), describing the radius of the (circular) extended ghost
             DistanceRatio:           1.065                      # For a star at FP-coordinates (x, y), the centre of the extended ghost will be at (distanceRatio * x, distanceRatio * y)
 
 
@@ -114,7 +114,7 @@ PSF:
         Filename:                    inputfiles/PSF_Focus_0mu.hdf5
         NumberOfPixels:              8                        # The number of pixels in the field for which the PSF is generated
         ChargeDiffusionStrength:     0.2                      # Charge diffusion strength (width of the Gaussian diffusion kernel) [pixels]
-        IncludeChargeDiffusion:      no                       # Include charge diffusion [yes or no]
+        IncludeChargeDiffusion:      yes                      # Include charge diffusion [yes or no]
         IncludeJitterSmoothing:      no                       # Include jitter smoothing [yes or no]
     AnalyticGaussian:                                         # Generate the PSF analytically from a non-spherical Gaussian
         Sigma00:                     1.0                      # Stdev of Gaussian PSF in x- and y-direction at the optical axis      [pix]
@@ -171,6 +171,8 @@ CCD:
         RefValueRight:               2.21            # E side of CCD [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
+        Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # O = B + I + a0 + a1 * I + a2 * I^2
+                                                                        # O=output signal [ADU], B=bias [ADU], I=input signal [ADU]
     QuantumEfficiency:
         MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
@@ -209,7 +211,7 @@ CCD:
             NumTrapSpecies:          4               # Number of different trap species
             TrapDensity:                                                        # For each trap species [traps/pixel]
                 BOL:                 [0.0, 0.0, 0.0, 0.0]                       # Values at the Beginning Of Life
-                EOL:                 [9.8, 3.31, 1.56, 13.24]                   # Values at the End Of Life
+                EOL:                 [4.9, 1.655, 0.78, 6.62]                   # Values at the End Of Life
             TrapCaptureCrossSection: [2.46e-20, 1.74e-22, 7.05e-23, 2.45e-23]   # for each trap species [m^2]
             ReleaseTime:             [2.37e-4, 2.43e-2, 2.03e-3, 1.40e-1]       # for each trap species [s]
         Short2013FromFile:                           # Allows to specify trap densities that vary spatially over the CCD
@@ -238,6 +240,7 @@ CCD:
     IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
     IncludeQuantisation:             yes             # Whether or not to include quantisation
+    IncludeGainNonlinearity:         yes             # Whether or not to include a non-linear gain (e- -> ADU)
 
 
 SubField:
