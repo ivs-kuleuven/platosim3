@@ -7,6 +7,7 @@ consistantly use the same settings for all plots.
 
 # Built-in
 import os
+import shutil
 
 # PlatoSim standard
 import matplotlib.pyplot as plt
@@ -48,12 +49,16 @@ def setup():
 
     
         
-def latex():
+def latex():    
     setup()
-    plt.rcParams['text.usetex'] = True
+    # Check if LaTeX is installed
+    if shutil.which('latex'):
+        plt.rcParams['text.usetex'] = True
+    else:
+        plt.rcParams['text.usetex'] = False 
+    
 
-    
-    
+        
 def setup_notebook():
     setup()
     latex()
