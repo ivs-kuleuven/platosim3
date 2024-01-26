@@ -9,14 +9,31 @@
 
 ### Changed
 
+### Added
+
+
+
+<!-- 3.6.1 -->
+<!-- ***** -->
+
+## 26/01/2024: 3.6.1
+
+### Fixed
+
+* Bugfix in DatectorWithAnalyticNonGaussian::applyPhotometry() module where not the right mask was used. (Issue #913)
+
+### Changed
+
 * Redundant time column in `ACS`, `StellarPositions`, and `GhostPositions` have been removed and added as an individual time column (see addition below). This is breaking backward compatible change only for users that do not use the `SimFile.py` class.
+* Small bugfixes to code
+* Small errors in documentation
 
 ### Added
 
 * New time column is saved to the HDF5 file by default.
 * The PLATOnium toolkit can now simulate the F-CAMs.
 
-<!-- 3.6.2 -->
+<!-- 3.6.0 -->
 <!-- ***** -->
 
 ## 16/05/2023: 3.6.0
