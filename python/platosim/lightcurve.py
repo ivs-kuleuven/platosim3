@@ -84,12 +84,7 @@ class LightCurve(object):
         self.mode = mode
         self.base = base
         self.path = path
-        
-        if path:
-            self.path = Path(path)
-        else:
-            self.path = path
-        
+                
         # Check if data frame or file path
 
         if isinstance(filename, pd.DataFrame):
@@ -109,8 +104,14 @@ class LightCurve(object):
             elif self.filename.is_dir():
                 self.fileExtention = None
                 self.path = Path(filename)
-            
-            
+
+        # Allow change of path to 
+                
+        if path:
+            self.path = Path(path)
+        else:
+            self.path = path
+    
         # SINGLE-CAMERA SIMULATION
         
         if mode == "single":

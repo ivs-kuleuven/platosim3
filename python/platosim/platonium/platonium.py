@@ -1197,7 +1197,7 @@ class PLATOnium(object):
         
         # Load light curve
         from platosim.lightcurve import LightCurve
-        lc = LightCurve(f'{self.outputSimName}.hdf5')
+        lc = LightCurve(f'{self.outputSimName}.hdf5', path=self.outputDir)
         
         
         # GAPS AND TRANSIENTS
@@ -1267,8 +1267,15 @@ class PLATOnium(object):
 
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
+
+            if self.mag <= 10:
+                sigma = 5
+            elif self.mag > 10 and self.mag < 11:
+                sigma = 4.5
+            else:
+                sigma = 4
                 
-            lc.clip(model='wotan', replace=True, sigma_lower=4, sigma_upper=4,
+            lc.clip(model='wotan', replace=True, sigma_lower=sigma, sigma_upper=sigma,
                     plot=self.plotPost, flux_unit=flux_unit)
 
             if self.verbose > 0:
