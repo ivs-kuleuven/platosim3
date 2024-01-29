@@ -20,7 +20,7 @@ To accommodate PLATO's need of versatile simulations prior to mission launch - t
 We welcome new users and encourage contributions. Simply contact one of the following PlatoSim developers from KU Leuven:
 - Nicholas Jannsen (nicholas.jannsen@kuleuven.be)
 - Joris De Ridder (joris.deridder@kuleuven.be) 
-- Dries Seunaeve (dries.seynaeve@kuleuven.be) 
+- Dries Seynaeve (dries.seynaeve@kuleuven.be) 
 
 *Note that in agreement with the regulations of the PLATO mission, you need a *Non Disclosure Agreement* (NDA) before we can give you access to PlatoSim.*
 
@@ -38,7 +38,7 @@ In order to provide a smooth start of your PlatoSim journey, we suggest that you
 
 ## Reference
 
-Please cite [Jannsen et al. (2023)](https://arxiv.org/abs/2310.06985) if you use PlatoSim in your research. The ADS BibTex entry for this paper will be available soon.
+Please cite [Jannsen et al. (2024)](https://ui.adsabs.harvard.edu/abs/2024A%26A...681A..18J/abstract) if you use PlatoSim in your research.
 
 <!-- The BibTeX entry for the paper is: -->
 

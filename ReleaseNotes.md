@@ -1,95 +1,16 @@
-* IMPORTANT:
-
-This new release has many changes that might be incompatble with previous versions. In order to keep using old input files make sure to make the following changes:
-
-Delete:
-"""
-ObservingParameters:
-    RApointing:
-    DecPointing:
-Sky:
-    SkyBackground:
-Platform:
-    SolarPanelOrientation:
-Telescope:
-    UseDriftFromFile:
-Camera:
-    FieldDistortion:
-        Type:
-"""
-
-Add:
-"""
-Sky:
-    SkyBackground:
-      UseConstantSkyBackground:
-      BackgroundValue:
-Platform:
-    Orientation:
-      Source:
-      Angles:
-         RAPointing:
-        DecPointing:
-        SolarPanelOrientation:
-      Quaternion:
-        Components:
-Telescope:
-    DriftSource:
-ControlHDF5Content:
-    GroupByExposure:
-    WriteFlatfieldMap:
-    WriteTransmissionEfficiency:
-    WriteBackgroundMap:
-    WriteCTI:
-    WriteDiffusedPSF:
-    WriteHighResolutionPSF:
-        WriteTelescopeACS:
-    WriteStarPositions:
-    WriteGhostPositions:
-    WriteCosmics:
-"""
-
-Also the PSF files have been changed. There was a bug where the old mapped PSF files were not consistent with the analytic PSF files. If such a thing is needed for your
-simulation make sure you download the most recent PSF files. (see website)
-
-
-
-
-* Changelog PlatoSim 3.6.0
+* Changelog PlatoSim 3.6.1
 
 ** Improvements
 
-*** Change of YAML inputfile `Telescope` block named `UseDriftFromFile` to `DriftSource` (Issue #766)
+*** Redundant time column in `ACS`, `StellarPositions`, and `GhostPositions` have been removed and added as an individual time column (see addition below). This is breaking backward compatible change only for users that do not use the `SimFile.py` class.
 
-*** Changed input structure of input files:
-    - `ObservingParameters/RApointing` -> `Platform/Orientation/Angles/RAPointing`
-    - `ObservingParameters/DecPointing` -> `latform/Orientation/Angles/DecPointing`
+*** Small bugfixes to code
 
-*** Changed validation tests to deal with new input structure.
+*** Small errors in documentation
 
-*** Changed the naming convention SC (spacecraft) into PLM (Payload Module) in python code.
+*** Reduce time it takes to run the validation tests. (Issue #869)
 
-*** Made absolute aberation test easier to read.
-
-*** Removed ``doc/Validation`` directory. The content of this directory is mostly containd the ``tests/validationTests`` directory.
-
-*** Interpolated the ``skyBackground`` map so that the entire sky is filled.
-
-*** When the ``WriteBackgroundMap`` option is true, we will either save a time series of the background value (if we use a constant background) or the background map at the beginning of the simulation (if we use a variable background map).
-
-*** Changed `simfile.py` functions to remove and cleanup many of the repeating routines used.
-
-*** Changed default jitter timescale to 250s instead of 3600s.
-
-*** Updated the old Doxygen documentation to a more user-friendly Sphinx documentation.
-
-*** Updated the old Jupyter notebook tutorials. Each notebook follows a cronological order and is inline with the changes made to the YAML file.
-
-*** Updated all Python function docstrings (to a appropiate Pythonic version).
-
-*** Changed directory structure of `/python/platosim`. All command line scripts are now placed within the folder `script`.
-
-*** Change of HDF5 structure for `Cosmics`, now using consistent upper case letter for `Exposure` (Issue #765)
+*** Removed declared but unused variables in Sky.cpp
 
 
 
@@ -97,32 +18,26 @@ simulation make sure you download the most recent PSF files. (see website)
 
 ** Bug fixes
 
-*** Changed Mapped distortion and  Mapped inverse distortion routines so that they now are each others inverse. Also changed the corresponding python scripts.
+*** Bugfix in DatectorWithAnalyticNonGaussian::applyPhotometry() module where not the right mask was used. (Issue #913)
 
-*** Fixed that `simfile.showImage()` was not scaling the correct flux in ADU.
+*** Bugfix in generation of distortionmap with mapped PSF (Issue #811)
 
-*** Fixed log color scaling bug in `simfile.showImage()`.
+*** Simple CTI is no longer written to HDF5 file (Issue #863)
 
-*** Fixed bug in `mappedGaussianPSF` validation test.
-
-*** Fixed bug where generating throughputmap, automatically assumed distortion should be used. For analytic PSF without distortion this gave a error.
-
-
+*** Fixed sign error in the telescope tilt rotation matrix in both Telescope.cpp and referenceFrames.py (Issue #857)
 
 
 
 ** New features/functionality
 
-*** Added option to save high resolution, analytic non-Gaussian PSF to HDF5.
+*** New time column is saved to the HDF5 file by default.
 
-*** Added variable background (Issue #729)
+*** The PLATOnium toolkit can now simulate the F-CAMs.
 
-*** Added the option to use Quaternions in the input file. (Issue #709)
+*** Added AppleClang (difference from Clang) as a possible compiler.
 
-*** Added option to change the output format of the HDF5 output file. This speeds up long simulations.
+*** Added non-linear gain.
 
-*** Added option to use differently formatted HDF5-PSF files. (Issue #811)
+*** Generally a lot of small bugfixes for the PLATOnium toolkit has been made (Issue #776, #883, #884, #885, #886, #887, #888, #889, #898, #908, #914 #916).
 
-*** Added PLATOnium toolkit (see the new documentation page).
-
-*** Added Poetry installation for developers (see the new documentation).
+*** Jupyter tutorial notebooks did not work for user without a functional LaTeX installation (configured through `.matplotlibrc`). Now the module `import matplotlibrc` checks if the user has a valid LaTeX installation, and if so, activates the LaTeX rendering, and if not, fall back to normal text rendering.
