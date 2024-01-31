@@ -82,36 +82,32 @@ class LightCurve(object):
 
         # Read either a single file or multiple files
         self.mode = mode
-        self.base = base
-        self.path = path
-                
+        self.base = base                
+        if path:
+            self.path = Path(path)
+        else:
+            self.path = path
+        
         # Check if data frame or file path
 
         if isinstance(filename, pd.DataFrame):
             self.df = filename
             self.fileExtention = None
-
+            
         else:
             self.df = None
             self.filename = Path(filename)
 
             # Check if file or directory
-            
+
             if self.filename.is_file():
-                self.path = None
+                self.path = self.filename.parents[0]
                 self.fileExtention = Path(filename).suffix
                 
             elif self.filename.is_dir():
                 self.fileExtention = None
                 self.path = Path(filename)
 
-        # Allow change of path to 
-                
-        if path:
-            self.path = Path(path)
-        else:
-            self.path = path
-    
         # SINGLE-CAMERA SIMULATION
         
         if mode == "single":
@@ -352,23 +348,34 @@ class LightCurve(object):
         """Fetch the noise-less light curve.
         """
 
+        starID = self.path.stem[:9]
+        
         # Get correct path to varsource file
-
+                
         if self.path.is_dir():
             path    = self.path
             starID  = path.stem[:9]
             varpath = path.parents[1] / "varsource" / starID / 'varsource_001.txt'
 
         elif self.filename.is_file():
-            path    = self.filename.parents[1]
-            starID  = path.stem[:9]
-            varpath = path / "varsource" / f"varsource_{starID}.txt"
 
+            # Check two valid options (file or list format)
+
+            path = self.path.parents[1]
+            varpath_file = path / "varsource" / f"varsource_{starID}.txt"
+            varpath_list = path / "varsource" / starID / 'varsource_001.txt'
+
+            if varpath_file.is_file():
+                varpath = varpath_file
+            elif varpath_list.is_file():
+                varpath = varpath_list
+            else:
+                errorcode('error', f'No variable source found for star ID {int(starID)}')
+            
         # Read file and add flux column
         
         df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
-        df['flux'] = (10**(-df.mag/2.5) - 1) * 1e3
-        df.flux -= df.flux.median()
+        df['flux'] = ut.fromMagToRelativeFlux(df.mag, norm=1)
 
         return df
 
@@ -1724,10 +1731,13 @@ class LightCurve(object):
                     label=label, zorder=3)
 
         # Show input model if requested
-        if input_model:
+        if input_model and not flux_unit == 'e/s':
             dv = self.varsource()
+            if flux_unit == 'ppt': dv.flux *= 1e3
+            if flux_unit == 'ppm': dv.flux *= 1e6
+            if flux_unit == 'norm': dv.flux += 1            
             if dv is not None:
-                ax.plot(dv.time/86400, dv.flux*1e3, '-', c='orange', lw=0.5, label='Input model')
+                ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
             
         # If any plot mask-update events
         if self.mask_updates.any():
@@ -2161,7 +2171,7 @@ class LightCurve(object):
             
             if i == 0:
                 df0['time'] = df.time
-                df0['flux'] = lc.flux(unit='ppm')
+                df0['flux'] = lc.flux(unit='e/s')
                 if 'flux_err'     in df: df0['flux_err']     = df.flux_err
                 if 'flux_cor'     in df: df0['flux_cor']     = df.flux_cor
                 if 'flux_trend'   in df: df0['flux_trend']   = df.flux_trend
@@ -2169,7 +2179,7 @@ class LightCurve(object):
                 if 'flux_clip'    in df: df0['flux_clip']    = df.flux_clip
             else:
                 df1['time'] = df.time
-                df1['flux'] = lc.flux(unit='ppm')
+                df1['flux'] = lc.flux(unit='e/s')
                 if 'flux_err'     in df: df1['flux_err']     = df.flux_err
                 if 'flux_cor'     in df: df1['flux_cor']     = df.flux_cor
                 if 'flux_trend'   in df: df1['flux_trend']   = df.flux_trend
@@ -2214,7 +2224,7 @@ class LightCurve(object):
             df0.to_feather(ofile)
         
         # Set a global light curve object
-
+        
         lc = LightCurve(df0, mode="multi", ncam=ncam, path=self.path)
         
         return lc

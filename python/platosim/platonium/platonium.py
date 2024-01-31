@@ -1193,14 +1193,14 @@ class PLATOnium(object):
         
         # Print to bash
         if self.verbose > 0:
-            errorcode('module', '\nData reduction for exoplanets\n')
+            errorcode('module', '\nPost-processing\n')
         
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5', path=self.outputDir)
         
         
-        # GAPS AND TRANSIENTS
+        # GAPS AND TRANSIENTS TODO 
 
         # Apply step if CCD(T) file exists
         inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
@@ -1268,13 +1268,15 @@ class PLATOnium(object):
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
 
+            # Auto selection of sigma
             if self.df.mag <= 10:
                 sigma = 5
             elif self.df.mag > 10 and self.df.mag < 11:
                 sigma = 4.5
             else:
                 sigma = 4
-                
+
+            # Perform sigma-clipping
             lc.clip(model='wotan', replace=True, sigma_lower=sigma, sigma_upper=sigma,
                     plot=self.plotPost, flux_unit=flux_unit)
 
