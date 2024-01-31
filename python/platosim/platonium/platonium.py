@@ -1268,9 +1268,9 @@ class PLATOnium(object):
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
 
-            if self.mag <= 10:
+            if self.df.mag <= 10:
                 sigma = 5
-            elif self.mag > 10 and self.mag < 11:
+            elif self.df.mag > 10 and self.df.mag < 11:
                 sigma = 4.5
             else:
                 sigma = 4
