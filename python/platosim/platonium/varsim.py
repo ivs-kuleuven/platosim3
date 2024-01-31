@@ -63,10 +63,10 @@ import platosim.plot      as pt
 import platosim.utilities as ut
 from platosim.utilities import errorcode
 from platosim.spectrum  import Spectrum
-from platosim.varsource import (StellarFlares,
+from platosim.varsource import (Pulsator,
+                                StellarFlares,
                                 StellarSpots,
                                 SolarLikeOscillator,
-                                GravityOscillator,
                                 SurfaceModulations,
                                 EclipsingBinary,
                                 SMBHB,
@@ -909,18 +909,27 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = GravityOscillator(time, power=2.2, seed=self.seed) # TODO code is wrong?
+        model = Pulsator(time, power=2.2, seed=self.seed)
         
-        # Check if a file with pulsations are parsed
-        if args.puls == 'gang2020':
+        # Check variable model parsed
+        
+        if args.puls == 'Gang2020':
             model.initGang2020(self.idir, starID=self.starID)
+
+        elif args.puls == 'mocka':
+            params = model.initGang2020mocka(self.idir)
+            self.df['N_modes']     = params[0]
+            self.df['P0_day']      = params[1]
+            self.df['DeltaP0_day'] = params[2]
+            self.df['slope']       = params[3]
+
         else:
             model.initToyModel([0.5, 3], [0.5, 2.5])
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
         self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
-
+        
 
 
             

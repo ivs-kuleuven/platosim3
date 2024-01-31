@@ -77,7 +77,7 @@ def numpyFFT(signal, timestep):
 
 
 def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
-                          plot=False, title=False):
+                          freq_unit='day', plot=False, title=False):
 
     """Generate light curve from Fourier info.
 
@@ -116,10 +116,10 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
 
         fig, ax = plt.subplots(2, 1, figsize=(12, 7))
 
-        mag0 = mag / 1e3  # [mag -> mmag] 
+        mag0 = mag  # [mag -> mmag] 
         
         # Plot time series
-        ax[0].plot(time, mag0, 'k-', lw=0.3)
+        ax[0].plot(time, mag0, 'k-', lw=0.4)
         ax[0].set_xlabel(r'Time [days]')
         ax[0].set_ylabel(r'$\delta m$ [mmag]')
         ax[0].set_xlim(time.min(), time.max())
@@ -129,11 +129,22 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
         
         # Plot power spectrum
         cadence = np.diff(time)[0]
-        freq, power = numpyFFT(mag0, cadence)
-        ymin = np.mean(power)
-        ymax = np.max(power) + 0.1*np.max(power)
-        carray = np.linspace(0, 1, 1000)
-        colors = plt.cm.rainbow(carray)
+        freq0, ampl0 = numpyFFT(mag0, cadence)
+        ampl_scale = ampl / np.max(ampl0)
+
+        print(np.max(ampl0))
+        for i in range(nmodes):
+            ax[1].vlines(x=freq[i], ymin=0, ymax=ampl_scale[i], colors='b', label='Pattern')
+        ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1)
+        # Settings
+        ax[1].set_ylabel(r'Amplitude [mmag]')
+        ax[1].set_xlabel(r'Period, $P$ [days]')
+        ax[1].set_xlim(0, np.max(freq)+1)
+        ax[1].set_ylim(np.mean(ampl0), np.max(ampl0)+0.1*np.max(ampl0))
+        plt.tight_layout()
+        plt.show()
+        #carray = np.linspace(0, 1, 1000)
+        #colors = plt.cm.rainbow(carray)
         #freq = 1/freq
         # for i in range(N):
         #     if self.starname is not 'g-Dor':
@@ -143,15 +154,6 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
         #                    c=colors[dex], lw=snr_norm*3)
         #     else:
         #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax], c='royalblue')
-        ax[1].plot(freq, power, '-', c='deeppink', lw=1)
-        # Settings
-        ax[1].set_ylabel(r'Amplitude [mmag]')
-        ax[1].set_xlabel(r'Period, $P$ [day]')
-        #ax[1].set_yscale('log')
-        ax[1].set_xlim(0, np.max(freq)+1)
-        ax[1].set_ylim(ymin, ymax)
-        plt.tight_layout()
-        plt.show()
 
     # Return signal
     

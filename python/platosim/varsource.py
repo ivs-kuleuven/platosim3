@@ -21,6 +21,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import scipy
 from scipy.stats import norm, truncnorm
 from scipy.interpolate import interp1d, make_interp_spline
 from astropy.io import fits
@@ -1179,9 +1180,9 @@ class SurfaceModulations(object):
 #==============================================================#
 
 
-class GravityOscillator(object):
+class Pulsator(object):
 
-    """Class to generate gravity oscillation time series.
+    """Class to generate time series from list of pulsation modes.
     """
 
     def __init__(self, time, power, seed=False):
@@ -1248,24 +1249,116 @@ class GravityOscillator(object):
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
-
-        # Else load the data
-        self.freq  = 1/df.freq      # [days]
-        self.ampl  = df.ampl * 1e3  # [mag]
-        self.phase = df.phase       # [rad]
-        self.snr   = df.snr
+        self.df = pd.read_csv(starfile, sep=' ', comment='#',
+                              names=['freq', 'ampl', 'phase', 'snr'])
         self.starname = starfile.name
 
-        
 
+        
+    def initGang2020mocka(self, odir, starID=None):
+
+        """Draw frequencies from Kepler g-Dor legacy.
+        """
+
+        # Name of folder on FTP server
+        filename_mod = 'varsim_mocka_gdor_mod_gang2020.ftr'
+        filename_all = 'varsim_mocka_gdor_all_gang2020.ftr'
+        filename_max = 'varsim_mocka_gdor_max_gang2020.ftr'
+        filepath_mod = Path(f'{odir}/{filename_mod}')
+        filepath_all = Path(f'{odir}/{filename_all}')
+        filepath_max = Path(f'{odir}/{filename_max}')
+        
+        # Download distribution files if not done before
+        if not filepath_mod.is_file():
+            print(f'Downloading {filename_mod}')
+            ut.downloadFromFTP(filename=filename_mod, outputDir=odir, server='plato')
+        if not filepath_all.is_file():
+            print(f'Downloading {filename_all}')
+            ut.downloadFromFTP(filename=filename_all, outputDir=odir, server='plato')
+        if not filepath_max.is_file():
+            print(f'Downloading {filename_max}')
+            ut.downloadFromFTP(filename=filename_max, outputDir=odir, server='plato')
+
+        # Load file containing columns
+        dm = pd.read_feather(filepath_mod)
+        da = pd.read_feather(filepath_all)
+        dx = pd.read_feather(filepath_max)
+        
+        # Generate KDEs
+        A_kde     = scipy.stats.gaussian_kde(da.amp)
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+
+        # Select number modes
+        N = np.random.randint(20, 40) 
+
+        # Select maximum period from KDE
+        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), 1000)
+        P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
+
+        # First period spacing in pattern from KDE
+        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), 1000)
+        dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
+
+        # Select slope from distribution (cf. Fig. 10 of L20)
+        slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), 1000)
+        slope = pd.Series(slope_ran).sample(1, weights=slope_kde(slope_ran)).to_numpy()[0]
+
+        # Create period-spacing pattern
+        P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+
+        # Draw amplitude below maximum
+        A_i_ran = np.linspace(dx.A_max.min(), dx.A_max.max(), 1000)
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
+
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max0 = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)
+        
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max0
+
+        # Draw random periods not part of the pattern (max 1/8 of ampl)
+        M = np.random.randint(100, 300)
+        P_puls_i = np.random.uniform(0, 2, size=M)
+        A_puls_i = np.random.uniform(0, A_max0/8, size=M)
+        
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['per'] = np.append(P_i, P_puls_i)
+        self.df['amp'] = np.append(A_i, A_puls_i)
+        self.df['phi'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
+
+        # Plot period spacing pattern
+        # fig, ax = plt.subplots(1,1, figsize=(8,4))
+        # ax.plot(P_i[:-1], np.diff(P_i)*86400, '*')
+        # plt.tight_layout()
+        # plt.show()
+
+        # Return parameters
+        return N, P0, dP0, slope
+    
+        
+        
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
         """
 
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
+        # Else load the data
+        time  = self.time    # [day]
+        freq  = self.df.per  # [day]
+        ampl  = self.df.amp  # [mag]
+        phase = self.df.phi  # [rad]
+        
+        return ns.timeSeriesFromFourier(self.time, freq, ampl, phase, power=self.power,
                                         plot=plot, title=self.starname)
    
 
