@@ -905,7 +905,7 @@ class VarSim(object):
 
         # Start script
         if self.verbose > 1:
-            errorcode('module', '\nPulsator: gamma-Dor (g-modes)\n')
+            errorcode('module', '\ngamma-Dor (g-mode pulsator)\n')
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
@@ -914,16 +914,30 @@ class VarSim(object):
         # Check variable model parsed
         
         if args.puls == 'Gang2020':
+            if self.verbose > 1:
+                print('Using random Kepler target as mock object (Gang+2020)')            
             model.initGang2020(self.idir, starID=self.starID)
 
         elif args.puls == 'mocka':
+            if self.verbose > 1:
+                print('Generating mock object using Kepler observations (Gang+2020)')
             params = model.initGang2020mocka(self.idir)
             self.df['N_modes']     = params[0]
             self.df['P0_day']      = params[1]
             self.df['DeltaP0_day'] = params[2]
             self.df['slope']       = params[3]
-
+            self.df['Amax_mag']    = params[4]
+            self.dm = params[5]
+            if self.verbose > 1:
+                print(f'Number of pulsation modes : {params[0]}')
+                print(f'First period in pattern   : {params[1]:.5f} day')
+                print(f'First period-spacing      : {params[2]:.5f} day')
+                print(f'Slope of period-spacing   : {params[3]:.4f}')
+                print(f'Maximum mode amplitude    : {params[4]*1e3:.3f} mmag')
+            
         else:
+            if self.verbose > 1:
+                print('Generating mock object from toy model')            
             model.initToyModel([0.5, 3], [0.5, 2.5])
 
         # Return model [mag -> ppm]
@@ -1000,37 +1014,6 @@ class VarSim(object):
         if self.verbose > 1:
             errorcode('module', '\nClassical pulsators (RR Lyrae & Cepheids)\n')
 
-        # Select a random object from the list and load Fourier data
-        filename = 'varsource_RRLyrae_Cepheid_bodi2023'
-        try:
-            filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
-            starfile = random.choice(filenames)
-        except:
-            zipfile = f'{filename}.zip'
-            errorcode('message', 'Classic, I like your style!')
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=self.idir, server='plato')
-            os.system(f'unzip {self.idir}/{zipfile} -d {self.idir}')
-            os.system(f'rm {self.idir}/{zipfile}')
-            print('')
-
-        # Load file with harmonics
-        filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
-        starfile  = random.choice(filenames)
-        fourier   = np.loadtxt(starfile)    
-        if self.verbose > 1:
-            print(f'Using file {starfile} with frequencies:')
-            print(fourier)
-            
-        # Convert units of input parameters
-        time = self.time.value
-        flux = np.zeros_like(time)
-
-
-        # Generate the lightcurve in the dataframe
-        components = len(np.array(fourier))
-        for i in range(components):
-            flux += fourier[i,1] * np.sin((2*np.pi*fourier[i,0] * time) + fourier[i,2])
 
         # Save magnitude to list
         lc = pd.DataFrame(data = {'time':time, 'flux':flux})
@@ -1074,17 +1057,26 @@ class VarSim(object):
         model = EclipsingBinary(time, seed=self.seed)
 
         # Fetch model parameters
-        model.initIJspeert2023(self.idir)
-
-        # Check if a file with pulsations are parsed
-        # if args.puls == 'gang2020':
-        #     model.initGang2020(self.idir, starID=self.starID)
-        # else:
-        #     model.initToyModel([0.5, 3], [0.5, 2.5])
+        if self.verbose > 1:
+            print('Generating mock object using Kepler observations (Gang+2020)')
+        params = model.initIJspeert2023(self.idir)
+        self.df['starname'] = params[0]
+        self.df['P_day']  = params[0]
+        self.df['t0_day'] = params[1]
+        self.df['t1_day'] = params[2]
+        self.df['t2_day'] = params[3]
+        self.df['depth1_mag'] = params[4]
+        self.df['depth5_mag'] = params[5]
+        if self.verbose > 1:
+            print(f'Orbital period           : {params[0]} day')
+            print(f'Time of emphemeris       : {params[1]} day')
+            print(f'Eclipse timing of star 1 : {params[2]} day')
+            print(f'Eclipse timing of star 2 : {params[3]} day')
+            print(f'Eclipse depth for star 1 : {params[4]} mmag')
+            print(f'Eclipse depth for star 2 : {params[5]} mmag')
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=self.plot)
-        exit()
         self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
 
 
@@ -1684,8 +1676,7 @@ class VarSim(object):
                 lc.flux = (lc.flux - 1) * 1e6
                 fig, ax = pt.plot_final_lc(lc)
                 plt.show()
-                                
-            
+                                            
         # SAVE DATA
         
         if self.ofile:
@@ -1693,26 +1684,35 @@ class VarSim(object):
             # Filenames
             ofile_parameters = self.ofile.parents[0] / f'{self.ofile.stem}_parameters.ftr'
             ofile_components = self.ofile.parents[0] / f'{self.ofile.stem}_components.ftr'
+            ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
             
-            if self.verbose > 1:
-                print(f'Saving file : {self.ofile}')
-                print(f'Saving file : {ofile_parameters}')
-                print(f'Saving file : {ofile_components}')
-
             # Convert to magnitude [mag]
             df = self.lc.flux.to_numpy() 
             dm = - 2.5 * np.log10(df)            
                 
             # Save light curve
+            if self.verbose > 1:
+                print(f'Saving file : {self.ofile}')
             data = np.transpose([self.lc['time'], dm])
             np.savetxt(self.ofile, data, fmt=['%.1f', '%.8f'])
 
             # Save parameter space
+            if self.verbose > 1:
+                print(f'Saving file : {ofile_parameters}')
             self.df = self.df.to_frame().T
             self.df.to_feather(ofile_parameters)
-            self.lc.to_feather(ofile_components)
-            
 
+            # Save components (if multiple)
+            if self.lc.shape[1] > 2:
+                if self.verbose > 1:
+                    print(f'Saving file : {ofile_components}')                
+                self.lc.to_feather(ofile_components)
+            
+            # Save pulsation modes for MOCKA
+            if args.puls == 'mocka':
+                if self.verbose > 1:
+                    print(f'Saving file : {ofile_pulsations}')                
+                self.dm.to_feather(ofile_pulsations)
 
 
 
@@ -1937,62 +1937,111 @@ class VarSim(object):
 
             # beta Cepheid Bowman et al. 2020 -> see Burssens et al. 2020, Fig. 3
             # Mira stars: Cunha+2020
-            
-            # Seperate dwarf (MS) and sub-gaint (post MS) stars
-            #ds = df[self.R.value < ut.getMainSequenceLimit(df0.Teff)]
-            #sg = df[self.R.value > ut.getMainSequenceLimit(df0.Teff)]
-            
-            # Solar-like oscillator
-            
-            #self.stellar_granosc()
-            #self.stellar_activity()
-            #self.solar_flares()
-            #self.star_roap()
-            #self.star_gdor()
-            #self.star_gdor()
-            #self.star_dsct()
-            #self.star_ceph()
 
-            if self.df.spec == 'O':
-                self.solar_granosc()
+            # Select variable contamiant
+            if i > 0:
                 
-            elif self.df.spec == 'B':
+                if self.df.spec == 'O':
+                    self.solar_granosc()
+
+                elif self.df.spec == 'B':
+                    self.star_bcep()
+
+                elif self.df.spec == 'A':
+                    self.star_ceph()
+
+                elif self.df.spec == 'F':
+                    self.star_gdor()
+
+                elif self.df.spec == 'G':
+                    self.solar_granosc()
+                    self.solar_spots()
+
+                elif self.df.spec == 'K':
+                    self.solar_granosc()
+                    self.solar_spots()
+                    self.solar_flares()
+
+                elif self.df.spec == 'M':
+                    self.solar_spots()
+                    self.solar_flares()
+
+                else:
+                    self.star_roap()
+
+
+                
+            # SELECT VARIABLE CLASS
+                    
+            # Massive pulsators
+
+            if starType == 'bCep':
                 self.star_bcep()
-                
-            elif self.df.spec == 'A':
-                self.star_ceph()
 
-            elif self.df.spec == 'F':
+            elif starType == 'SPB':
+                self.star_spbs()
+                
+            elif starType == 'dSct':
+                self.star_dsct()
+                
+            elif starType == 'gDor':
+                args.puls = 'mocka'
                 self.star_gdor()
                 
-            elif self.df.spec == 'G':
-                self.solar_granosc()
-                self.solar_spots()
-
-            elif self.df.spec == 'K':
-                self.solar_granosc()
-                self.solar_spots()
-                self.solar_flares()
-
-            elif self.df.spec == 'M':
-                self.solar_spots()
-                self.solar_flares()
-
-            else:
+            elif starType == 'hybrid':
+                self.star_hygd()
+                
+            elif starType == 'roAp':
                 self.star_roap()
+
+            # Evolved stars
+                
+            elif starType == 'RRlyr':
+                self.star_rrly()
+                
+            elif starType == 'Ceph':
+                self.star_ceph()
+                
+            elif starType == 'LPV':
+                self.star_lpvs()
+
+            elif starType == 'RG':
+                self.solar_granosc()
+                
+            # Solar-like stars
+
+            elif starType == 'GV':
+                self.solar_granosc()
+                self.solar_spots()
+
+            elif starType == 'KV':
+                self.solar_granosc()
+                self.solar_spots()
+                self.solar_flares()
+
+            elif starType == 'MV':
+                self.solar_spots()
+                self.solar_flares()
+
+            # Constant star
+                
+            else:
+                starType = False
                 
         
             # GENERATE LIGHT CURVE
 
-            # Save each varsource to file
-            sfile = 'varsource_'+f'{i+1}'.zfill(3)+'.txt'
-            self.ofile = self.odir.joinpath(sfile)
-            self.run_prolog()
+            if starType:
+                
+                # Save each varsource to file
+                sfile = 'varsource_' + f'{i+1}'.zfill(3) + '.txt'
+                self.ofile = self.odir.joinpath(sfile)
+                self.run_prolog()
 
-            # Use cluster name for PLATOnium
-            # NOTE $VSC_MOCKA directory is defined in job script
-            clusterDir = f'$VSC_MOCKA/{starType}/{starDir}/'
-            varSourceFiles.append(clusterDir + sfile)
+                # Use cluster name for PLATOnium
+                # NOTE $VSC_MOCKA directory is defined in job script
+                clusterDir = f'$VSC_MOCKA/{starType}/{starDir}/'
+                varSourceFiles.append(clusterDir + sfile)
             
         # GENERATE VARIABLE CATALOG FILE
         

@@ -1249,8 +1249,8 @@ class Pulsator(object):
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        self.df = pd.read_csv(starfile, sep=' ', comment='#',
-                              names=['freq', 'ampl', 'phase', 'snr'])
+        df = pd.read_csv(starfile, sep=' ', comment='#', names=['freq', 'ampl', 'phase','snr'])
+        self.df = df.rename(columns={'freq':'per_day', 'ampl':'amp_mag', 'phase':'phi_rad'})
         self.starname = starfile.name
 
 
@@ -1262,57 +1262,70 @@ class Pulsator(object):
 
         # Name of folder on FTP server
         filename_mod = 'varsim_mocka_gdor_mod_gang2020.ftr'
-        filename_all = 'varsim_mocka_gdor_all_gang2020.ftr'
-        filename_max = 'varsim_mocka_gdor_max_gang2020.ftr'
+        filename_amp = 'varsim_mocka_gdor_amp_gang2020.ftr'
         filepath_mod = Path(f'{odir}/{filename_mod}')
-        filepath_all = Path(f'{odir}/{filename_all}')
-        filepath_max = Path(f'{odir}/{filename_max}')
+        filepath_amp = Path(f'{odir}/{filename_amp}')
         
         # Download distribution files if not done before
         if not filepath_mod.is_file():
             print(f'Downloading {filename_mod}')
             ut.downloadFromFTP(filename=filename_mod, outputDir=odir, server='plato')
-        if not filepath_all.is_file():
-            print(f'Downloading {filename_all}')
-            ut.downloadFromFTP(filename=filename_all, outputDir=odir, server='plato')
-        if not filepath_max.is_file():
-            print(f'Downloading {filename_max}')
-            ut.downloadFromFTP(filename=filename_max, outputDir=odir, server='plato')
 
         # Load file containing columns
         dm = pd.read_feather(filepath_mod)
-        da = pd.read_feather(filepath_all)
-        dx = pd.read_feather(filepath_max)
+        da = pd.read_feather(filepath_amp)
         
         # Generate KDEs
-        A_kde     = scipy.stats.gaussian_kde(da.amp)
         N_kde     = scipy.stats.gaussian_kde(dm.N)
         P0_kde    = scipy.stats.gaussian_kde(dm.P0)
         dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
         slope_kde = scipy.stats.gaussian_kde(dm.slope)
+        A_kde     = scipy.stats.gaussian_kde(dm.A_max)
 
+
+        # Check that drawing from distributions matchs weights
+        # x_val = dm.A_max
+        # x_kde = A_kde
+        # x_ran = np.linspace(x_val.min(), x_val.max(), 1000)
+        # N = 1000
+        # x = np.zeros(N)
+        # for i in range(N):
+        #     x[i] = pd.Series(x_ran).sample(1, weights=x_kde(x_ran)).to_numpy()
+        
         # Select number modes
-        N = np.random.randint(20, 40) 
+        N = np.random.randint(20, 40)
 
-        # Select maximum period from KDE
-        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), 1000)
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
+
+        # Select maximum period from KDE [day]
+        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
         P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
 
-        # First period spacing in pattern from KDE
-        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), 1000)
+        # First period spacing in pattern from KDE [day]
+        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
         dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
 
         # Select slope from distribution (cf. Fig. 10 of L20)
-        slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), 1000)
+        slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
         slope = pd.Series(slope_ran).sample(1, weights=slope_kde(slope_ran)).to_numpy()[0]
 
-        # Create period-spacing pattern
+        # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
 
-        # Draw amplitude below maximum
-        A_i_ran = np.linspace(dx.A_max.min(), dx.A_max.max(), 1000)
+        # Draw amplitude below maximum [mmag]
+        A_i_ran = np.linspace(da.amp.min(), da.amp.max(), n)        
         A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
 
+
+        # fig, ax = plt.subplots(1,1, figsize=(8,4))
+        # ax.hist(A_i*1e3, bins=10)
+        # ax.set_xlabel('Amplitude [mmag]')
+        # ax.set_ylabel('Count')
+        # plt.tight_layout()
+        # plt.show()
+
+        
         # Max peak amplitude
         n_max = np.argmax(A_i)
         A_max0 = A_i[n_max]
@@ -1331,9 +1344,9 @@ class Pulsator(object):
         
         # Create new data frame
         self.df = pd.DataFrame()
-        self.df['per'] = np.append(P_i, P_puls_i)
-        self.df['amp'] = np.append(A_i, A_puls_i)
-        self.df['phi'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.df['freq']  = 1 / np.append(P_i, P_puls_i)
+        self.df['ampl']  = np.append(A_i, A_puls_i)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
         self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
 
         # Plot period spacing pattern
@@ -1343,9 +1356,46 @@ class Pulsator(object):
         # plt.show()
 
         # Return parameters
-        return N, P0, dP0, slope
+        return N, P0, dP0, slope, A_max0, self.df
     
+
+
+
+    def initBodi2023rrly():
+
+        # Select a random object from the list and load Fourier data
+        filename = 'varsource_RRLyrae_Cepheid_bodi2023'
+        try:
+            filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
+            starfile = random.choice(filenames) # TODO
+        except:
+            zipfile = f'{filename}.zip'
+            errorcode('message', 'Classic, I like your style!')
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=self.idir, server='plato')
+            os.system(f'unzip {self.idir}/{zipfile} -d {self.idir}')
+            os.system(f'rm {self.idir}/{zipfile}')
+            print('')
+
+        # Load file with harmonics
+        filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
+        starfile  = random.choice(filenames)
+        fourier   = np.loadtxt(starfile)    
+        if self.verbose > 1:
+            print(f'Using file {starfile} with frequencies:')
+            print(fourier)
+            
+        # Convert units of input parameters
+        time = self.time.value
+        flux = np.zeros_like(time)
+
+
+        # Generate the lightcurve in the dataframe
+        components = len(np.array(fourier))
+        for i in range(components):
+            flux += fourier[i,1] * np.sin((2*np.pi*fourier[i,0] * time) + fourier[i,2])
         
+    
         
     def evaluate(self, plot=False):
 
@@ -1353,12 +1403,12 @@ class Pulsator(object):
         """
 
         # Else load the data
-        time  = self.time    # [day]
-        freq  = self.df.per  # [day]
-        ampl  = self.df.amp  # [mag]
-        phase = self.df.phi  # [rad]
+        time  = self.time     # [day]
+        freq  = self.df.freq  # [c/d]
+        ampl  = self.df.ampl  # [mag]
+        phase = self.df.phase # [rad]
         
-        return ns.timeSeriesFromFourier(self.time, freq, ampl, phase, power=self.power,
+        return ns.timeSeriesFromFourier(time, freq, ampl, phase, power=self.power,
                                         plot=plot, title=self.starname)
    
 
@@ -1439,7 +1489,6 @@ class EclipsingBinary(object):
     """Models Eclipsing Binaries (EBs).
     """
 
-
     def __init__(self, time, seed=None):
 
         """Open the HDF5 output file
@@ -1452,80 +1501,9 @@ class EclipsingBinary(object):
 
     def read_parameters_hdf5(self, file_name, verbose=False):
 
-        """Read the full model parameters of the linear, sinusoid
+        """Copy of method from STARSHADOW:
+        Read the full model parameters of the linear, sinusoid
         and eclipse models to an hdf5 file.
-
-        Parameters
-        ----------
-        file_name: str
-            File name (including path) for loading the results.
-        verbose: bool
-            If set to True, this function will print some information.
-
-        Returns
-        -------
-        results: dict
-            Contains:
-            sin_mean: None, list[numpy.ndarray[float]]
-                Parameter mean values for the linear and sinusoid model in the order they appear below.
-                linear parameters: const, slope,
-                sinusoid parameters: f_n, a_n, ph_n
-            sin_err: None, list[numpy.ndarray[float]]
-                Parameter error values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_err, sl_err,
-                sinusoid parameters: f_n_err, a_n_err, ph_n_err
-            sin_hdi: None, list[numpy.ndarray[float]]
-                Parameter hdi values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_hdi, sl_hdi,
-                sinusoid parameters: f_n_hdi, a_n_hdi, ph_n_hdi
-            sin_select: None, list[numpy.ndarray[bool]]
-                Sinusoids that pass certain selection criteria
-                passed_sigma, passed_snr, passed_h
-            ephem: None, numpy.ndarray[float]
-                Ephemerides of the EB, p_orb and t_zero
-            ephem_err: None, numpy.ndarray[float]
-                Error values for the ephemerides, p_err and t_zero_err
-            ephem_err: None, numpy.ndarray[float]
-                Hdi values for the ephemerides, p_hdi and t_zero_hdi
-            phys_mean: None, numpy.ndarray[float]
-                Parameter mean values for the physical eclipse model in the order they appear below.
-                ecosw, esinw, cosi, phi_0, log_rr, log_sb,
-                extra parametrisations: e, w, i, r_sum, r_rat, sb_rat
-            phys_err: None, numpy.ndarray[float]
-                Parameter error values for the physical eclipse model in the order they appear below.
-                ecosw_err, esinw_err, cosi_err, phi_0_err, log_rr_err, log_sb_err,
-                Extra parametrisation: e_err, w_err, i_err, r_sum_err, r_rat_err, sb_rat_err
-            phys_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the physical eclipse model in the order they appear below.
-                ecosw_hdi, esinw_hdi, cosi_hdi, phi_0_hdi, log_rr_hdi, log_sb_hdi,
-                Extra parametrisations: e_hdi, w_hdi, i_hdi, r_sum_hdi, r_rat_hdi, sb_rat_hdi
-            timings: None, numpy.ndarray[float]
-                Eclipse timings of minima and first and last contact points, internal tangency
-                and eclipse depth of the primary and secondary:
-                t_1, t_2, t_1_1, t_1_2, t_2_1, t_2_2, t_b_1_1, t_b_1_2, t_b_2_1, t_b_2_2, depth_1, depth_2
-            timings_err: None, numpy.ndarray[float]
-                Parameter error values for the eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            timings_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the eclipse timings and depths:
-                t_1_hdi, t_2_hdi, t_1_1_hdi, t_1_2_hdi, t_2_1_hdi, t_2_2_hdi,
-                t_b_1_1_hdi, t_b_1_2_hdi, t_b_2_1_hdi, t_b_2_2_hdi, depth_1_hdi, depth_2_hdi
-            timings_indiv_err: None, numpy.ndarray[float]
-                Parameter error values for the individual eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            var_stats: None, list[union(float, numpy.ndarray[float])]
-                Variability level diagnostic statistics
-                std_1, std_2, std_3, std_4, ratios_1, ratios_2, ratios_3, ratios_4
-            stats: None, list[float]
-                Some statistics: t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level
-            i_sectors: numpy.ndarray[int]
-                Pair(s) of indices indicating the separately handled timespans
-                in the piecewise-linear curve.
-            text: list[str]
-                Some information about the file and data:
-                identifier, data_id, description and date_time
         """
         # check some input
         ext = os.path.splitext(os.path.basename(file_name))[1]
@@ -1620,27 +1598,33 @@ class EclipsingBinary(object):
                               e[0], w[0], i[0], r_sum[0], r_rat[0], sb_rat[0]])
         phys_err = np.array([ecosw[1], esinw[1], cosi[1], phi_0[1], log_rr[1], log_sb[1],
                              e[1], w[1], i[1], r_sum[1], r_rat[1], sb_rat[1]])
-        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4], log_rr[2:4], log_sb[2:4],
-                             e[2:4], w[2:4], i[2:4], r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
+        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4],
+                             log_rr[2:4], log_sb[2:4], e[2:4], w[2:4], i[2:4],
+                             r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
         timings = np.array([t_1[0], t_2[0], t_1_1[0], t_1_2[0], t_2_1[0], t_2_2[0],
-                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0], depth_1[0], depth_2[0]])
+                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0],
+                            depth_1[0], depth_2[0]])
         timings_err = np.array([t_1[1], t_2[1], t_1_1[1], t_1_2[1], t_2_1[1], t_2_2[1],
-                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1], depth_1[1], depth_2[1]])
-        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4], t_2_1[2:4], t_2_2[2:4],
-                                t_b_1_1[2:4], t_b_1_2[2:4], t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
+                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1],
+                                depth_1[1], depth_2[1]])
+        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4],
+                                t_2_1[2:4], t_2_2[2:4], t_b_1_1[2:4], t_b_1_2[2:4],
+                                t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
         timings_indiv_err = np.array([t_1[4], t_2[4], t_1_1[4], t_1_2[4], t_2_1[4], t_2_2[4],
-                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4], depth_1[4], depth_2[4]])
+                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4],
+                                      depth_1[4], depth_2[4]])
         var_stats = [ratios_1[0], ratios_2[0], ratios_3[0], ratios_4[0],
                      ratios_1[1:], ratios_2[1:], ratios_3[1:], ratios_4[1:]]
         stats = [t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level]
         text = [identifier, data_id, description, date_time]
         # put everything in a dict
-        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi, 'sin_select': sin_select,
+        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi,
+                   'sin_select': sin_select,
                    'ephem': ephem, 'ephem_err': ephem_err, 'ephem_hdi': ephem_hdi,
                    'phys_mean': phys_mean, 'phys_err': phys_err, 'phys_hdi': phys_hdi,
                    'timings': timings, 'timings_err': timings_err, 'timings_hdi': timings_hdi,
                    'timings_indiv_err': timings_indiv_err,
-                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors, 'text': text}
+                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors,'text': text}
         if verbose:
             print(f'Loaded analysis file with identifier: {identifier}, created on {date_time}. \n'
                   f'data_id: {data_id}. Description: {description} \n')
@@ -1654,20 +1638,20 @@ class EclipsingBinary(object):
         """
 
         # Name of folder on FTP server
-        filename = 'varsource_EBs_kepler_ijspeert2021'
+        filename = 'varsource_ebs_ijspeert2021'
         dataDir  = Path(f'{odir}/{filename}')
         
         # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            folders = glob.glob(f'{odir}/{filename}/*')
-        else:
+        if not dataDir.is_dir():
             zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
+            if self.verbose > 1:
+                print(f'Downloading {zipfile} files..')
             ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
             os.system(f'unzip {odir}/{zipfile} -d {odir}')
             os.system(f'rm {odir}/{zipfile}')
-
+            
         # If requested, select specific star or else do a random draw
+        folders = glob.glob(f'{odir}/{filename}/*')
         if starID is None:
             starDir = Path(self.rng.choice(folders))
         else:
@@ -1677,20 +1661,30 @@ class EclipsingBinary(object):
         starfile = starDir / f'{starDir.name}_2.hdf5' 
         result   = self.read_parameters_hdf5(starfile)
         data     = result['sin_mean']
-
-        # Else load the data
-        self.freq  = data[2]      # [days]
-        self.ampl  = data[3] * 1e3 #df.ampl * 1e3  # [mag]
-        self.phase = data[4] #df.phase       # [rad]
+        self.freq  = data[2]  # [day]
+        self.ampl  = data[3]  # [mag]
+        self.phase = data[4]  # [rad]
         self.starname = str(starDir.stem)
 
+        # TODO not valid values below..
+        params = result['ephem']
+        P  = params[0]
+        t0 = params[1]
+        params = result['timings']
+        t1     = params[0]
+        t2     = params[1]
+        depth1 = params[10]
+        depth2 = params[11]
 
+        return self.starname, P, t0, t1, t2, depth1, depth2
+        
 
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
         """
-
+        
         return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
                                         plot=plot, title=self.starname)
         

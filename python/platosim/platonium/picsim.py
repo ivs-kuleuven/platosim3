@@ -1067,7 +1067,7 @@ Notes on PIC catalogue creation:
         df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
         df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
         df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
-            
+        
         # If requested, add bright stars not available in the Gaia catalogue
         if self.bright:
             sirius  = {'gaiaDR3':'Sirius', 'ra':101.2871667, 'dec':-16.7161167,

@@ -845,7 +845,7 @@ def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
 
 
-def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
+def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal', stage='dwarf'):
 
     """Conversion from Gaia G_0 magnitude to the PLATO passband.
     
@@ -868,7 +868,10 @@ def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
     # Define coefficient to transform from G to P
     
     if camera == 'normal':
-        coeff = [-0.3613390, 0.0632494, 0.0301607, -0.0163962, 0.0027984, -0.0001679]
+        if stage == 'dwarf': 
+            coeff = [-0.3613390, 0.0632494, 0.0301607, -0.0163962, 0.0027984, -0.0001679]
+        elif stage == 'giant':
+            coeff = [-0.3586933, 0.0598219, 0.0244786, -0.0119261, 0.0017487, -0.0000870]
     elif camera == 'fast_blue':
         coeff = [-0.1386193, 0.1103836, 0.0582385, -0.0144120, 0.0006554, 0.0000251]
     elif camera == 'fast_red':

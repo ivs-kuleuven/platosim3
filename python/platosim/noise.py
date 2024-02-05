@@ -76,8 +76,83 @@ def numpyFFT(signal, timestep):
 
 
 
-def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
-                          freq_unit='day', plot=False, title=False):
+def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
+
+    """
+    Computes the modulus square of the fourier transform.
+
+    Unit: square of the unit of signal. Time points need not be equidistant.
+    The normalisation is such that a signal A*sin(2*pi*nu_0*t)
+    gives power A^2 at nu=nu_0
+
+    Parameters
+    ----------
+    time : ndarray 
+        Time points [0..Ntime-1]
+    signal : ndarray
+        Signal [0..Ntime-1]
+    f0, fn, df : float
+        The power is computed for the frequencies freq = arange(f0,fn,df)
+    
+    Returns
+    -------
+    power : ndarray
+        Spectrum of the signal
+    """
+
+    freqs = np.arange(f0, fn, df)
+    Ntime = len(time)
+    Nfreq = int(np.ceil((fn-f0)/df))
+
+    A = np.exp(1j * 2 * np.pi * f0 * time) * signal
+    B = np.exp(1j * 2 * np.pi * df * time)
+    ft = np.zeros(Nfreq, complex)
+    ft[0] = A.sum()
+    for k in range(1,Nfreq):
+        A *= B
+        ft[k] = np.sum(A)
+
+    if full_output:
+        return freqs, ft**2*4.0/Ntime**2
+    else:
+        return freqs, (ft.real**2 + ft.imag**2) * 4.0 / Ntime**2
+
+
+    
+
+
+def DFTpower2(time, signal, freqs):
+
+    """
+    Computes the power spectrum of a signal using a discrete Fourier transform.
+
+    The main difference between DFTpower and DFTpower2, is that the latter allows
+    for non-equidistant frequencies for which the power spectrum will be computed.
+
+    @param time: time points, not necessarily equidistant
+    @type time: ndarray
+    @param signal: signal corresponding to the given time points
+    @type signal: ndarray
+    @param freqs: frequencies for which the power spectrum will be computed. Unit: inverse of 'time'.
+    @type freqs: ndarray
+    @return: power spectrum. Unit: square of unit of 'signal'
+    @rtype: ndarray
+    """
+
+    powerSpectrum = np.zeros(len(freqs))
+
+    for i, freq in enumerate(freqs):
+        arg = 2.0 * np.pi * freq * time
+        powerSpectrum[i] = np.sum(signal * np.cos(arg))**2 + np.sum(signal * np.sin(arg))**2
+
+    powerSpectrum = powerSpectrum * 4.0 / len(time)**2
+    return(powerSpectrum)
+
+
+
+
+
+def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=False):
 
     """Generate light curve from Fourier info.
 
@@ -86,78 +161,88 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
     time : ndarray, pdframe
         Time points of which light curve will be generated [s]
     freq : ndarray, pdframe
-        Frequencies of sinusoids [d]
+        Frequencies of sinusoids [as input]
     ampl : ndarray, pdframe
-        Amplitudes of sinusoids [mmag]
+        Amplitudes of sinusoids [as input]
     phase : ndarray, pdframe
         Phases of sinusoids [rad]
 
     Returns
     -------
-    mag : ndarray
-        Signal for each time point [mag]
+    signal : ndarray
+        Signal for each time point [as ampl]
+
+    Notes
+    -----
+    m1-m2 = -2.5 log(f2/f1) => dm = -2.5 log(1-df)
+    1 ppt (ppm) = 1.0863 mmag (mumag)
     """
 
     # Number of pulsation modes
     nmodes = len(freq)
 
     # Loop over the number of modes and sum of every mode
-    mag = np.zeros_like(time)
+    signal = np.zeros_like(time)
     for i in range(nmodes):
-        mag += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
+        signal += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
 
     # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
     # Then add 1, raise the power and substract 1
-    A = np.max(np.abs(mag))
-    mag = A * (((1 + mag/A)**power) - 1)
+    A = np.max(np.abs(signal))
+    signal = A * (((1 + signal/A)**power) - 1)
 
     # If requested, plot model 
     if plot:
-
         fig, ax = plt.subplots(2, 1, figsize=(12, 7))
 
-        mag0 = mag  # [mag -> mmag] 
+        # mag -> mmag
+        signal0 = signal * 1e3
         
         # Plot time series
-        ax[0].plot(time, mag0, 'k-', lw=0.4)
-        ax[0].set_xlabel(r'Time [days]')
-        ax[0].set_ylabel(r'$\delta m$ [mmag]')
+        ax[0].plot(time, signal0, 'k-', lw=0.4)
+        ax[0].set_xlabel(r'Time [d]')
+        ax[0].set_ylabel(r'Signal [mmag]')
         ax[0].set_xlim(time.min(), time.max())
-        #ax[0].set_ylim(self.mag.min(),  self.mag.max())
-        if title:
-            ax[0].set_title(str(title))
+        if title: ax[0].set_title(str(title))
         
-        # Plot power spectrum
-        cadence = np.diff(time)[0]
-        freq0, ampl0 = numpyFFT(mag0, cadence)
-        ampl_scale = ampl / np.max(ampl0)
-
-        print(np.max(ampl0))
+        # Generate DFT for regular sampling
+        fn = np.max(freq)
+        df = 1 / (np.diff(time)[0] * 86400)
+        freq0, ampl0 = DFTpower(time, signal0, f0=0, fn=fn, df=df)
+        amax = np.max(ampl0)
         for i in range(nmodes):
-            ax[1].vlines(x=freq[i], ymin=0, ymax=ampl_scale[i], colors='b', label='Pattern')
-        ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1)
-        # Settings
+            if i == 0:
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1,
+                         label='Input freq.')
+            else:
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1)
+
+        # # Generate DFT for regular sampling
+        # fn = np.max(freq)
+        # df = np.diff(time)[0]
+        # freq0, ampl0 = DFTpower(time, signal0, f0=0, fn=fn, df=df)
+        # amax = np.max(ampl0)
+        # for i in range(nmodes):
+        #     if i == 0:
+        #         ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1,
+        #                  label='Input freq.')
+        #     else:
+        #         ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1)        
+
+                
+        ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1, label='DFT spectrum')
         ax[1].set_ylabel(r'Amplitude [mmag]')
-        ax[1].set_xlabel(r'Period, $P$ [days]')
-        ax[1].set_xlim(0, np.max(freq)+1)
-        ax[1].set_ylim(np.mean(ampl0), np.max(ampl0)+0.1*np.max(ampl0))
+        ax[1].set_xlabel(r'Frequency [c/d]')
+        ax[1].set_xlim(0, np.max(freq))
+        ax[1].set_ylim(-0.1*amax, amax+0.1*amax)
+        ax[1].legend()
+
+        # Settings
         plt.tight_layout()
         plt.show()
-        #carray = np.linspace(0, 1, 1000)
-        #colors = plt.cm.rainbow(carray)
-        #freq = 1/freq
-        # for i in range(N):
-        #     if self.starname is not 'g-Dor':
-        #         snr_norm = self.snr[i]/self.snr.max()
-        #         dex = ut.findNearestIndex(carray, snr_norm)
-        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax],
-        #                    c=colors[dex], lw=snr_norm*3)
-        #     else:
-        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax], c='royalblue')
 
     # Return signal
-    
-    return mag
+    return signal
 
 
 

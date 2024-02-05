@@ -409,12 +409,15 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
                    'gaia.pmdec',
                    'gaia.ruwe',
                    'gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
-                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',                   
+                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
                    'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
+                   'astro.radius_flame', 'astro.radius_flame_lower','astro.radius_flame_upper',
                    'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
                    'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
-                   'astro.spectraltype_esphs']
+                   'astro.activityindex_espcs', 'astro.activityindex_espcs_uncertainty',
+                   'astro.spectraltype_esphs',  'astro.evolstage_flame',
+                   'gaia.phot_variable_flag',   'astro.classlabel_espels']
+
         columns = ', '.join(colname)    
         query_base = f"""SELECT
         {columns}
@@ -546,8 +549,13 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
                                 'mass_flame_upper': 'M_upp',
                                 'lum_flame': 'L',
                                 'lum_flame_lower': 'L_low',
-                                'lum_flame_upper': 'L_upp',                                
-                                'spectraltype_esphs': 'spec'})
+                                'lum_flame_upper': 'L_upp',
+                                'activityindex_espcs': 'S',
+                                'activityindex_espcs_uncertainty': 'S_err',
+                                'spectraltype_esphs': 'spec',
+                                'evolstage_flame': 'evol',
+                                'phot_variable_flag': 'variable',
+                                'classlabel_espels': 'class'})
         df = df.sort_values(by=['BP_RP'])
         # Round Teff column
         df = df.fillna(-1)
