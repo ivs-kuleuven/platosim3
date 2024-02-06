@@ -10,7 +10,7 @@ PLATOnium is PlatoSim's user friendly command-line interface to quickly setup a 
 
 Both ``picsim``, ``varsim``, and ``payload`` creates immediate userable input files to run ``platonium`` in an easy and generic way.
 
-Notice all the abovescripts share the same architecture for default I/O argument parsing:
+Notice all the above scripts share the same architecture for default I/O argument parsing:
 
 * ``-i`` : Input file/folder 
 * ``-o`` : Output file/folder
@@ -39,9 +39,9 @@ picsim
 
 **Create a customised PIC**
 
-To speed up the process of running realistic simulations a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the PLATO Input Catalogue (PIC) created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
+To speed up the process of running realistic simulations, a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the PLATO Input Catalogue (PIC) created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
 
-The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and (accodingly called PLATO Fields from the) `PIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_. Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
+The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and from the `PIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_ (referenced as PLATO Fields). Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
 
 - LOP South 2 (LOPS2): :math:`\ \ \ \ \ \   \alpha = \ \ 95.31043^{\circ}, \ \ \ \ \ \ \delta=-47.88693^{\circ}, \ \ \ \ \ \ \ \kappa=+13.9947^{\circ}`
 - LOP North 1 (LOPN1): :math:`\ \ \ \ \ \ \ \alpha = 277.18023^{\circ},    \ \ \ \ \ \ \delta=+52.85952^{\circ}, \ \ \ \ \ \ \ \kappa=-13.9947^{\circ}`
@@ -69,16 +69,16 @@ These catalogues compose more than :math:`300\,000` PLATO targets from the sampl
    picsim --pic all P1 LOPS2 --spec G  --lum V --mag 9.5-11.2 -o </path/to/outdir>   
    
 * In the first example we draw 100 P1 stars from the LOPN1 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs.
-* In the second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only saving stars brighter than 18 magnitude within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
+* In the second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
 * In the last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.
-
-Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges, the stellar catalogues are saved to a binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``). A log file is likewise created with the settings you used to generate the catalogue (in case you forget).
+  
+Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges, the stellar catalogues are saved to a binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``). The two seperate catalogues are for the targets (``starcat**_target.ftr``) and contaminants (``starcat**_contaminant.ftr``). A log file is likewise created with the settings you used to generate the catalogue (in case you forget).
 
 .. note::
 
    We note that ``picsim`` automatically creates a directory called ``input`` within your parsed output directory. It also copies a YAML file (if it doesn't exists) where the parsed PLATO pointing field is configured. Furthermore, all outputs are turned off except for writing of pixel maps, which simply are done to lower the computational resources. 
 
-**Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` again using the argument ``--incat`` as follows:
+**Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` using the argument ``--incat`` as follows:
 
 .. code-block::
 
@@ -86,7 +86,7 @@ Notice that for all examples shown, we parse the argument ``--project`` or ``-o`
 
 Note we here use the asteriks ``**`` to specify that all files should start with ``starcat`` (which is the default output prefix of ``picsim``) and all files needs to be in feather format ``.ftr``. To make sure that all targets are selected we have here selected ``all`` for the two first mandatory arguments. Currently it is **not** possible to combine catalogues from different PLATO pointing fields.
 
-**Query a Simbad object:** It is possible to query a circular celestial sky region around a known object from the `CDS/Simbad <http://simbad.cds.unistra.fr/simbad/>`_ database. E.g. say that we want to query the star Mizar and all it stellar contaminants that are within a radial distance of 60 arcsec and no brighter than 5 mag compared to Mizar, we simple use: 
+**Query a Simbad object:** It is possible to query a circular celestial sky region around a known object from the `CDS/Simbad <http://simbad.cds.unistra.fr/simbad/>`_ database. E.g. say that we want to query the star Mizar and all of its stellar contaminants that are within a radial distance of 60 arcsec, and no brighter than 5 mag compared to Mizar, we simple use: 
 
 .. code-block::
 
@@ -98,7 +98,7 @@ Note we here use the asteriks ``**`` to specify that all files should start with
 
    picsim --vizier LOPS2 --project <project_name> -p
 
-By default only Gaia star fainter than 15 mag are queried, but, like before, you can alter this. We recommend to create seperate catalogues if stars fainter than 15 mag are needed and then combine these catalogues, instead of quering all star say up to 18 mag in one go (the Gaia query method has a maximum number of targets typically exceeded if quering stars fainter 16 mag for PLATO fields close to the Galactic plane).
+By default only Gaia star fainter than :math:`G < 15` mag are queried, but, like before, you can alter this. We recommend to create seperate catalogues if stars fainter than 15 mag are needed and then combine these catalogues, instead of quering all star say up to 18 mag in one go (the Gaia query method has a maximum number of targets typically exceeded if quering stars fainter 16 mag for PLATO fields close to the Galactic plane).
 
 .. raw:: html
 

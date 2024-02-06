@@ -18,7 +18,7 @@ Changes needs to be made to the files within `source/`. Note all figures are pla
 
 If you just want to see the changes in a locally you first need to:
 
-	make html; firefox build/html/index.rst
+	make html; firefox build/html/index.html
 
 We here use firefox as a browser to visualise the html pages.
 

@@ -75,7 +75,7 @@ This script will create a ``.bash_profile`` file in the ``$PLATO_PROJECT_HOME`` 
 - Make the LESIA pipeline scripts globally executable
 - Make the PLATOnium scripts globally executable
 
-If you want to change your working directory at a later stage, simply run ``setup.sh`` again. The script will automatically detect of the LESIA pipeline is already installed. You can force a new install of the LESIA pipeline by parsing the argument ``--reinstall``.
+If you want to change your working directory at a later stage, simply run ``setup.sh`` again. The script will automatically detect that the LESIA pipeline is already installed. You can force a new install of the LESIA pipeline by parsing the argument ``--reinstall``.
 
 .. warning::
    
@@ -113,12 +113,12 @@ If you want to change your working directory at a later stage, simply run ``setu
 *Run examples*
 --------------
 
-Compared to the previous tutorial on how to run ``platonium``, we now only have to parse the ``--sample <plato_sample>`` to activate the LESIA pipeline. If ``P1`` is parsed, the on-ground pipeline is activated, and if ``P5`` is parsed, the on-board pipeline is activated. E.g. say that we already made two seperate stellar catalogues of respectively P1 and P5 sample stars using ``picsim``. A simple test of 30 exposures for each chain of the pipeline looks like the following:
+Compared to the previous tutorial on how to run ``platonium``, we now only have to parse the ``--pipeline --sample <plato_sample>`` to activate the LESIA pipeline. If ``P1`` is parsed, the on-ground pipeline is activated, and if ``P5`` is parsed, the on-board pipeline is activated. E.g. say that we already made two seperate stellar catalogues of respectively P1 and P5 sample stars using ``picsim``. A simple test of 30 exposures for each chain of the pipeline looks like the following:
 
 .. code-block::
 
-   platonium 1 1 1 1 --project <project_name> --sample P1 --nexp 30
-   platonium 1 1 1 1 --project <project_name> --sample P5 --nexp 30
+   platonium 1 1 1 1 --project <project_name> --pipeline --sample P1 --nexp 30
+   platonium 1 1 1 1 --project <project_name> --pipeline --sample P5 --nexp 30
 
 Note that a lot of information is printed to bash. When running on a computing cluster, this behavior is typically not desired and hence the flag ``-v 0`` avoid printing to bash.
 
@@ -136,7 +136,61 @@ Note that a lot of information is printed to bash. When running on a computing c
 *Output files*
 --------------
 
-The output files produced by PLATOnium when the LESIA pipeline is activated is in the form of so-called **feather** binary files.
+During a simulation, PLATOnium creates three folders called ``reduced``, ``microscan``, ``P1`` (or ``P5`` depending on sample parsed). By default during the run a lot of files are created and stored in ``microscan`` and ``P1``, but at end simulation, the final files are stored into ``reduced``. Note that these foder contains a tree of subfolders to keep each simulation isolated when running in parallel. A standard filename is used for each data product, e.g. the light curve file ``000000001_Ncam1.1_Q1.ftr`` refers to the star ID (``000000001``), the N-CAM camera-group no. and camera no. (``Ncam1.1``), and the quarter (``Q1``). 
+
+**Unique files returned after a P1 sample run:**
+
+* Final extracted P1 sample data with the following columns (``*.ftr``):
+  
+  - ``time``     : [second] Time points with zero-point at mission BOL
+  - ``flux``     : [electron] Extracted flux
+  - ``cx``       : [pixel] X centroid pixel within 6x6 pixel subfield 
+  - ``cy``       : [pixel] Y centroid pixel within 6x6 pixel subfield
+  - ``bg``	 : [electron] Background flux
+  - ``flux_err`` : [electron] Flux error    
+  - ``cx_err``   : [pixel] X centroid pixel error
+  - ``cy_err``   : [pixel] Y centroid pixel error
+  - ``bg_err``   : [electron] Background flux error
+  - ``chi2``  	 : Chi-sqaured of PSF fit
+  - ``iter``     : Iterations before convergecne for PSF fitting 
+
+
+**Unique files returned after a P5 sample run:**
+
+* Final extracted P5 sample data with the following columns (``*.ftr``): 
+
+  - ``time``  		: [second] Time points with zero-ponint at mission BOL
+  - ``flux``        	: [electron] Extracted and corrected flux
+  - ``xc``        	: [pixel] X centroid pixel within 6x6 pixel subfield
+  - ``yc``  		: [pixel] Y centroid pixel within 6x6 pixel subfield
+  - ``flux_cor`` 	: [norm.] Flux model for jitter/drift correction
+
+* Mask-update file for each target star (Marchiori+2019; ``*.fits``).
+
+* Stellar Polution Ratio (SPR) information of target star as per Marchiori+2019 (``*.spr``).
+
+  
+**Files indentical for P1 and P5 sample:**
+
+* An overview table (in feather format) of the simulation (``*.table``):
+
+  - ``ID``        : Star ID of nine digits
+  - ``PIC``       : PIC name of target
+  - ``ra``        : [degree] ICRS Right Ascension 
+  - ``dec``       : [degree] ICRS Declination
+  - ``mag``       : PALTO passband magnitude P
+  - ``group``     : Camera-group ID
+  - ``camera``    : Camera ID
+  - ``quarter``   : Mission quarter number
+  - ``ccd``       : CCD ID for star (subfield) location
+  - ``xCCD``      : [pixel] X centroid pixel coordinate of full frame CCD of first image
+  - ``yCCD``      : [pixel] Y centroid pixel coordinate of full frame CCD of first image
+  - ``rOA``       : [degree] Radial distance to optica axis
+  - ``xFP``       : [millimeter] X focal plane coordinate of first image
+  - ``yFP``       : [millimeter] Y focal plane coordinate of first image
+  - ``ncon``      : Number of contaminants in subfield
+
+* Information about the PSF inversion (``*.invert``). For more information see: PLATO-PL-LESIA-TN-0069 and PLATO-PL-LESIA-TN-0070.
 
 .. raw:: html
 
@@ -152,6 +206,7 @@ The output files produced by PLATOnium when the LESIA pipeline is activated is i
 
 *Troubleshooting*
 -----------------
+
 
 
 .. _platonium_pipeline_troubleshooting_python:
@@ -233,11 +288,9 @@ These are really not needed for our computations and hence
    
 .. _platonium_pipeline_troubleshooting_executables:
   
-Executables missing
-...................
+Run error: Executables missing
+..............................
 
 Sometimes the following scripts: ``combine-mat``, ``invert-rls``, ``spline2real``, and ``find-amp`` cannot be found globally (typically true on a computing cluster by the local node you are running simulations on). By default these scripts are installed into your ``$PLATO/bin`` folder, however, the script ``setup.sh`` should take care of copying these files to your Conda environment **bin** folder.
 
 If the above script are not directly executeable from bash (e.g. ``combine-mat -h``) then the PLATOnium setup script most likely failed. Thus, simply copy all of these files to your Conda environment **bin** folder. You can find this location by first activating your Conda environment and thereafter type ``which python``. Copy the files into the **bin** folder and not the **bin/python** folder!
-
-   
