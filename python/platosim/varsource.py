@@ -1194,6 +1194,21 @@ class Pulsator(object):
         self.rng = ut.rng(seed)
             
 
+
+    def download(self, odir, filename):
+
+        """Utility to download data
+        """
+        
+        filepath = Path(f'{odir}/{filename}')
+        if not filepath.is_dir():
+            zipfile = f'{filename}.zip'
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+            os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
+            os.system(f'rm {odir}/{zipfile}')
+
+        
         
     def initToyModel(self, period_range, amplitude_range, nmodes=False):
 
@@ -1219,7 +1234,7 @@ class Pulsator(object):
         self.freq  = self.rng.uniform(0, 2*np.pi, nmodes)
         self.ampl  = self.rng.uniform(period_range[0], period_range[1], nmodes)
         self.phase = self.rng.uniform(amplitude_range[0], amplitude_range[1], nmodes)
-        self.starname = 'g-Dor'
+        self.starname = 'gamma Doradus toy model'
 
         
         
@@ -1230,27 +1245,20 @@ class Pulsator(object):
 
         # Name of folder on FTP server
         filename = 'varsource_gdor_gang2020'
-        dataDir  = Path(f'{odir}/{filename}')
         
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
-        else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
+        # Download files if not done
+        self.download(odir, filename)
 
         # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.dat')
         if starID is None:
             starfile = Path(self.rng.choice(filenames))
         else:
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#', names=['freq', 'ampl', 'phase','snr'])
-        self.df = df.rename(columns={'freq':'per_day', 'ampl':'amp_mag', 'phase':'phi_rad'})
+        self.df = pd.read_csv(starfile, sep=' ', comment='#',
+                              names=['freq', 'ampl', 'phase', 'snr'])
         self.starname = starfile.name
 
 
@@ -1315,7 +1323,7 @@ class Pulsator(object):
 
         # Draw amplitude below maximum [mmag]
         A_i_ran = np.linspace(da.amp.min(), da.amp.max(), n)        
-        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy() / 2.
 
 
         # fig, ax = plt.subplots(1,1, figsize=(8,4))
@@ -1338,9 +1346,9 @@ class Pulsator(object):
         A_i[n_dex] = A_max0
 
         # Draw random periods not part of the pattern (max 1/8 of ampl)
-        M = np.random.randint(100, 300)
-        P_puls_i = np.random.uniform(0, 2, size=M)
-        A_puls_i = np.random.uniform(0, A_max0/8, size=M)
+        M = np.random.randint(10, 100)
+        P_puls_i = self.rng.uniform(0, 2, size=M)
+        A_puls_i = self.rng.uniform(0, A_max0/10, size=M)
         
         # Create new data frame
         self.df = pd.DataFrame()
@@ -1360,128 +1368,48 @@ class Pulsator(object):
     
 
 
+    def initBodi2023(self, odir, variable='RRLyr'):
 
-    def initBodi2023rrly():
+        # Choose variable
+        if variable == 'RRLyr':
+            filename = 'varsource_rrly_bodi2023'
+        elif variable == 'Ceph':
+            filename = 'varsource_ceph_bodi2023'
+        else:
+            errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
 
-        # Select a random object from the list and load Fourier data
-        filename = 'varsource_RRLyrae_Cepheid_bodi2023'
-        try:
-            filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
-            starfile = random.choice(filenames) # TODO
-        except:
-            zipfile = f'{filename}.zip'
-            errorcode('message', 'Classic, I like your style!')
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=self.idir, server='plato')
-            os.system(f'unzip {self.idir}/{zipfile} -d {self.idir}')
-            os.system(f'rm {self.idir}/{zipfile}')
-            print('')
-
+        # Download files if not done
+        self.download(odir, filename)
+        
         # Load file with harmonics
-        filenames = glob.glob(f'{self.idir}/{filename}/*.fou')
-        starfile  = random.choice(filenames)
-        fourier   = np.loadtxt(starfile)    
-        if self.verbose > 1:
-            print(f'Using file {starfile} with frequencies:')
-            print(fourier)
-            
+        filenames = glob.glob(f'{odir}/{filename}/*.fou')
+        starfile  = Path(self.rng.choice(filenames))
+        
         # Convert units of input parameters
-        time = self.time.value
-        flux = np.zeros_like(time)
-
-
-        # Generate the lightcurve in the dataframe
-        components = len(np.array(fourier))
-        for i in range(components):
-            flux += fourier[i,1] * np.sin((2*np.pi*fourier[i,0] * time) + fourier[i,2])
+        self.df = pd.read_csv(starfile, sep='  ', names=['freq', 'ampl', 'phase'])
+        self.starname = f'{variable}: {starfile.name} (Bodi+2023)'
+        
+        return self.starname 
         
     
         
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
-        """
 
-        # Else load the data
-        time  = self.time     # [day]
-        freq  = self.df.freq  # [c/d]
-        ampl  = self.df.ampl  # [mag]
-        phase = self.df.phase # [rad]
+        time [day], freq [c/d], ampl [mag], phase [rad]
+        """
         
-        return ns.timeSeriesFromFourier(time, freq, ampl, phase, power=self.power,
-                                        plot=plot, title=self.starname)
+        return ns.timeSeriesFromFourier(self.time, self.df.freq, self.df.ampl, self.df.phase,
+                                        power=self.power, title=self.starname, plot=plot)
    
 
 
 
-
-class ClassicalPulsator(object):
-
-    """Class to generate variability classical pulsators
-    """
-
-    def __init__(self, time, seed=False):
-        
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-        
-    def initFromFile(self, odir, starID=None):
-
-        """Draw frequencies from Kepler g-Dor legacy.
-        """
-
-        # Name of folder on FTP server
-        filenames = glob.glob(f'{self.idir}/RRL-CEP/*.fou')
-        starfile = random.choice(filenames)
-        
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
-        else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starfile = Path(self.rng.choice(filenames))
-        else:
-            starfile = Path(filenames[starID-1])
-            
-        # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
-
-        # Else load the data
-        self.starname  = starfile.name
-        self.period    = df.freq        # [days]
-        self.amplitude = df.ampl * 1e3  # [mag]
-        self.phase     = df.phase       # [rad]
-        self.snr       = df.snr
-
-
-        
-    def evaluate(self, plot=False):
-
-        """Evaluate and return generated model.
-        """
-
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
-
-
-
-
-
-
+    
 #==============================================================#
 #                         OTHER OBJECTS                        #
 #==============================================================#
-
 
 
 class EclipsingBinary(object):
@@ -1652,31 +1580,27 @@ class EclipsingBinary(object):
             
         # If requested, select specific star or else do a random draw
         folders = glob.glob(f'{odir}/{filename}/*')
-        if starID is None:
-            starDir = Path(self.rng.choice(folders))
-        else:
-            starDir = Path(filenames[starID-1])
-            
+        starDir = Path(self.rng.choice(folders))
+                    
         # Load file containing columns
         starfile = starDir / f'{starDir.name}_2.hdf5' 
         result   = self.read_parameters_hdf5(starfile)
         data     = result['sin_mean']
-        self.freq  = data[2]  # [day]
+        self.freq  = data[2]  # [c/d]
         self.ampl  = data[3]  # [mag]
         self.phase = data[4]  # [rad]
         self.starname = str(starDir.stem)
 
-        # TODO not valid values below..
-        params = result['ephem']
-        P  = params[0]
-        t0 = params[1]
-        params = result['timings']
-        t1     = params[0]
-        t2     = params[1]
-        depth1 = params[10]
-        depth2 = params[11]
+        # Extract period if avilable
+        starfile = starDir / f'{starDir.name}_5.hdf5'
+        try:
+            result = self.read_parameters_hdf5(starfile)
+            params = result['ephem']
+            P = params[0]
+        except:
+            P = None
 
-        return self.starname, P, t0, t1, t2, depth1, depth2
+        return self.starname, P
         
 
     

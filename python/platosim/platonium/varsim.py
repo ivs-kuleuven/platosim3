@@ -288,7 +288,7 @@ class VarSim(object):
 
         #----------------------------------
 
-        if source == 'roAp':
+        if source == 'gDor':
             M = 1.26 * u.M_sun
             R = 1.20 * u.R_sun
             Teff = 6071 * u.K
@@ -302,11 +302,18 @@ class VarSim(object):
             logg = 4.0
             Z    = 0.0
 
-        if source == 'gDor':
+        if source == 'roAp':
             M = 1.26 * u.M_sun
             R = 1.20 * u.R_sun
             Teff = 6071 * u.K
             logg = 4.0
+            Z    = 0.0
+            
+        if source == 'RRLyr':
+            M = 1.0 * u.M_sun
+            R = 1.0 * u.R_sun
+            Teff = 5500 * u.K
+            logg = 3.5
             Z    = 0.0
 
         if source == 'Ceph':
@@ -315,7 +322,7 @@ class VarSim(object):
             Teff = 7500 * u.K
             logg = 4.0
             Z    = 0.0
-
+            
             
         return M, R, Teff, logg, Z
 
@@ -855,40 +862,6 @@ class VarSim(object):
     #                         OTHER PULSATORS                      #
     #--------------------------------------------------------------#
     
-
-    def star_roap(self):
-
-        """Generate light curve for roAp stars.
-
-        This class is of BAF stars with so-called surface spots.
-        """
-        
-        # Start script
-        if self.verbose > 1:
-            errorcode('module', '\nRotational variable (roAp)\n')
-
-        # Initialize class
-        time  = self.time.to('d').value
-        model = SurfaceModulations(time, seed=self.seed)
-
-        # Prepare model parameters
-        params = model.initToyModel()
-        if self.verbose > 1:
-            print(f'Rotational period   : {round(params[0],3)} days')
-            print(f'Random phase offset : {round(np.rad2deg(params[1]),1)} deg')
-            print(f'Relative amplitude  : {round(params[2],3)}')
-            print(f'Scaled amplitude    : {round(params[3],3)}')
-        
-        # Return model
-        self.lc['roap'] = model.evaluate(plot=args.plot)
-        self.df['Prot_day'] = params[0]
-        self.df['dphi_rad'] = params[1]
-        self.df['Arel']     = params[2]
-        self.df['scale']    = params[3]
-
-
-
-        
     
     def star_gdor(self):
 
@@ -976,6 +949,38 @@ class VarSim(object):
 
 
 
+    def star_roap(self):
+
+        """Generate light curve for roAp stars.
+
+        This class is of BAF stars with so-called surface spots.
+        """
+        
+        # Start script
+        if self.verbose > 1:
+            errorcode('module', '\nRotational variable (roAp)\n')
+
+        # Initialize class
+        time  = self.time.to('d').value
+        model = SurfaceModulations(time, seed=self.seed)
+
+        # Prepare model parameters
+        params = model.initToyModel()
+        if self.verbose > 1:
+            print(f'Rotational period   : {round(params[0],3)} days')
+            print(f'Random phase offset : {round(np.rad2deg(params[1]),1)} deg')
+            print(f'Relative amplitude  : {round(params[2],3)}')
+            print(f'Scaled amplitude    : {round(params[3],3)}')
+        
+        # Return model
+        self.lc['roap'] = model.evaluate(plot=args.plot)
+        self.df['Prot_day'] = params[0]
+        self.df['dphi_rad'] = params[1]
+        self.df['Arel']     = params[2]
+        self.df['scale']    = params[3]
+
+        
+
 
     def star_bcep(self): # TODO
 
@@ -1000,38 +1005,72 @@ class VarSim(object):
         
 
 
+    #--------------------------------------------------------------#
+    #                         EVOLVED STARS                        #
+    #--------------------------------------------------------------#
         
 
-    def star_ceph(self): # TODO
+    def star_rrly(self):
 
-        """Generate ligth curve for Cepheid and RR Lyrae stars.
+        """Generate ligth curve for RR Lyrae stars.
 
-        This function uses precomputed models of Cepheids and RR Lyrae
-        stars to generate the light curve from their harmonics. For now
-        this function will randomly select a star.
+        This function uses precomputed models of RR Lyrae stars 
+        to generate the light curve from their harmonics.
         """
 
         if self.verbose > 1:
-            errorcode('module', '\nClassical pulsators (RR Lyrae & Cepheids)\n')
+            errorcode('module', '\nRR Lyrae pulsator\n')
+
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = Pulsator(time, power=1, seed=self.seed)
+        
+        # Check variable model parsed
+        
+        if args.puls == 'Bodi2023':
+            if self.verbose > 1:
+                print('Selecting mock object from Kepler observations (Bodi+2023)')
+            params = model.initBodi2023(self.idir, variable='RRLyr')
+            self.df['starname'] = params[0]
+        else:
+            exit()
+            
+        # Return model [mag -> flux]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
 
 
-        # Save magnitude to list
-        lc = pd.DataFrame(data = {'time':time, 'flux':flux})
-        mag = - 2.5 * np.log10(lc.flux + 1)
 
-        #self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
         
 
-        # plot light curve
-        if args.plot:
-            plt.figure(figsize=(10, 5))
-            plt.plot(time, mag*1e3, 'm-')
-            plt.xlabel('Time [d]')
-            plt.ylabel(r'$\delta m$ [mmag]')
-            plt.xlim(np.min(time), np.max(time))
-            plt.tight_layout()
-            plt.show()
+    def star_ceph(self):
+
+        """Generate ligth curve for Cepheid stars.
+
+        This function uses precomputed models of Cepheid stars 
+        to generate the light curve from their harmonics.
+        """
+
+        if self.verbose > 1:
+            errorcode('module', '\nCepheid pulsator\n')
+
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = Pulsator(time, power=1, seed=self.seed)
         
+        # Check variable model parsed
+        
+        if args.puls == 'Bodi2023':
+            if self.verbose > 1:
+                print('Selecting mock object from Kepler observations (Bodi+2023)')
+            params = model.initBodi2023(self.idir, variable='Ceph')
+            self.df['starname'] = params[0]
+        else:
+            exit()
+            
+        # Return model [mag -> flux]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
 
 
 
@@ -1058,29 +1097,19 @@ class VarSim(object):
 
         # Fetch model parameters
         if self.verbose > 1:
-            print('Generating mock object using Kepler observations (Gang+2020)')
-        params = model.initIJspeert2023(self.idir)
+            print('Selecting mock object from Kepler observations (IJspeert+2021)')
+        params = model.initIJspeert2023(self.idir, starID=10)
         self.df['starname'] = params[0]
-        self.df['P_day']  = params[0]
-        self.df['t0_day'] = params[1]
-        self.df['t1_day'] = params[2]
-        self.df['t2_day'] = params[3]
-        self.df['depth1_mag'] = params[4]
-        self.df['depth5_mag'] = params[5]
+        self.df['P_day']    = params[1]
         if self.verbose > 1:
-            print(f'Orbital period           : {params[0]} day')
-            print(f'Time of emphemeris       : {params[1]} day')
-            print(f'Eclipse timing of star 1 : {params[2]} day')
-            print(f'Eclipse timing of star 2 : {params[3]} day')
-            print(f'Eclipse depth for star 1 : {params[4]} mmag')
-            print(f'Eclipse depth for star 2 : {params[5]} mmag')
+            print(f'Orbital period : {params[1]:.3f} day')
 
-        # Return model [mag -> ppm]
+        # Return model [mag -> flux]
         mag = model.evaluate(plot=self.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-
+        
 
         
     def binary_smbh(self):
@@ -1646,8 +1675,8 @@ class VarSim(object):
             self.lc['time'] += self.timeStart * 86400
         
         # Variability classes
-        stars    = ['roAp', 'dSct', 'gDor', 'Ceph']
-        binaries = ['SMBH']
+        stars    = ['roAp', 'dSct', 'gDor', 'RRLyr', 'Ceph']
+        binaries = ['EB', 'SMBH']
 
         # Combine all signals for solar-like stars
         if (not self.star in stars and
@@ -1737,15 +1766,19 @@ class VarSim(object):
             args.spot = True
         
         # Include stellar variability
-        if args.star == 'roAp':
-            v.star_roap()
             
-        elif args.star == 'gDor':
+        if args.star == 'gDor':
             v.star_gdor()
 
         elif args.star == 'dSct':
             v.star_dsct()
 
+        elif args.star == 'roAp':
+            v.star_roap()
+            
+        elif args.star == 'RRLyr':
+            v.star_rrly()
+            
         elif args.star == 'Ceph':
             v.star_ceph()
 
@@ -1784,7 +1817,7 @@ class VarSim(object):
         """
         
         # Select binary system
-        self.binary_source()
+        #self.binary_source()
 
         # Bolometric correction
         #self.stellar_spectrum()
@@ -1996,7 +2029,7 @@ class VarSim(object):
 
             # Evolved stars
                 
-            elif starType == 'RRlyr':
+            elif starType == 'RRLyr':
                 self.star_rrly()
                 
             elif starType == 'Ceph':
@@ -2023,6 +2056,11 @@ class VarSim(object):
                 self.solar_spots()
                 self.solar_flares()
 
+            # Eclipsing binary
+            
+            elif starType == 'EB':
+                self.binary_eb()
+    
             # Constant star
                 
             else:

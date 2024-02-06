@@ -1238,7 +1238,7 @@ class PLATOnium(object):
 
             # Avoid destroying stellar signal
             if len(lc.mask_update_events()) > 1:
-                degree = 1
+                degree = 2
             else:
                 degree = 2
 

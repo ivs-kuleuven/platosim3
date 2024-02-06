@@ -189,7 +189,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
     # Then add 1, raise the power and substract 1
     A = np.max(np.abs(signal))
-    signal = A * (((1 + signal/A)**power) - 1)
+    signal = A * ( (1 + signal/A)**power - 1 )
 
     # If requested, plot model 
     if plot:
@@ -215,22 +215,8 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
                 ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1,
                          label='Input freq.')
             else:
-                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1)
-
-        # # Generate DFT for regular sampling
-        # fn = np.max(freq)
-        # df = np.diff(time)[0]
-        # freq0, ampl0 = DFTpower(time, signal0, f0=0, fn=fn, df=df)
-        # amax = np.max(ampl0)
-        # for i in range(nmodes):
-        #     if i == 0:
-        #         ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1,
-        #                  label='Input freq.')
-        #     else:
-        #         ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1)        
-
-                
-        ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1, label='DFT spectrum')
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1)       
+        ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1, label='DFT')
         ax[1].set_ylabel(r'Amplitude [mmag]')
         ax[1].set_xlabel(r'Frequency [c/d]')
         ax[1].set_xlim(0, np.max(freq))
