@@ -201,6 +201,7 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
             maskSizeTarget[starID] = vector<unsigned int>();
             NSRtarget[starID] = vector<double>();
             exposureNrOfMaskUpdate[starID] = vector<unsigned int>();
+            aggregatedSPR[starID] = vector<double>();
         }
     }
 
@@ -988,6 +989,9 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
             arrayName = "maskNSR";
             hdf5File.writeArray(groupName, arrayName, NSRtarget[starID].data(), NSRtarget[starID].size());
 
+            arrayName = "maskSPR";
+            hdf5File.writeArray(groupName, arrayName, aggregatedSPR[starID].data(), aggregatedSPR[starID].size());
+
             for(auto iter = rowIndexOfMaskOfTarget[starID].begin(); iter != rowIndexOfMaskOfTarget[starID].end(); ++iter)
             {
                 const unsigned int exposureNumber = iter->first;
@@ -1019,6 +1023,10 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
 
 /**
  * \brief Extract the photometric light curve for a specified list of stars
+ * 
+ * Based on the following article:
+ *    In-flight photometry extraction of PLATO targets. Optimal apertures for detecting extrasolar planets
+ *    Marchiori V. et al., 2019, A&A 627, 71
  *
  * TODO: - better error catching when the stars for which a lightcurve is requested are (sometimes) not in the subfield
  *       - better treatment when there are no contaminants
@@ -1098,7 +1106,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
     const int Ntargets = photStarIDs.size();                                     // Nr of stars for which we want a lightcurve
     if (Ntargets == 0)
     {
-        Log.warning("Detector:applyPhotometry: no stars found for which photometry is requested. Skipping applyPhotometry().");
+        Log.warning("Detector::applyPhotometry: no stars found for which photometry is requested. Skipping applyPhotometry().");
         return;
     }
 
@@ -1107,6 +1115,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         // Collect info on the position and the input flux of the target
 
         int starID = photStarIDs[n];
+
+        Log.info("Detector::applyPhotometry: Computing photometry for star ID = " + to_string(starID)
+                 + " for exposure # " + to_string(exposureNr));
 
         double time;                                                      // Time stamp of the last exposure         [s]
         double xFPtarget;                                                 // Mean x-coordinate in the focal plane    [mm]
@@ -1119,7 +1130,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
         if (fluxTarget == -1.0)
         {
-            Log.warning("Detector:applyPhotometry: no info found for star " + to_string(starID) + " for which photometry is requested");
+            Log.warning("Detector:applyPhotometry: star ID " + to_string(starID) + " could not be found on the subfield "
+                        + "for exposure #" + to_string(exposureNr));
             continue;
         }
 
@@ -1204,6 +1216,7 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             }
 
             // For the pixels in the designated area around our target, compute the variance and the noise/signal ratio of the signal.
+            // NSR = Noise-to-signal ratio
             // Example size: if the pixelMap is 100x100 pixels, and we consider a mask of 4x4 pixels, then NSRmap is a 2D array of size
             //               100x100, but flatNSRmap is a 1D array of size 16.
 
@@ -1252,6 +1265,10 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
             double aggregatedSingleTargetFlux    = singleTargetMap(rowIndex[0], colIndex[0]) * throughputMap(rowIndex[0], colIndex[0]);
             double aggregatedObservedTargetFlux  = image(rowIndex[0], colIndex[0]);
             double aggregatedNSR                 = NSRmap(rowIndex[0], colIndex[0]);
+            double aggregatedContaminantFlux = contaminantMap(rowIndex[0], colIndex[0]) * throughputMap(rowIndex[0], colIndex[0]);
+            double aggregatedTotalFlux   = (singleTargetMap(rowIndex[0], colIndex[0]) + contaminantMap(rowIndex[0], colIndex[0]) 
+                                                     + skyBackground) * throughputMap(rowIndex[0], colIndex[0]);
+
             maskSizeTarget[starID].push_back(1);
 
             rowIndexOfMaskOfTarget[starID][exposureNr] = {rowIndex[0]};
@@ -1272,22 +1289,27 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
                     aggregatedSingleTargetFlux   += singleTargetMap(rowIndex[i], colIndex[i]) * throughputMap(rowIndex[i], colIndex[i]);
                     aggregatedObservedTargetFlux += image(rowIndex[i], colIndex[i]);
                     aggregatedNSR = temp;
+                    aggregatedContaminantFlux += contaminantMap(rowIndex[i], colIndex[i]) * throughputMap(rowIndex[i], colIndex[i]);
+                    aggregatedTotalFlux += (singleTargetMap(rowIndex[i], colIndex[i]) + contaminantMap(rowIndex[i], colIndex[i]) 
+                                                             + skyBackground) * throughputMap(rowIndex[i], colIndex[i]);
                     maskSizeTarget.at(starID).back() += 1;
                     rowIndexOfMaskOfTarget.at(starID).at(exposureNr).push_back(rowIndex[i]);
                     colIndexOfMaskOfTarget.at(starID).at(exposureNr).push_back(colIndex[i]);
                 }
                 else
                 {
-                    // The aggregated Noise/Signal ratio did not improve by adding this pixel. Not only can we ignore exclude this pixel from the
-                    // mask, but also all subsequent ones that have an even worse noise/signal ratio. So finalize the mask for this target, and
-                    // then break out of the for-loop.
+                    // The aggregated Noise/Signal ratio did not improve by adding this pixel. Not only can we ignore exclude this pixel 
+                    // from the mask, but also all subsequent ones that have an even worse noise/signal ratio. So finalize the mask for 
+                    // this target, and then break out of the for-loop.
 
                     estimatedFluxTarget.at(starID).at(zeroBasedExposureNr) = aggregatedObservedTargetFlux;
                     varFluxTarget.at(starID).at(zeroBasedExposureNr) = aggregatedVariance;
                     NSRtarget.at(starID).push_back(aggregatedNSR);
+                    aggregatedSPR.at(starID).push_back(aggregatedContaminantFlux / aggregatedTotalFlux);
 
                     Log.debug("Detector::applyPhotometry: star ID " + to_string(starID) + " has a mask of " + to_string(i) + " pixels"
-                              " with aggregated S/N = " + to_string(1/aggregatedNSR));
+                              + " with aggregated S/N = " + to_string(1/aggregatedNSR)
+                              + " and SPR = " + to_string(aggregatedContaminantFlux / aggregatedTotalFlux));
 
                     // Disregard all other pixels of the window around the target star: they all contribute more to the noise than to the signal.
 
@@ -1302,7 +1324,8 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         }
         else
         {
-            // For all other exposures, simply use the same (most recent) mask. We reuse the NSR of the previous mask, so no need to recompute it.
+            // For all other exposures, simply use the same (most recent) mask. 
+            // We reuse the NSR of the previous mask, so no need to recompute it. Idem for the SPR.
 
             Log.debug("Detector::applyPhotometry: extracting flux for target ID " + to_string(starID) + " for exposure " + to_string(exposureNr) + " with an old mask");
 
