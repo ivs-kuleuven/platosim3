@@ -42,6 +42,7 @@ from metallicShield                                import MetallicShield
 from quaternion                                    import Quaternion                   
 from RefFrames.focalPlaneCoordinates               import FocalPlaneCoordinates
 from nonlineargain                                 import NonlinearGainTest 
+from spr                                           import SPRTest
 
 
 from contextlib import contextmanager
@@ -120,8 +121,10 @@ myTests = [
     (DarkSignalNonUniformity(),    "Dark Signal Non Uniformity"),
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),
     (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
-    (NonlinearGainTest(),          "Nonlinear gain")
+    (NonlinearGainTest(),          "Nonlinear gain"),
+    (SPRTest(),                    "Stellar pollution ratio (SPR)")
 ]                                  
+
 
 
 def runTheTest(description, test, i):
