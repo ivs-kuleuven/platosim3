@@ -207,7 +207,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
         
         # Generate DFT for regular sampling
         fn = np.max(freq)
-        df = 1 / (np.diff(time)[0] * 86400)
+        df = np.diff(time)[0] * 2
         freq0, ampl0 = DFTpower(time, signal0, f0=0, fn=fn, df=df)
         amax = np.max(ampl0)
         for i in range(nmodes):

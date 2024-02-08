@@ -1729,6 +1729,7 @@ class VarSim(object):
             if self.verbose > 1:
                 print(f'Saving file : {ofile_parameters}')
             self.df = self.df.to_frame().T
+            self.df = self.df.reset_index(drop=True)
             self.df.to_feather(ofile_parameters)
 
             # Save components (if multiple)

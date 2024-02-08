@@ -1256,7 +1256,15 @@ class PLATOnium(object):
             if self.verbose > 0 :
                 print('Checking for mask-updates to stitch')
 
-            lc.stitch(medpoint=1000, replace=True, plot=self.plotPost)
+            # Auto selection of sigma
+            if self.df.mag <= 10:
+                mpoint = 100
+            elif self.df.mag > 10 and self.df.mag < 13:
+                mpoint = 500
+            else:
+                mpoint = 1000            
+                
+            lc.stitch(medpoint=mpoint, replace=True, plot=self.plotPost)
 
 
         # OUTLIER REJECTION

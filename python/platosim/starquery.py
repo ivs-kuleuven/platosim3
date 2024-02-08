@@ -365,7 +365,7 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
 
 def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
-                    flag_astro=False, ofile=False):
+                    flag_astro=False, flag_quasar=False, ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
     
@@ -430,7 +430,29 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
           AND gaia.phot_g_mean_mag > {maglim_min}
           AND gaia.phot_g_mean_mag < {maglim_max}        
         """
-
+        
+    elif flag_quasar:
+        colname = ['gaia.source_id',
+                   'gaia.ra',
+                   'gaia.dec',
+                   'gaia.phot_g_mean_mag',
+                   'gaia.bp_rp',
+                   'astro.classprob_dsc_combmod_quasar']
+        columns = ', '.join(colname)    
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND astro.classprob_dsc_combmod_quasar > 0.9          
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}
+          
+        """        
+        
     else:
         colname = ['gaia.source_id',
                    'gaia.ra',

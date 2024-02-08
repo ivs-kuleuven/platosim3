@@ -1050,7 +1050,8 @@ Notes on PIC catalogue creation:
             
             df0 = sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
                                      maglim_min=self.magmin, maglim_max=self.magmax,
-                                     flag_astro=self.astro, ofile=f'{self.filename}.vot')
+                                     flag_astro=self.astro, flag_quasar=True,
+                                     ofile=f'{self.filename}.vot')
 
             # Contatenate catalogue
             if i == 0: df = df0

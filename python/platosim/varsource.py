@@ -1289,16 +1289,6 @@ class Pulsator(object):
         dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
         slope_kde = scipy.stats.gaussian_kde(dm.slope)
         A_kde     = scipy.stats.gaussian_kde(dm.A_max)
-
-
-        # Check that drawing from distributions matchs weights
-        # x_val = dm.A_max
-        # x_kde = A_kde
-        # x_ran = np.linspace(x_val.min(), x_val.max(), 1000)
-        # N = 1000
-        # x = np.zeros(N)
-        # for i in range(N):
-        #     x[i] = pd.Series(x_ran).sample(1, weights=x_kde(x_ran)).to_numpy()
         
         # Select number modes
         N = np.random.randint(20, 40)
@@ -1314,25 +1304,16 @@ class Pulsator(object):
         dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
         dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
 
-        # Select slope from distribution (cf. Fig. 10 of L20)
-        slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
-        slope = pd.Series(slope_ran).sample(1, weights=slope_kde(slope_ran)).to_numpy()[0]
+        # Select slope from fit to distribution (cf. Fig. 10 of L20)
+        a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
+        slope = a * np.exp(-b * P0) + c * np.log10(d * P0) + e
 
         # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
-
-        # Draw amplitude below maximum [mmag]
+        
+        # Draw amplitude below maximum [mag]
         A_i_ran = np.linspace(da.amp.min(), da.amp.max(), n)        
-        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy() / 2.
-
-
-        # fig, ax = plt.subplots(1,1, figsize=(8,4))
-        # ax.hist(A_i*1e3, bins=10)
-        # ax.set_xlabel('Amplitude [mmag]')
-        # ax.set_ylabel('Count')
-        # plt.tight_layout()
-        # plt.show()
-
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy() / 4.
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
@@ -1346,22 +1327,16 @@ class Pulsator(object):
         A_i[n_dex] = A_max0
 
         # Draw random periods not part of the pattern (max 1/8 of ampl)
-        M = np.random.randint(10, 100)
-        P_puls_i = self.rng.uniform(0, 2, size=M)
+        M = np.random.randint(100, 400)
+        P_puls_i = self.rng.uniform(0.2, 2, size=M)
         A_puls_i = self.rng.uniform(0, A_max0/10, size=M)
-        
+
         # Create new data frame
         self.df = pd.DataFrame()
         self.df['freq']  = 1 / np.append(P_i, P_puls_i)
         self.df['ampl']  = np.append(A_i, A_puls_i)
         self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
         self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
-
-        # Plot period spacing pattern
-        # fig, ax = plt.subplots(1,1, figsize=(8,4))
-        # ax.plot(P_i[:-1], np.diff(P_i)*86400, '*')
-        # plt.tight_layout()
-        # plt.show()
 
         # Return parameters
         return N, P0, dP0, slope, A_max0, self.df

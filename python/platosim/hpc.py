@@ -96,19 +96,17 @@ class HPC(object):
 
             # RUN VARSIM
                 
-            if script == 'varsim' and self.project == 'cs-smbhb':
+            if script == 'varsim' and self.project == 'mocka':
+                Parallel()(delayed(self.run_varsim_mocka)(i)
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
+
+            elif script == 'varsim' and self.project == 'cs-smbhb':
                 Parallel()(delayed(self.run_varsim_smbhb)(i)
-                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
-                
-            elif script == 'varsim' and self.project == 'mocka':
-                Parallel()(delayed(self.run_varsim_mocka)(i, N, project, projectDir)
-                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
-                
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))                
+
             elif script == 'varsim':
                 Parallel()(delayed(self.run_varsim)(i, N, params[i])
                            for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
-
-
 
             
     #--------------------------------------------------------------#
@@ -167,10 +165,10 @@ class HPC(object):
 
 
 
-    def run_varsim_mocka(self, i, N, project, projectDir):
+    def run_varsim_mocka(self, i):
 
         """Function to run the parallelisation.
         """
         
-        os.system(f'{self.VARSIM} --mocka {project} gdor {i+1} no {self.odir} ' +
-                  '--puls gang2020 --quarter 1-16 -v 0' )
+        os.system(f'{self.VARSIM} --mocka {self.project} gDor {i+1} no {self.odir} ' +
+                  '--puls mocka --quarter 1-8 -v 0')
