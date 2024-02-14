@@ -63,7 +63,7 @@ class StellarFlares(object):
 
 
 
-    def initToyModelBeta0(self): # TODO under construction!
+    def initToyModel(self):
 
         """Uniform distribution of toy model.
         """
@@ -1197,33 +1197,38 @@ class Pulsator(object):
 
     def download(self, odir, filename):
 
-        """Utility to download data
+        """Utility to download data.
         """
         
         filepath = Path(f'{odir}/{filename}')
-        if not filepath.is_dir():
+        
+        # Check if a file or a folder is requested
+
+        if not filepath.is_file() and filepath.suffix == '.ftr':
+            print(f'Downloading {filename}')
+            ut.downloadFromFTP(filename=filename, outputDir=odir, server='plato')
+        
+        elif not filepath.is_dir() and filepath.suffix != '.ftr':
             zipfile = f'{filename}.zip'
             print(f'Downloading {zipfile} files..')
             ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
             os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
             os.system(f'rm {odir}/{zipfile}')
 
+            
         
-        
-    def initToyModel(self, period_range, amplitude_range, nmodes=False):
+    def initToyModel(self, freq_range, ampl_range, nmodes=False):
 
         """Draw pulsations from uniform distribution.
 
         Parameters
         ----------
-        period_range : list
-            Range of pulsation periods [Pmin, Pmax] in unit of [days]
-        amplitude_range : list
-            Range of pulsation amplitudes [Amin, Amax] in units of [mmag]
+        freq_range : list
+            Range of pulsation frequencies [fmin, fmax] in unit of [c/d]
+        ampl_range : list
+            Range of pulsation amplitudes [Amin, Amax] in units of [mag]
         nmodes : int
             Number of pulsation modes to include
-
-        TODO Model gives wrong results! High value at 0 c/d!
         """
         
         # Number of pulsation modes
@@ -1231,57 +1236,82 @@ class Pulsator(object):
             nmodes = int(self.rng.normal(50, 5))
         
         # Generate pulsations using uniform distributions
-        self.freq  = self.rng.uniform(0, 2*np.pi, nmodes)
-        self.ampl  = self.rng.uniform(period_range[0], period_range[1], nmodes)
-        self.phase = self.rng.uniform(amplitude_range[0], amplitude_range[1], nmodes)
-        self.starname = 'gamma Doradus toy model'
+        self.df = pd.DataFrame()
+        self.df['freq']  = self.rng.uniform(freq_range[0], freq_range[1], nmodes)
+        self.df['ampl']  = self.rng.uniform(ampl_range[0], ampl_range[1], nmodes)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, nmodes)
+        self.starname = 'Toy model'
 
-        
-        
-    def initGang2020(self, odir, starID=None):
 
-        """Draw frequencies from Kepler g-Dor legacy.
+
+    def initFromFile(self, odir, sample, starID=None, variable=None):
+
+        """Draw frequencies from Kepler legacies.
         """
 
-        # Name of folder on FTP server
-        filename = 'varsource_gdor_gang2020'
+        # Select sample
+        
+        if sample == 'Gang2020':
+            suffix   = 'dat'
+            sep      = ' '
+            comment  = '#'
+            filename = 'varsource_gdor_gang2020'
+            names    = ['freq', 'ampl', 'phase', 'snr']
+            
+        elif sample == 'Bowman2018':
+            suffix   = 'txt'
+            sep      = '  '
+            comment  = None
+            filename = 'varsource_dsct_bowman2018'
+            names    = ['niter', 'freq', 'freq_err', 'ampl', 'ampl_err', 
+                        'phase', 'phase_err', 'snr']
+            
+        elif sample == 'Bodi2023':
+            suffix   = 'fou'
+            sep      = '  '
+            comment  = None
+            names    = ['freq', 'ampl', 'phase']
+            if variable == 'RRLyr':
+                filename = 'varsource_rrly_bodi2023'
+            elif variable == 'Ceph':
+                filename = 'varsource_ceph_bodi2023'
+            else:
+                errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+
+        else:
+            errorcode('error', f'No sample named {sample}!')
         
         # Download files if not done
         self.download(odir, filename)
 
         # If requested, select specific star or else do a random draw
-        filenames = glob.glob(f'{odir}/{filename}/*.dat')
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
         if starID is None:
             starfile = Path(self.rng.choice(filenames))
         else:
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        self.df = pd.read_csv(starfile, sep=' ', comment='#',
-                              names=['freq', 'ampl', 'phase', 'snr'])
-        self.starname = starfile.name
+        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+        self.starname = f'{sample}: {starfile.name}'
 
+        # Return the star ID
+        return starfile.name
+    
 
-        
-    def initGang2020mocka(self, odir, starID=None):
+    
+    def initMockaGang2020(self, odir):
 
         """Draw frequencies from Kepler g-Dor legacy.
         """
 
-        # Name of folder on FTP server
-        filename_mod = 'varsim_mocka_gdor_mod_gang2020.ftr'
-        filename_amp = 'varsim_mocka_gdor_amp_gang2020.ftr'
-        filepath_mod = Path(f'{odir}/{filename_mod}')
-        filepath_amp = Path(f'{odir}/{filename_amp}')
+        # Download analysis file
+        filename = 'varsim_mocka_gdor_gang2020.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
         
-        # Download distribution files if not done before
-        if not filepath_mod.is_file():
-            print(f'Downloading {filename_mod}')
-            ut.downloadFromFTP(filename=filename_mod, outputDir=odir, server='plato')
-
         # Load file containing columns
-        dm = pd.read_feather(filepath_mod)
-        da = pd.read_feather(filepath_amp)
+        dm = pd.read_feather(filepath)
         
         # Generate KDEs
         N_kde     = scipy.stats.gaussian_kde(dm.N)
@@ -1312,8 +1342,8 @@ class Pulsator(object):
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
         
         # Draw amplitude below maximum [mag]
-        A_i_ran = np.linspace(da.amp.min(), da.amp.max(), n)        
-        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy() / 4.
+        A_i_ran = np.linspace(dm.A_max.min(), 0.003, n)        
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
@@ -1343,31 +1373,60 @@ class Pulsator(object):
     
 
 
-    def initBodi2023(self, odir, variable='RRLyr'):
+    def initMockaBowman2018(self, odir):
 
-        # Choose variable
-        if variable == 'RRLyr':
-            filename = 'varsource_rrly_bodi2023'
-        elif variable == 'Ceph':
-            filename = 'varsource_ceph_bodi2023'
-        else:
-            errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+        """Draw frequencies from Kepler DSct legacy.
+        """
 
-        # Download files if not done
+        # Download analysis file
+        filename = 'varsim_mocka_dsct_bowman2018.ftr'
+        filepath = Path(f'{odir}/{filename}')
         self.download(odir, filename)
+
+        # Load file containing columns
+        df = pd.read_feather(filepath)
+
+        # Generate KDEs
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        A_kde = scipy.stats.gaussian_kde(df.ampl)
         
-        # Load file with harmonics
-        filenames = glob.glob(f'{odir}/{filename}/*.fou')
-        starfile  = Path(self.rng.choice(filenames))
+        # Select number modes
+        N = self.rng.integers(20, 40, 1)[0]
+
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
+
+        # Select frequcies from KDE [day]
+        f_ran = np.linspace(df.freq.min(), df.freq.max(), n)
+        f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
+
+        # Draw amplitude below maximum [mag]
+        A_ran = np.linspace(df.ampl.min(), df.ampl.max(), n)        
+        A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
         
-        # Convert units of input parameters
-        self.df = pd.read_csv(starfile, sep='  ', names=['freq', 'ampl', 'phase'])
-        self.starname = f'{variable}: {starfile.name} (Bodi+2023)'
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = self.rng.integers(-5, 5, 1)[0]
+        n_dex = int(N/2 + n_off)
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = f_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.df = self.df.sort_values('freq').reset_index(drop=True)
+        self.starname = 'MOCKA: delta Scuti (Bowman+2018)'
+
+        # Return parameters
+        return self.df
         
-        return self.starname 
         
     
-        
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.

@@ -341,7 +341,7 @@ class PLATOnium(object):
             # If requested select only the target, else include contaminants
             if not self.starcatFile:
                 if self.noCon:
-                    self.dc = dc[dc[self.colID] == self.numCon]
+                    self.dc = dc[dc[self.colID] == 0]
                 else:
                     self.dc = dc[dc[self.colID] == self.df[self.colID]]
                     self.dc = self.dc.sort_values(by=['dis'])
@@ -372,6 +372,8 @@ class PLATOnium(object):
             self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
             self.dc = self.dc[self.dc.dis < self.conDisLimit]
             self.dc = self.dc.reset_index(drop=True)
+
+            # Number of contaminants
             if self.noCon:
                 self.numCon = 0
             else:
@@ -617,11 +619,15 @@ class PLATOnium(object):
         # The camera(s) drift due to the thermal gradient of
         # the interface between the camera and the optical bench.
         # NOTE: Included if "instrumentTED.txt" is available in input
-        inputFileTED = self.inputDir.joinpath('instrumentTED.txt')
-        if inputFileTED.is_file():
-            sim["Telescope/UseDrift"]      = True
-            sim["Telescope/DriftSource"]   = 'FromFile'
-            sim["Telescope/DriftFileName"] = inputFileTED
+        inputFileTED   = self.inputDir.joinpath('instrumentTED.txt')
+        inputFileTED_i = self.inputDir.joinpath(f'instrumentTED_group{self.group}.txt')
+        if inputFileTED.is_file() or inputFileTED_i.is_file():
+            sim["Telescope/UseDrift"]    = True
+            sim["Telescope/DriftSource"] = 'FromFile'
+            if inputFileTED.is_file():
+                sim["Telescope/DriftFileName"] = inputFileTED
+            elif inputFileTED_i.is_file():
+                sim["Telescope/DriftFileName"] = inputFileTED_i
         if sim["Telescope/UseDrift"] and self.verbose > 1:
             if sim["Telescope/DriftSource"] == 'FromFile':
                 source = 'FromFile'
@@ -1250,7 +1256,7 @@ class PLATOnium(object):
                 degree = 2
 
             # Perform detrending
-            lc.detrend(model=self.detrend, degree=degree, replace=True, plot=self.plotPost)
+            lc.detrend(model=self.detrend, degree=False, replace=True, plot=self.plotPost)
             
             if self.verbose > 1:
                 self.tocDetrend = datetime.datetime.now() - self.tic

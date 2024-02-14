@@ -800,6 +800,29 @@ def fromMagToRelativeFlux(mag, norm=1e6):
 
 
 
+def normFlux(flux, norm=1e3):
+
+    """Convert magnitude to relative flux
+
+    Parameters
+    ----------
+    flux : float
+        Relative flux around unity
+    norm : float
+        Normalisation contant for relative flux
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux scaled after the normalisation constant.
+    """
+
+    return (flux / np.nanmedian(flux) - 1) * norm
+
+
+
+
+
 
 
 def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):

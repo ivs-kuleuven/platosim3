@@ -1648,7 +1648,7 @@ class SimFile (object):
 
                 # Get the aperture mask pixels
                 
-                row_mask, col_mask, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
+                row_mask, col_mask, _, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
 
                 # Compare mask pixels to cosmics affected pixels element wise
 
@@ -2188,7 +2188,7 @@ class SimFile (object):
         # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
+            rowIndices, colIndices, _, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='royalblue', facecolor='none', hatch="/",

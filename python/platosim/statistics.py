@@ -67,10 +67,10 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     
     # Select title and model
     title  = r'Fit model: $y = \epsilon + \theta_0$'
-    if model == 'y ~ x': title += fr' + $\theta_1 {x}$'   
-    if model == 'y ~ x + z': title += fr' + $\theta_1$ {x} + \theta_2 z$'
+    if model == 'y ~ x': title += fr' + $\theta_1 {x}$'
     if model == 'y ~ x + I(x**2)': title += fr' + $\theta_1 {x} + \theta_2 {x}^2$'
     if model == 'y ~ x + I(x**2) + I(x**3)': title += fr' + $\theta_1 {x} + \theta_2 {x}^2 + \theta_3 {x}^3$'
+    if model == 'y ~ x + z': title += fr' + $\theta_1$ {x} + \theta_2 z$'
     if model == 'y ~ x + I(np.sin(x))': title += fr' + $\theta_1 {x} + \theta_2 \sin({x})$'            
 
     # Predict response variable
@@ -98,22 +98,20 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
         df_predictions.index = data.x.values
 
         # Plot CI
-        if len(data) < 1e3:
-            ax.fill_between(df_predictions.index, 
-                            df_predictions.mean_ci_lower, 
-                            df_predictions.mean_ci_upper, 
-                            alpha=0.2, color=CI_color[i+1], zorder=2)
-        ax.plot(data[reg], df_predictions.mean_ci_lower, '-', c=color[i+1], lw=2, zorder=2, label=str((1-CI[i])*100)+'% CI')
-        ax.plot(data[reg], df_predictions.mean_ci_upper, '-', c=color[i+1], lw=2, zorder=2)
+        ax.fill_between(df_predictions.index, 
+                        df_predictions.mean_ci_lower, 
+                        df_predictions.mean_ci_upper, 
+                        alpha=0.2, color=color[i+1], zorder=2)
+        ax.plot(data[reg], df_predictions.mean_ci_lower, '-', c=color[i+1], lw=1, zorder=2, label=str((1-CI[i])*100)+'% CI')
+        ax.plot(data[reg], df_predictions.mean_ci_upper, '-', c=color[i+1], lw=1, zorder=2)
     
     # Plot PI -> only relevant for OLS
-    if len(data) < 1e3:
-        ax.fill_between(df_predictions.index, 
-                        df_predictions.obs_ci_lower, 
-                        df_predictions.obs_ci_upper, 
-                        alpha=0.2, color=PI_color, zorder=3)
-    ax.plot(data[reg], df_predictions.obs_ci_lower, '-', c=color[-1], lw=2, zorder=2, label=str((1-CI[0])*100)+'% PI')
-    ax.plot(data[reg], df_predictions.obs_ci_upper, '-', c=color[-1], lw=2, zorder=2)
+    ax.fill_between(df_predictions.index, 
+                    df_predictions.obs_ci_lower, 
+                    df_predictions.obs_ci_upper, 
+                    alpha=0.2, color=color[-1], zorder=3)
+    ax.plot(data[reg], df_predictions.obs_ci_lower, '-', c=color[-1], lw=1, zorder=2, label=str((1-CI[0])*100)+'% PI')
+    ax.plot(data[reg], df_predictions.obs_ci_upper, '-', c=color[-1], lw=1, zorder=2)
     
     # Plot best fit and data
     ax.plot(df_predictions['mean'], color=color[0], label='Fit', zorder=3)
@@ -130,7 +128,8 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     #string += f'RMS = {RMS} ppm'
     #props = dict(boxstyle='round', facecolor=color[0], alpha=0.3)
     #ax.text(1.02, 0.98, string, transform=ax.transAxes, fontsize=14, 
-    #        verticalalignment='top', bbox=props)            
+    #        verticalalignment='top', bbox=props)
+    plt.tight_layout()
     plt.show()
     
     
@@ -178,6 +177,29 @@ def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS',
     plt.show()
     
     
+
+
+
+def plot_residuals(data, olsFit, color='blue', reg='x'):
+    
+    fig, ax = plt.subplots(1,2, figsize=(20,6))
+
+    # Plot residuals squared vs. observations
+    ax[0].axhline(y = 0, color='k', linestyle='--', alpha=0.8)
+    ax[0].scatter(data[reg], olsFit.resid**2, s=20, color=color)
+    ax[0].set_xlabel(reg)
+    ax[0].set_ylabel(r"Residuals squared, $\varepsilon^2$")
+    ax[0].grid(True, color='gainsboro', linestyle='-', linewidth=0.5)
+
+    # Plot residuals vs. plot
+    ax[1].axhline(y = 0, color='k', linestyle='--', alpha=0.8)
+    ax[1].scatter(olsFit.fittedvalues, olsFit.resid, s=20, color=color)
+    ax[1].set_xlabel("Predicted reponse")
+    ax[1].set_ylabel(r"Residuals, $\epsilon$")
+    ax[1].grid(True, color='gainsboro', linestyle='-', linewidth=0.5)
+    plt.show()
+
+
     
 
     
@@ -188,8 +210,10 @@ def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS', figsize=
     
     # Choose correct residuals
     
-    if lsModel == 'OLS':  resid = lsFit.resid
-    else: resid = lsFit.resid_pearson
+    if lsModel == 'OLS':
+        resid = lsFit.resid
+    else:
+        resid = lsFit.resid_pearson
     
     N = len(data[reg])
     s2 = np.sum(resid**2) / (N-K)
@@ -200,3 +224,79 @@ def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS', figsize=
     fig, ax = plt.subplots(figsize=figsize)
     qqplot(standardizedResiduals, line='45', ax=ax)
     plt.show()
+
+
+
+
+
+def model_selection(AIC_j, BIC_j, k=False, N=False, show=False):
+
+    # k : Number of unknown parameters -> list
+    # N : Number of observations -> int
+    n = len(AIC_j)
+            
+    # Akaike and Baysian delta score
+    dAIC_j = np.array([AIC_j[i] - np.min(AIC_j) for i in range(n)])
+    dBIC_j = np.array([BIC_j[i] - np.min(BIC_j) for i in range(n)])
+    
+    # Akaike weight and Baysian probability
+    wAIC_i = []
+    pBIC_i = []
+    for i in range(n):    
+        wAIC_i.append(np.exp(-1/2*(AIC_j[i]-np.min(AIC_j))) / np.sum(np.exp(-1/2*dAIC_j)))
+        pBIC_i.append(np.exp(-1/2*(BIC_j[i]-np.min(BIC_j))) / np.sum(np.exp(-1/2*dBIC_j)))
+
+    # Probability of model 1
+    p12 = wAIC_i[0] / (wAIC_i[0] + wAIC_i[1])
+    b12 = pBIC_i[0] / (pBIC_i[0] + pBIC_i[1])
+    if n == 3:
+        p13 = wAIC_i[0] / (wAIC_i[0] + wAIC_i[2])
+        b13 = pBIC_i[0] / (pBIC_i[0] + pBIC_i[2])
+        p23 = wAIC_i[1] / (wAIC_i[1] + wAIC_i[2])
+        b23 = pBIC_i[1] / (pBIC_i[1] + pBIC_i[2])
+
+    # Find best model
+    if n == 2:
+        if p12 > 50:
+            best = 1
+        else:
+            best = 2
+    elif n == 3:
+        if p12 > 50 and p13 < 50:
+            best = 1
+        elif p23 > 50 and p12 < 50:
+            best = 2
+        else:
+            best = 3
+
+    # Show model output
+    if show:
+        print('\n------------------------------')
+        print('Model comparison')
+        for i in range(n):
+            print(f'AIC weight model {i+1}: {round(wAIC_i[i], 2)}')
+            print(f'BIC proba. model {i+1}: {round(pBIC_i[i], 2)}')
+            
+        print('\nHeuristical likelihood')
+        print(f'w1/w2 : {round(wAIC_i[0]/wAIC_i[1], 3)}')
+        print(f'p1/p2 : {round(pBIC_i[0]/pBIC_i[1], 3)}')
+        if n == 3:
+            print(f'w2/w3 : {round(wAIC_i[1]/wAIC_i[2], 3)}')
+            print(f'p2/p3 : {round(pBIC_i[1]/pBIC_i[2], 3)}')
+            print(f'w3/w1 : {round(wAIC_i[2]/wAIC_i[0], 3)}')
+            print(f'p3/p1 : {round(pBIC_i[2]/pBIC_i[0], 3)}')
+            
+        print('\nProbability in favour of model 1 over 2')
+        print(f'w1/(w1+w2) : {round(p12, 1)} %')
+        print(f'p1/(p1+p2) : {round(b12, 1)} %')
+        if n == 3:
+            print('\nProbability in favour of model 1 over 3')
+            print(f'w1/(w1+w3) : {round(p13, 1)} %')
+            print(f'p1/(p1+p3) : {round(b13, 1)} %')
+            print('\nProbability in favour of model 2 over 3')
+            print(f'w2/(w2+w3) : {round(p23, 1)} %')
+            print(f'p2/(p2+p3) : {round(b23, 1)} %')
+        print('------------------------------\n')
+        
+    return best
+    

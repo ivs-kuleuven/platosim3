@@ -884,17 +884,17 @@ class VarSim(object):
         time  = self.time.to('d').value
         model = Pulsator(time, power=2.2, seed=self.seed)
         
-        # Check variable model parsed
+        # Check model parsed
         
         if args.puls == 'Gang2020':
             if self.verbose > 1:
-                print('Using random Kepler target as mock object (Gang+2020)')            
-            model.initGang2020(self.idir, starID=self.starID)
+                print('Generating mock object using Kepler sample (Gang+2020)')            
+            model.initFromFile(self.idir, args.puls, starID=self.starID)
 
         elif args.puls == 'mocka':
             if self.verbose > 1:
-                print('Generating mock object using Kepler observations (Gang+2020)')
-            params = model.initGang2020mocka(self.idir)
+                print('Generating mock object using Kepler sample (Gang+2020)')
+            params = model.initMockaGang2020(self.idir)
             self.df['N_modes']     = params[0]
             self.df['P0_day']      = params[1]
             self.df['DeltaP0_day'] = params[2]
@@ -921,26 +921,37 @@ class VarSim(object):
 
             
         
-    def star_dsct(self): # TODO
+    def star_dsct(self):
 
         """Generate light curves for delta-Scuti stars.
-
-        Notes 
-        -----
-        This function used the "gravity_oscill" utility with a characteristic
-        power of 1.0 for these g-mode pulsators.
         """
 
         # Start script
         if self.verbose > 1:
-            errorcode('module', '\nPulsator: delta-Scuti (g-modes)\n')
+            errorcode('module', '\ndelta Scuti (p-mode pulsator)\n')
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = GravityOscillator(time, power=1.0, seed=self.seed)
-        
-        # Check if a file with pulsations are parsed
-        model.initToyModel([1, 30], [10, 30])
+        model = Pulsator(time, power=1.0, seed=self.seed)
+
+        if args.puls == 'Bowman2018':
+            if self.verbose > 1:
+                print('Selecting mock object from Kepler sample (Bowman+2018)')
+            params = model.initFromFile(self.idir, args.puls, starID=self.starID)
+            self.df['starname'] = params[0]
+
+        elif args.puls == 'mocka':
+            if self.verbose > 1:
+                print('Generating mock object using Kepler sample (Bowman+2018)')
+            self.dm = model.initMockaBowman2018(self.idir)
+            if self.verbose > 1:
+                print(f'Number of pulsation modes : {self.dm.shape[0]}')
+                print(f'Maximum mode amplitude    : {self.dm.ampl.max()*1e3:.1f} mmag')
+
+        else:
+            if self.verbose > 1:
+                print('Generating mock object from toy model')
+            model.initToyModel([0.1, 30], [0.01, 0.03])
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
@@ -948,6 +959,12 @@ class VarSim(object):
 
 
 
+
+        #def star_hybrid(self):
+
+        
+
+        
 
     def star_roap(self):
 
@@ -1029,8 +1046,8 @@ class VarSim(object):
         
         if args.puls == 'Bodi2023':
             if self.verbose > 1:
-                print('Selecting mock object from Kepler observations (Bodi+2023)')
-            params = model.initBodi2023(self.idir, variable='RRLyr')
+                print('Selecting mock object from Kepler sample (Bodi+2023)')
+            params = model.initFromFile(self.idir, sample=args.puls, variable='RRLyr')
             self.df['starname'] = params[0]
         else:
             exit()

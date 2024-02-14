@@ -694,7 +694,7 @@ def getAPE(alpha, delta, kappa, sigma=3,
 
 
 
-def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
+def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
@@ -715,7 +715,10 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     ------
     Output file if requested.
     """
-        
+
+    # Random number generator
+    rng = ut.rng(seed)
+    
     # Constants
     time0 = np.arange(0, ut.year()/4, 25)
     cols  = ["yaw", "pitch", "roll"]
@@ -723,16 +726,23 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     n     = len(time0)
 
     # Create data frame and store default time0 for fit
-    df  = pd.DataFrame()
-    df1 = pd.DataFrame()
+    df_1  = pd.DataFrame(); df1 = pd.DataFrame()
+    df_2  = pd.DataFrame(); df2 = pd.DataFrame()
+    df_3  = pd.DataFrame(); df3 = pd.DataFrame()
+    df_4  = pd.DataFrame(); df4 = pd.DataFrame()
     A = np.zeros((len(quarter), 4))
+
     # Loop over each quarter
 
     for Q in range(quarter[0]-1, quarter[-1]):
 
         # Time column
         t0 = round(ut.year()/4 * Q)
-        df1["time"] = t0 + np.arange(0, n) * 25
+        time = t0 + np.arange(0, n) * 25
+        df1["time"] = time
+        df2["time"] = time
+        df3["time"] = time
+        df4["time"] = time
 
         # Generate linear model
 
@@ -748,19 +758,32 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
                     df1[col] = np.linspace(0, a, n)
 
             else:
+                amp = 3.5
                 # NOTE these parameters has been compared to Prime TED
-                a = np.random.uniform(-10, 10) * 1e-14
-                b = np.random.uniform(-15, 15) * 1e-7
+                a = rng.uniform(-10, 10) * 1e-14 / amp
+                b = rng.uniform(-15, 15) * 1e-7  / amp
                 # Secure that c (the y offset) is always zero
                 c = 0
                 # Make sure that a and b always has opposite signs
                 if np.sign(a) == np.sign(b): b *= -1
-                # Get model fit 
-                poly = np.array([a, b, c])
-                df1[col] = np.polyval(poly, time0)
+                # Get model fit
+                aa = np.abs(a/5)
+                bb = np.abs(b/5)
+                poly1 = np.array([a, b, c])
+                poly2 = np.array([a+rng.uniform(-aa, aa), b+rng.uniform(-bb, bb), c])
+                poly3 = np.array([a+rng.uniform(-aa, aa), b+rng.uniform(-bb, bb), c])
+                poly4 = np.array([a+rng.uniform(-aa, aa), b+rng.uniform(-bb, bb), c])
+                df1[col] = np.polyval(poly1, time0)
+                df2[col] = np.polyval(poly2, time0)
+                df3[col] = np.polyval(poly3, time0)
+                df4[col] = np.polyval(poly4, time0)
                 
         # File to save
-        df = pd.concat([df, df1])
+        df_1 = pd.concat([df_1, df1])
+        df_2 = pd.concat([df_2, df2])
+        df_3 = pd.concat([df_3, df3])
+        df_4 = pd.concat([df_4, df4])
+        
         # Array with all amplitudes
         A[Q-quarter[0],0] = Q+1
         A[Q-quarter[0],1] = df1.yaw.max()   - df1.yaw.min()
@@ -784,11 +807,14 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
 
     # Plots
     for i, col in zip(range(3), cols):
-        ax[i].plot(df["time"]/day2sec, df[col], 'k-')
+        ax[i].plot(df_1["time"]/day2sec, df_1[col], '-', c='b')
+        ax[i].plot(df_2["time"]/day2sec, df_2[col], '-', c='g')
+        ax[i].plot(df_3["time"]/day2sec, df_3[col], '-', c='orange')
+        ax[i].plot(df_4["time"]/day2sec, df_4[col], '-', c='r')
         ax[i].axhline(y=0, linestyle=':', color='k')
         Qday = ut.year()/86400/4
         for k in range(N-1):
-            ax[i].axvline(x=quarter[k]*Qday, linestyle='--', color='b')
+            ax[i].axvline(x=quarter[k]*Qday, linestyle='--', color='k')
 
     # Settings
     ax[2].set_xlabel("Time [days]")
@@ -796,7 +822,7 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     ax[1].set_ylabel("Pitch [arcsec]")
     ax[2].set_ylabel("Roll [arcsec]")
     for i in range(3):
-        ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
+        ax[i].set_xlim(df_1.time.min()/day2sec, df_1.time.max()/day2sec)
 
     # Layout
     ax[0].set_xticklabels([])
@@ -809,8 +835,11 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
         
     # Save data in one big drift text file for PlatoSim
     if ofile:
-        df.to_csv(ofile, sep=" ", header=False, index=False)
-        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        df_1.to_csv(f'{ofile[:-4]}_group1.txt', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group2.txt', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group3.txt', sep=" ", header=False, index=False)
+        df_4.to_csv(f'{ofile[:-4]}_group4.txt', sep=" ", header=False, index=False)
+        fig.savefig(f'{ofile[:-4]}.png', bbox_inches='tight', dpi=200)
 
 
 
