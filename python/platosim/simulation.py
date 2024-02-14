@@ -1070,6 +1070,7 @@ class Simulation(object):
         # Compute the position of the subfield. xPix and yPix are the CCD coordinates
         # of the star, given a 4510x4510 CCD [colNumber, rowNumber]. The function below
         # also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
+        
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY,
                                                                     raStar, decStar,
                                                                     raPlatform, decPlatform,
@@ -1091,7 +1092,22 @@ class Simulation(object):
         CCDOriginOffsetY = rf.CCD[ccdCode]["zeroPointYmm"]
         CCDOrientation   = rf.CCD[ccdCode]["angle"]
 
+        # Fetch CCD code and pixel coordinates (account for field distortion if included)
+        
+        infoCCD = rf.getCCDandPixelCoordinates(raStar, decStar,
+                                               raPlatform, decPlatform, solarPanelOrientation,
+                                               tiltTelescope, azimuthTelescope,
+                                               focalPlaneAngle, focalLength, pixelSize,
+                                               includeFieldDistortion, normal,
+                                               mappedDistortion, distortionCoefficients,
+                                               pathToPsfFile)
+        ccdCode, xCCD, yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
+        
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
+
+        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
+        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
+
         self["CCD/Position"]      = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
@@ -1105,13 +1121,24 @@ class Simulation(object):
         else:
             self["CCD/FirstRowExposed"] = str(0)
 
-        self["SubField/ZeroPointRow"]    = str(yPix - int(subfieldSizeY/2))
-        self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
         self["SubField/NumRows"]    = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
-        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
-        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
+        # Secure that the target centrally for even-pixel subfields
+
+        dy = yCCD - int(yCCD)
+        dx = xCCD - int(xCCD)
+
+        if (subfieldSizeY % 2 == 0):
+            if dy >= 0.5:
+                subfieldSizeY -= 1
+
+        if (subfieldSizeX % 2 == 0):
+            if dx >= 0.5:
+                subfieldSizeX -= 1
+                        
+        self["SubField/ZeroPointRow"]    = str(yPix - int(subfieldSizeY/2))
+        self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
 
         # That's it
 
