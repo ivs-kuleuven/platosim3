@@ -1255,6 +1255,8 @@ class Pulsator(object):
             suffix   = 'dat'
             sep      = ' '
             comment  = '#'
+            frequnit = 'c/d'
+            amplunit = 'norm'
             filename = 'varsource_gdor_gang2020'
             names    = ['freq', 'ampl', 'phase', 'snr']
             
@@ -1262,6 +1264,8 @@ class Pulsator(object):
             suffix   = 'txt'
             sep      = '  '
             comment  = None
+            frequnit = 'c/d'
+            amplunit = 'mmag'
             filename = 'varsource_dsct_bowman2018'
             names    = ['niter', 'freq', 'freq_err', 'ampl', 'ampl_err', 
                         'phase', 'phase_err', 'snr']
@@ -1270,6 +1274,8 @@ class Pulsator(object):
             suffix   = 'fou'
             sep      = '  '
             comment  = None
+            frequnit = 'c/d'
+            amplunit = 'mag'
             names    = ['freq', 'ampl', 'phase']
             if variable == 'RRLyr':
                 filename = 'varsource_rrly_bodi2023'
@@ -1294,6 +1300,16 @@ class Pulsator(object):
         # Load file containing columns
         self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
         self.starname = f'{sample}: {starfile.name}'
+
+        # Convert freq unit [c/d]
+        if frequnit == 'day':
+            self.df.freq = 1 / self.df.freq
+
+        # Convert ampl unit [mag]
+        if amplunit == 'mmag':
+            self.df.ampl /= 1e3  
+        elif amplunit == 'norm':
+            self.df.ampl = -2.5*np.log10(1-self.df.ampl)
 
         # Return the star ID
         return starfile.name

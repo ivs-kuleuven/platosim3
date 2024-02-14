@@ -169,7 +169,7 @@ class VarSim(object):
             cadence = 25 / 86400.
 
         # Parsing "quarter" overwrites "time"
-        # NOTE Default is Q1 (t=0 and 90 days duration)
+        # NOTE Default is Q1 (t=0 and 91 days duration)
         if args.quarter:
             Q = ut.convertQuarterRange(args.quarter)
             if len(Q) == 1:
@@ -178,19 +178,20 @@ class VarSim(object):
                 numQuarters = Q[1] - Q[0] + 1
             else:
                 errorcode('error', 'Wrong input format of "quarter"!')        
-            timeStart = round(ut.quarter() * (Q[0]-1) )
-            timeDur   = round(ut.quarter() * numQuarters)
+            timeStart = ut.quarter() * (Q[0]-1)
+            timeDur   = ut.quarter() * numQuarters
+
         elif args.time:
             timeStart = 0
             timeDur   = args.time
         else:
             timeStart = 0
-            timeDur   = 90
-        
+            timeDur   = ut.quarter()
+
         # Time points (ensure even number of time points)
-        time = np.arange(0, timeDur, cadence)
+        time = np.arange(0, timeDur, cadence) + timeStart
         if len(time) % 2 != 0:
-            time = np.arange(0, timeDur + cadence, cadence)
+            time = np.arange(0, timeDur + cadence, cadence) + timeStart
 
         # Store parameters
         self.time      = time * u.d
@@ -210,7 +211,7 @@ class VarSim(object):
         
         if self.verbose > 1:
             print(f'Simulating time series for : ' +
-                  f'{len(self.time)} x {self.cadence.to("s")} ({self.timeDur.value} days)')
+                  f'{len(self.time)} x {self.cadence.to("s")} ({self.timeDur.value:.1f} days)')
             print(f'Simulating {self.instrument} bandpass  : ' +
                   f'{self.wvl_tele[0]} - {self.wvl_tele[-1]}')
 
@@ -878,7 +879,7 @@ class VarSim(object):
 
         # Start script
         if self.verbose > 1:
-            errorcode('module', '\ngamma-Dor (g-mode pulsator)\n')
+            errorcode('module', '\ngamma Doradus pulsator\n')
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
@@ -928,7 +929,7 @@ class VarSim(object):
 
         # Start script
         if self.verbose > 1:
-            errorcode('module', '\ndelta Scuti (p-mode pulsator)\n')
+            errorcode('module', '\ndelta Scuti pulsator\n')
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
@@ -975,7 +976,7 @@ class VarSim(object):
         
         # Start script
         if self.verbose > 1:
-            errorcode('module', '\nRotational variable (roAp)\n')
+            errorcode('module', '\nroAp variable star\n')
 
         # Initialize class
         time  = self.time.to('d').value
@@ -1063,9 +1064,6 @@ class VarSim(object):
     def star_ceph(self):
 
         """Generate ligth curve for Cepheid stars.
-
-        This function uses precomputed models of Cepheid stars 
-        to generate the light curve from their harmonics.
         """
 
         if self.verbose > 1:
@@ -1076,11 +1074,11 @@ class VarSim(object):
         model = Pulsator(time, power=1, seed=self.seed)
         
         # Check variable model parsed
-        
+
         if args.puls == 'Bodi2023':
             if self.verbose > 1:
-                print('Selecting mock object from Kepler observations (Bodi+2023)')
-            params = model.initBodi2023(self.idir, variable='Ceph')
+                print('Selecting mock object from Kepler sample (Bodi+2023)')
+            params = model.initFromFile(self.idir, sample=args.puls, variable='Ceph')
             self.df['starname'] = params[0]
         else:
             exit()
@@ -1091,6 +1089,37 @@ class VarSim(object):
 
 
 
+
+        
+    def star_lpvs(self): # TODO finish
+
+        """Generate ligth curve for Cepheid stars.
+        """
+
+        if self.verbose > 1:
+            errorcode('module', '\nLPV pulsator\n')
+
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = Pulsator(time, power=1, seed=self.seed)
+        
+        # Check variable model parsed
+
+        if args.puls == 'Bodi2023':
+            if self.verbose > 1:
+                print('Selecting mock object from Kepler sample (Bodi+2023)')
+            params = model.initFromFile(self.idir, sample=args.puls, variable='Ceph')
+            self.df['starname'] = params[0]
+        else:
+            exit()
+            
+        # Return model [mag -> flux]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+
+
+
+        
         
     #--------------------------------------------------------------#
     #                          BINARY SYSTEMS                      #
@@ -2096,7 +2125,7 @@ class VarSim(object):
 
                 # Use cluster name for PLATOnium
                 # NOTE $VSC_MOCKA directory is defined in job script
-                clusterDir = f'$VSC_MOCKA/{starType}/{starDir}/'
+                clusterDir = f'$VSC_MOCKA/{starType}/varsource/{starDir}/'
                 varSourceFiles.append(clusterDir + sfile)
             
         # GENERATE VARIABLE CATALOG FILE
@@ -2191,5 +2220,3 @@ else:
 if (args.verbose is None) or (args.verbose > 1):
     toc = datetime.datetime.now()
     print(f'\nTotal execution time : {toc-tic} [hh:mm:ss]\n')
-
-    

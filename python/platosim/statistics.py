@@ -41,7 +41,7 @@ def colortheme(theme):
 
 
 def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme='b', 
-                  x='x', y='y', xlab='x', ylab='y', yerr=False, figsize=(9,5)):
+                  x='x', y='y', xlab='x', ylab='y', yerr=False, figsize=(8,5)):
 
      
     """Plot OLS/WLS model fit.
@@ -137,7 +137,7 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     
     
 def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS',
-                   figsize=(9,4)):
+                   figsize=(8,4)):
 
     """Plot the OLS/WLS model fit residuals.
     """

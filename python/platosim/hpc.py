@@ -171,4 +171,4 @@ class HPC(object):
         """
         
         os.system(f'{self.VARSIM} --mocka {self.project} gDor {i+1} no {self.odir} ' +
-                  '--puls mocka --quarter 1-8 -v 0')
+                  '--quarter 1-8 -v 0')

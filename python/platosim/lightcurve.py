@@ -29,7 +29,7 @@ import matplotlib.colors as colors
 import scipy
 from scipy import constants as c
 from scipy.ndimage import median_filter
-from scipy.stats import binned_statistic
+from scipy.stats import binned_statistic, theilslopes, linregress
 import astropy.stats as stats
 from astropy.time import TimeBase, Time, TimeDelta
 from astropy import units as u
@@ -1288,7 +1288,7 @@ class LightCurve(object):
 
 
         
-    def stitch(self, method='lowess', column='flux', gapsize=0.1, segment=500,
+    def stitch(self, method='lowess', column='flux', gapsize=0.1, segment=5,
                replace=False, plot=False):
 
         """Function to stitct a light curve.
@@ -1317,6 +1317,10 @@ class LightCurve(object):
         else:
             dex = self.time_indices()
 
+        # Convert unit [days -> number of exposures]
+
+        segment = int(segment * 86400 / 25)
+            
         # Move the data chunk when a jump
 
         if len(dex) > 2:
@@ -1329,10 +1333,20 @@ class LightCurve(object):
                 
                 if method == 'lowess':
 
-                    import statsmodels.api as sm                                        
+                    # Lowess smoothing
                     lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
                     lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
-                    flux_jump = lowess_b[-1,1] - lowess_a[0,1]
+
+                    # Fit Theil–Sen median slope
+                    res_b = theilslopes(lowess_b[:,1], df_b.time, 0.90, method='separate')
+                    res_a = theilslopes(lowess_a[:,1], df_a.time, 0.90, method='separate')
+                    lsq_res_b = linregress(df_b.time, lowess_b[:,1])
+                    lsq_res_a = linregress(df_a.time, lowess_a[:,1])
+
+                    # Evaluate slope in 
+                    flux_b = lsq_res_b[0] * df_b.time.iloc[-1] + lsq_res_b[1]
+                    flux_a = lsq_res_a[0] * df_a.time.iloc[0]  + lsq_res_a[1]
+                    flux_jump = flux_b - flux_a                    
                     #-------------- debug
                     # plt.figure()
                     # plt.plot(self.df.time, self.df.flux_stitch, 'k.')
@@ -1341,12 +1355,15 @@ class LightCurve(object):
                     # plt.plot(lowess_b[:,0], lowess_b[:,1], 'r-')
                     # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
                     # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
-                    # plt.plot(lowess_a[0,0], lowess_a[0,1], 'y*')
+                    # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
+                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'k--')
+                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'k--')
                     # plt.title(f'Flux jump: {flux_jump}')
                     # df = self.df.loc[i-segment*2:i+segment*2]
                     # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
                     # plt.ylim(df.flux.min(), df.flux.max())
                     # plt.show()
+                    #-------------- debug
                      
                 elif method == 'median':
                     
