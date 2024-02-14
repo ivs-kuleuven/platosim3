@@ -78,8 +78,7 @@ def numpyFFT(signal, timestep):
 
 def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
 
-    """
-    Computes the modulus square of the fourier transform.
+    """Computes the modulus square of the fourier transform.
 
     Unit: square of the unit of signal. Time points need not be equidistant.
     The normalisation is such that a signal A*sin(2*pi*nu_0*t)
@@ -92,12 +91,17 @@ def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
     signal : ndarray
         Signal [0..Ntime-1]
     f0, fn, df : float
-        The power is computed for the frequencies freq = arange(f0,fn,df)
+        The power is computed for the frequencies freq = np.arange(f0,fn,df)
+        f0 : frequency of the lower boundary 
+        fn : frequency of the upper boundary
+        df : frequency sampling of the lower boundary  
     
     Returns
     -------
+    freq : ndarray
+        Frequencies of DFT
     power : ndarray
-        Spectrum of the signal
+        Amplitudes of DFT power spectrum
     """
 
     freqs = np.arange(f0, fn, df)
@@ -123,8 +127,7 @@ def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
 
 def DFTpower2(time, signal, freqs):
 
-    """
-    Computes the power spectrum of a signal using a discrete Fourier transform.
+    """Computes the power spectrum of a signal using a discrete Fourier transform.
 
     The main difference between DFTpower and DFTpower2, is that the latter allows
     for non-equidistant frequencies for which the power spectrum will be computed.
@@ -145,8 +148,7 @@ def DFTpower2(time, signal, freqs):
         arg = 2.0 * np.pi * freq * time
         powerSpectrum[i] = np.sum(signal * np.cos(arg))**2 + np.sum(signal * np.sin(arg))**2
 
-    powerSpectrum = powerSpectrum * 4.0 / len(time)**2
-    return(powerSpectrum)
+    return powerSpectrum * 4.0 / len(time)**2
 
 
 
@@ -174,16 +176,16 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
 
     Notes
     -----
-    m1-m2 = -2.5 log(f2/f1) => dm = -2.5 log(1-df)
-    1 ppt (ppm) = 1.0863 mmag (mumag)
+    Conversion: 1 ppt (ppm) = 1.0863 mmag (mumag)
+    Following: m1-m2 = -2.5 log(f2/f1) => dm = -2.5 log(1-df)
     """
 
-    # Number of pulsation modes
-    nmodes = len(freq)
+    # Number of modes
+    N = len(freq)
 
-    # Loop over the number of modes and sum of every mode
+    # Compute signal from a sum of all the modes
     signal = np.zeros_like(time)
-    for i in range(nmodes):
+    for i in range(N):
         signal += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
 
     # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
@@ -195,11 +197,8 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     if plot:
         fig, ax = plt.subplots(2, 1, figsize=(12, 7))
 
-        # mag -> mmag
-        signal0 = signal * 1e3
-        
         # Plot time series
-        ax[0].plot(time, signal0, 'k-', lw=0.4)
+        ax[0].plot(time, signal*1e3, 'k-', lw=0.4)
         ax[0].set_xlabel(r'Time [d]')
         ax[0].set_ylabel(r'Signal [mmag]')
         ax[0].set_xlim(time.min(), time.max())
@@ -208,14 +207,14 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
         # Generate DFT for regular sampling
         fn = np.max(freq)
         df = np.diff(time)[0] * 2
-        freq0, ampl0 = DFTpower(time, signal0, f0=0, fn=fn, df=df)
+        freq0, ampl0 = DFTpower(time, signal*1e3, f0=0, fn=fn, df=df)
         amax = np.max(ampl0)
-        for i in range(nmodes):
+        for i in range(N):
             if i == 0:
-                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1,
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.3,
                          label='Input freq.')
             else:
-                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.1)       
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.3)       
         ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1, label='DFT')
         ax[1].set_ylabel(r'Amplitude [mmag]')
         ax[1].set_xlabel(r'Frequency [c/d]')

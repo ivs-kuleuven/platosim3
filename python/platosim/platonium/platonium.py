@@ -231,7 +231,10 @@ class PLATOnium(object):
             self.postProcess = True
         else:
             self.postProcess = False
-        
+
+        # Store for print
+        self.stitch = False
+            
         # Monitor script speed
         self.tic  = datetime.datetime.now()
         self.tic0 = datetime.datetime.now()            
@@ -545,7 +548,7 @@ class PLATOnium(object):
             # Setting time series to full quarter
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
-            self.numExposures = round((timeQuarter - 1.) * 86400. / self.cadence)
+            self.numExposures = round((timeQuarter - 1) * 86400. / self.cadence)
 
 
         # PHOTOMETRY ALA MARCHIORI
@@ -1269,8 +1272,13 @@ class PLATOnium(object):
             if self.verbose > 1:
                 print('Checking for mask-updates to stitch')
                 
-            lc.stitch(method='lowess', segment=500, replace=True, plot=self.plotPost)
+                lc.stitch(method='lowess', segment=5, replace=True, plot=self.plotPost)
 
+            if self.verbose > 1:
+                self.stitch = True
+                self.tocStitch = datetime.datetime.now() - self.tic
+                self.tic = datetime.datetime.now()
+            
 
         # OUTLIER REJECTION
 
@@ -1891,6 +1899,8 @@ class PLATOnium(object):
             print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [hh:mm:ss]')
             if self.detrend:
                 print(f'Execution time for detrending    : {self.tocDetrend} [hh:mm:ss]')
+            if self.stitch:
+                print(f'Execution time for stitching     : {self.tocStitch} [hh:mm:ss]')
             if self.clipWotan:
                 print(f'Execution time for Wotan clip    : {self.tocWotanClip} [hh:mm:ss]')
             if self.pipeline:
