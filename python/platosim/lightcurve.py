@@ -2498,7 +2498,7 @@ class LightCurve(object):
         df0 = pd.DataFrame()
         
         # Loop over each star
-
+        
         for folder in tqdm(folders, bar_format=ut.tqdmBar()):
 
             lcs = LightCurve(folder, 'multi')
@@ -2508,7 +2508,7 @@ class LightCurve(object):
             files_ftr = lcs.files(suffix='table', error=False) # name='table')
 
             # If compressed the unpack all files for that star
-            if len(files_zip) != len(files_ftr):                
+            if (len(files_zip) > 0) and (len(files_zip) != len(files_ftr)):                
                 lcs.unpack()
 
             # Loop over each (star, group, camera, quarter) file

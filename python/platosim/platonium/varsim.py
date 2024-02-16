@@ -2007,7 +2007,7 @@ class VarSim(object):
                 self.df.L = dx.L
                 
 
-            # GENRIC STEPS
+            # GENERIC STEPS
 
             self.stellar_source()
             self.stellar_spectrum()
@@ -2020,35 +2020,91 @@ class VarSim(object):
 
             # Select variable contamiant
             if i > 0:
+
+                # Initialise parameters
+                p_gran  = 0.0
+                p_puls  = 0.0
+                p_spot  = 0.0
+                p_flare = 0.0
+                starType = None
+                vals = np.array([0, 1])
+
+                # Functions
+                def Mg_WD_limit(x): return 4.0*x + 8 
+                def Mg_RG_upper(x): return 2.0*x - 1 
+                def Mg_RG_lower(x): return 2.0*x - 4
                 
-                if self.df.spec == 'O':
-                    self.solar_granosc()
+                # Eclipsing binaries
+                
+                if self.df.ruwe > 1.2:
+                    starType = 'EB'
+
+                # Massive stars
+                    
+                elif self.df.spec == 'O':
+                    starType = 'solar_gran'
 
                 elif self.df.spec == 'B':
-                    self.star_bcep()
+                    n = 1
 
                 elif self.df.spec == 'A':
-                    self.star_ceph()
+                    n = 1
 
-                elif self.df.spec == 'F':
-                    self.star_gdor()
+                # Evolved stars
+                    
+                elif self.df.Mg < Mg_WD_limit(self.df.BP_RP):
+                    starType = 'WD'
+                    
+                # Solar-like stars
+                
+                elif self.df.spec in ['F', 'G', 'K', 'M', 'unknown', '']: # TODO
 
-                elif self.df.spec == 'G':
-                    self.solar_granosc()
-                    self.solar_spots()
+                    # Probability of dwarf solar-like oscillator
+                    if ((self.df.spec == 'unknown' and self.df.BP_RP > 0.7 and self.df.Mg > 3 and self.df.logg > 4.4) or
+                        (self.df.spec == ''  and self.df.BP_RP > 0.7 and self.df.Mg > 3 and self.df.logg > 4.4) or
+                        (self.df.spec == 'F' and self.df.BP_RP > 0.7 and self.df.Mg > 3 and self.df.logg > 4.4) or
+                        (self.df.spec == 'G' and self.df.BP_RP > 0.7 and self.df.Mg > 2 and self.df.logg > 4.4) or
+                        (self.df.spec == 'K' and self.df.BP_RP > 0.7 and self.df.Mg > 1 and self.df.logg > 4.4)):
+                        p_puls = 1.0
 
-                elif self.df.spec == 'K':
-                    self.solar_granosc()
-                    self.solar_spots()
-                    self.solar_flares()
+                    # Probability of RG solar-like oscillator
+                    if ((self.df.BP_RP > 0.7) and (self.df.logg < 3.5) and
+                        (self.df.Mg < Mg_RG_upp(self.df.BP_RP)) and
+                        (self.df.Mg > Mg_RG_low(self.df.BP_RP))):
+                        p_puls = 1.0
+                    
+                    # Probability of star spots
+                    # Later spectral types are more likely to have spots
+                    # NOTE Colour cut is transition region -> radiative versus convective envelopes
+                    if self.df.BP_RP > 0.4:
+                        if   self.df.spec == 'F': p_spot = 0.2
+                        elif self.df.spec == 'G': p_spot = 0.8
+                        elif self.df.spec == 'K': p_spot = 0.9
+                        elif self.df.spec == 'M': p_spot = 1.0
+                        p_spot = scipy.stats.rv_discrete(values=(vals, (1-p_spot, p_spot))).rvs()
+                        
+                    # Probability of flares
+                    # Later spectral types are more likely to have flares
+                    if self.df.BP_RP > 0.4:
+                        if   self.df.spec == 'F': p_flare = 0.2
+                        elif self.df.spec == 'G': p_flare = 0.8
+                        elif self.df.spec == 'K': p_flare = 0.9
+                        elif self.df.spec == 'M': p_flare = 1.0
+                        p_flare = scipy.stats.rv_discrete(values=(vals, (1-p_flare, p_flare))).rvs()
 
-                elif self.df.spec == 'M':
-                    self.solar_spots()
-                    self.solar_flares()
-
-                else:
-                    self.star_roap()
-
+                    # Probability of active M dwarf
+                    if self.df.spec == 'M' and self.df.BP_RP > 1.7 and self.df.Mg > 6:
+                        p_puls, p_spot, p_flare = 0, 1, 1
+                        
+                    # Select combined variability
+                    if p_puls == 1 and p_spot == 0 and p_flare == 0:
+                        starType = 'solar_puls'
+                    elif p_puls == 1 and p_spot == 1 and p_flare == 0:
+                        starType = 'solar_spot'
+                    elif p_puls == 1 and p_spot == 1 and p_flare == 1:
+                        starType = 'solar_flare'
+                    elif p_puls == 0 and p_spot == 1 and p_flare == 1:
+                        starType = 'dwarf_red'
 
                 
             # SELECT VARIABLE CLASS
@@ -2090,16 +2146,19 @@ class VarSim(object):
                 
             # Solar-like stars
 
-            elif starType == 'GV':
+            elif starType == 'solar_puls':
+                self.solar_granosc()
+
+            elif starType == 'solar_spot':
                 self.solar_granosc()
                 self.solar_spots()
-
-            elif starType == 'KV':
+                
+            elif starType == 'solar_flare':
                 self.solar_granosc()
                 self.solar_spots()
                 self.solar_flares()
 
-            elif starType == 'MV':
+            elif starType == 'mdwarf':
                 self.solar_spots()
                 self.solar_flares()
 
