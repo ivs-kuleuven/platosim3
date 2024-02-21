@@ -18,7 +18,7 @@
 
 # cmake version shouldn't be too old
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 
 project(PlatoSim)

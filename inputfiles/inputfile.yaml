@@ -51,6 +51,9 @@ Platform:
     JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
+StrayLight:
+    FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
+    
 
 Telescope:
 
