@@ -605,7 +605,7 @@ void Detector::updateParameters(double time)
         readCTIinputFile(ctiInputFile);
         radiationSmearingMap.resize(numRowsSmearingMap, numColumnsPixelMap);
         radiationSmearingMap.fill(1.0);
-	numberOfOccupiedTrapsPixelMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+	    numberOfOccupiedTrapsPixelMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
         numberOfOccupiedTrapsSmearingMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
     }
     else
@@ -717,7 +717,7 @@ void Detector::readCTIinputFile(string ctiInputFile)
     arma::Mat<float> map(numRows, numColumns);
     CTIFile.readArray("/", "radiationMap", map);
 
-    // Rescale the radiatio  map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
+    // Rescale the radiation map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
 
     radiationMap.resize(numRowsPixelMap, numColumnsPixelMap);
     radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1);

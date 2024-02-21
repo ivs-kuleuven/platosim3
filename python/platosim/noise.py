@@ -76,8 +76,85 @@ def numpyFFT(signal, timestep):
 
 
 
-def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
-                          plot=False, title=False):
+def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
+
+    """Computes the modulus square of the fourier transform.
+
+    Unit: square of the unit of signal. Time points need not be equidistant.
+    The normalisation is such that a signal A*sin(2*pi*nu_0*t)
+    gives power A^2 at nu=nu_0
+
+    Parameters
+    ----------
+    time : ndarray 
+        Time points [0..Ntime-1]
+    signal : ndarray
+        Signal [0..Ntime-1]
+    f0, fn, df : float
+        The power is computed for the frequencies freq = np.arange(f0,fn,df)
+        f0 : frequency of the lower boundary 
+        fn : frequency of the upper boundary
+        df : frequency sampling of the lower boundary  
+    
+    Returns
+    -------
+    freq : ndarray
+        Frequencies of DFT
+    power : ndarray
+        Amplitudes of DFT power spectrum
+    """
+
+    freqs = np.arange(f0, fn, df)
+    Ntime = len(time)
+    Nfreq = int(np.ceil((fn-f0)/df))
+
+    A = np.exp(1j * 2 * np.pi * f0 * time) * signal
+    B = np.exp(1j * 2 * np.pi * df * time)
+    ft = np.zeros(Nfreq, complex)
+    ft[0] = A.sum()
+    for k in range(1,Nfreq):
+        A *= B
+        ft[k] = np.sum(A)
+
+    if full_output:
+        return freqs, ft**2*4.0/Ntime**2
+    else:
+        return freqs, (ft.real**2 + ft.imag**2) * 4.0 / Ntime**2
+
+
+    
+
+
+def DFTpower2(time, signal, freqs):
+
+    """Computes the power spectrum of a signal using a discrete Fourier transform.
+
+    The main difference between DFTpower and DFTpower2, is that the latter allows
+    for non-equidistant frequencies for which the power spectrum will be computed.
+
+    @param time: time points, not necessarily equidistant
+    @type time: ndarray
+    @param signal: signal corresponding to the given time points
+    @type signal: ndarray
+    @param freqs: frequencies for which the power spectrum will be computed. Unit: inverse of 'time'.
+    @type freqs: ndarray
+    @return: power spectrum. Unit: square of unit of 'signal'
+    @rtype: ndarray
+    """
+
+    powerSpectrum = np.zeros(len(freqs))
+
+    for i, freq in enumerate(freqs):
+        arg = 2.0 * np.pi * freq * time
+        powerSpectrum[i] = np.sum(signal * np.cos(arg))**2 + np.sum(signal * np.sin(arg))**2
+
+    return powerSpectrum * 4.0 / len(time)**2
+
+
+
+
+
+def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=False):
 
     """Generate light curve from Fourier info.
 
@@ -86,76 +163,71 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1,
     time : ndarray, pdframe
         Time points of which light curve will be generated [s]
     freq : ndarray, pdframe
-        Frequencies of sinusoids [d]
+        Frequencies of sinusoids [as input]
     ampl : ndarray, pdframe
-        Amplitudes of sinusoids [mmag]
+        Amplitudes of sinusoids [as input]
     phase : ndarray, pdframe
         Phases of sinusoids [rad]
 
     Returns
     -------
-    mag : ndarray
-        Signal for each time point [mag]
+    signal : ndarray
+        Signal for each time point [as ampl]
+
+    Notes
+    -----
+    Conversion: 1 ppt (ppm) = 1.0863 mmag (mumag)
+    Following: m1-m2 = -2.5 log(f2/f1) => dm = -2.5 log(1-df)
     """
 
-    # Number of pulsation modes
-    nmodes = len(freq)
+    # Number of modes
+    N = len(freq)
 
-    # Loop over the number of modes and sum of every mode
-    mag = np.zeros_like(time)
-    for i in range(nmodes):
-        mag += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
+    # Compute signal from a sum of all the modes
+    signal = np.zeros_like(time)
+    for i in range(N):
+        signal += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
 
     # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
     # Then add 1, raise the power and substract 1
-    A = np.max(np.abs(mag))
-    mag = A * (((1 + mag/A)**power) - 1)
+    A = np.max(np.abs(signal))
+    signal = A * ( (1 + signal/A)**power - 1 )
 
     # If requested, plot model 
     if plot:
-
         fig, ax = plt.subplots(2, 1, figsize=(12, 7))
 
-        mag0 = mag / 1e3  # [mag -> mmag] 
-        
         # Plot time series
-        ax[0].plot(time, mag0, 'k-', lw=0.3)
-        ax[0].set_xlabel(r'Time [days]')
-        ax[0].set_ylabel(r'$\delta m$ [mmag]')
+        ax[0].plot(time, signal*1e3, 'k-', lw=0.4)
+        ax[0].set_xlabel(r'Time [d]')
+        ax[0].set_ylabel(r'Signal [mmag]')
         ax[0].set_xlim(time.min(), time.max())
-        #ax[0].set_ylim(self.mag.min(),  self.mag.max())
-        if title:
-            ax[0].set_title(str(title))
+        if title: ax[0].set_title(str(title))
         
-        # Plot power spectrum
-        cadence = np.diff(time)[0]
-        freq, power = numpyFFT(mag0, cadence)
-        ymin = np.mean(power)
-        ymax = np.max(power) + 0.1*np.max(power)
-        carray = np.linspace(0, 1, 1000)
-        colors = plt.cm.rainbow(carray)
-        #freq = 1/freq
-        # for i in range(N):
-        #     if self.starname is not 'g-Dor':
-        #         snr_norm = self.snr[i]/self.snr.max()
-        #         dex = ut.findNearestIndex(carray, snr_norm)
-        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax],
-        #                    c=colors[dex], lw=snr_norm*3)
-        #     else:
-        #         ax[1].plot([self.freq[i], self.freq[i]], [ymin, ymax], c='royalblue')
-        ax[1].plot(freq, power, '-', c='deeppink', lw=1)
-        # Settings
+        # Generate DFT for regular sampling
+        fn = np.max(freq)
+        df = np.diff(time)[0] * 2
+        freq0, ampl0 = DFTpower(time, signal*1e3, f0=0, fn=fn, df=df)
+        amax = np.max(ampl0)
+        for i in range(N):
+            if i == 0:
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.3,
+                         label='Input freq.')
+            else:
+                ax[1].vlines(x=freq[i], ymin=-0.1*amax, ymax=0, colors='b', alpha=0.3)       
+        ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1, label='DFT')
         ax[1].set_ylabel(r'Amplitude [mmag]')
-        ax[1].set_xlabel(r'Period, $P$ [day]')
-        #ax[1].set_yscale('log')
-        ax[1].set_xlim(0, np.max(freq)+1)
-        ax[1].set_ylim(ymin, ymax)
+        ax[1].set_xlabel(r'Frequency [c/d]')
+        ax[1].set_xlim(0, np.max(freq))
+        ax[1].set_ylim(-0.1*amax, amax+0.1*amax)
+        ax[1].legend()
+
+        # Settings
         plt.tight_layout()
         plt.show()
 
     # Return signal
-    
-    return mag
+    return signal
 
 
 
@@ -621,7 +693,7 @@ def getAPE(alpha, delta, kappa, sigma=3,
 
 
 
-def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
+def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
@@ -642,7 +714,10 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     ------
     Output file if requested.
     """
-        
+
+    # Random number generator
+    rng = ut.rng(seed)
+    
     # Constants
     time0 = np.arange(0, ut.year()/4, 25)
     cols  = ["yaw", "pitch", "roll"]
@@ -650,16 +725,23 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     n     = len(time0)
 
     # Create data frame and store default time0 for fit
-    df  = pd.DataFrame()
-    df1 = pd.DataFrame()
+    df_1  = pd.DataFrame(); df1 = pd.DataFrame()
+    df_2  = pd.DataFrame(); df2 = pd.DataFrame()
+    df_3  = pd.DataFrame(); df3 = pd.DataFrame()
+    df_4  = pd.DataFrame(); df4 = pd.DataFrame()
     A = np.zeros((len(quarter), 4))
+
     # Loop over each quarter
 
     for Q in range(quarter[0]-1, quarter[-1]):
 
         # Time column
         t0 = round(ut.year()/4 * Q)
-        df1["time"] = t0 + np.arange(0, n) * 25
+        time = t0 + np.arange(0, n) * 25
+        df1["time"] = time
+        df2["time"] = time
+        df3["time"] = time
+        df4["time"] = time
 
         # Generate linear model
 
@@ -675,19 +757,32 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
                     df1[col] = np.linspace(0, a, n)
 
             else:
+                amp = 3.5
                 # NOTE these parameters has been compared to Prime TED
-                a = np.random.uniform(-10, 10) * 1e-14
-                b = np.random.uniform(-15, 15) * 1e-7
+                a = rng.uniform(-10, 10) * 1e-14 / amp
+                b = rng.uniform(-15, 15) * 1e-7  / amp
                 # Secure that c (the y offset) is always zero
                 c = 0
                 # Make sure that a and b always has opposite signs
                 if np.sign(a) == np.sign(b): b *= -1
-                # Get model fit 
-                poly = np.array([a, b, c])
-                df1[col] = np.polyval(poly, time0)
+                # Get model fit
+                aa = np.abs(a/5)
+                bb = np.abs(b/5)
+                poly1 = np.array([a, b, c])
+                poly2 = np.array([a+rng.uniform(-aa, aa), b+rng.uniform(-bb, bb), c])
+                poly3 = np.array([a+rng.uniform(-aa, aa), b+rng.uniform(-bb, bb), c])
+                poly4 = np.array([a+rng.uniform(-aa, aa), b+rng.uniform(-bb, bb), c])
+                df1[col] = np.polyval(poly1, time0)
+                df2[col] = np.polyval(poly2, time0)
+                df3[col] = np.polyval(poly3, time0)
+                df4[col] = np.polyval(poly4, time0)
                 
         # File to save
-        df = pd.concat([df, df1])
+        df_1 = pd.concat([df_1, df1])
+        df_2 = pd.concat([df_2, df2])
+        df_3 = pd.concat([df_3, df3])
+        df_4 = pd.concat([df_4, df4])
+        
         # Array with all amplitudes
         A[Q-quarter[0],0] = Q+1
         A[Q-quarter[0],1] = df1.yaw.max()   - df1.yaw.min()
@@ -711,11 +806,14 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
 
     # Plots
     for i, col in zip(range(3), cols):
-        ax[i].plot(df["time"]/day2sec, df[col], 'k-')
+        ax[i].plot(df_1["time"]/day2sec, df_1[col], '-', c='b')
+        ax[i].plot(df_2["time"]/day2sec, df_2[col], '-', c='g')
+        ax[i].plot(df_3["time"]/day2sec, df_3[col], '-', c='orange')
+        ax[i].plot(df_4["time"]/day2sec, df_4[col], '-', c='r')
         ax[i].axhline(y=0, linestyle=':', color='k')
         Qday = ut.year()/86400/4
         for k in range(N-1):
-            ax[i].axvline(x=quarter[k]*Qday, linestyle='--', color='b')
+            ax[i].axvline(x=quarter[k]*Qday, linestyle='--', color='k')
 
     # Settings
     ax[2].set_xlabel("Time [days]")
@@ -723,7 +821,7 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
     ax[1].set_ylabel("Pitch [arcsec]")
     ax[2].set_ylabel("Roll [arcsec]")
     for i in range(3):
-        ax[i].set_xlim(df.time.min()/day2sec, df.time.max()/day2sec)
+        ax[i].set_xlim(df_1.time.min()/day2sec, df_1.time.max()/day2sec)
 
     # Layout
     ax[0].set_xticklabels([])
@@ -736,8 +834,11 @@ def getTED(quarter, model="poly", ofile=False, table=False, plot=False):
         
     # Save data in one big drift text file for PlatoSim
     if ofile:
-        df.to_csv(ofile, sep=" ", header=False, index=False)
-        fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
+        df_1.to_csv(f'{ofile[:-4]}_group1.txt', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group2.txt', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group3.txt', sep=" ", header=False, index=False)
+        df_4.to_csv(f'{ofile[:-4]}_group4.txt', sep=" ", header=False, index=False)
+        fig.savefig(f'{ofile[:-4]}.png', bbox_inches='tight', dpi=200)
 
 
 

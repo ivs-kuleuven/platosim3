@@ -83,8 +83,9 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         map<unsigned int, vector<unsigned int>> maskSizeTarget;           // Nr of pixels within the mask for each target
         map<unsigned int, vector<double>> inputFluxTarget;                // Flux of the target as computed from the (variable) Vmag
         map<unsigned int, vector<double>> estimatedFluxTarget;            // Estimated flux for each target
-        map<unsigned int, vector<double>> varFluxTarget;                  //  Variance of the flux for each target
+        map<unsigned int, vector<double>> varFluxTarget;                  // Variance of the flux for each target
         map<unsigned int, vector<double>> NSRtarget;                      // Noise/Signal ratio of the flux of each target
+        map<unsigned int, vector<double>> aggregatedSPR;                  // Stellar pollution ratio = aggregated contaminant flux / aggregated total flux 
     
         // The indices of the masks are stored as [starID][exposureNr][index]
   

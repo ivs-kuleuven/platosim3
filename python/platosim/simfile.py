@@ -1648,7 +1648,7 @@ class SimFile (object):
 
                 # Get the aperture mask pixels
                 
-                row_mask, col_mask, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
+                row_mask, col_mask, _, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
 
                 # Compare mask pixels to cosmics affected pixels element wise
 
@@ -1848,6 +1848,14 @@ class SimFile (object):
         exposureNr : ndarray
             The image number in which the mask was derived:
             exposureNr <= imageNr
+        maskSize: ndarray
+            The number of pixels a mask contains 
+        maskNSR: ndarray 
+            The Noise-to-Signal ratio of the flux. Noise coming from target + contaminants + sky + instrument.
+            Signal coming from the target.
+        maskSPR: ndarray 
+            Stellar pollution ratio. The ratio of the flux inside the mask coming from contaminants and the
+            flux coming from target + contaminants + sky. A number between 0 and 1.
 
         Notes
         -----
@@ -1862,7 +1870,7 @@ class SimFile (object):
         if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
             print(f"Error: getPhotometricMask(): {starIDgroupName}" +
                   " not present in Photometry/Masks/ in the HDF5 file")
-            return None, None, None, None, None
+            return None, None, None, None, None, None
 
         # Fetch mask info and mask updates
         
@@ -1871,15 +1879,14 @@ class SimFile (object):
         numMaskUpdates = len(exposureNrOfMaskUpdate)
 
         # If a specific image number for the mask update is requested:
-        # NOTE masks are not updated for every exposure hence find most recent mask
+        # NOTE: masks are not updated for every exposure hence find most recent mask
 
-        if isinstance(imageNr, int):
+        if isinstance(imageNr, int):                                # imageNr is not None
 
             idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
             if idx < 0:
-                print("Error: getPhotometricMask(): " +
-                      "requesting an imageNr that is too early for this HDF5 file")
-                return None, None, None, None, None
+                print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
+                return None, None, None, None, None, None
 
             exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
 
@@ -1887,6 +1894,7 @@ class SimFile (object):
 
             maskSize = np.array(mask[starIDgroupName]['maskSize'])[idx]
             maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])[idx]
+            maskSPR = np.array(mask[starIDgroupName]['maskSPR'])[idx]
 
             # Extract the indices of the proper mask
 
@@ -1902,6 +1910,7 @@ class SimFile (object):
 
             maskSize = np.array(mask[starIDgroupName]['maskSize'])
             maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])
+            maskSPR = np.array(mask[starIDgroupName]['maskSPR'])
 
             # Extract the indices of all masks
 
@@ -1916,7 +1925,7 @@ class SimFile (object):
 
         # Finito!
 
-        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
+        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR, maskSPR
 
 
 
@@ -2179,7 +2188,7 @@ class SimFile (object):
         # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
+            rowIndices, colIndices, _, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='royalblue', facecolor='none', hatch="/",

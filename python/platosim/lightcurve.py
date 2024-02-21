@@ -29,7 +29,7 @@ import matplotlib.colors as colors
 import scipy
 from scipy import constants as c
 from scipy.ndimage import median_filter
-from scipy.stats import binned_statistic
+from scipy.stats import binned_statistic, theilslopes, linregress
 import astropy.stats as stats
 from astropy.time import TimeBase, Time, TimeDelta
 from astropy import units as u
@@ -39,6 +39,7 @@ from astropy.units import Quantity
 import natsort
 import wotan
 from tqdm import tqdm
+import statsmodels.api as sm
 
 # PlatoSim functions
 import platosim.plot            as pt
@@ -82,9 +83,7 @@ class LightCurve(object):
 
         # Read either a single file or multiple files
         self.mode = mode
-        self.base = base
-        self.path = path
-        
+        self.base = base                
         if path:
             self.path = Path(path)
         else:
@@ -95,22 +94,21 @@ class LightCurve(object):
         if isinstance(filename, pd.DataFrame):
             self.df = filename
             self.fileExtention = None
-
+            
         else:
             self.df = None
             self.filename = Path(filename)
 
             # Check if file or directory
-            
+
             if self.filename.is_file():
-                self.path = None
+                self.path = self.filename.parents[0]
                 self.fileExtention = Path(filename).suffix
                 
             elif self.filename.is_dir():
                 self.fileExtention = None
                 self.path = Path(filename)
-            
-            
+
         # SINGLE-CAMERA SIMULATION
         
         if mode == "single":
@@ -351,23 +349,34 @@ class LightCurve(object):
         """Fetch the noise-less light curve.
         """
 
+        starID = self.path.stem[:9]
+        
         # Get correct path to varsource file
-
+                
         if self.path.is_dir():
             path    = self.path
             starID  = path.stem[:9]
             varpath = path.parents[1] / "varsource" / starID / 'varsource_001.txt'
 
         elif self.filename.is_file():
-            path    = self.filename.parents[1]
-            starID  = path.stem[:9]
-            varpath = path / "varsource" / f"varsource_{starID}.txt"
 
+            # Check two valid options (file or list format)
+
+            path = self.path.parents[1]
+            varpath_file = path / "varsource" / f"varsource_{starID}.txt"
+            varpath_list = path / "varsource" / starID / 'varsource_001.txt'
+
+            if varpath_file.is_file():
+                varpath = varpath_file
+            elif varpath_list.is_file():
+                varpath = varpath_list
+            else:
+                errorcode('error', f'No variable source found for star ID {int(starID)}')
+            
         # Read file and add flux column
         
         df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
-        df['flux'] = (10**(-df.mag/2.5) - 1) * 1e3
-        df.flux -= df.flux.median()
+        df['flux'] = ut.fromMagToRelativeFlux(df.mag, norm=1)
 
         return df
 
@@ -910,7 +919,7 @@ class LightCurve(object):
         
         # Correct for gain changes
 
-        a = tdur / 2
+        a = tdur * 2
         flux = self.df.flux.to_numpy()
         delta_gain = 1 + a * (gain[0] - gain)
         flux_gain = flux * delta_gain
@@ -1024,10 +1033,11 @@ class LightCurve(object):
 
 
     
-    def detrend(self, column='flux', model="poly", segments=True,
-                degree=2, gradient=False,                  # Model -> Polynomial
+    def detrend(self, column='flux', model="poly",
+                degree=False, gradient=False,              # Model -> Polynomial
                 method="biweight", window=0.5, mask=None,  # Model -> Wotan
-                gapsize=0.1, plot=False, replace=False):
+                gapsize=0.1, segments=True,
+                replace=False, plot=False):
                 
         """Detrend time series.
 
@@ -1042,8 +1052,9 @@ class LightCurve(object):
         ----------
         model : wotan, poly
             Which model to be used for detrending
-        degree : int
+        degree : int (False)
             Degree of the polynomial fit (poly parameter)
+            If False a model coparison between 1-3 degree is performed
         gradient : bool
             Flag to remove a flat gradient of the flux (poly parameter)
         method : str
@@ -1081,11 +1092,43 @@ class LightCurve(object):
 
             for i in range(len(dex)-1):
 
-                # Make poly fit
+                # Fetch segment
                 time_segment = time[dex[i]:dex[i+1]]
                 flux_segment = flux[dex[i]:dex[i+1]]
-                poly = np.polyfit(time_segment, flux_segment, deg=degree)
 
+                # Select
+                if degree:
+                    deg = degree
+                else:
+                    df = pd.DataFrame()
+                    df['x'] = time_segment
+                    df['y'] = flux_segment
+                    model1 = 'y ~ x'
+                    model2 = 'y ~ x + I(x**2)'
+                    model3 = 'y ~ x + I(x**2) + I(x**3)'
+                    fit1 = sm.OLS.from_formula(formula=model1, data=df).fit()
+                    fit2 = sm.OLS.from_formula(formula=model2, data=df).fit()
+                    fit3 = sm.OLS.from_formula(formula=model3, data=df).fit()
+                    AIC_j = [fit1.aic, fit2.aic, fit3.aic]
+                    BIC_j = [fit1.bic, fit2.bic, fit3.bic]
+                    deg = st.model_selection(AIC_j, BIC_j, show=False)
+
+                    # Check if a higher degree is needed
+                    dt = len(time_segment)*25/86400
+                    if dt > 60:
+                        if ( (deg == 1 and fit2.bic > fit1.bic) or
+                             (deg == 2 and fit3.bic > fit2.bic) ):
+                            deg += 1
+
+                    #---------- Debugging
+                    # print(deg, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
+                    # print(fit1.summary())
+                    # print(fit2.summary())
+                    # print(fit3.summary())
+
+                # Perform fit
+                poly = np.polyfit(time_segment, flux_segment, deg=deg)
+                
                 # Trend of light curve
                 trend = np.polyval(poly, time_segment)
                 flux_trend[dex[i]:dex[i+1]] = trend
@@ -1166,15 +1209,15 @@ class LightCurve(object):
                 flux_var = lc_var['comb']
             else:
                 flux_var = lc_var['sum']
-
+            flux_var *= 1e3
         # Convert units
         
         time = self.time(unit='d')
         
         if column == 'flux':
-            ylab0      = 'Flux [ppt]' #r'Flux [ke$^-$ s$^{-1}$]'
-            flux       = df[column]    #/ 1e3  # [ke-/s]
-            flux_trend = df.flux_trend #/ 1e3  # [ke-/s]
+            ylab0      = r'Flux [ke$^-$ s$^{-1}$]'
+            flux       = df[column]    / 1e3  # [ke-/s]
+            flux_trend = df.flux_trend / 1e3  # [ke-/s]
         elif column == 'flux_stitch':
             ylab0      = 'Flux [ppt]'
             flux       = df[column]           # [ppt]
@@ -1182,8 +1225,8 @@ class LightCurve(object):
 
         # Detrendend and median filter
         
-        flux_detrend = (df.flux_detrend - 1) * 1e3      # [ppt] 
-        flux_median  = median_filter(flux_detrend, 144) # [ppt]
+        flux_detrend = ut.normFlux(df.flux_detrend, norm=1e3)  # [ppt] 
+        flux_median  = median_filter(flux_detrend, 144)        # [ppt]
         
         # Start plotting
         
@@ -1245,8 +1288,8 @@ class LightCurve(object):
 
 
         
-    def stitch(self, column='flux', gapsize=0.1, medpoint=1000,
-               gradient=False, replace=False, plot=False):
+    def stitch(self, method='lowess', column='flux', gapsize=0.1, segment=5,
+               replace=False, plot=False):
 
         """Function to stitct a light curve.
 
@@ -1266,7 +1309,7 @@ class LightCurve(object):
         # Deep copy of data frame
 
         self.df['flux_stitch'] = self.df.flux
-        
+
         # Find flux jumps
 
         if self.mask_updates.any():
@@ -1274,20 +1317,64 @@ class LightCurve(object):
         else:
             dex = self.time_indices()
 
+        # Convert unit [days -> number of exposures]
+
+        segment = int(segment * 86400 / 25)
+            
         # Move the data chunk when a jump
 
         if len(dex) > 2:
         
-            for i,j in zip(dex[:-1], dex[1:]):
+            for i,j in zip(dex[1:-1], dex[1:]):
 
-                # Data chunk before and after each gap
+                # Fetch data segments before and after jump
+                df_b = self.df.loc[i-segment-1:i-1]
+                df_a = self.df.loc[i:i+segment]
+                
+                if method == 'lowess':
 
-                flux_chunk_before = self.df.flux_stitch.iloc[i-medpoint-1:i-1]
-                flux_chunk_after  = self.df.flux_stitch.iloc[i:i+medpoint]
+                    # Lowess smoothing
+                    lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
+                    lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
 
+                    # Fit Theil–Sen median slope
+                    res_b = theilslopes(lowess_b[:,1], df_b.time, 0.90, method='separate')
+                    res_a = theilslopes(lowess_a[:,1], df_a.time, 0.90, method='separate')
+                    lsq_res_b = linregress(df_b.time, lowess_b[:,1])
+                    lsq_res_a = linregress(df_a.time, lowess_a[:,1])
+
+                    # Evaluate slope in 
+                    flux_b = lsq_res_b[0] * df_b.time.iloc[-1] + lsq_res_b[1]
+                    flux_a = lsq_res_a[0] * df_a.time.iloc[0]  + lsq_res_a[1]
+                    flux_jump = flux_b - flux_a                    
+                    #-------------- debug
+                    # plt.figure()
+                    # plt.plot(self.df.time, self.df.flux_stitch, 'k.')
+                    # plt.plot(df_b.time, df_b.flux_stitch, 'b.')
+                    # plt.plot(df_a.time, df_a.flux_stitch, 'm.')
+                    # plt.plot(lowess_b[:,0], lowess_b[:,1], 'r-')
+                    # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
+                    # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
+                    # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
+                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'k--')
+                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'k--')
+                    # plt.title(f'Flux jump: {flux_jump}')
+                    # df = self.df.loc[i-segment*2:i+segment*2]
+                    # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
+                    # plt.ylim(df.flux.min(), df.flux.max())
+                    # plt.show()
+                    #-------------- debug
+                     
+                elif method == 'median':
+                    
+                    # Use median value on either side to stitch
+                    flux_median_before = np.median(flux_chunk_before)
+                    flux_median_after  = np.median(flux_chunk_after)
+                    flux_jump = flux_median_before - flux_median_after
+
+                    
                 # Use smaller data chunk if rate of change is large
-
-                if gradient:
+                elif method == 'gradient':
 
                     # Rate of change for data chunks before and after each gap
                     diff_chunk_before = np.abs(flux_chunk_before.iloc[0] /
@@ -1296,34 +1383,30 @@ class LightCurve(object):
                                                flux_chunk_after.iloc[-1])
 
                     # Index for smaller fraction of chunk before and after each gap
-
                     d = 10
                     dex_frac_before = int(len(flux_chunk_before)/d)
                     dex_frac_after  = int(len(flux_chunk_after)/d)
 
                     # Smaller fractions of each data chunk before and after each gap
-
                     diff_frac_before = np.abs(flux_chunk_before.iloc[0] /
                                               flux_chunk_before.iloc[dex_frac_before])
                     diff_frac_after  = np.abs(flux_chunk_after.iloc[0] /
                                               flux_chunk_after.iloc[dex_frac_after])
 
                     # If rate of change is large
-
                     if diff_chunk_before > 10 * diff_frac_before:
                         flux_chunk_before = flux_chunk_before.iloc[dex_frac_before:]
                     if diff_chunk_after > 10 * diff_frac_after:
                         flux_chunk_after = flux_chunk_after.iloc[:dex_frac_after]
 
-                # Use median value on either side to stitch
-
-                flux_median_before = np.median(flux_chunk_before)
-                flux_median_after  = np.median(flux_chunk_after)
-                flux_jump = flux_median_before - flux_median_after
-
+                    # Use median value on either side to stitch
+                    flux_median_before = np.median(flux_chunk_before)
+                    flux_median_after  = np.median(flux_chunk_after)
+                    flux_jump = flux_median_before - flux_median_after
+                        
                 # Correct each flux chunk
 
-                self.df.flux_stitch.iloc[i:j] += flux_jump
+                self.df.flux_stitch.iloc[i:] += flux_jump
 
             # Recenter data after median value
             #self.df.flux_stitch -= self.df.flux_stitch.median()
@@ -1371,7 +1454,8 @@ class LightCurve(object):
                 flux_var = lc_var['comb']
             else:
                 flux_var = lc_var['sum']
-
+            flux_var *= 1e3 # [ppt]
+            
         # Time array
         
         time = self.time(unit='d')
@@ -1379,16 +1463,11 @@ class LightCurve(object):
         # Convert units
         
         # if column == 'flux':
-        #     ylab        = r'Flux [ke$^-$ s$^{-1}$]'
-        #     flux        = df[column]     / 1e3  # [ke-/s]
-        #     flux_stitch = df.flux_stitch / 1e3  # [ke-/s]
-        #elif column == 'flux_stitch':
-        ylab        = 'Flux [ppt]'
-        flux        = df[column]
-        flux_stitch = df.flux_stitch
+        flux        = ut.normFlux(df[column],     norm=1e3)  # [ppt]
+        flux_stitch = ut.normFlux(df.flux_stitch, norm=1e3)  # [ppt]
         flux_rawmed = median_filter(flux, medfilt)
         flux_median = median_filter(flux_stitch, medfilt)
-
+        
         # Start plotting
         
         fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)                
@@ -1398,7 +1477,7 @@ class LightCurve(object):
         ax[0].plot(time, flux,        '.', c='k', ms=1, alpha=0.2, label='Before')
         ax[0].plot(time, flux_rawmed, '-', c='deeppink', lw=0.5, label="1h median")
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].set_ylabel(ylab)
+        ax[0].set_ylabel('Flux [ppt]')
         ax[0].set_title('Light curve stitching')
         ax[0].legend(ncol=2, markerscale=5, loc='upper right')
         
@@ -1407,7 +1486,7 @@ class LightCurve(object):
         ax[1].plot(time, flux_stitch, '.', c='k',ms=1,alpha=0.2,label="After")
         ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5, label="1h median")
         ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[1].set_ylabel(ylab)
+        ax[1].set_ylabel('Flux [ppt]')
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
 
         # Plot detrend-median vs. input
@@ -1723,10 +1802,13 @@ class LightCurve(object):
                     label=label, zorder=3)
 
         # Show input model if requested
-        if input_model:
+        if input_model and not flux_unit == 'e/s':
             dv = self.varsource()
+            if flux_unit == 'ppt': dv.flux *= 1e3
+            if flux_unit == 'ppm': dv.flux *= 1e6
+            if flux_unit == 'norm': dv.flux += 1            
             if dv is not None:
-                ax.plot(dv.time/86400, dv.flux*1e3, '-', c='orange', lw=0.5, label='Input model')
+                ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
             
         # If any plot mask-update events
         if self.mask_updates.any():
@@ -2160,7 +2242,7 @@ class LightCurve(object):
             
             if i == 0:
                 df0['time'] = df.time
-                df0['flux'] = lc.flux(unit='ppm')
+                df0['flux'] = lc.flux(unit='e/s')
                 if 'flux_err'     in df: df0['flux_err']     = df.flux_err
                 if 'flux_cor'     in df: df0['flux_cor']     = df.flux_cor
                 if 'flux_trend'   in df: df0['flux_trend']   = df.flux_trend
@@ -2168,7 +2250,7 @@ class LightCurve(object):
                 if 'flux_clip'    in df: df0['flux_clip']    = df.flux_clip
             else:
                 df1['time'] = df.time
-                df1['flux'] = lc.flux(unit='ppm')
+                df1['flux'] = lc.flux(unit='e/s')
                 if 'flux_err'     in df: df1['flux_err']     = df.flux_err
                 if 'flux_cor'     in df: df1['flux_cor']     = df.flux_cor
                 if 'flux_trend'   in df: df1['flux_trend']   = df.flux_trend
@@ -2213,7 +2295,7 @@ class LightCurve(object):
             df0.to_feather(ofile)
         
         # Set a global light curve object
-
+        
         lc = LightCurve(df0, mode="multi", ncam=ncam, path=self.path)
         
         return lc

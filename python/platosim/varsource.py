@@ -21,6 +21,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import scipy
 from scipy.stats import norm, truncnorm
 from scipy.interpolate import interp1d, make_interp_spline
 from astropy.io import fits
@@ -62,7 +63,7 @@ class StellarFlares(object):
 
 
 
-    def initToyModelBeta0(self): # TODO under construction!
+    def initToyModel(self):
 
         """Uniform distribution of toy model.
         """
@@ -1179,9 +1180,9 @@ class SurfaceModulations(object):
 #==============================================================#
 
 
-class GravityOscillator(object):
+class Pulsator(object):
 
-    """Class to generate gravity oscillation time series.
+    """Class to generate time series from list of pulsation modes.
     """
 
     def __init__(self, time, power, seed=False):
@@ -1193,21 +1194,41 @@ class GravityOscillator(object):
         self.rng = ut.rng(seed)
             
 
+
+    def download(self, odir, filename):
+
+        """Utility to download data.
+        """
         
-    def initToyModel(self, period_range, amplitude_range, nmodes=False):
+        filepath = Path(f'{odir}/{filename}')
+        
+        # Check if a file or a folder is requested
+
+        if not filepath.is_file() and filepath.suffix == '.ftr':
+            print(f'Downloading {filename}')
+            ut.downloadFromFTP(filename=filename, outputDir=odir, server='plato')
+        
+        elif not filepath.is_dir() and filepath.suffix != '.ftr':
+            zipfile = f'{filename}.zip'
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+            os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
+            os.system(f'rm {odir}/{zipfile}')
+
+            
+        
+    def initToyModel(self, freq_range, ampl_range, nmodes=False):
 
         """Draw pulsations from uniform distribution.
 
         Parameters
         ----------
-        period_range : list
-            Range of pulsation periods [Pmin, Pmax] in unit of [days]
-        amplitude_range : list
-            Range of pulsation amplitudes [Amin, Amax] in units of [mmag]
+        freq_range : list
+            Range of pulsation frequencies [fmin, fmax] in unit of [c/d]
+        ampl_range : list
+            Range of pulsation amplitudes [Amin, Amax] in units of [mag]
         nmodes : int
             Number of pulsation modes to include
-
-        TODO Model gives wrong results! High value at 0 c/d!
         """
         
         # Number of pulsation modes
@@ -1215,137 +1236,236 @@ class GravityOscillator(object):
             nmodes = int(self.rng.normal(50, 5))
         
         # Generate pulsations using uniform distributions
-        self.freq  = self.rng.uniform(0, 2*np.pi, nmodes)
-        self.ampl  = self.rng.uniform(period_range[0], period_range[1], nmodes)
-        self.phase = self.rng.uniform(amplitude_range[0], amplitude_range[1], nmodes)
-        self.starname = 'g-Dor'
+        self.df = pd.DataFrame()
+        self.df['freq']  = self.rng.uniform(freq_range[0], freq_range[1], nmodes)
+        self.df['ampl']  = self.rng.uniform(ampl_range[0], ampl_range[1], nmodes)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, nmodes)
+        self.starname = 'Toy model'
 
-        
-        
-    def initGang2020(self, odir, starID=None):
 
-        """Draw frequencies from Kepler g-Dor legacy.
+
+    def initFromFile(self, odir, sample, starID=None, variable=None):
+
+        """Draw frequencies from Kepler legacies.
         """
 
-        # Name of folder on FTP server
-        filename = 'varsource_gdor_gang2020'
-        dataDir  = Path(f'{odir}/{filename}')
+        # Select sample
         
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
+        if sample == 'Gang2020':
+            suffix   = 'dat'
+            sep      = ' '
+            comment  = '#'
+            frequnit = 'c/d'
+            amplunit = 'norm'
+            filename = 'varsource_gdor_gang2020'
+            names    = ['freq', 'ampl', 'phase', 'snr']
+            
+        elif sample == 'Bowman2018':
+            suffix   = 'txt'
+            sep      = '  '
+            comment  = None
+            frequnit = 'c/d'
+            amplunit = 'mmag'
+            filename = 'varsource_dsct_bowman2018'
+            names    = ['niter', 'freq', 'freq_err', 'ampl', 'ampl_err', 
+                        'phase', 'phase_err', 'snr']
+            
+        elif sample == 'Bodi2023':
+            suffix   = 'fou'
+            sep      = '  '
+            comment  = None
+            frequnit = 'c/d'
+            amplunit = 'mag'
+            names    = ['freq', 'ampl', 'phase']
+            if variable == 'RRLyr':
+                filename = 'varsource_rrly_bodi2023'
+            elif variable == 'Ceph':
+                filename = 'varsource_ceph_bodi2023'
+            else:
+                errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+
         else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
+            errorcode('error', f'No sample named {sample}!')
+        
+        # Download files if not done
+        self.download(odir, filename)
 
         # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
         if starID is None:
             starfile = Path(self.rng.choice(filenames))
         else:
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
+        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+        self.starname = f'{sample}: {starfile.name}'
 
-        # Else load the data
-        self.freq  = 1/df.freq      # [days]
-        self.ampl  = df.ampl * 1e3  # [mag]
-        self.phase = df.phase       # [rad]
-        self.snr   = df.snr
-        self.starname = starfile.name
+        # Convert freq unit [c/d]
+        if frequnit == 'day':
+            self.df.freq = 1 / self.df.freq
 
+        # Convert ampl unit [mag]
+        if amplunit == 'mmag':
+            self.df.ampl /= 1e3  
+        elif amplunit == 'norm':
+            self.df.ampl = -2.5*np.log10(1-self.df.ampl)
+
+        # Return the star ID
+        return starfile.name
+    
+
+    
+    def initMockaGang2020(self, odir):
+
+        """Draw frequencies from Kepler g-Dor legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_gdor_gang2020.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
         
+        # Load file containing columns
+        dm = pd.read_feather(filepath)
+        
+        # Generate KDEs
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+        A_kde     = scipy.stats.gaussian_kde(dm.A_max)
+        
+        # Select number modes
+        N = np.random.randint(20, 40)
 
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
+
+        # Select maximum period from KDE [day]
+        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+        P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
+
+        # First period spacing in pattern from KDE [day]
+        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+        dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
+
+        # Select slope from fit to distribution (cf. Fig. 10 of L20)
+        a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
+        slope = a * np.exp(-b * P0) + c * np.log10(d * P0) + e
+
+        # Create period-spacing pattern [day]
+        P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+        
+        # Draw amplitude below maximum [mag]
+        A_i_ran = np.linspace(dm.A_max.min(), 0.003, n)        
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
+        
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max0 = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)
+        
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max0
+
+        # Draw random periods not part of the pattern (max 1/8 of ampl)
+        M = np.random.randint(100, 400)
+        P_puls_i = self.rng.uniform(0.2, 2, size=M)
+        A_puls_i = self.rng.uniform(0, A_max0/10, size=M)
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = 1 / np.append(P_i, P_puls_i)
+        self.df['ampl']  = np.append(A_i, A_puls_i)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
+
+        # Return parameters
+        return N, P0, dP0, slope, A_max0, self.df
+    
+
+
+    def initMockaBowman2018(self, odir):
+
+        """Draw frequencies from Kepler DSct legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_dsct_bowman2018.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+
+        # Load file containing columns
+        df = pd.read_feather(filepath)
+
+        # Generate KDEs
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        A_kde = scipy.stats.gaussian_kde(df.ampl)
+        
+        # Select number modes
+        N = self.rng.integers(20, 40, 1)[0]
+
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
+
+        # Select frequcies from KDE [day]
+        f_ran = np.linspace(df.freq.min(), df.freq.max(), n)
+        f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
+
+        # Draw amplitude below maximum [mag]
+        A_ran = np.linspace(df.ampl.min(), df.ampl.max(), n)        
+        A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
+        
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = self.rng.integers(-5, 5, 1)[0]
+        n_dex = int(N/2 + n_off)
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = f_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.df = self.df.sort_values('freq').reset_index(drop=True)
+        self.starname = 'MOCKA: delta Scuti (Bowman+2018)'
+
+        # Return parameters
+        return self.df
+        
+        
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
-        """
 
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
+        time [day], freq [c/d], ampl [mag], phase [rad]
+        """
+        
+        return ns.timeSeriesFromFourier(self.time, self.df.freq, self.df.ampl, self.df.phase,
+                                        power=self.power, title=self.starname, plot=plot)
    
 
 
 
-
-class ClassicalPulsator(object):
-
-    """Class to generate variability classical pulsators
-    """
-
-    def __init__(self, time, seed=False):
-        
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-        
-    def initFromFile(self, odir, starID=None):
-
-        """Draw frequencies from Kepler g-Dor legacy.
-        """
-
-        # Name of folder on FTP server
-        filenames = glob.glob(f'{self.idir}/RRL-CEP/*.fou')
-        starfile = random.choice(filenames)
-        
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
-        else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starfile = Path(self.rng.choice(filenames))
-        else:
-            starfile = Path(filenames[starID-1])
-            
-        # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
-
-        # Else load the data
-        self.starname  = starfile.name
-        self.period    = df.freq        # [days]
-        self.amplitude = df.ampl * 1e3  # [mag]
-        self.phase     = df.phase       # [rad]
-        self.snr       = df.snr
-
-
-        
-    def evaluate(self, plot=False):
-
-        """Evaluate and return generated model.
-        """
-
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
-
-
-
-
-
-
+    
 #==============================================================#
 #                         OTHER OBJECTS                        #
 #==============================================================#
-
 
 
 class EclipsingBinary(object):
 
     """Models Eclipsing Binaries (EBs).
     """
-
 
     def __init__(self, time, seed=None):
 
@@ -1359,80 +1479,9 @@ class EclipsingBinary(object):
 
     def read_parameters_hdf5(self, file_name, verbose=False):
 
-        """Read the full model parameters of the linear, sinusoid
+        """Copy of method from STARSHADOW:
+        Read the full model parameters of the linear, sinusoid
         and eclipse models to an hdf5 file.
-
-        Parameters
-        ----------
-        file_name: str
-            File name (including path) for loading the results.
-        verbose: bool
-            If set to True, this function will print some information.
-
-        Returns
-        -------
-        results: dict
-            Contains:
-            sin_mean: None, list[numpy.ndarray[float]]
-                Parameter mean values for the linear and sinusoid model in the order they appear below.
-                linear parameters: const, slope,
-                sinusoid parameters: f_n, a_n, ph_n
-            sin_err: None, list[numpy.ndarray[float]]
-                Parameter error values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_err, sl_err,
-                sinusoid parameters: f_n_err, a_n_err, ph_n_err
-            sin_hdi: None, list[numpy.ndarray[float]]
-                Parameter hdi values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_hdi, sl_hdi,
-                sinusoid parameters: f_n_hdi, a_n_hdi, ph_n_hdi
-            sin_select: None, list[numpy.ndarray[bool]]
-                Sinusoids that pass certain selection criteria
-                passed_sigma, passed_snr, passed_h
-            ephem: None, numpy.ndarray[float]
-                Ephemerides of the EB, p_orb and t_zero
-            ephem_err: None, numpy.ndarray[float]
-                Error values for the ephemerides, p_err and t_zero_err
-            ephem_err: None, numpy.ndarray[float]
-                Hdi values for the ephemerides, p_hdi and t_zero_hdi
-            phys_mean: None, numpy.ndarray[float]
-                Parameter mean values for the physical eclipse model in the order they appear below.
-                ecosw, esinw, cosi, phi_0, log_rr, log_sb,
-                extra parametrisations: e, w, i, r_sum, r_rat, sb_rat
-            phys_err: None, numpy.ndarray[float]
-                Parameter error values for the physical eclipse model in the order they appear below.
-                ecosw_err, esinw_err, cosi_err, phi_0_err, log_rr_err, log_sb_err,
-                Extra parametrisation: e_err, w_err, i_err, r_sum_err, r_rat_err, sb_rat_err
-            phys_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the physical eclipse model in the order they appear below.
-                ecosw_hdi, esinw_hdi, cosi_hdi, phi_0_hdi, log_rr_hdi, log_sb_hdi,
-                Extra parametrisations: e_hdi, w_hdi, i_hdi, r_sum_hdi, r_rat_hdi, sb_rat_hdi
-            timings: None, numpy.ndarray[float]
-                Eclipse timings of minima and first and last contact points, internal tangency
-                and eclipse depth of the primary and secondary:
-                t_1, t_2, t_1_1, t_1_2, t_2_1, t_2_2, t_b_1_1, t_b_1_2, t_b_2_1, t_b_2_2, depth_1, depth_2
-            timings_err: None, numpy.ndarray[float]
-                Parameter error values for the eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            timings_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the eclipse timings and depths:
-                t_1_hdi, t_2_hdi, t_1_1_hdi, t_1_2_hdi, t_2_1_hdi, t_2_2_hdi,
-                t_b_1_1_hdi, t_b_1_2_hdi, t_b_2_1_hdi, t_b_2_2_hdi, depth_1_hdi, depth_2_hdi
-            timings_indiv_err: None, numpy.ndarray[float]
-                Parameter error values for the individual eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            var_stats: None, list[union(float, numpy.ndarray[float])]
-                Variability level diagnostic statistics
-                std_1, std_2, std_3, std_4, ratios_1, ratios_2, ratios_3, ratios_4
-            stats: None, list[float]
-                Some statistics: t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level
-            i_sectors: numpy.ndarray[int]
-                Pair(s) of indices indicating the separately handled timespans
-                in the piecewise-linear curve.
-            text: list[str]
-                Some information about the file and data:
-                identifier, data_id, description and date_time
         """
         # check some input
         ext = os.path.splitext(os.path.basename(file_name))[1]
@@ -1527,27 +1576,33 @@ class EclipsingBinary(object):
                               e[0], w[0], i[0], r_sum[0], r_rat[0], sb_rat[0]])
         phys_err = np.array([ecosw[1], esinw[1], cosi[1], phi_0[1], log_rr[1], log_sb[1],
                              e[1], w[1], i[1], r_sum[1], r_rat[1], sb_rat[1]])
-        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4], log_rr[2:4], log_sb[2:4],
-                             e[2:4], w[2:4], i[2:4], r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
+        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4],
+                             log_rr[2:4], log_sb[2:4], e[2:4], w[2:4], i[2:4],
+                             r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
         timings = np.array([t_1[0], t_2[0], t_1_1[0], t_1_2[0], t_2_1[0], t_2_2[0],
-                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0], depth_1[0], depth_2[0]])
+                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0],
+                            depth_1[0], depth_2[0]])
         timings_err = np.array([t_1[1], t_2[1], t_1_1[1], t_1_2[1], t_2_1[1], t_2_2[1],
-                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1], depth_1[1], depth_2[1]])
-        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4], t_2_1[2:4], t_2_2[2:4],
-                                t_b_1_1[2:4], t_b_1_2[2:4], t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
+                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1],
+                                depth_1[1], depth_2[1]])
+        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4],
+                                t_2_1[2:4], t_2_2[2:4], t_b_1_1[2:4], t_b_1_2[2:4],
+                                t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
         timings_indiv_err = np.array([t_1[4], t_2[4], t_1_1[4], t_1_2[4], t_2_1[4], t_2_2[4],
-                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4], depth_1[4], depth_2[4]])
+                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4],
+                                      depth_1[4], depth_2[4]])
         var_stats = [ratios_1[0], ratios_2[0], ratios_3[0], ratios_4[0],
                      ratios_1[1:], ratios_2[1:], ratios_3[1:], ratios_4[1:]]
         stats = [t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level]
         text = [identifier, data_id, description, date_time]
         # put everything in a dict
-        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi, 'sin_select': sin_select,
+        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi,
+                   'sin_select': sin_select,
                    'ephem': ephem, 'ephem_err': ephem_err, 'ephem_hdi': ephem_hdi,
                    'phys_mean': phys_mean, 'phys_err': phys_err, 'phys_hdi': phys_hdi,
                    'timings': timings, 'timings_err': timings_err, 'timings_hdi': timings_hdi,
                    'timings_indiv_err': timings_indiv_err,
-                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors, 'text': text}
+                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors,'text': text}
         if verbose:
             print(f'Loaded analysis file with identifier: {identifier}, created on {date_time}. \n'
                   f'data_id: {data_id}. Description: {description} \n')
@@ -1561,43 +1616,49 @@ class EclipsingBinary(object):
         """
 
         # Name of folder on FTP server
-        filename = 'varsource_EBs_kepler_ijspeert2021'
+        filename = 'varsource_ebs_ijspeert2021'
         dataDir  = Path(f'{odir}/{filename}')
         
         # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            folders = glob.glob(f'{odir}/{filename}/*')
-        else:
+        if not dataDir.is_dir():
             zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
+            if self.verbose > 1:
+                print(f'Downloading {zipfile} files..')
             ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
             os.system(f'unzip {odir}/{zipfile} -d {odir}')
             os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starDir = Path(self.rng.choice(folders))
-        else:
-            starDir = Path(filenames[starID-1])
             
+        # If requested, select specific star or else do a random draw
+        folders = glob.glob(f'{odir}/{filename}/*')
+        starDir = Path(self.rng.choice(folders))
+                    
         # Load file containing columns
         starfile = starDir / f'{starDir.name}_2.hdf5' 
         result   = self.read_parameters_hdf5(starfile)
         data     = result['sin_mean']
-
-        # Else load the data
-        self.freq  = data[2]      # [days]
-        self.ampl  = data[3] * 1e3 #df.ampl * 1e3  # [mag]
-        self.phase = data[4] #df.phase       # [rad]
+        self.freq  = data[2]  # [c/d]
+        self.ampl  = data[3]  # [mag]
+        self.phase = data[4]  # [rad]
         self.starname = str(starDir.stem)
 
+        # Extract period if avilable
+        starfile = starDir / f'{starDir.name}_5.hdf5'
+        try:
+            result = self.read_parameters_hdf5(starfile)
+            params = result['ephem']
+            P = params[0]
+        except:
+            P = None
 
+        return self.starname, P
+        
 
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
         """
-
+        
         return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
                                         plot=plot, title=self.starname)
         
