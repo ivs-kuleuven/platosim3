@@ -1200,6 +1200,9 @@ class Simulation(object):
         if self["Telescope/GroupID"] == "Custom":
             azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
             tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
+        elif self["Telescope/GroupID"] == "Fast":
+            azimuthAngle    = np.deg2rad(self["CameraGroups/AzimuthAngle"][4])
+            tiltAngle       = np.deg2rad(self["CameraGroups/TiltAngle"][4])
         else:
             groupID = int(self["Telescope/GroupID"])
             azimuthAngle    = np.deg2rad(self["CameraGroups/AzimuthAngle"][groupID-1])
