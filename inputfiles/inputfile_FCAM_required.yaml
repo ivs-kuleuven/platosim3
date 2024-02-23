@@ -56,7 +56,7 @@ Telescope:
         BOL:                         0.8135          # Beginning of Life value in [0,1]
         EOL:                         0.7945          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
-    UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
+    DriftSource:                     FromRedNoise    # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
     DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll [arcsec]
