@@ -17,7 +17,6 @@ double operator-(Time t1, Time t2)
 
 
 
- 
 
 
 
@@ -33,8 +32,11 @@ double operator-(Time t1, Time t2)
 
 
 
-StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File)
-: HDF5Writer(hdf5File)
+
+StrayLight::StrayLight(ConfigurationParameters &configParam,
+                     HDF5File &hdf5File,
+		     Camera &camera)
+: HDF5Writer(hdf5File), camera(camera)
 {
     // Parse the parameters from the configuration file.
 
@@ -48,25 +50,31 @@ StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File)
 
 void StrayLight::configure(ConfigurationParameters &configParam)
 {
-    numExposure = configParam.getInteger("ObservingParameters/NumExposures");
-    beginExposures =
-        configParam.getInteger("ObservingParameters/BeginExposureNr");
-    cycleTime = configParam.getInteger("ObservingParameters/CycleTime");
+    numExposure		= configParam.getInteger("ObservingParameters/NumExposures");
+    beginExposures	= configParam.getInteger("ObservingParameters/BeginExposureNr");
+    cycleTime		= configParam.getInteger("ObservingParameters/CycleTime");
+    radiusFOV		= deg2rad(configParam.getDouble("CCD/RelativeTransmissivity/RadiusFOV")); // [deg]
 
     double radiusMoon = 1.7381e6; // [m]
     double moon_reflectivity = 0.11;
 
     // Read in the positions of the file and save them into the vectors.
+
     std::string orbitPath =
         configParam.getAbsoluteFilename("StrayLight/FilePath");
 
     readInFile(orbitPath, sc, moon, sun);
 
+    // Let's do the moon
+
     std::vector<GridPoint> grid;
     grid = getGrid(radiusMoon, 100);
 
-    // getCelestialObjectGridSpectralRadiance(sun[0], moon[0],  moon_reflectivity, grid);
+    std::vector<arma::vec> celestialObjectSpectralRadiance =
+        getCelestialObjectGridSpectralRadiance(sun[0], moon[0],
+		moon_reflectivity, grid);
 
+    getIrradianceAtCamera(camera, grid, celestialObjectSpectralRadiance, moon[0], sc[0]);
 }
 
 
@@ -93,7 +101,7 @@ void StrayLight::configure(ConfigurationParameters &configParam)
  * \param: grid          The grid around the celstial object.
  *
  */
-std::vector<std::array<double, 29>>
+std::vector<arma::vec>
 StrayLight::getCelestialObjectGridSpectralRadiance(arma::vec sun, arma::vec object,
                                        double reflexivity, std::vector<GridPoint> &grid)
 {
@@ -105,39 +113,42 @@ StrayLight::getCelestialObjectGridSpectralRadiance(arma::vec sun, arma::vec obje
 
     // Solar irradiance at the object for different wavelengths
     std::array<double, 29> solarIrradiance = SolarSpectralIrradiance(distanceSunObject);
-    std::vector<std::array<double, 29>> objectIrradiance;
+    std::vector<arma::vec> objectIrradiance;
+    std::vector<GridPoint> new_grid;
 
 
-    for (const GridPoint p : grid)
+    for (const GridPoint &p : grid)
     {
         // Normalize the vector from object to gridpoint.
         arma::vec x = p.point;
-	std::cout << x << std::endl;
-        // x = x / sqrt( x*x);
-
-        // // Angle between sun, object and gridpoint.
-        // double cos_gamma = x * sunObejectVector;
+        x = x / sqrt(arma::as_scalar( x.t()*x));
 
 
-        // if (cos_gamma < 0)
-        // {
-        //     // Dark side of the object
-        //     continue;
-        // } else {
-        //     // Bright side of the object
+        // Angle between sun, object and gridpoint.
 
-        //     // reflexivity of the celestial object
-        //     double a = reflexivity * cos_gamma * cos_gamma / Constants::PI;
+        double cos_gamma = arma::as_scalar(x.t() * sunObejectVector);
 
-        //     // cosider the solar spectral irradiance using Plank's law
-        //     std::array<double, 29> irradiance;
-        //     for (int i = 0; i < 29; i++)
-        //     {
-        //         irradiance[i] = a * solarIrradiance[i];
-        //     }
-        //     objectIrradiance.push_back(irradiance);
-        // }
+        if (cos_gamma < 0)
+        {
+            // Dark side of the object
+            continue;
+        } else {
+            // Bright side of the object
+
+            // reflexivity of the celestial object
+            double a = reflexivity * cos_gamma * cos_gamma / Constants::PI;
+
+            // cosider the solar spectral irradiance using Plank's law
+            arma::vec irradiance(29);
+            for (int i = 0; i < 29; i++)
+            {
+                irradiance[i] = a * solarIrradiance[i];
+            }
+            objectIrradiance.push_back(irradiance);
+            new_grid.push_back(p);
+        }
     }
+    grid = new_grid;
     return objectIrradiance;
 }
 
@@ -173,14 +184,14 @@ StrayLight::getCelestialObjectGridSpectralRadiance(arma::vec sun, arma::vec obje
  */
 std::vector<GridPoint> StrayLight::getGrid(double radius, int nPoints) {
     double dTheta = Constants::PI / nPoints;
-    double dPhi   = Constants::PI / nPoints;
+    double dPhi   = 2*Constants::PI / nPoints;
 
     std::vector<GridPoint> grid;
 
     for (int i = 0; i < nPoints; i++)
     {
-        for (int j = 0; j < nPoints; j++)
-        {
+        for (int j = 0; j < nPoints; j++) {
+
             arma::vec gridPosition(3);
             gridPosition[0] = radius * sin(i * dTheta) * cos(j * dPhi);
             gridPosition[1] = radius * sin(i * dTheta) * sin( j * dPhi);
@@ -188,7 +199,7 @@ std::vector<GridPoint> StrayLight::getGrid(double radius, int nPoints) {
 
             GridPoint gridPoint;
             gridPoint.point = gridPosition;
-            gridPoint.size = radius*radius * sin(i * dTheta) * dTheta * dPhi;
+            gridPoint.size = radius * radius * sin(i * dTheta) * dTheta * dPhi;
 
             grid.push_back(gridPoint);
         }
@@ -332,10 +343,57 @@ std::array<double, 29> StrayLight::SolarSpectralIrradiance(double distance) {
 
 
 
+void StrayLight::getIrradianceAtCamera(Camera &camera, std::vector<GridPoint> grid, std::vector<arma::vec> emmitterIrradiance,  arma::vec emmitterPosition, arma::vec cameraPosition) {
+
+    // Get the max angle where light can fall onto the camera
+
+    double cos_alpha_max = cos(radiusFOV);
 
 
+    // Camera pointing vectors
+
+    double alpha, delta;
+    double lambda, beta;
+
+    tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(0, 0);
+    equatorial2ecliptic(alpha, delta, lambda, beta);
+
+    arma::vec nCamera = {cos(lambda) * cos(beta), sin(lambda) * cos(beta), sin(beta) };
 
 
+    for (int idx = 0; idx < grid.size(); idx++) {
+
+        arma::vec n_Emmitter_Cam = emmitterPosition + grid[idx].point - cameraPosition;
+        n_Emmitter_Cam = n_Emmitter_Cam / sqrt(arma::as_scalar(n_Emmitter_Cam.t() * n_Emmitter_Cam));
+
+        double cos_alpha1 = arma::as_scalar(grid[idx].point.t() * n_Emmitter_Cam) / sqrt(arma::as_scalar(grid[idx].point.t() * grid[idx].point));
+        double cos_alpha2 = arma::as_scalar(nCamera.t() * n_Emmitter_Cam);
+
+
+        arma::vec E(29);
+
+        if (cos_alpha1 < 0) {
+            E.zeros();
+        } else if (cos_alpha2 < 0) {
+            E.zeros();
+        } else {
+            E = emmitterIrradiance[idx] * grid[idx].size * cos_alpha1;
+        }
+
+        double cos_gridAlpha = cos_alpha1;
+        double cos_irraAlpha = cos_alpha2;
+
+	arma::vec Eproj(29);
+        if (cos_alpha2 < cos_alpha_max) {
+            Eproj.zeros();
+        }
+        else {
+	    Eproj = E*cos_alpha2;
+        }
+	// return E, Eproj, cos_irraAlpha, cos_gridAlpha
+    }
+    
+}
 
 Time::Time(std::string datetime)
 {

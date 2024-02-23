@@ -13,9 +13,13 @@
 
 #include "ConfigurationParameters.h"
 #include "HDF5Writer.h"
+#include "Camera.h"
+
 // #include "HDF5File.h"
 #include "armadillo"
 
+
+class Camera;
 
 
 struct GridPoint
@@ -28,7 +32,7 @@ struct GridPoint
 class StrayLight : public HDF5Writer
 {
     public:
-        StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File);
+        StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File, Camera &camera);
         // virtual ~StrayLight();
 
         void configure(ConfigurationParameters &configParam);
@@ -40,19 +44,22 @@ class StrayLight : public HDF5Writer
                       std::vector<arma::vec> &moon,
                       std::vector<arma::vec> &sun);
          std::vector<std::string> splitLine(std::string &line);
-         std::vector<std::array<double, 29>>
+         std::vector<arma::vec>
              getCelestialObjectGridSpectralRadiance(arma::vec sun, arma::vec object,
                                                      double reflexivity,
                                                      std::vector<GridPoint> &grid);
          std::array<double, 29> SolarSpectralIrradiance(double distance);
-
+    void getIrradianceAtCamera(Camera &camera, std::vector<GridPoint> grid, std::vector<arma::vec> emmitterIrradiance, arma::vec emmitterPosition, arma::vec cameraPosition);
          std::vector<arma::vec> moon;
          std::vector<arma::vec> sc;
          std::vector<arma::vec> sun;
 
+         double radiusFOV;
          double numExposure;
          double beginExposures;
          double cycleTime;
+
+         Camera &camera;
          };
 
 
