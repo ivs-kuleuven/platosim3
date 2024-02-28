@@ -21,8 +21,8 @@ from platosim.lightcurve import LightCurve
 warnings.filterwarnings("ignore")
 
 # Convertion method
-def flux2mmag(flux):
-    return -2.5*np.log10(flux) * 1e3
+def flux2mag(flux):
+    return -2.5*np.log10(flux)
 
 #--------------------------------------------------------------#
 #                        START OF SCRIPT                       #
@@ -72,11 +72,10 @@ df.time /= 86400
 
 # Save final light curve
 ds = df
-ds['mmag'] = flux2mmag(ds.flux)
+ds['mmag'] = flux2mag(ds.flux)
 ds = ds.drop(columns=['flux'])
 ds.to_feather(filename_ftr)
 os.system(f'chmod 755 {filename_ftr}')
-print(ds)
 
 # Save simulation table
 lc.stat_sim_table(filename_tab)
@@ -88,11 +87,10 @@ lc.stat_sim_table(filename_tab)
 dt = df
 dt['flux_err'] = np.ones_like(dt.flux)
 dt.to_csv(filename_dat, sep=' ', index=False, header=False)
-print(dt)
 
 # Perform prewhitening using STARSHADOW
-# ss.analyse_lc_from_file(filename_dat, save_dir=odir, stage='freq',
-#                         overwrite=True, verbose=False)
+ss.analyse_lc_from_file(str(filename_dat), save_dir=str(odir_final), stage='freq',
+                        overwrite=True, verbose=True)
 
 # Load file containing columns
 folder_hdf5   = odir_final  / f'{filename_final}_analysis'
@@ -103,16 +101,15 @@ result = ss.utility.read_parameters_hdf5(filename_hdf5, verbose=False)
 mean = result['sin_mean']
 err  = result['sin_err']
 df = pd.DataFrame()
-df['freq']      = mean[2]             # [c/d]
-df['freq_err']  = err[2]              # [c/d]
-df['ampl']      = flux2mmag(1-mean[3])  # [mmag]
-df['ampl_err']  = flux2mmag(1-err[3])   # [mmag]
-df['phase']     = mean[4]             # [rad]
-df['phase_err'] = err[4]              # [rad]
+df['freq']      = mean[2]              # [c/d]
+df['freq_err']  = err[2]               # [c/d]
+df['ampl']      = flux2mag(1-mean[3])  # [mag]
+df['ampl_err']  = flux2mag(1-err[3])   # [mag]
+df['phase']     = mean[4]              # [rad]
+df['phase_err'] = err[4]               # [rad]
 df = df.sort_values('freq').reset_index(drop=True)
 df.to_feather(filename_mod)
 os.system(f'chmod 755 {filename_mod}')
-print(df)
 
 # Remove starshadow files
 filename_dat.unlink()
