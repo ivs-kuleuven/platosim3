@@ -34,8 +34,15 @@ Sky:
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
 
 Platform:
-
-    SolarPanelOrientation:           -8.5            # 0, 90, 180, or 270 degrees for the different quarters of a year [deg]
+    Orientation:
+      Source:                        Angles          # Should be either "Angles" or "Quaternion" 
+      Angles:
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
+        SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
+      Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
+        Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
+                                                     # [q0, qx, qy, qz] with norm = 1.0
     UseJitter:                       yes             # yes or no. If no, ignore everything below.
     JitterSource:                    FromRedNoise    # FromFile, FromRedNoise, or FromNetwork
     JitterYawRms:                    0.038           # [arcsec]
@@ -56,7 +63,7 @@ Telescope:
         BOL:                         0.8135          # Beginning of Life value in [0,1]
         EOL:                         0.7945          # End of Life value in [0,1]
     UseDrift:                        no              # yes or no. If no, ignore everything below.
-    UseDriftFromFile:                no              # yes or no. If yes: ignore RMS and timescale below
+    DriftSource:                     FromRedNoise    # yes or no. If yes: ignore RMS and timescale below
     DriftYawRms:                     2.0             # RMS of thermo-elastic drift in yaw [arcsec]
     DriftPitchRms:                   2.0             # RMS of thermo-elastic drift in pitch [arcsec]
     DriftRollRms:                    2.0             # RMS of thermo-elastic drift in roll [arcsec]
@@ -163,6 +170,7 @@ CCD:
         RefValueRight:               1.80            # [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
+        Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # O = B + I + a0 + a1 * I + a2 * I^2
     QuantumEfficiency:
         MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
@@ -230,7 +238,7 @@ CCD:
     IncludeFullWellSaturation:       yes             # Whether or not full well saturation should be applied
     IncludeDigitalSaturation:        yes             # Whether or not digital saturation should be applied
     IncludeQuantisation:             yes             # Whether or not to include quantisation
-
+    IncludeGainNonlinearity:         yes             # Whether or not to include a non-linear gain (e- -> ADU)
 
 SubField:
 
