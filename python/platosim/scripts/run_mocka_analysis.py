@@ -20,10 +20,6 @@ from platosim.lightcurve import LightCurve
 # Ignore warnings
 warnings.filterwarnings("ignore")
 
-# Convertion method
-def flux2mag(flux):
-    return -2.5*np.log10(flux)
-
 #--------------------------------------------------------------#
 #                        START OF SCRIPT                       #
 #--------------------------------------------------------------#
@@ -35,6 +31,7 @@ man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID', type=int, help='Star ID')
 man_group.add_argument('idir',   type=str, help='Input directory containing star folders')
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
+man_group.add_argument('--clean', action='store_true', help='Flag to remove camera data')
 args = parser.parse_args()
 
 # File paths
@@ -68,12 +65,9 @@ lc = lcs.merge(flux_group_mean=True, binsize=600)
 # Extract light curve
 df = lc.data()
 df = df.dropna(subset=['flux']).reset_index(drop=True)
-df.time /= 86400
 
 # Save final light curve
 ds = df
-ds['mmag'] = flux2mag(ds.flux)
-ds = ds.drop(columns=['flux'])
 ds.to_feather(filename_ftr)
 os.system(f'chmod 755 {filename_ftr}')
 
@@ -85,12 +79,13 @@ lc.stat_sim_table(filename_tab)
 
 # Prepare light curve for starshadow
 dt = df
+dt.time /= 86400. 
 dt['flux_err'] = np.ones_like(dt.flux)
 dt.to_csv(filename_dat, sep=' ', index=False, header=False)
 
 # Perform prewhitening using STARSHADOW
 ss.analyse_lc_from_file(str(filename_dat), save_dir=str(odir_final), stage='freq',
-                        overwrite=True, verbose=True)
+                        overwrite=True, verbose=False)
 
 # Load file containing columns
 folder_hdf5   = odir_final  / f'{filename_final}_analysis'
@@ -101,12 +96,12 @@ result = ss.utility.read_parameters_hdf5(filename_hdf5, verbose=False)
 mean = result['sin_mean']
 err  = result['sin_err']
 df = pd.DataFrame()
-df['freq']      = mean[2]              # [c/d]
-df['freq_err']  = err[2]               # [c/d]
-df['ampl']      = flux2mag(1-mean[3])  # [mag]
-df['ampl_err']  = flux2mag(1-err[3])   # [mag]
-df['phase']     = mean[4]              # [rad]
-df['phase_err'] = err[4]               # [rad]
+df['freq']      = mean[2]      # [c/d]
+df['freq_err']  = err[2]       # [c/d]
+df['ampl']      = mean[3]*1e6  # [ppm]
+df['ampl_err']  = err[3]*1e6   # [ppm]
+df['phase']     = mean[4]      # [rad]
+df['phase_err'] = err[4]       # [rad]
 df = df.sort_values('freq').reset_index(drop=True)
 df.to_feather(filename_mod)
 os.system(f'chmod 755 {filename_mod}')
@@ -114,3 +109,5 @@ os.system(f'chmod 755 {filename_mod}')
 # Remove starshadow files
 filename_dat.unlink()
 os.system(f'rm -r {folder_hdf5}')
+if args.clean:
+    os.system(f'rm -r {str(idir)}')
