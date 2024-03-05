@@ -31,6 +31,7 @@ man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID', type=int, help='Star ID')
 man_group.add_argument('idir',   type=str, help='Input directory containing star folders')
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
+man_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 man_group.add_argument('--clean', action='store_true', help='Flag to remove camera data')
 args = parser.parse_args()
 
@@ -66,6 +67,11 @@ lc = lcs.merge(flux_group_mean=True, binsize=600)
 df = lc.data()
 df = df.dropna(subset=['flux']).reset_index(drop=True)
 
+# Subtract mean
+df.flux = (df.flux - df.flux.mean())
+
+
+
 # Save final light curve
 ds = df
 ds.to_feather(filename_ftr)
@@ -85,12 +91,12 @@ dt.to_csv(filename_dat, sep=' ', index=False, header=False)
 
 # Perform prewhitening using STARSHADOW
 ss.analyse_lc_from_file(str(filename_dat), save_dir=str(odir_final), stage='freq',
-                        overwrite=True, verbose=False)
+                        overwrite=True, verbose=args.verbose)
 
 # Load file containing columns
 folder_hdf5   = odir_final  / f'{filename_final}_analysis'
 filename_hdf5 = folder_hdf5 / f'{filename_final}_analysis_2.hdf5' 
-result = ss.utility.read_parameters_hdf5(filename_hdf5, verbose=False)
+result = ss.utility.read_parameters_hdf5(filename_hdf5, verbose=args.verbose)
 
 # Save data into feather file
 mean = result['sin_mean']

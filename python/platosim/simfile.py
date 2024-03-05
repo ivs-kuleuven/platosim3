@@ -2225,7 +2225,7 @@ class SimFile (object):
                 # Add magnitude label above star position
                 
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='darkorange', weight='bold')
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
                     
             # Or hightligth all stars the same
             

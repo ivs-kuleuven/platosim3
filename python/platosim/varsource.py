@@ -1185,11 +1185,12 @@ class Pulsator(object):
     """Class to generate time series from list of pulsation modes.
     """
 
-    def __init__(self, time, power, seed=False):
+    def __init__(self, time, power, BC=None, seed=False):
 
         self.time  = time
         self.power = power
-
+        self.BC    = BC
+        
         # Random number generator
         self.rng = ut.rng(seed)
             
@@ -1255,8 +1256,8 @@ class Pulsator(object):
             suffix   = 'dat'
             sep      = ' '
             comment  = '#'
-            frequnit = 'c/d'
-            amplunit = 'norm'
+            freq_unit = 'c/d'
+            ampl_unit = 'norm'
             filename = 'varsource_gdor_gang2020'
             names    = ['freq', 'ampl', 'phase', 'snr']
             
@@ -1264,8 +1265,8 @@ class Pulsator(object):
             suffix   = 'txt'
             sep      = '  '
             comment  = None
-            frequnit = 'c/d'
-            amplunit = 'mmag'
+            freq_unit = 'c/d'
+            ampl_unit = 'mmag'
             filename = 'varsource_dsct_bowman2018'
             names    = ['niter', 'freq', 'freq_err', 'ampl', 'ampl_err', 
                         'phase', 'phase_err', 'snr']
@@ -1274,8 +1275,8 @@ class Pulsator(object):
             suffix   = 'fou'
             sep      = '  '
             comment  = None
-            frequnit = 'c/d'
-            amplunit = 'mag'
+            freq_unit = 'c/d'
+            ampl_unit = 'mag'
             names    = ['freq', 'ampl', 'phase']
             if variable == 'RRLyr':
                 filename = 'varsource_rrly_bodi2023'
@@ -1302,15 +1303,23 @@ class Pulsator(object):
         self.starname = f'{sample}: {starfile.name}'
 
         # Convert freq unit [c/d]
-        if frequnit == 'day':
+        if freq_unit == 'day':
             self.df.freq = 1 / self.df.freq
 
+        # Apply bolometric correction
+        # if self.BC:
+        #     if self.ampl_unit == 'norm':
+                
+        #     self.df.ampl = 
+        #     self.df.ampl *= self.BC
+        print(self.df); exit()
+            
         # Convert ampl unit [mag]
         if amplunit == 'mmag':
             self.df.ampl /= 1e3  
         elif amplunit == 'norm':
             self.df.ampl = -2.5*np.log10(1-self.df.ampl)
-
+            
         # Return the star ID
         return starfile.name
     
@@ -1367,11 +1376,15 @@ class Pulsator(object):
 
         # Swap max peak location with offset
         n_off = np.random.randint(-5, 5)
-        n_dex = int(N/2 + n_off)
-        
+        n_dex = int(N/2 + n_off)        
         A_i[n_max] = A_i[n_dex]
         A_i[n_dex] = A_max0
 
+        # Apply bolometric correction
+        if self.BC:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.BC
+            A_i = 2.5 * np.log10(1 + A_i)
+        
         # Draw random periods not part of the pattern (max 1/8 of ampl)
         M = np.random.randint(100, 400)
         P_puls_i = self.rng.uniform(0.2, 2, size=M)

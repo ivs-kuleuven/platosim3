@@ -883,7 +883,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=2.2, seed=self.seed)
+        model = Pulsator(time, power=2.2, BC=self.bol_coeff, seed=self.seed)
         
         # Check model parsed
         
@@ -916,8 +916,8 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
-        
+        self.lc['flux'] = ut.fromMagToFlux(mag)
+
 
 
             
