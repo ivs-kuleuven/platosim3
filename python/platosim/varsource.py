@@ -1367,8 +1367,11 @@ class Pulsator(object):
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
         
         # Draw amplitude below maximum [mag]
-        A_i_ran = np.linspace(dm.A_max.min(), 0.003, n)        
-        A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
+        A_i_ran = np.linspace(0, 0.005, n)
+        param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
+        A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
+        # A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
