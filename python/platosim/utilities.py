@@ -1363,7 +1363,7 @@ def copyInputYAML(field, odir):
             filedata = filedata.replace('IncludePhotometry:               no ',
                                         'IncludePhotometry:               yes')
             filedata = filedata.replace('MaskUpdateInterval:              14.0',
-                                        'MaskUpdateInterval:              30.0')
+                                        'MaskUpdateInterval:              30.5')
             filedata = filedata.replace('GroupByExposure:                 yes',
                                         'GroupByExposure:                 no ')
             filedata = filedata.replace('WriteBiasMaps:                   yes',
