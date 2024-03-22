@@ -44,142 +44,7 @@ from platosim.utilities import errorcode
 #                        SOLAR-LIKE STARS                      #
 #==============================================================#
     
-    
-class StellarFlares(object):
-
-    """Model stellar flares.
-
-    A simplistic analytical description of stellar flares described by
-    an sudden flux increase followed by an exponential decay. Given the
-    time of the time series the corresponding flux is returned including
-    the wanted flares.
-    """
-
-    def __init__(self, time, seed=False):
         
-        # Store array
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-
-    def initToyModel(self):
-
-        """Uniform distribution of toy model.
-        """
-
-        # Time in [days] and ampl in [mmag]
-        nflares = self.rng.integers(0, 10, 1)[0]
-        self.tscale = self.rng.uniform(0.01, 0.1, nflares)
-        self.tmax   = self.rng.uniform(0, self.time[-1], nflares)
-        self.ampl   = self.rng.uniform(0, 0.2, nflares)
-
-        return self.tscale, self.tmax, self.ampl
-
-    
-        
-    def evaluate(self, tscale=False, tmax=False, ampl=False, asym=1, plot=False):
-
-        """Analytic model of stellar flares.
-        
-        Parameters
-        ----------
-        tscale : float, ndarray
-            Time scale duration of the flare(s) [days]
-        tmax : float, ndarray
-            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
-        ampl : float, ndarray
-            Amplitude of the flare(s) [mmag]
-        asym : float, ndarray
-            Asymmetry factor of the flare(s)
-        """
-
-        # Check parsing
-        if not tscale: tscale = self.tscale
-        if not tmax:   tmax   = self.tmax
-        if not ampl:   ampl   = self.ampl
-        
-        # Placeholders
-        flux     = np.zeros_like(self.time)
-        self.mag = np.zeros_like(self.time)
-
-        # Sampling
-        dt = np.diff(self.time)[0]
-        
-        # Secure that single flare works
-        try: len(tmax)
-        except: tmax = [tmax]
-        
-        # Loop over each flare event
-        
-        for m in range(len(tmax)):
-
-            # Start and end of flare event
-            t0 = (self.time[0]  - tmax[m])
-            t1 = (self.time[-1] - tmax[m])
-
-            # Time array during flare event
-            tn = np.arange(t0, t1, dt)
-            t  = tn / tscale[m]
-
-            # Model parameters of flare
-            B = asym
-            C = 1/B
-            b = -1.941 - 0.175 + 2.246 + 1
-            c = 1 - 0.689
-
-            # Loop over every time-step in the flare time interval:
-            # NOTE: this is defined relative to this flares maxima
-            # and put in units of the time-scale here the analytic
-            # expressions for the rise and decay are used to determine
-            # the flux of this flare
-
-            for i in range(len(t)):
-
-                # Rise of flare
-                if t[i]*B > -1 and t[i]*B <= 0:
-                    flux[i] += (1
-                                + 1.941 * (t[i]*B)
-                                - 0.175 * (t[i]*B)**2
-                                - 2.246 * (t[i]*B)**3
-                                - b     * (t[i]*B)**4)
-
-                # Decay of flare
-                elif t[i]*C > 0:
-                    flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
-                                c     * np.exp(-0.2783 * t[i]*C))
-
-                # No flare
-                else:
-                    flux[i] += 0
-
-            # Convert to magnitude [mmag]
-            self.mag = flux * ampl[m]
-                    
-        # plot light curve
-        if plot: self.plot()
-            
-        # Return relative flux
-        return self.mag
-
-
-
-    def plot(self):
-
-        """Function to plot result.
-        """
-        plt.figure(figsize=(9, 5))
-        plt.plot(self.time, self.mag, 'k-')
-        plt.xlabel('Time [d]')
-        plt.ylabel(r'$\delta m$ [mmag]')
-        plt.xlim(np.min(self.time), np.max(self.time))
-        plt.tight_layout()
-        plt.show()
-
-
-
-            
-    
 class StellarSpots(object):
     
     """Class to generate rotational star spot modulations.
@@ -249,19 +114,32 @@ class StellarSpots(object):
 
     
     def get_lrhk_from_S_and_bv(self, S, bv):
-        # Cf Noyes et al. (1984, ApJ 279 763, Appendix a)
+        # conversion from S to R (Noyes et al. 1984a, ApJ 279 763, Appendix a)
         lCcf = 1.13 * bv**3 - 3.91 * bv**2 + 2.84 * bv - 0.47 
         if bv < 0.63:
             x = 0.63 - bv
             lCcf += 0.135 * x - 0.814 * x**2 + 6.03 * x**3
-        return -4 + np.log10(1.34) + lCcf + np.log10(S)
+        lrhk = -4 + np.log10(1.34) + lCcf + np.log10(S)    
+        # photospheric correction (Noyes et al. 1984a, ApJ 279 763, Appendix b)    
+        lrphot  = -4.898 + 1.918 * bv**2 -2.893 * bv**3
+        lrhk = np.log10(10**lrhk - 10**lrphot)
+        return lrhk
+    
+
+    def get_Smin_from_bv(self, bv):
+        if bv < 0.94:
+            Smin = 0.144
+        elif bv < 1.07:
+            x = (bv - 0.94) / (1.07 - 0.94)
+            Smin = 0.144 + x * (0.19 - 0.144)
+        else:
+            x = (bv - 1.07) / (1.2 - 1.07)
+            Smin = 0.19 + x * (0.48 - 0.19)
+        return Smin
 
 
     def get_lrhk_from_bv(self, bv):
-        if bv < 0.94:
-            Smin = 0.144
-        else:
-            Smin = 0.0269231 * bv + 0.118892
+        Smin = self.get_Smin_from_bv(bv)
         lrhkmin = self.get_lrhk_from_S_and_bv(Smin, bv)
         lrhkmax = -0.375 * bv - 4.4
         return self.rng.random() * (lrhkmax - lrhkmin) + lrhkmin
@@ -729,7 +607,7 @@ class StellarSpots(object):
         # Finito!
         self.dF, self.dur, self.area, self.time = dF, dur, area, time
         self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
-        return flux, self.params
+        return flux, self.params, self.area
 
     
 
@@ -769,8 +647,226 @@ class StellarSpots(object):
         
     
 
+
+        
+class StellarFlares(object):
+
+    """Model stellar flares.
+
+    A simplistic analytical description of stellar flares described by
+    an sudden flux increase followed by an exponential decay. Given the
+    time of the time series the corresponding flux is returned including
+    the wanted flares.
+    """
+
+    def __init__(self, time, BC=None, seed=False):
+        
+        # Store array
+        self.time = time
+        self.rng  = ut.rng(seed)
+        self.BC   = BC
+
+        
+
+    def initToyModel(self):
+
+        """Uniform distribution of toy model.
+
+        Model parameter from Jasper Thys MSc thesis, which are imspired
+        by the distribution from Van Doorsselaere et al. (2017). 
+        """
+
+        # Rate of flaring events [events/quarter]
+        self.n_rate = self.rng.uniform(5, 15, 1)
+        
+        # Number of flares scales with lenght of time series
+        n_max = int(self.time[-1]/ut.quarter() * self.n_rate)
+        self.n_flares = self.rng.integers(1, n_max, 1)[0]
+
+        # Time of peak flare flux [d]
+        self.tmax = self.rng.uniform(0, self.time[-1], self.n_flares)
+
+        # FWHM time scale of flare [min -> d]
+        self.tscale = self.rng.uniform(1, 150, self.n_flares) / (24 * 60.)
+
+        # Amplitude distibution of flares (< 10 ppt) [norm]
+        self.ampl = self.rng.exponential(0.01, self.n_flares)
+
+        return self.tscale, self.tmax, self.ampl
+
     
 
+    def initDoorsselaere2017(self, odir, spec_type, activity_rate, spot_coverage):
+
+        """Model parameters from Kepler M-dwarf (Van Doorsselaere et al. 2017)
+
+        Notes
+        -----
+        Since the distributions of this paper used the long cadence
+        (i.e. 30-min) Kepler observations, there may be a potential
+        of missing short (<30 min) flaring events.
+        """
+        
+        # Spectral type dependence
+        if spec_type == 'F':
+            a_A, b_A = -0.36, -1.06
+            a_rate, b_rate = -0.21, -0.33
+        elif spec_type == 'G':
+            a_A, b_A = -0.36, -1.35
+            a_rate, b_rate = -0.15, -0.69
+        elif spec_type in ['K', 'M']:
+            a_A, b_A = -0.23, -1.38
+            a_rate, b_rate = -0.13, -0.54
+        else:
+            errorcode('warning', f'Spectral type {spec_type} is not in [F, G, K, M].' +
+                      'Ignoring stellar flares..')
+            return
+
+        # Draw random number of grid points to sample from
+        N = self.rng.integers(1000, 5000, 1)[0]
+        
+        # Use rate benchmark of 20 [events/star/quater]
+        # Number of flares scales with lenght of time series and activity rate
+        n_range = np.linspace(0, 12, N)
+        n_func  = 10**(a_rate * n_range + b_rate)
+        n_rate  = pd.Series(n_range).sample(1, weights=n_func).to_numpy()[0]
+        n_rate_a = n_rate * activity_rate
+        n_flares = int(n_rate_a * self.time[-1] / ut.quarter())
+        # Secure at least one flare
+        if n_flares == 0:
+            n_flares += 1
+        
+        # Time a peak flux of flare [d]
+        # We use spot coverage as weight for drawing the flares
+        area = spot_coverage.sum(0)*100
+        time = np.linspace(self.time[0], self.time[-1], len(area))
+        spline = make_interp_spline(time, area, k=3)
+        self.area = spline(self.time)
+        self.tmax = pd.Series(self.time).sample(n_flares, weights=self.area).to_numpy()
+
+        # Amplitude distibution of flares (< 10 ppt) [norm]
+        A_range = np.linspace(0, 10, N)
+        A_func  = 10**(a_A * A_range + b_A)
+        self.ampl = pd.Series(A_range).sample(n_flares, weights=A_func).to_numpy() / 1e3
+        # Secure lower amplitudes for less active stars
+        if activity_rate < 1:
+            self.ampl *= activity_rate
+                
+        # FWHM time scale of flare [min -> d]
+        scale_fwhm = self.ampl / self.ampl.max() * 2
+        self.tscale = self.rng.uniform(1, 200, n_flares) / (24 * 60.) * scale_fwhm
+
+        return n_rate_a, n_flares
+        
+
+    
+    def evaluate(self):
+
+        # Apply bolometric correction
+        if self.BC:
+            self.ampl *= self.BC
+
+        # Prepare flux array
+        self.flux = np.ones_like(self.time)
+        
+        for i in range(len(self.tmax)):
+            flux_rel = model_flares(self.time, self.tmax[i], self.tscale[i])
+            flux_ratio = flux_rel * self.ampl[i]
+            self.flux *= (flux_ratio + 1)
+
+        # Return parameters
+        df = pd.DataFrame({'tmax_day': self.tmax,
+                           'tscale_day': self.tscale,
+                           'ampl_norm': self.ampl})    
+        return self.flux, df
+
+    
+        
+    def plot(self):
+
+        """Function to plot result.
+        """
+        fig, ax = plt.subplots(2, 1, figsize=(9, 6))
+        ax[0].plot(self.time, self.area, 'k-')
+        ax[1].plot(self.time, (self.flux-1)*1e6, 'k-')
+        ax[1].set_xlabel('Time [d]')
+        ax[0].set_ylabel(r'Spot coverage [\%]')
+        ax[1].set_ylabel(r'Flux [ppm]')
+        ax[0].set_xlim(np.min(self.time), np.max(self.time))
+        ax[1].set_xlim(np.min(self.time), np.max(self.time))
+        plt.tight_layout()
+        plt.show()
+
+
+        
+@njit
+def model_flares(time, tmax, tscale, asym=1):
+
+    """Analytic model of stellar flares (Daveport+2014)
+
+    Parameters
+    ----------
+    time : ndarray
+        Time points arrray [days]
+    tmax : float
+        Full-width at half-maximum of the flare(s) maximum intensity [days]
+    tscale : float
+        Time scale duration of the flare(s) [days]
+    asym : float
+        Asymmetry factor of the flare(s)
+    """
+
+    # Placeholders
+    flux = np.zeros_like(time)
+
+    # Sampling
+    dt = np.diff(time)[0]
+
+    # Start and end of flare event
+    t0 = (time[0]  - tmax)
+    t1 = (time[-1] - tmax)
+
+    # Time array during flare event
+    tn = np.arange(t0, t1, dt)
+    t  = tn / tscale
+
+    # Model parameters of flare
+    B = asym
+    C = 1/B
+    b = -1.941 - 0.175 + 2.246 + 1
+    c = 1 - 0.689
+
+    # Loop over every time-step in the flare time interval:
+    # NOTE: this is defined relative to this flares maxima
+    # and put in units of the time-scale here the analytic
+    # expressions for the rise and decay are used to determine
+    # the flux of this flare
+
+    for i in range(len(t)):
+
+        # Rise of flare
+        if t[i]*B > -1 and t[i]*B <= 0:
+            flux[i] += (1
+                        + 1.941 * (t[i]*B)
+                        - 0.175 * (t[i]*B)**2
+                        - 2.246 * (t[i]*B)**3
+                        - b     * (t[i]*B)**4)
+
+        # Decay of flare
+        elif t[i]*C > 0:
+            flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
+                        c     * np.exp(-0.2783 * t[i]*C))
+
+        # No flare
+        else:
+            flux[i] += 0
+
+    return flux
+
+
+
+
+        
 class SolarLikeOscillator(object):
 
     """Class to generate gravity oscillation time series.
@@ -1371,7 +1467,6 @@ class Pulsator(object):
         param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
         A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
-        # A_i = pd.Series(A_i_ran).sample(N, weights=A_kde(A_i_ran)).to_numpy()
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
