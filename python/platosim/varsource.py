@@ -677,22 +677,22 @@ class StellarFlares(object):
         """
 
         # Rate of flaring events [events/quarter]
-        self.n_rate = self.rng.uniform(5, 15, 1)
-        
+        n_rate = self.rng.uniform(5, 15, 1)[0]
+
         # Number of flares scales with lenght of time series
-        n_max = int(self.time[-1]/ut.quarter() * self.n_rate)
-        self.n_flares = self.rng.integers(1, n_max, 1)[0]
+        n_max    = int(n_rate * self.time[-1] / ut.quarter())
+        n_flares = self.rng.integers(1, n_max, 1)[0]
 
         # Time of peak flare flux [d]
-        self.tmax = self.rng.uniform(0, self.time[-1], self.n_flares)
+        self.tmax = self.rng.uniform(0, self.time[-1], n_flares)
 
         # FWHM time scale of flare [min -> d]
-        self.tscale = self.rng.uniform(1, 150, self.n_flares) / (24 * 60.)
+        self.tscale = self.rng.uniform(1, 150, n_flares) / (24 * 60.)
 
         # Amplitude distibution of flares (< 10 ppt) [norm]
-        self.ampl = self.rng.exponential(0.01, self.n_flares)
+        self.ampl = self.rng.exponential(0.01, n_flares)
 
-        return self.tscale, self.tmax, self.ampl
+        return n_rate, n_flares
 
     
 
@@ -718,7 +718,7 @@ class StellarFlares(object):
             a_A, b_A = -0.23, -1.38
             a_rate, b_rate = -0.13, -0.54
         else:
-            errorcode('warning', f'Spectral type {spec_type} is not in [F, G, K, M].' +
+            errorcode('warning', f'Spectral type {spec_type} is not in [F, G, K, M]. ' +
                       'Ignoring stellar flares..')
             return
 
@@ -786,16 +786,28 @@ class StellarFlares(object):
 
         """Function to plot result.
         """
-        fig, ax = plt.subplots(2, 1, figsize=(9, 6))
-        ax[0].plot(self.time, self.area, 'k-')
-        ax[1].plot(self.time, (self.flux-1)*1e6, 'k-')
-        ax[1].set_xlabel('Time [d]')
-        ax[0].set_ylabel(r'Spot coverage [\%]')
-        ax[1].set_ylabel(r'Flux [ppm]')
-        ax[0].set_xlim(np.min(self.time), np.max(self.time))
-        ax[1].set_xlim(np.min(self.time), np.max(self.time))
-        plt.tight_layout()
-        plt.show()
+
+        try:
+            self.area
+        except:
+            plt.figure(figsize=(9, 4))        
+            plt.plot(self.time, (self.flux-1)*1e6, 'k-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'Flux [ppm]')
+            plt.xlim(np.min(self.time), np.max(self.time))
+            plt.tight_layout()
+            plt.show()
+        else:
+            fig, ax = plt.subplots(2, 1, figsize=(9, 6))
+            ax[0].plot(self.time, self.area, 'k-')
+            ax[1].plot(self.time, (self.flux-1)*1e6, 'k-')
+            ax[1].set_xlabel('Time [d]')
+            ax[0].set_ylabel(r'Spot coverage [\%]')
+            ax[1].set_ylabel(r'Flux [ppm]')
+            ax[0].set_xlim(np.min(self.time), np.max(self.time))
+            ax[1].set_xlim(np.min(self.time), np.max(self.time))
+            plt.tight_layout()
+            plt.show()
 
 
         
@@ -1403,17 +1415,13 @@ class Pulsator(object):
             self.df.freq = 1 / self.df.freq
 
         # Apply bolometric correction
-        # if self.BC:
-        #     if self.ampl_unit == 'norm':
+        if self.BC:
+            self.ampl_unit *= self.BC
                 
-        #     self.df.ampl = 
-        #     self.df.ampl *= self.BC
-        print(self.df); exit()
-            
         # Convert ampl unit [mag]
-        if amplunit == 'mmag':
+        if ampl_unit == 'mmag':
             self.df.ampl /= 1e3  
-        elif amplunit == 'norm':
+        elif ampl_unit == 'norm':
             self.df.ampl = -2.5*np.log10(1-self.df.ampl)
             
         # Return the star ID
@@ -1423,7 +1431,7 @@ class Pulsator(object):
     
     def initMockaGang2020(self, odir):
 
-        """Draw frequencies from Kepler g-Dor legacy.
+        """Draw frequencies from Kepler GDor legacy.
         """
 
         # Download analysis file
@@ -1528,7 +1536,9 @@ class Pulsator(object):
         f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
 
         # Draw amplitude below maximum [mag]
-        A_ran = np.linspace(df.ampl.min(), df.ampl.max(), n)        
+        A_ran = np.linspace(df.ampl.min(), df.ampl.max(), n)
+        param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
+        A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
         
         # Max peak amplitude

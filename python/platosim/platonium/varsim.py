@@ -114,6 +114,10 @@ class VarSim(object):
         self.spot_model  = args.spot
         self.flare_model = args.flare        
         #self.phase_curve = args.phase_curve TODO
+
+        # Activate spots by default
+        if args.spot is None:
+            args.spot = True
         
         # Project modes
         self.kul20 = args.kul20
@@ -540,7 +544,8 @@ class VarSim(object):
             
         # If Gaia ID is parsed
         elif self.mocka:
-            self.star_source = self.df.spec
+            self.star_source = self.df.gaiaDR3
+            self.spec = self.df.spec
             self.Teff = self.df.Teff * u.K
             self.logg = self.df.logg
             self.Z    = self.df.Z
@@ -551,6 +556,7 @@ class VarSim(object):
         # Else use a benchmark star is parsed
         else:
             star = self.load_star(self.star_source)
+            self.spec = None
             self.M    = star[0]
             self.R    = star[1]
             self.Teff = star[2]
@@ -566,6 +572,18 @@ class VarSim(object):
         if not self.mocka:
             self.L = self.R.value**2 * (self.Teff.value/self.Teff_sun)**4 * u.L_sun
 
+        # Secure spectral type exist:
+        # https://sites.uni.edu/morgans/astro/course/Notes/section2/spectraltemps.html 
+        if self.spec in [None, '', 'CSTAR', 'unknown']:
+            Teff = self.Teff.value
+            if   Teff > 29200                  : self.spec = 'O'
+            elif Teff >  9600 and Teff <= 29200: self.spec = 'B'
+            elif Teff >  7350 and Teff <=  9600: self.spec = 'A'
+            elif Teff >  6050 and Teff <=  7350: self.spec = 'F'
+            elif Teff >  5240 and Teff <=  6050: self.spec = 'G'
+            elif Teff >  3750 and Teff <=  5240: self.spec = 'K'
+            elif                  Teff <=  3750: self.spec = 'M'
+
         # Return parameters
         self.df['L_Lsun'] = self.L.to('L_sun').value
         self.df['M_Msun'] = self.M.to('M_sun').value
@@ -577,7 +595,9 @@ class VarSim(object):
             
         # Print available stellar model parameters
         if self.verbose > 1:
-            print(f"Spectral type   : {self.star_source}")
+
+            print(f"Stellar ID      : {self.star_source}")
+            print(f"Spectral type   : {self.spec}")
             print(f"Stellar Teff    : {self.df.Teff_K:4.0f}")
             print(f"Surface gravity : {self.df.logg:.2f} dex")
             print(f"Stellar [M/Fe]  : {self.df.Z:.3f} dex")
@@ -860,32 +880,42 @@ class VarSim(object):
         time  = self.time.to('d').value
         model = StellarFlares(time, seed=self.seed)
 
-        self.star_source = 'K'
-        
+        # Give an warning when spots are deactivated
+        if not args.spot and self.verbose > 1:
+            errorcode('warning', 'Flares without stellar spot are unphysical..')
+
+        # Give an warning when spots are deactivated
+        flare_models = ['ToyModel', 'Doorsselaere2017']
+        if self.verbose > 1 and args.flare not in flare_models:
+            errorcode('warning',
+                      f'Flare model "{args.flare}" not found! Using "ToyModel" instead..')
+            
         # Select model
-        
-        if args.spot and (args.flare == 'Doorsselaere2017' or args.flare == 'mocka'):
+            
+        if args.spot and args.flare == 'Doorsselaere2017':
             if self.verbose > 1:
                 print('Model generation : Daveport+2014')
                 print('Model parameters : Doorsselaere+2017')
-            params = model.initDoorsselaere2017(self.idir, self.star_source,
+            params = model.initDoorsselaere2017(self.idir, self.spec,
                                                 self.df.AR_ARsun, self.spot_coverage)
-
+            # Ignore stellar flares if not FGKM star
+            if params == None: return
+            
         else:
             if self.verbose > 1:
                 print('Model generation : Daveport+2014')
                 print('Model parameters : Toy model')
             params = model.initToyModel()
-
+            
         # print them to screen          
         if self.verbose > 1:
             print(f'Flaring rate     : {params[0]:.3f} events / quarter')
             print(f'Number of flares : {params[1]} events')
             
-        # Return model [mag -> ppm]
+        # Return model
         lc, df = model.evaluate()
             
-        # Store global variables
+        # Store global variables [mag -> ppm]
         self.lc['flare'] = (lc - 1) * 1e6
         self.df['R_flare'] = params[0]
         self.df['N_flare'] = params[1]
@@ -1187,7 +1217,7 @@ class VarSim(object):
         params = model.initIJspeert2023(self.idir, starID=10)
         self.df['starname'] = params[0]
         self.df['P_day']    = params[1]
-        if self.verbose > 1:
+        if self.verbose > 1 and params[1] is not None:
             print(f'Orbital period : {params[1]:.3f} day')
 
         # Return model [mag -> flux]
@@ -1849,15 +1879,7 @@ class VarSim(object):
 
         # Bolometric correction
         self.stellar_spectrum()
-
-        # Activate spot modulation by default
-        if args.spot is True or args.spot is None:
-            args.spot = True
-            
-        # Activate flares by default
-        if args.flare is None:
-            args.flare = 'Daveport+2014'
-            
+                        
         # Include stellar variability
            
         if args.star == 'gDor':
@@ -1988,10 +2010,17 @@ class VarSim(object):
         ds_i = ds0[ds0.gaiaDR3 == df_i.gaiaDR3]
         df   = pd.concat([df_i.to_frame().T, ds_i])
         nstar = df.shape[0]
+
+        # Print to bash
+        if self.verbose > 1:
+            errorcode('message', '\nMOCKA mode is activated!\n')
+            print(f'Target star is a {starType} pulsator')
+            print(f'Generating noise-less light curves for {nstar} stars')
         
         # GENERATE LIGHT CURVES
             
         # Loop over each star in subfield
+        starIDs = []
         varSourceFiles = []
         
         for i in range(nstar):
@@ -1999,7 +2028,7 @@ class VarSim(object):
             # Fetch star and print
             self.df = df.iloc[i]
             if self.verbose > 1:
-                errorcode('message', f'\nSimulating star ID {i}')
+                errorcode('message', f'\nSimulating star ID {i+1}')
                 
             
             # FETCH STELLAR PARAMETERS
@@ -2154,7 +2183,8 @@ class VarSim(object):
                 
             # SELECT VARIABLE CLASS
 
-            args.flare = 'mocka'
+            args.puls  = 'mocka'
+            args.flare = 'Doorsselaere2017'
             
             # Massive pulsators
 
@@ -2219,20 +2249,18 @@ class VarSim(object):
 
                 # Use cluster name for PLATOnium
                 # NOTE $VSC_MOCKA directory is defined in job script
-                clusterDir = f'$VSC_MOCKA/{starType}/varsource/{starDir}/'
-                varSourceFiles.append(clusterDir + sfile)
-            
+                varSourceFiles.append(f'$VSC_MOCKA/' + sfile)
+                starIDs.append(i+1)
+                
         # GENERATE VARIABLE CATALOG FILE
         
-        starIDs = np.arange(1, nstar+1).astype(str)
-        varSourceList = self.odir / 'varSourceList.txt'
-        
+        varSourceList = self.odir / 'varSourceList.txt'        
         if isinstance(varSourceFiles, str):
             varSourceFiles = [varSourceFiles]
             
         with open(varSourceList, 'w') as f:
-            for i in range(nstar):
-                f.write(f'{starIDs[i]} {varSourceFiles[i]}\n')
+            for j in range(len(starIDs)):
+                f.write(f'{starIDs[j]} {varSourceFiles[j]}\n')
 
 
 
@@ -2260,11 +2288,11 @@ star_group = parser.add_argument_group('STAR PARAMETERS')
 star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star [Sun, roAp, gDor, dSct, RRLyr, Ceph]')
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
                         help='Stellar model parameters [M/Msun, R/Rsun, Teff/K, logg/dex, Z/dex]')
-star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, None]')
-star_group.add_argument('--puls',     metavar='RELATION', type=str, help='Scaling relation of Pulsations [Corsaro2013, None]')
+star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, False]')
+star_group.add_argument('--puls',     metavar='RELATION', type=str, help='Scaling relation of Pulsations [Corsaro2013, False]')
 star_group.add_argument('--spot',     metavar='BOOL',     type=str, help='Inclusion of stellar spots [True, False]')
-star_group.add_argument('--flare',    metavar='BOOL',     type=str, help='Inclusion of stellar flares [True, False]')
-star_group.add_argument('--pulslist', metavar='FILE',     type=str, help='Use file with pulsations [periods, amplitudes, phases]')
+star_group.add_argument('--flare',    metavar='MODEL',     type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, False]')
+star_group.add_argument('--pulslist', metavar='FILE',     type=str, help='Use file with pulsations [frequencies/(c/d), amplitudes/dmag, phases/rad]')
 
 star_group = parser.add_argument_group('BINARY PARAMETERS')
 star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary [EB, SMBH]')
