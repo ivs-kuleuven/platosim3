@@ -704,7 +704,7 @@ class Simulation(object):
 
         """Change the detector gain.
 
-        The parameters are from the Mission Parameter Database:
+        The parameters are from the Mission Parameter Database (MPD):
         http://ptoops02.esac.esa.int/mpdb/home
 
         Notes
@@ -729,7 +729,7 @@ class Simulation(object):
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.018348")
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")
 
-        elif performance != False:
+        else:
             raise ValueError("Not valid entry! Use either 'required' or 'designed'")
         
         return
@@ -857,17 +857,17 @@ class Simulation(object):
             # Select time and wavelength dependent parameters
 
             if passband == "blue":
-                #self.__setitem__("ObservingParameters/Fluxm0",                  "")
-                self.__setitem__("Camera/ThroughputBandwidth",                  "200")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "600")
+                self.__setitem__("ObservingParameters/Fluxm0",                  "5.81803986e7")
+                self.__setitem__("Camera/ThroughputBandwidth",                  "165")
+                #self.__setitem__("Camera/ThroughputLambdaC",                    "600")
                 self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
                 self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
                 self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
                 
             if passband == "red":
-                #self.__setitem__("ObservingParameters/Fluxm0",                  "")
-                self.__setitem__("Camera/ThroughputBandwidth",                  "380")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "860")
+                self.__setitem__("ObservingParameters/Fluxm0",                  "4.13786857e7")
+                self.__setitem__("Camera/ThroughputBandwidth",                  "335")
+                #self.__setitem__("Camera/ThroughputLambdaC",                    "860")
                 self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
                 self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
                 self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
