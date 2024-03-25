@@ -250,17 +250,27 @@ class LightCurve(object):
         # Find file if specific it not requested
         
         if not filename:
+            
             file_ftr = Path(self.filename)
-            # PlatoSim tag < 3.6.0-292-g629e6c27
-            #try:
-            #    filename = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
-            # PlatoSim tag >= 3.6.0-292-g629e6c27
-            #except:
-            filename = file_ftr.parents[0] / f'{file_ftr.stem}.table'
-                
-        # Fetch info about target star
-        
-        return pd.read_feather(filename).squeeze()
+            filename1 = file_ftr.parents[0] / f'{file_ftr.stem}.table'
+            filename2 = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
+            filename3 = file_ftr.parents[0] / f'{file_ftr.stem[:9]}.table'
+
+            try:
+                # PlatoSim tag >= 3.6.0-292-g629e6c27    
+                df = pd.read_feather(filename1).squeeze()
+            except:
+                try:
+                    # PlatoSim tag < 3.6.0-292-g629e6c27
+                    df = pd.read_feather(filename2).squeeze()
+                    errorcode('warning', 'Deprecated file format.."')
+                except:
+                    # Check if all tables have been merged
+                    df = pd.read_feather(filename3).squeeze()
+        else:
+            df = pd.read_feather(filename).squeeze()
+            
+        return df
 
 
 
@@ -269,6 +279,8 @@ class LightCurve(object):
     def star_info(self, filename=False):
 
         """Fetch the target star information.
+
+        TODO this function is deprecated!
         """
 
         # Find file if specific it not requested
@@ -561,18 +573,19 @@ class LightCurve(object):
     def flux(self, column="flux", unit="e/s"):
 
         """Fetch the flux column.
-        
-        This function should be used to fetch the columns:
-        [flux, flux_err, flux_cor, bg, bg_err]
 
-        NOTE: flux_cor is only available for on-board photometry.
+        Depending on execution, the function returns:
+        - PlatoSim built-in photometry : [flux]
+        - PLATOnium + LESIA on-ground  : [flux, flux_err, bg, bg_err]
+        - PLATOnium + LESIA on-board   : [flux, flux_err, bg, bg_err, flux_cor]
         """
         
-        if   unit == "e/s": flux = self.df[column]
-        elif unit == "rel": flux = ut.normalize(self.df[column], factor=1)
-        elif unit == "ppt": flux = ut.normalize(self.df[column], factor=1e3)
-        elif unit == "ppm": flux = ut.normalize(self.df[column], factor=1e6)
-        else: errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppt, ppm]")
+        if   unit == "e/s":  flux = self.df[column]
+        elif unit == "norm": flux = self.df[column]/np.median(self.df[column])
+        elif unit == "ppp":  flux = ut.normalize(self.df[column], factor=1)
+        elif unit == "ppt":  flux = ut.normalize(self.df[column], factor=1e3)
+        elif unit == "ppm":  flux = ut.normalize(self.df[column], factor=1e6)
+        else: errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppp, ppt, ppm]")
         
         return flux
 
@@ -580,16 +593,16 @@ class LightCurve(object):
         
 
     
-    def cen(self, column="cx", unit="pix"):
+    def cen(self, column="cx", unit="pix", dim=6):
 
         """Fetch the imagette X centroid column.
         """
 
         if   unit == "pix": cen = self.df[column]
-        elif unit == "mm":  cen = self.df[column] * self.pixelSize / 1000.0
         elif unit == "rel": cen = self.df[column] - np.mean(self.df[column])
-        elif unit == "cen": cen = self.df[column] - 3
-        else: errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
+        elif unit == "cen": cen = self.df[column] - dim/2.
+        elif unit == "mm":  cen = self.df[column] * self.pixelSize / 1000.
+        else: errorcode("error", "No such centroid unit! Availble options: [pix, rel, cen, mm]")
         
         return cen
 
@@ -603,8 +616,8 @@ class LightCurve(object):
         """
 
         if   unit == "pix": xcen_err = self.df["cx_err"]
-        elif unit == "mm":  xcen_err = self.df["cx_err"] * self.pixelSize / 1000.0
-        else: errorcode("error", "No such centroid unit! Availble option: [pix, mm]")
+        elif unit == "mm":  xcen_err = self.df["cx_err"] * self.pixelSize / 1000.
+        else: errorcode("error", "No such centroid unit! Availble options: [pix, mm]")
         
         return xcen_err
 
@@ -637,7 +650,7 @@ class LightCurve(object):
         
         if not unit:
             if   column in set(("flux", "flux_err", "flux_med")): unit = "e/s"
-            elif column is set(( "xcen", "yxen")):                unit = "pix"
+            elif column is set(("xcen", "ycen")):                 unit = "pix"
             else: errorcode("error", "No such column!")
             
         # Fetch column
@@ -660,14 +673,12 @@ class LightCurve(object):
         """
 
         # Select default unit
-        
         if not unit:
             if   column in set(("flux", "flux_err", "flux_med")): unit = "e/s"
-            elif column is set(( "xcen", "yxen")):                unit = "pix"
+            elif column is set(("xcen", "ycen")):                 unit = "pix"
             else: errorcode("error", "No such column!")
 
-        # Fetch column
-        
+        # Fetch column        
         if   column == "flux":     array = self.flux(unit=unit)
         elif column == "flux_err": array = self.flux_err(unit=unit)
         elif column == "flux_med": array = self.flux_med(unit=unit)
@@ -686,28 +697,22 @@ class LightCurve(object):
         """
 
         # Deep copy light curve object
-        
         df = self.df.copy()
         
         # Fetch time and flux
-        
         df["time"] = self.time(unit="d")
 
         # Mean flux
-
         signal = df.flux.mean()
         
         # Fetch flux column and force to be ppm for correct NSR
-        
         if influx == "e/s":
             df[column] = self.flux(column=column, unit="ppm")
         
         # Set the binned time scale [days]
-        
         dt = binhour/24.
         
         # Bin to devide data
-        
         if binhour == 0:
             sigma = df[column].std()
             nbin  = 1
@@ -906,7 +911,36 @@ class LightCurve(object):
         return indices
 
     
+    
 
+    def gaps(self, filename, beginExposureNr, numExposures,
+             replace=False, plot=False):
+
+        """Introduce gaps due to downtime and quarters.
+        """
+        
+        # Open file with gaps timings
+
+        dg = pd.read_feather(filename)
+        dg = dg.iloc[beginExposureNr:beginExposureNr+numExposures]
+
+        # Apply gaps
+
+        df = self.df
+        df.loc[dg['all']] = np.nan
+        self.df['flux_gaps'] = df.flux
+        
+        # Overwrite flux column        
+
+        if replace:
+            self.df.flux = self.df.flux_gaps
+            self.df.drop(columns=['flux_gaps'], inplace=True)
+        
+        return self.df
+
+
+    
+    
     
     def correct_gain(self, temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
                      replace=False, plot=False):
@@ -989,7 +1023,7 @@ class LightCurve(object):
         ncol = 2
         time = self.time(unit='d')
         flux = df.flux / 1e3
-        flux_gain = df.flux_gain / 1e3
+        flux_gain = median_filter(df.flux_gain/1e3, 12) # [ppt]
         flux_corr = df.flux_corr / 1e3
         flux_median = median_filter(flux_corr, 144)
         
@@ -999,8 +1033,8 @@ class LightCurve(object):
 
         # Plot simulation and trend
         
-        ax[0].plot(time, flux_gain, '.', c='limegreen', ms=1, alpha=0.2, label='Gain flux')
-        ax[0].plot(time, flux,      '.', c='k',         ms=1, alpha=0.2, label='Before')
+        ax[0].plot(time, flux,      '.', c='k',         ms=1,   alpha=0.2, label='Before')
+        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=0.2, alpha=1.0, label='Gain median')
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
         ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
         
@@ -1309,18 +1343,15 @@ class LightCurve(object):
         """
 
         # Deep copy of data frame
-
         self.df['flux_stitch'] = self.df[column]
 
         # Find flux jumps
-
         if self.mask_updates.any():
             dex = self.flux_indices()
         else:
             dex = self.time_indices()
 
         # Convert unit [days -> number of exposures]
-
         segment = int(segment * 86400 / 25)
             
         # Move the data chunk when a jump
@@ -1407,24 +1438,19 @@ class LightCurve(object):
                     flux_jump = flux_median_before - flux_median_after
                         
                 # Correct each flux chunk
-
                 self.df.flux_stitch.iloc[i:] += flux_jump
 
             # Recenter data after median value
             #self.df.flux_stitch -= self.df.flux_stitch.median()
             
         # Plot if requested
-        
         if plot:
             self.plot_stitch(self.df, column=column)
 
-        # Overwrite flux column
-        
+        # Overwrite flux column        
         if replace:
             self.df.flux = self.df.flux_stitch
             self.df.drop(columns=['flux_stitch'], inplace=True)
-
-        # Finito!
             
         return self.df
 
@@ -1437,8 +1463,7 @@ class LightCurve(object):
         """Plot a detrended light curve and make a O-C plot.
         """        
 
-        # Get varsource light curve
-        
+        # Get varsource light curve        
         try:
             lc_var = self.varsource()
         except:
@@ -1459,12 +1484,9 @@ class LightCurve(object):
             flux_var *= 1e3 # [ppt]
             
         # Time array
-        
         time = self.time(unit='d')
 
-        # Convert units
-        
-        # if column == 'flux':
+        # Convert flux units
         flux        = ut.normFlux(df[column],     norm=1e3)  # [ppt]
         flux_stitch = ut.normFlux(df.flux_stitch, norm=1e3)  # [ppt]
         flux_rawmed = median_filter(flux, medfilt)
@@ -1475,7 +1497,6 @@ class LightCurve(object):
         fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)                
         
         # Plot simulation and trend
-
         ax[0].plot(time, flux,        '.', c='k', ms=1, alpha=0.2, label='Before')
         ax[0].plot(time, flux_rawmed, '-', c='deeppink', lw=0.5, label="1h median")
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
@@ -1484,7 +1505,6 @@ class LightCurve(object):
         ax[0].legend(ncol=2, markerscale=5, loc='upper right')
         
         # Plot detrend and median
-
         ax[1].plot(time, flux_stitch, '.', c='k',ms=1,alpha=0.2,label="After")
         ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5, label="1h median")
         ax[1].set_xlim(time.iloc[0], time.iloc[-1])
@@ -1492,7 +1512,6 @@ class LightCurve(object):
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
 
         # Plot detrend-median vs. input
-        
         if varsource:
             ax[2].plot(time,     flux_median, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(time_var, flux_var,    '-', c='darkblue',  lw=1.0, alpha=1.0,
@@ -1502,7 +1521,6 @@ class LightCurve(object):
             ax[2].legend(ncol=1, markerscale=5, loc='upper right')
 
         # Find flux jumps
-
         if self.mask_updates.any():
             dex = self.flux_indices()
         else:
@@ -1515,12 +1533,9 @@ class LightCurve(object):
                 ax[2].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             
         # Layout
-        
         ax[rows-1].set_xlabel('Time [days]')
         plt.tight_layout(h_pad=0.1, w_pad=1)
         plt.show()
-
-        # That's it!
         
         return fig, ax
 
@@ -1529,7 +1544,7 @@ class LightCurve(object):
 
     
     def clip(self, column='flux', model="scipy",
-             sigma_lower=4, sigma_upper=4, window=0.5,
+             sigma_lower=4, sigma_upper=4, window=0.5, magnitude=None,
              plot=False, replace=False, flux_unit='e/s'):
 
         """Sigma clipping of light curve.
@@ -1539,7 +1554,21 @@ class LightCurve(object):
         median convolution do not mis-interp sharp and deep transit signatures
         as outliers. Use a 16 point-width moving median to reject 3 sigma outliers.
         """
-            
+
+        # Auto select sigma from emperical tests
+        if not magnitude == None:
+            # Cuts optimized for N-CAMs of 25s cadence
+            # Higher sigma for lower bound to protect eclipses
+            if magnitude <= 10:
+                sigma_upper = 5
+                sigma_lower = 7
+            elif magnitude > 10 and magnitude < 11:                
+                sigma_upper = 4.5
+                sigma_lower = 6.5
+            else:
+                sigma_upper = 4
+                sigma_lower = 6
+                
         # Sigma clipping methods
         
         if model == 'scipy':
@@ -1556,17 +1585,13 @@ class LightCurve(object):
                                                     center='median')  # {mean, median}
             
         # Plot if requested
-
         if plot:
             self.plot_clip(self.df, column=column, flux_unit=flux_unit)
 
         # Overwrite flux column        
-
         if replace:
             self.df.flux = self.df.flux_clip
             self.df.drop(columns=['flux_clip'], inplace=True)
-
-        # That's it!
 
         return self.df
 
@@ -1574,27 +1599,47 @@ class LightCurve(object):
             
 
     
-    def plot_clip(self, df, column='flux', flux_unit='e/s', figsize=(9,6)):
+    def plot_clip(self, df, column='flux', flux_unit='e/s', figsize=(9,8)):
 
         """Plot a clipped light curve for outliers.
         """
-                
-        # Fetch rows corresponding to outliers
 
+        # Get varsource light curve        
+        try:
+            lc_var = self.varsource()
+        except:
+            rows = 2
+            varsource = False
+        else:
+            rows = 3
+            varsource = True
+            time_var = lc_var["time"] / c.day
+            # Compatability
+            if 'flux' in lc_var:
+                # PlatoSim tag: 3.6.0-297-gd76ba1b7
+                flux_var = lc_var['flux'] - 1
+            elif 'comb' in lc_var:
+                flux_var = lc_var['comb']
+            else:
+                flux_var = lc_var['sum']
+            flux_var *= 1e3 # [ppt]
+        
+        # Original data frame
         time_old  = df.time / c.day
         flux_old  = df[column]
 
+        # Data frame with outliers
         df1 = df.loc[df.flux_clip.isna()]
         time_clip = df1.time / c.day
         flux_clip = df1[column]
-        
+
+        # Data frame without outliers
         df2 = df.loc[~df.flux_clip.isna()]
         time_new = df2.time / c.day
         flux_new = df2[column]
-        flux_med  = median_filter(flux_new, 144) # [ppt]
+        flux_med = median_filter(flux_new, 144) # [ppt]
 
-        # Select correct flux unit
-        
+        # Select correct flux unit        
         if column in df:
             if flux_unit == 'e/s':
                 flux_unit = 'ke$^-$ s$^{-1}$'
@@ -1612,33 +1657,38 @@ class LightCurve(object):
         
         # Start plotting
         
-        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
+        fig, ax = plt.subplots(rows, 1, figsize=figsize, sharex=True)
 
         # Plot simulation and trend
-
-        ax[0].plot(time_old,  flux_old,  '.', c='k',      ms=2, alpha=0.1, label='Raw data')
+        ax[0].plot(time_old,  flux_old,  '.', c='k',      ms=2, alpha=0.1, label='Before')
         ax[0].plot(time_clip, flux_clip, '.', c='tomato', ms=2, alpha=0.8, label='Outliers')
         ax[0].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
         ax[0].set_ylabel(f'Flux [{flux_unit}]')
         ax[0].legend(ncols=2, loc='upper right')
         
         # Plot light curve without outliers
-
-        ax[1].plot(time_new, flux_new, '.', c='k', ms=2, alpha=0.1, label='Corrected')
-        ax[1].plot(time_new, flux_med,  '-', c='royalblue', lw=0.5,  label='1h median')
+        ax[1].plot(time_new, flux_new, '.', c='k', ms=2, alpha=0.1, label='After')
+        ax[1].plot(time_new, flux_med,  '-', c='royalblue', lw=0.5, label='1h median')
         ax[1].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
         ax[1].set_ylabel(f'Flux [{flux_unit}]')
-        ax[0].legend(ncols=2, loc='upper right')
-        
-        # Layout
+        ax[1].legend(ncols=2, loc='upper right')
 
+        # Plot detrend-median vs. input
+        if varsource:
+            ax[2].plot(time_new, flux_med, '-', c='royalblue', lw=0.5, alpha=1.0)
+            ax[2].plot(time_var, flux_var, '-', c='darkblue',  lw=1.0, alpha=1.0,
+                       label="Input model")
+            ax[2].set_xlim(time_new.iloc[0], time_new.iloc[-1])
+            ax[2].set_ylabel('Flux [ppt]')
+            ax[2].legend(ncol=1, markerscale=5, loc='upper right')
+
+        # Layout
         ax[0].set_title('Outlier rejection')
-        ax[1].set_xlabel('Time [days]')
+        ax[rows-1].set_xlabel('Time [days]')
         plt.tight_layout(h_pad=0.1, w_pad=1)
         plt.show()
 
-        # Finito!
-        
+        # Finito!        
         return fig, ax
 
 
@@ -1720,64 +1770,67 @@ class LightCurve(object):
 
 
     
-    def plot(self, time_unit="d", flux_unit="e/s",
-             errorbar=False, input_model=False,
-             median_filter=False,
-             binsize=False,
-             ncam=False, quarter=False,
+    def plot(self, time_unit="d", flux_unit="e/s", flux_error=False, 
+             median_filter=False, binsize=False, input_model=False,
              legend=True, alpha=0.2, figsize=(9,5)):
 
-        """Plot the light curve.
-
-        This function plots the light curve and combination with the user
-        defined parameters (e.g. median filter, binned data, etc.).
+        """Plot a simulated light curve.
 
         Parameters
         ----------
         time_unit : str
-            Array containing at least a time and flux column (and potential flux_err)
-        flux_err: boolen
-           Wheather or not a flux_err column is present and should thus be added.
+            Unit of time in [s, h, d]
+        flux_unit : str
+            Unit of flux in [e/s, norm, ppp, ppt, ppm]
+        flux_error : bool
+            Show flux errorbars if True
+        median_filter : int
+            Parse an integer to compute/show median filter of data [hours]
+        binsize : int
+            Parse an integer to compute/show binned data [hours]
+        input_model : bool
+            Show variable input model [True, False]
+        legend : bool
+            Show the legend [True, False]
+        alpha : float
+            Alpha transparency of data points
+        figsize : tuple
+            Matplotlib figsize object (width, height)
 
-        Return
-        ------
+        Returns
+        -------
         fig, ax : matplotlib axes
         """
-        #from  platosim.matplotlibrc import setup_paper
-        #setup_paper()
         
         # Label for flux
         if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
-        elif flux_unit == "norm": ylab = "Flux normalized"
+        elif flux_unit == "norm": ylab = "Flux [norm-one]"
+        elif flux_unit == "ppp":  ylab = "Flux [norm-zero]"
         elif flux_unit == "ppt":  ylab = "Flux [ppt]"
         elif flux_unit == "ppm":  ylab = "Flux [ppm]"
         else: errorcode("error", "No such flux unit!")
+
+        # Time array
+        time = self.time(unit=time_unit)
         
-        # Fetch obs infoin range
-        if ncam and quarter:
-            lab = f"{ncam} N-CAMs, Q{quarter}"
+        # Try fetching obs info
+        group, camera, quarter = self.obs()
+
+        if legend and isinstance(quarter, int):
+            lab = f"N-CAM {group}.{camera} Q{quarter}"
+            flux = self.flux(unit=flux_unit)
+        else:
+            lab = "Data"
             flux_unit="e/s"
             ylab = "Flux [ppm]"
-            time = self.time(unit=time_unit)
             flux = self.flux(unit='e/s')
-        else:
-            if legend: 
-                group, camera, quarter = self.obs()
-                if not quarter:
-                    lab = f"Raw data"
-                else:
-                    lab = f"N-CAM {group}.{camera} Q{quarter}"
-            else:
-                lab = None
-            time = self.time(unit=time_unit)
-            flux = self.flux(unit=flux_unit)
 
-        # Create matplotlib object 
+        # Start plotting
 
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         
         # Plot the input variable source
-        if errorbar:
+        if flux_error:
             flux_err = self.flux(column="flux_err", unit=flux_unit)
             ax.errorbar(time, flux, yerr=flux_err, fmt=".", color='k', ecolor='darkgray',
                         elinewidth=1, capsize=0, alpha=alpha, label=lab, zorder=1)
@@ -1806,9 +1859,9 @@ class LightCurve(object):
         # Show input model if requested
         if input_model and not flux_unit == 'e/s':
             dv = self.varsource()
-            if flux_unit == 'ppt': dv.flux *= 1e3
-            if flux_unit == 'ppm': dv.flux *= 1e6
-            if flux_unit == 'norm': dv.flux += 1            
+            if flux_unit == 'ppt':   dv.flux *= 1e3
+            if flux_unit == 'ppm':   dv.flux *= 1e6
+            if flux_unit == 'norm0': dv.flux += 1            
             if dv is not None:
                 ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
             
@@ -1816,10 +1869,10 @@ class LightCurve(object):
         if self.mask_updates.any():
             updates = self.mask_updates * self.cadence / c.day
             for update in updates[1:]:
-                #if update == updates[-1]:
-                #    ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
-                #else:
-                ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+                if update == updates[-1]:
+                   ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
+                else:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
 
         # Set legend
         if legend:
@@ -1863,7 +1916,7 @@ class LightCurve(object):
         elif cen_unit == "rel": lab_unit = "- Mean [pixel]" 
         elif cen_unit == "cen": lab_unit = "- Center [pixel]"
         elif cen_unit == "mm":  lab_unit = "[mm]" 
-        else: errorcode("error", "No such centroid unit! Availble option: [pix, mm, rel, cen]")
+        else: errorcode("error", "No such centroid unit! Availble option: [pix, rel, cen, mm]")
 
         # Convert to days
         time = self.time(unit=time_unit)
@@ -1886,10 +1939,6 @@ class LightCurve(object):
         ax.set_ylabel(f'Centroid {lab_unit}')
         ax.legend(loc='best')
         
-        # P1 sample has flux errors
-        #try: self.df['flux_err'] = ut.normalize(self.df['flux_err'])
-        #except: pass 
-
         return fig, ax
 
 
@@ -1925,7 +1974,7 @@ class LightCurve(object):
         # Handle time column
         time = self.time(unit=time_unit)
 
-        # Star plotting
+        # Start figure
         
         fig, ax = plt.subplots(2, 1, figsize=figsize)
 
@@ -2080,19 +2129,14 @@ class LightCurve(object):
             Output feather file with merged data if requested.
         lc : class object
             Instance of the LightCurve class to be used to extract data.
-        ncam : int
-           Number of cameras being merged.
-        flag : int
-            Flag to if flux is normal (0) or abnormal (1) 
         """
 
-        # Open a pandas data frame and write to it
+       # Open a pandas data frame and write to it
         
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
 
         # Fetch all zip files
-        
         files  = self.files(suffix)
         nfiles = len(files)
         ncam   = 0
@@ -2102,26 +2146,20 @@ class LightCurve(object):
 
         for i in range(nfiles):
 
-            # Fetch light curve object
-            
+            # Fetch light curve object            
             lc = LightCurve(files[i])
                 
             # Fetch obs info
-
             G, C, Q = lc.obs()
 
             # Select quarter
-
-            if Q == quarter:
-                ncam += 1
+            if Q == quarter: ncam += 1
 
             # Flag for negative fluxes (bad behavior of L1 pipeline)
-
             if lc.flux(unit="e/s").mean() < 1:
                 flag = 1
 
             # Create initial data frame and save to it
-
             df = lc.data()
             
             if i == 0:
@@ -2142,43 +2180,33 @@ class LightCurve(object):
                 if 'flux_clip'    in df: df1['flux_clip']    = df.flux_clip
 
                 # Contatinate data frames
-
                 df0 = pd.concat([df0, df1])
 
         # Sort after logic structure and reset indices
-
         df0 = df0.sort_values(by=["time"])
         df0 = df0.reset_index(drop=True)
 
         # If requested mean fluxes from same group (i.e. same time stamp)
-        
         if flux_group_mean:
             df0 = df0.groupby('time').mean().reset_index()
 
         # Remove NaNs
-
         df0 = df0.dropna()
 
         # Copy light curve object
-
         if binsize:
             
             # Save number of data points in each time bin
-        
             bins = int(df0.time.iloc[-1] / binsize)
             flux, time, nbin = binned_statistic(df0.time, df0.flux, statistic='mean', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
         
             # Specific column for P1 and P5 samples
-
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
             
         # If requested save output file
-        
         if ofile:
             df0.to_feather(ofile)
-        
-        # Set a global light curve object
         
         return LightCurve(df0, mode="multi", ncam=ncam, path=self.path)
 
@@ -2189,7 +2217,6 @@ class LightCurve(object):
     def merge_star(self, medpoint=1000):
 
         # Prepare master df
-        
         df  = pd.DataFrame()
         Q = 8
 
@@ -2214,28 +2241,22 @@ class LightCurve(object):
                     df1['flux'] = lc.flux(unit='ppt')
                     df0 = pd.concat([df0, df1])
 
-            # Stitch each camera individually
-            
+            # Stitch each camera individually            
             lc = LightCurve(df0, mode="multi")
             ds = lc.stitch(medpoint=medpoint) 
 
             # Or same just a merged one
-            
             df2['time'] = ds.time
             df2['flux'] = ds.flux_stitch
             df = pd.concat([df, df2])
 
 
         # Mean time points from the same group
-        
         df = df.groupby('time').mean().reset_index()
          
         # Reorder after time
-
         df = df.sort_values(by=['time'])
         
-        # That's it!
-            
         return df
 
 
