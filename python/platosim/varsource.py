@@ -1450,8 +1450,10 @@ class Pulsator(object):
         A_kde     = scipy.stats.gaussian_kde(dm.A_max)
         
         # Select number modes
-        N = np.random.randint(20, 40)
-
+        N_ran = np.arange(dm.N.min(), dm.N.max(), 1)
+        N = int(pd.Series(N_ran).sample(1, weights=N_kde(N_ran)).to_numpy()[0])
+        if N < 5: N = 5
+        
         # Randomly select grid step to 
         n = self.rng.integers(100, 500, 1)[0]
 
@@ -2242,17 +2244,17 @@ class PlanetMRforecast():
     def __init__(self):
         
         # constant
-        mearth2mjup = 317.828
-        mearth2msun = 333060.4
-        rearth2rjup = 11.21
-        rearth2rsun = 109.2
+        self.mearth2mjup = 317.828
+        self.mearth2msun = 333060.4
+        self.rearth2rjup = 11.21
+        self.rearth2rsun = 109.2
 
         # Boundary
         mlower = 3e-4
         mupper = 3e5
 
         # Number of different populations
-        n_pop = 4
+        self.n_pop = 4
 
         # read parameter file
         filepath = 'inputfiles/data_varsim/varsim_exomass_fitting_parameters.h5' 
@@ -2268,92 +2270,105 @@ class PlanetMRforecast():
 
         # Open file
         h5 = h5py.File(hyper_file, 'r')
-        all_hyper = h5['hyper_posterior'][:]
+        self.all_hyper = h5['hyper_posterior'][:]
         h5.close()
 
 
-    def indicate(M, trans, i):
-        '''
-        indicate which M belongs to population i given transition parameter
-        '''
-        ts = np.insert(np.insert(trans, n_pop-1, np.inf), 0, -np.inf)
+    def indicate(self, M, trans, i):
+
+        """Indicate which M belongs to population i given transition parameter.
+        """
+        
+        ts = np.insert(np.insert(trans, self.n_pop-1, np.inf), 0, -np.inf)
         ind = (M>=ts[i]) & (M<ts[i+1])
+
         return ind
 
 
-    def split_hyper_linear(hyper):
+    
+    def split_hyper_linear(self, hyper):
+
+        """Split hyper and derive c.
         """
-        split hyper and derive c
-        """
-        c0, slope,sigma, trans = \
-        hyper[0], hyper[1:1+n_pop], hyper[1+n_pop:1+2*n_pop], hyper[1+2*n_pop:]
+        
+        c0    = hyper[0]
+        slope = hyper[1:1+self.n_pop] 
+        sigma = hyper[1+self.n_pop:1+2*self.n_pop], 
+        trans = hyper[1+2*self.n_pop:]
         
         c = np.zeros_like(slope)
         c[0] = c0
-        for i in range(1,n_pop):
-                c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
+        for i in range(1, self.n_pop):
+            c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
 
         return c, slope, sigma, trans
 
 
     
-    def piece_linear(hyper, M, prob_R):
-        '''
-        model: straight line
-        '''
-        c, slope, sigma, trans = split_hyper_linear(hyper)
+    def piece_linear(self, hyper, M, prob_R):
+
+        """model: straight line
+        """
+        
+        c, slope, sigma, trans = self.split_hyper_linear(hyper)
         R = np.zeros_like(M)
         for i in range(4):
-                ind = indicate(M, trans, i)
-                mu = c[i] + M[ind]*slope[i]
-                R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
+            ind = self.indicate(M, trans, i)
+            mu = c[i] + M[ind]*slope[i]
+            R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
 
         return R
 
+    
 
-    def ProbRGivenM(radii, M, hyper):
-        '''
-        p(radii|M)
-        '''
-        c, slope, sigma, trans = split_hyper_linear(hyper)
+    def ProbRGivenM(self, radii, M, hyper):
+
+
+        """Probability of R given M: p(radii|M)
+        """
+
+        c, slope, sigma, trans = self.split_hyper_linear(hyper)
         prob = np.zeros_like(M)
 
         for i in range(4):
-                ind = indicate(M, trans, i)
-                mu = c[i] + M[ind]*slope[i]
-                sig = sigma[i]
-                prob[ind] = norm.pdf(radii, mu, sig)
+            ind = self.indicate(M, trans, i)
+            mu = c[i] + M[ind]*slope[i]
+            sig = sigma[i]
+            prob[ind] = norm.pdf(radii, mu, sig)
 
-        prob = prob/np.sum(prob)
+        prob = prob / np.sum(prob)
 
         return prob
 
 
-    def classification( logm, trans ):
-        '''
-        classify as four worlds
-        '''
+    
+    def classification(self, logm, trans):
+
+        """Classify as four worlds.
+        """
+        
         count = np.zeros(4)
         sample_size = len(logm)
 
         for iclass in range(4):
                 for isample in range(sample_size):
-                        ind = indicate( logm[isample], trans[isample], iclass)
+                        ind = self.indicate(logm[isample], trans[isample], iclass)
                         count[iclass] = count[iclass] + ind
 
         prob = count / np.sum(count) * 100.
         print('Terran %(T).1f %%, Neptunian %(N).1f %%, Jovian %(J).1f %%, Star %(S).1f %%' \
                         % {'T': prob[0], 'N': prob[1], 'J': prob[2], 'S': prob[3]})
+
         return None
 
 
     
-    def Mpost2R(mass, unit='Earth', classify='No'):
-        """
-        Forecast the Radius distribution given the mass distribution.
+    def Mpost2R(self, mass, unit='Earth', classify='No'):
+
+        """Forecast the Radius distribution given the mass distribution.
 
         Parameters
-        ---------------
+        ----------
         mass: one dimensional array
                 The mass distribution.
         unit: string (optional)
@@ -2365,7 +2380,7 @@ class PlanetMRforecast():
                 Result will be printed, not returned.
 
         Returns
-        ---------------
+        -------
         radius: one dimensional array
                 Predicted radius distribution in the input unit.
         """
@@ -2376,52 +2391,57 @@ class PlanetMRforecast():
 
         # unit input
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mass = mass * mearth2mjup
+            mass = mass * self.mearth2mjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # mass range
         if np.min(mass) < 3e-4 or np.max(mass) > 3e5:
-                print('Mass range out of model expectation. Returning None.')
-                return None
+            print('Mass range out of model expectation. Returning None.')
+            return None
 
-        ## convert to radius
+        # convert to radius
         sample_size = len(mass)
         logm = np.log10(mass)
         prob = np.random.random(sample_size)
         logr = np.ones_like(logm)
 
-        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
-        hyper = all_hyper[hyper_ind,:]
+        hyper_ind = np.random.randint(low=0, high=np.shape(self.all_hyper)[0],
+                                      size=sample_size)
+        hyper = self.all_hyper[hyper_ind,:]
 
         if classify == 'Yes':
-                classification(logm, hyper[:,-3:])
+            self.classification(logm, hyper[:,-3:])
 
 
         for i in range(sample_size):
-                logr[i] = piece_linear(hyper[i], logm[i], prob[i])
+            logr[i] = piece_linear(hyper[i], logm[i], prob[i])
 
         radius_sample = 10.** logr
 
-        ## convert to right unit
+        # convert to right unit
         if unit == 'Jupiter':
-                radius = radius_sample / rearth2rjup
+            radius = radius_sample / self.rearth2rjup
         else:
-                radius = radius_sample 
+            radius = radius_sample 
 
         return radius
 
 
 
-    def Mstat2R(mean, std, unit='Earth', sample_size=1000, classify = 'No'):	
-        """
-        Forecast the mean and standard deviation of radius given the mena and standard deviation of the mass.
-        Assuming normal distribution with the mean and standard deviation truncated at the mass range limit of the model.
+    def Mstat2R(self, mean, std, unit='Earth', sample_size=1000, classify='No'):	
+
+        """Forecast the mean and standard deviation of radius.
+
+        Forecast the mean and standard deviation of radius given the mean
+        and standard deviation of the mass. Assuming normal distribution
+        with the mean and standard deviation truncated at the mass range
+        limit of the model.
 
         Parameters
-        ---------------
+        ----------
         mean: float
                 Mean (average) of mass.
         std: float
@@ -2430,8 +2450,9 @@ class PlanetMRforecast():
                 Unit of the mass. Options are 'Earth' and 'Jupiter'.
         sample_size: int (optional)
                 Number of mass samples to draw with the mean and std provided.
+
         Returns
-        ---------------
+        -------
         mean: float
                 Predicted mean of radius in the input unit.
         std: float
@@ -2440,38 +2461,40 @@ class PlanetMRforecast():
 
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mean = mean * mearth2mjup
-                std = std * mearth2mjup
+            mean = mean * self.mearth2mjup
+            std  = std  * self.mearth2mjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        mass = truncnorm.rvs( (mlower-mean)/std, (mupper-mean)/std, loc=mean, scale=std, size=sample_size)	
+        mass = truncnorm.rvs((mlower-mean)/std, (mupper-mean)/std,
+                             loc=mean, scale=std, size=sample_size)
+        
         if classify == 'Yes':	
-                radius = Mpost2R(mass, unit='Earth', classify='Yes')
+            radius = self.Mpost2R(mass, unit='Earth', classify='Yes')
         else:
-                radius = Mpost2R(mass, unit='Earth')
+            radius = self.Mpost2R(mass, unit='Earth')
 
         if unit == 'Jupiter':
-                radius = radius / rearth2rjup
+            radius = radius / self.rearth2rjup
 
         r_med = np.median(radius)
         onesigma = 34.1
-        r_up = np.percentile(radius, 50.+onesigma, interpolation='nearest')
+        r_up   = np.percentile(radius, 50.+onesigma, interpolation='nearest')
         r_down = np.percentile(radius, 50.-onesigma, interpolation='nearest')
 
         return r_med, r_up - r_med, r_med - r_down
 
 
 
-    def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
-        """
-        Forecast the mass distribution given the radius distribution.
+    def Rpost2M(self, radius, unit='Earth', grid_size = 1e3, classify = 'No'):
+
+        """Forecast the mass distribution given the radius distribution.
 
         Parameters
-        ---------------
+        ----------
         radius: one dimensional array
                 The radius distribution.
         unit: string (optional)
@@ -2485,67 +2508,67 @@ class PlanetMRforecast():
                 Result will be printed, not returned.
 
         Returns
-        ---------------
+        -------
         mass: one dimensional array
                 Predicted mass distribution in the input unit.
         """
 
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                radius = radius * rearth2rjup
+            radius = radius * self.rearth2rjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 
         # radius range
         if np.min(radius) < 1e-1 or np.max(radius) > 1e2:
-                print('Radius range out of model expectation. Returning None.')
-                return None
-
-
+            print('Radius range out of model expectation. Returning None.')
+            return None
 
         # sample_grid
         if grid_size < 10:
-                print('The sample grid is too sparse. Using 10 sample grid instead.')
-                grid_size = 10
+            print('The sample grid is too sparse. Using 10 sample grid instead.')
+            grid_size = 10
 
         ## convert to mass
         sample_size = len(radius)
         logr = np.log10(radius)
         logm = np.ones_like(logr)
 
-        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
-        hyper = all_hyper[hyper_ind,:]
-
+        hyper_ind = np.random.randint(low=0, high=np.shape(self.all_hyper)[0],
+                                      size=sample_size)
+        hyper = self.all_hyper[hyper_ind,:]
+        
         logm_grid = np.linspace(-3.522, 5.477, 1000)
 
         for i in range(sample_size):
-                prob = ProbRGivenM(logr[i], logm_grid, hyper[i,:])
-                logm[i] = np.random.choice(logm_grid, size=1, p = prob)
+            prob = self.ProbRGivenM(logr[i], logm_grid, hyper[i,:])
+            logm[i] = np.random.choice(logm_grid, size=1, p = prob)
 
         mass_sample = 10.** logm
 
         if classify == 'Yes':
-                classification(logm, hyper[:,-3:])
+            self.classification(logm, hyper[:,-3:])
 
         ## convert to right unit
         if unit == 'Jupiter':
-                mass = mass_sample / mearth2mjup
+            mass = mass_sample / self.mearth2mjup
         else:
-                mass = mass_sample
+            mass = mass_sample
 
         return mass
 
 
 
-    def Rstat2M(mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify = 'No'):	
-        """
-        Forecast the mean and standard deviation of mass given the mean and standard deviation of the radius.
+    def Rstat2M(self, mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify='No'):
+
+        """Forecast the mean and standard deviation of mass given
+        the mean and standard deviation of the radius.
 
         Parameters
-        ---------------
+        ----------
         mean: float
                 Mean (average) of radius.
         std: float
@@ -2557,38 +2580,40 @@ class PlanetMRforecast():
         grid_size: int (optional)
                 Number of grid in the mass axis when sampling mass from radius.
                 The more the better results, but slower process.
+        
         Returns
-        ---------------
+        -------
         mean: float
                 Predicted mean of mass in the input unit.
         std: float
                 Predicted standard deviation of mass.
         """
+        
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mean = mean * rearth2rjup
-                std = std * rearth2rjup
+            mean = mean * self.rearth2rjup
+            std  = std  * self.rearth2rjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        radius = truncnorm.rvs( (0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)	
+        radius = truncnorm.rvs((0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)
         if classify == 'Yes':
-                mass = Rpost2M(radius, 'Earth', grid_size, classify='Yes')
+            mass = self.Rpost2M(radius, 'Earth', grid_size, classify='Yes')
         else:
-                mass = Rpost2M(radius, 'Earth', grid_size)
+            mass = self.Rpost2M(radius, 'Earth', grid_size)
 
         if mass is None:
-                return None
+            return None
 
         if unit=='Jupiter':
-                mass = mass / mearth2mjup
+            mass = mass / self.mearth2mjup
 
         m_med = np.median(mass)
         onesigma = 34.1
-        m_up = np.percentile(mass, 50.+onesigma, interpolation='nearest')
+        m_up   = np.percentile(mass, 50.+onesigma, interpolation='nearest')
         m_down = np.percentile(mass, 50.-onesigma, interpolation='nearest')
 
         return m_med, m_up - m_med, m_med - m_down        
