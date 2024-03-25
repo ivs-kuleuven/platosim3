@@ -47,7 +47,7 @@ lw = 0.5  # Line-width
 pt = 0.1  # Percentage
 
 # Define some nice colors
-colors_sea = ['royalblue', 'lightseagreen', 'limegreen']
+colors_sea = ['purple', 'royalblue', 'lightseagreen', 'limegreen']
 colors_hot = ['tomato', 'darkorange', 'gold']
 colors_new = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
 
@@ -3041,12 +3041,13 @@ def plot_final_lc(lc, figsize=(9,8)):
     
     # Start plotting
     
-    fig, ax = plt.subplots(4, 1, figsize=figsize, sharex=True)
+    fig, ax = plt.subplots(5, 1, figsize=figsize, sharex=True)
 
-    ax[0].plot(time, p_modes, '-', c=colors_sea[0], label='Gran + Puls')
-    ax[1].plot(time, lc.spot, '-', c=colors_sea[1], label='Spots')
-    ax[2].plot(time, lc.tran, '-', c=colors_sea[2], label='Transits')
-    ax[3].plot(time, lc.flux, '-', c='k',           label='Combined')
+    ax[0].plot(time, p_modes,  '-', c=colors_sea[0], label='Gran + Puls')
+    ax[1].plot(time, lc.spot,  '-', c=colors_sea[1], label='Spots')
+    ax[2].plot(time, lc.flare, '-', c=colors_sea[2], label='Flares')
+    ax[3].plot(time, lc.tran,  '-', c=colors_sea[3], label='Transits')
+    ax[4].plot(time, lc.flux,  '-', c='k',           label='Combined')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
