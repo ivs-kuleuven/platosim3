@@ -144,7 +144,7 @@ class PLATOnium(object):
             # Bash extention to write no output for the pipeline
             self.devnull = '> /dev/null'
             warnings.filterwarnings("ignore")
-        elif args.verbose is None or args.verbose == 2:
+        elif args.verbose in [None, 1, 2]:
             self.verbose = 2
             self.verbose_platosim = 0
             self.devnull = ''
@@ -228,9 +228,10 @@ class PLATOnium(object):
             errorcode('error', 'Not a valid detrending model!')
 
         # Check parsing of detrending model
+        self.stitchActive = False
         if not self.stitch in [None, 'median', 'lowess']:
             errorcode('error', 'Not a valid stitching model!')
-            
+        
         # Built-in photometric post-processing
         if self.detrend is not None or self.clipWotan:
             self.postProcess = True
@@ -1114,16 +1115,16 @@ class PLATOnium(object):
         
         # Common files to always remove (unless debug mode)
         if self.isOnCCD:
-            if self.varSourceFile:
-                os.remove(self.varSourceList)
+            cat  = Path(self.starCatalogFile)
+            log  = Path(str(self.outputSimName) + '.log')
+            yaml = Path(str(self.outputSimName) + '.yaml')
             if not self.pipeline and self.verbose < 3:
-                if os.path.isfile(str(self.outputSimName) + '.log'):
-                    os.remove(str(self.outputSimName) + '.log')
-                if os.path.isfile(str(self.outputSimName) + '.yaml'):
-                    os.remove(str(self.outputSimName) + '.yaml')
-                if os.path.isfile(self.starCatalogFile):
-                    os.remove(self.starCatalogFile)
-
+                if cat.is_file(): cat.unlink()                
+                if log.is_file(): log.unlink()
+                if yaml.is_file(): yaml.unlink()
+            if self.varSourceFile:
+                Path(self.varSourceList).unlink()
+                
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
 
@@ -1240,7 +1241,7 @@ class PLATOnium(object):
         
         if inputFileGTT.is_file():
             if self.verbose > 1:
-                print('Running gain-transients correction')
+                print('Running transient  model : gain(T)')
 
             # Load CCD gain temperature file
             dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
@@ -1267,7 +1268,7 @@ class PLATOnium(object):
 
         if self.detrend is not None:            
             if self.verbose > 1:
-                print(f'Running detrending using {self.detrend} model')
+                print(f'Running detrending model : {self.detrend}')
 
             # Perform detrending
             lc.detrend(model=self.detrend, degree=False, replace=True, plot=self.plotPost)
@@ -1281,11 +1282,12 @@ class PLATOnium(object):
 
         if len(lc.mask_update_events()) > 1:
             if self.verbose > 1:
-                print(f'Running stitching using {self.stitch} model')
+                print(f'Running stitching model  : {self.stitch}')
 
             # Perform stitching
             lc.stitch(method=self.stitch, segment=5, replace=True, plot=self.plotPost)
-
+            self.stitchActive = True
+            
             if self.verbose > 1:
                 self.tocStitch = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
@@ -1295,7 +1297,7 @@ class PLATOnium(object):
 
         if self.clipWotan:
             if self.verbose > 1:
-                print('Running sigma-clipping using Wotan model')
+                print('Running sigma-clip model : Wotan')
 
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
@@ -1887,7 +1889,7 @@ class PLATOnium(object):
             print(f'Execution time for PlatoSim      : {self.tocPlatoSim} [h:mm:ss]')
             if self.detrend:
                 print(f'Execution time for detrending    : {self.tocDetrend} [h:mm:ss]')
-            if self.stitch:
+            if self.stitchActive:
                 print(f'Execution time for stitching     : {self.tocStitch} [h:mm:ss]')
             if self.clipWotan:
                 print(f'Execution time for Wotan clip    : {self.tocWotanClip} [h:mm:ss]')
@@ -2003,7 +2005,7 @@ else:
     # Only run PlatoSim time series
     p.run_sim_normal(sim)
     # Run post-processing
-    if args.clip or args.detrend:
+    if args.detrend or args.stitch or args.clip:
         p.run_reduction(sim)
     # Prologue
     p.sort_output_normal()
