@@ -476,10 +476,14 @@ class PLATOnium(object):
             self.outputDir.mkdir(parents=True, exist_ok=True)
             os.system(f'chmod 755 {self.outputDir}')
         
+        # Check if output file exists
+        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file():
+            errorcode('error', 'HDF5 file already exists! Use "-w" to overwrite it')
+            
+
 
 
             
-
     def init_sim(self):
 
         """Module to initialize the the PlatoSim simulation object.
@@ -514,6 +518,7 @@ class PLATOnium(object):
 
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE: if "mag" column exist the YAML entry "Fluxm0" is used
+        # TODO should be a part of simulation.py
         if self.magPB == 'Pmag':
             sim['ObservingParameters/Fluxm0'] = 0.73244782244e8
         elif self.magPB == 'PBmag':
@@ -1280,7 +1285,7 @@ class PLATOnium(object):
 
         # STITCH MASK-UPDATES
 
-        if len(lc.mask_update_events()) > 1:
+        if self.stitch is not None and len(lc.mask_update_events()) > 1:
             if self.verbose > 1:
                 print(f'Running stitching model  : {self.stitch}')
 
