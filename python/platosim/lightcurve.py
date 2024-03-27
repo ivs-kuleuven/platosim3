@@ -167,7 +167,7 @@ class LightCurve(object):
 
         # Cadence/cycle time (exposure + readout time)
         if self.df is not None:
-            self.cadence = self.df.time.diff()[1]
+            self.cadence = self.df.time.diff().iloc[1]
 
             
 
