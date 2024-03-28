@@ -751,7 +751,7 @@ class LightCurve(object):
         
         # Normalize flux and find medina filter
         
-        flux_med = scipy.ndimage.median_filter(flux, carbox)
+        flux_med = median_filter(flux, carbox)
 
         # Add column to data frame if requested
         
@@ -819,7 +819,9 @@ class LightCurve(object):
         else:
             data = np.transpose([time, flux]) #, sigma])
 
-        return pd.DataFrame(data, columns=cols)
+        # Make sure to remove NaNs
+        df = pd.DataFrame(data, columns=cols)
+        return df.dropna()
 
 
     
@@ -1169,7 +1171,7 @@ class LightCurve(object):
                 flux_i = flux[dex[i]:dex[i+1]]
                 dx = pd.DataFrame({'time': time_i, 'flux':flux_i})
                 lc = LightCurve(dx, 'multi')
-                df = lc.bin(binsize=1)
+                df = lc.bin(binsize=0.5)
                 df.time *= 3600. # [d -> s]
                 
                 # Perform detrending
@@ -1178,6 +1180,7 @@ class LightCurve(object):
                                          method=method,
                                          window_length=window*c.day,
                                          break_tolerance=gapsize*c.day,
+                                         edge_cutoff=0.0,
                                          return_trend=True,
                                          robust=True,
                                          mask=mask)
@@ -1547,15 +1550,13 @@ class LightCurve(object):
         if not magnitude == None:
             # Cuts optimized for N-CAMs of 25s cadence
             # Higher sigma for lower bound to protect eclipses
+            sigma_lower = 8
             if magnitude <= 10:
                 sigma_upper = 5
-                sigma_lower = 7
             elif magnitude > 10 and magnitude < 11:                
                 sigma_upper = 4.5
-                sigma_lower = 6.5
             else:
                 sigma_upper = 4
-                sigma_lower = 6
                 
         # Sigma clipping methods
         
@@ -1800,7 +1801,8 @@ class LightCurve(object):
 
         # Catch invalid option
         if input_model and flux_unit == 'e/s':        
-            errorcode('error', 'Unit not valid when comparing to input model! Use [norm, ppp, ppt, ppm]')
+            errorcode('error', 'Flux unit is not valid when comparing to input model! ' +
+                      'Use either [norm, ppp, ppt, ppm]')
             
         # Time array
         time = self.time(unit=time_unit)
@@ -1817,14 +1819,15 @@ class LightCurve(object):
         # Altered data (e.g. merged)
         else:
             if flux_unit == 'e/s':
-                errorcode('error', 'Unit not valid for merged data! Use [norm, ppp, ppt, ppm]')
+                errorcode('error', 'Unit not valid for merged data! '+
+                          'Use either [norm, ppp, ppt, ppm]')
             elif flux_unit == 'norm':
                 flux = self.flux(unit='e/s')
             elif flux_unit == 'ppp':
                 flux = self.flux(unit='e/s') - 1
             elif flux_unit == 'ppt':
                 flux = (self.flux(unit='e/s') - 1) * 1e3
-            elif flux_unit == 'ppp':
+            elif flux_unit == 'ppm':
                 flux = (self.flux(unit='e/s') - 1) * 1e6
             if legend:
                 lab = "Merged data"
@@ -2015,7 +2018,7 @@ class LightCurve(object):
 
     def plot_multi(self, time_unit="d", flux_unit="e/s", suffix="ftr",
                    group=False, camera=False, quarter=False,
-                   quarter_labels_ypos=False, figsize=(9,5)):
+                   flux_median=False, alpha=0.1, figsize=(9,5)):
 
         """Function to plot multiple camera/quarters for single star.
         
@@ -2058,23 +2061,32 @@ class LightCurve(object):
             time = lc.time(unit=time_unit)
             flux = lc.flux(unit=flux_unit)
 
+            time = time[~np.isnan(flux)]
+            flux = flux[~np.isnan(flux)]
+
             # Plot the quarter data
-            ax.plot(time, flux, ',', alpha=0.2) #label=f'Q{quarter}, N-CAM {group}.{camera}')
+            ax.plot(time, flux, '.', alpha=alpha, ms=1, zorder=1)
                         
             # Fetch info for quarter marks
             group, camera, quarter = lc.obs()
             Q.append(quarter)
             flux_max.append(flux.max())
 
+            # Plot median filters (heavy)
+            if flux_median:
+                flux_med = median_filter(flux, flux_median)
+                ax.plot(time, flux_med, '-', c='gray', lw=0.5, zorder=2)
+
+            
         # Plot quarter marks
         ymax = np.max(flux_max)
-        ypos = ymax + ymax * ax.margins()[1]/3.
+        ypos = ymax + ymax * ax.margins()[1]/13
         for q in np.unique(Q):
             time_Q = q*ut.quarter()
             xpos = time_Q - 50
             if q > 9: xpos -= 10
             ax.text(xpos, ypos, f'Q{q}', fontsize=16, zorder=10)
-            ax.axvline(x=time_Q-1/2, c='k', linestyle='--', lw=0.5, zorder=-1)
+            ax.axvline(x=time_Q-1/2, c='k', linestyle='--', lw=0.5, zorder=2)
 
         # Settings
         ax.set_xlim(self.time_limit(quarters))
@@ -2082,7 +2094,7 @@ class LightCurve(object):
         ax.set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
         ax.set_xlim(self.time_limit(quarters))
         plt.tight_layout()
-
+        
         return fig, ax
 
 
@@ -2094,8 +2106,9 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     
 
-    def merge(self, quarter=False, flux_group_mean=False, binsize=False,
-              ofile=False, suffix="ftr"):
+    def merge(self, quarter=False, flux_group_mean=False,
+              binsize=False, flux_offset=False,
+              ofile=False, verbose=True, suffix="ftr"):
 
         """Merge light curves from a single star.
 
@@ -2138,9 +2151,16 @@ class LightCurve(object):
         ncam   = 0
         flag   = 0
 
-        # Loop over each group and camera
+        # Allow progress bar
+        if verbose:
+            print('Merging light curves:')
+            simulations = tqdm(range(nfiles), bar_format=ut.tqdmBar())
+        else:
+            simulations = nfiles
+            
+            # Loop over each group and camera
 
-        for i in range(nfiles):
+        for i in simulations:
 
             # Fetch light curve object            
             lc = LightCurve(files[i])
@@ -2155,6 +2175,8 @@ class LightCurve(object):
             if lc.flux(unit="e/s").mean() < 1:
                 flag = 1
 
+            x = np.abs(1-lc.flux(unit="e/s").median())
+            
             # Create initial data frame and save to it
             df = lc.data()
             
@@ -2179,31 +2201,49 @@ class LightCurve(object):
                 df0 = pd.concat([df0, df1])
 
         # Sort after logic structure and reset indices
+        if verbose: print('Sorting data after timings')
         df0 = df0.sort_values(by=["time"])
         df0 = df0.reset_index(drop=True)
 
         # If requested mean fluxes from same group (i.e. same time stamp)
         if flux_group_mean:
+            if verbose: print('Averaging data from same camera group')
             df0 = df0.groupby('time').mean().reset_index()
-
-        # Remove NaNs
-        df0 = df0.dropna()
 
         # Copy light curve object
         if binsize:
-            
+
             # Save number of data points in each time bin
-            bins = int(df0.time.iloc[-1] / binsize)
-            flux, time, nbin = binned_statistic(df0.time, df0.flux, statistic='mean', bins=bins)
+            tdur = df0.time.iloc[-1] - df0.time.iloc[0]
+            tbin = binsize*3600
+            bins = int(tdur/tbin)
+            if verbose:
+                print(f'Binning data per {binsize}h')
+            
+            flux, time, nbin = binned_statistic(df0.time, df0.flux,
+                                                statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
         
             # Specific column for P1 and P5 samples
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
-            
+
+        # Remove NaNs
+        df0 = df0.dropna()        
+
+        # Flux offset correction
+        if flux_offset:
+            flux_offset = df0.flux.median() - 1
+            df0.flux   -= flux_offset        
+            if verbose:
+                print(f'Corrrecting flux offset of {flux_offset*1e6} ppm')
+        
         # If requested save output file
         if ofile:
+            df0.reset_index(drop=True, inplace=True)
             df0.to_feather(ofile)
-        
+            os.system(f'chmod 755 {ofile}')
+            
+        if verbose: print('Done!')
         return LightCurve(df0, mode="multi", ncam=ncam, path=self.path)
 
 

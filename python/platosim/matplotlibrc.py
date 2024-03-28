@@ -44,10 +44,9 @@ def setup():
     plt.rcParams['legend.fontsize']   = 15
 
     # Font
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.size']   = 17
-
-    
+    plt.rcParams['font.family']    = 'serif'
+    plt.rcParams['font.size']      = 17
+    plt.rcParams['axes.titlesize'] = 17
         
 def latex():    
     setup()
@@ -68,5 +67,4 @@ def setup_notebook():
 def setup_paper():
     setup()
     latex()
-    plt.rcParams['font.size']       = 20
     plt.rcParams['legend.fontsize'] = 17
