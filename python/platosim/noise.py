@@ -11,6 +11,7 @@ import datetime
 
 # PlatoSim standard
 import scipy
+from scipy.interpolate import make_interp_spline
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt 
@@ -309,9 +310,13 @@ def timeSeriesFromMeanPSD(freq, psd):
 
 
 #@njit
-def getRedNoise(time, currenttime, kicktimestep, Ntime, timescale, varscale, noise, mu, sigma):
+def getRedNoise(time, currenttime, kicktimestep, Ntime,
+                timescale, varscale, noise, mu, sigma,
+                seed=None):
+        
+    # Initialise random generator
+    rng = np.random.default_rng()
 
-    
     signal = np.zeros(Ntime)
     
     for i in range(Ntime):
@@ -320,7 +325,7 @@ def getRedNoise(time, currenttime, kicktimestep, Ntime, timescale, varscale, noi
         # First advance the time series right *before* the time point i,
 
         while( (currenttime + kicktimestep) < time[i]):
-            noise = noise * (1.0 - kicktimestep/timescale) + np.random.normal(mu[0], sigma[0])
+            noise = noise * (1.0 - kicktimestep/timescale) + rng.normal(mu[0], sigma[0])
             currenttime = currenttime + kicktimestep
 
         # Then advance the time series with a small time step right *on* time[i]
@@ -328,7 +333,7 @@ def getRedNoise(time, currenttime, kicktimestep, Ntime, timescale, varscale, noi
         delta  = time[i] - currenttime
         #sigma1 = np.sqrt(delta/timescale)*varscale
         sigma1 = varscale * 0.66  # Correction factor to have varscale in RMS arcsec
-        noise  = noise * (1.0 - delta/timescale) + np.random.normal(mu[0], sigma1)
+        noise  = noise * (1.0 - delta/timescale) + rng.normal(mu[0], sigma1)
         currenttime = time[i]
 
         # Add the different components to the signal. 
@@ -341,7 +346,7 @@ def getRedNoise(time, currenttime, kicktimestep, Ntime, timescale, varscale, noi
 
 
 
-def modelRedNoise(time, timescale, varscale):
+def modelRedNoise(time, timescale, varscale, seed=None):
 
     """Function to generate a red noise time series.
     
@@ -359,6 +364,9 @@ def modelRedNoise(time, timescale, varscale):
     signal : ndarray
         Signal containing all red noise components: signal[0..Ntime-1]
     """
+    
+    # Initialise random generator
+    rng = np.random.default_rng()
 
     Ntime = len(time)
     Ncomp = len(timescale)
@@ -379,7 +387,7 @@ def modelRedNoise(time, timescale, varscale):
     # Warm up the first-order autoregressive process
 
     for i in range(2000):
-        noise = noise * (1.0 - kicktimestep / timescale) + np.random.normal(mu, sigma)
+        noise = noise * (1.0 - kicktimestep / timescale) + rng.normal(mu, sigma)
 
     # Start simulating the granulation time series
     
@@ -426,7 +434,7 @@ def modelRedNoisePSD(freq, timescale, varscale):
 
 
 def getPRE(alpha, delta, kappa, quarter, sigma=3,
-           ofile=False, table=False, plot=False):
+           seed=None, ofile=False, table=False, plot=False):
 
     """Pointing Reproducibility Error (PRE) in PLM reference frame.
     
@@ -456,24 +464,23 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     - Optionally a feather output file
     """
 
-    # Sort input quarters
+    # Random number generator
+    rng = ut.rng(seed)
     
+    # Sort input quarters    
     n = len(quarter)
         
     # PRE in the PLM reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]
-    # NOTE: Performance values "as required"
-    
+    # NOTE: Performance values "as required"    
     t = 3.0/3600 
     b = 6.0/3600
 
     # Find distribution within 3 sigma of req.
-    
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(n)])
-    bb = np.array([np.random.normal(0, b/sigma) for i in range(n)])
+    tt = np.array([rng.normal(0, t/sigma) for i in range(n)])
+    bb = np.array([rng.normal(0, b/sigma) for i in range(n)])
 
     # Corresponding yaw, pitch, roll
-
     # y = tt
     # z = 3 * y
     # x = bb - z
@@ -482,23 +489,18 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     x = tt
 
     # ICRS pointing angles
-    
     phi   = np.deg2rad(alpha)
     theta = np.deg2rad(delta)
 
     # Find change of pointing for each quarter
-    
     PRE = np.zeros((n, 4))
     for i in range(n):
         data = rf.perturbPlatformPointing(x[i], y[i], z[i], phi, theta)[0]
         PRE[i,:] = np.append(quarter[i], data)
-
     df = pd.DataFrame(PRE, columns=["quarter", "yaw", "pitch", "roll"])
     df = df.astype({"quarter":int, "yaw":np.float64, "pitch":np.float64, "roll":np.float64})
-    
     df0 = df.copy()
     df0.iloc[:,1:] = df0.iloc[:,1:] * 3600
-        
     df1 = df.copy()
     df1.rename(columns={"yaw":"alpha", "pitch":"delta", "roll":"kappa"}, inplace=True)
     df1.iloc[:,1] = df1.iloc[:,1] + alpha
@@ -506,7 +508,6 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     df1.iloc[:,3] = df1.iloc[:,3] + kappa
 
     # Print generated values
-           
     if table:
         print('\nChange of coordinates [arcsec]')
         print(df0)
@@ -514,7 +515,6 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
         print(df1)
 
     # Plot distributions
-    
     t *= 3600
     b *= 3600
     y = t/sigma
@@ -553,17 +553,13 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
     plt.tight_layout()
         
     # Plot figure above
-
     if plot: plt.show()
     
     # Save file with relative pointing errors [deg]
-    
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
         fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
-    # That's it!
-    
     return PRE
 
 
@@ -571,7 +567,7 @@ def getPRE(alpha, delta, kappa, quarter, sigma=3,
 
 
 def getAPE(alpha, delta, kappa, sigma=3,
-           ofile=False, table=False, plot=False):
+           seed=None, ofile=False, table=False, plot=False):
 
     """Pointing Reproducibility Error (PRE) in P/L reference frame.
 
@@ -605,41 +601,38 @@ def getAPE(alpha, delta, kappa, sigma=3,
     # APE in the PLM reference frame (yaw, pitch, roll)
     # Here t stands for transverse direction and [deg]    
     # NOTE: Performance values "as required"
+
+    # Random number generator
+    rng = ut.rng(seed)
     
     t = 4.5/60  # [deg]
     b = 9.0/60  # [deg]
         
     # Find distribution within 3 sigma of req.
-
-    tt = np.array([np.random.normal(0, t/sigma) for i in range(26)])
-    bb = np.array([np.random.normal(0, t/sigma) for i in range(26)])
+    tt = np.array([rng.normal(0, t/sigma) for i in range(26)])
+    bb = np.array([rng.normal(0, t/sigma) for i in range(26)])
 
     # Corresponding yaw, pitch, roll
-
     dy = tt
     dz = 3 * dy
     dx = bb - dz
 
     # Store APE
-    
     APE = np.transpose([tt, bb])
     df  = pd.DataFrame(APE, columns=["tilt", "azimuth"])
 
     # Print distributions to bash
-    
     if table:
-        
         print(f'\nCamera alignment errors for all 26 cameras [pixel]')
         APE0 = np.transpose([tt, bb, dx, dy, dz]) * 3600 / 15
         df0  = pd.DataFrame(APE0, columns=["Alt", "Az", "Yaw", "Pitch", "Roll"])
         print(df0)
         
     # Create figure object
-    
     t *= 3600 / ( 15 * sigma * (sigma-1))
     b *= 3600 / ( 15 * sigma * (sigma-1))
     xx = np.linspace(-10*t, 10*t, 1000)
-
+    
     fig, ax = plt.subplots(1, 2, figsize=(10,5))
 
     # Plot PDF
@@ -676,24 +669,21 @@ def getAPE(alpha, delta, kappa, sigma=3,
     plt.tight_layout()
 
     # Plot figure above 
-    
     if plot: plt.show()
     
     # Save APE camera misalignments
-    
     if ofile:
         df.to_csv(ofile, sep=" ", header=False, index=False)
         fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
 
-    # That's it!
-    
     return APE
 
 
 
 
 
-def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=False):
+def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
+           ofile=False, seed=None, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
@@ -731,6 +721,19 @@ def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=Fal
     df_4  = pd.DataFrame(); df4 = pd.DataFrame()
     A = np.zeros((len(quarter), 4))
 
+    # Load wheel offloadings
+    if wheel_offloading:
+        idir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles'
+        filename_dir = idir / 'TED_dir_prime_2021jan.ftr'
+        filename_rot = idir / 'TED_rot_prime_2021jan.ftr'
+        # Check if they should be downloaded
+        if not filename_dir.is_file() or not filename_rot.is_file():
+            print(f'Downloading Prime reaction wheel offloading models..\n')
+            ut.downloadFromFTP(filename_dir.name, idir, 'plato')
+            ut.downloadFromFTP(filename_rot.name, idir, 'plato')
+        df_dir = pd.read_feather(filename_dir)
+        df_rot = pd.read_feather(filename_rot)
+    
     # Loop over each quarter
 
     for Q in range(quarter[0]-1, quarter[-1]):
@@ -743,12 +746,11 @@ def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=Fal
         df3["time"] = time
         df4["time"] = time
 
-        # Generate linear model
-
-        # Generate a random 2nd order polynomial
+        # Create model for each camera group
 
         for col in cols:
 
+            # Generate linear model
             if model == 'linear':
                 a = 1.3 * 15      
                 if col == "roll":
@@ -756,11 +758,11 @@ def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=Fal
                 else:
                     df1[col] = np.linspace(0, a, n)
 
+            # Generate a random 2nd order polynomial
             else:
-                amp = 3.5
                 # NOTE these parameters has been compared to Prime TED
-                a = rng.uniform(-10, 10) * 1e-14 / amp
-                b = rng.uniform(-15, 15) * 1e-7  / amp
+                a = rng.uniform(-10, 10) * 1e-14 * ampl / 12
+                b = rng.uniform(-15, 15) * 1e-7  * ampl / 12
                 # Secure that c (the y offset) is always zero
                 c = 0
                 # Make sure that a and b always has opposite signs
@@ -776,6 +778,22 @@ def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=Fal
                 df2[col] = np.polyval(poly2, time0)
                 df3[col] = np.polyval(poly3, time0)
                 df4[col] = np.polyval(poly4, time0)
+
+            # Add reaction wheel offloadings
+            if wheel_offloading:
+                dex = rng.integers(1, 24, 1)[0]
+                t = np.linspace(time0[0], time0[-1], len(df_dir.time))
+                # Directional (yaw, picth)
+                if col in ['yaw', 'pitch']:
+                    a = df_dir[f'ncam{dex}'] * ampl/10.
+                else:
+                    a = df_rot[f'ncam{dex}'] * ampl/10.
+                spline = make_interp_spline(t, a, k=2)
+                wheel  = spline(time0)            
+                df1[col] += wheel
+                df2[col] += wheel
+                df3[col] += wheel
+                df4[col] += wheel
                 
         # File to save
         df_1 = pd.concat([df_1, df1])
@@ -799,7 +817,9 @@ def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=Fal
         da = da.astype({'Quarter':np.int})
         da = da.reset_index(drop=True)
         print(da)
-
+        print('\nMaximum TED amplitudes [arcsec]')
+        print(da.max()[1:])
+        
     # Plot model
     
     fig, ax = plt.subplots(3,1,figsize=(9, 6))
@@ -828,8 +848,7 @@ def getTED(quarter, model="poly", ofile=False, seed=False, table=False, plot=Fal
     ax[1].set_xticklabels([])
     plt.tight_layout(h_pad=0.2, w_pad=0)
         
-    # Plot figure above 
-    
+    # Plot figure above     
     if plot: plt.show()
         
     # Save data in one big drift text file for PlatoSim
@@ -891,9 +910,9 @@ def getACS(time, rms=[0.038, 0.038, 0.040], ofile=False, plot=False):
 
 
 
-def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
+def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
-    """Function to create a job script to be used on the VSC.
+    """Function to create data gaps in time series.
 
     All time gaps are based on knowledge from the Kepler mission.
     The following time gaps are considered:
@@ -935,19 +954,18 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
     count level before the event over a period of a few days.
     """
 
-    # Initialise random generator
-    rng = np.random.default_rng()
+    # Random number generator
+    rng = ut.rng(seed)
 
     # Storage arrays
     roll   = np.zeros_like(time, dtype=bool)
-    #link   = np.zeros_like(time, dtype=bool)
     jitter = np.zeros_like(time, dtype=bool)
     safe   = np.zeros_like(time, dtype=bool)
 
     # QUARTERLY ROLLS
 
     roll_period   = ut.quarter()
-    roll_duration = 2.0
+    roll_duration = 1.5
     roll_anomaly  = 0.5
 
     n_roll = len(quarter)
@@ -956,46 +974,23 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
     roll_event1 = np.zeros(n_roll)
     
     for i, Q in zip(range(n_roll), roll_events):
-        roll_gap = roll_duration + np.random.uniform(-roll_anomaly, roll_anomaly) # [d]
+        roll_gap = roll_duration + rng.uniform(-roll_anomaly, roll_anomaly) # [d]
         roll_event0[i] = (roll_period * Q - roll_gap/2) * day2sec                 # [s]
         roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec                 # [s]
         roll_dex       = np.where((time>=roll_event0[i]) & (time<=roll_event1[i]))[0]
         roll[roll_dex] = True
-
-    # DOWNLINK GAPS
-    # NOTE: Not applicable for PLATO!
-    
-    # link_period   = 365.25/4/3
-    # link_duration = 5/24.           # [d] i.e. 5 hours
-    # link_anomaly  = 0.5/24.         # [d] i.e. 0.5 hour
-
-    # # Remove overlaps with quarters
-    # array0 = np.arange((quarter[0]-1)*roll_period, quarter[-1]*roll_period, link_period)[1:]
-    # array1 = array0[2::3]
-    # link_events = [i for i in array0 if i not in array1]
-
-    # n_link = len(link_events)
-    # link_event0 = np.zeros(n_link)
-    # link_event1 = np.zeros(n_link)
-
-    # for i, L in zip(range(n_link), link_events):
-    #     link_gap = link_duration + np.random.uniform(-link_anomaly, link_anomaly)
-    #     link_event0[i] = (L - link_gap/2) * day2sec
-    #     link_event1[i] = (L + link_gap/2) * day2sec
-    #     link_dex       = np.where((time>=link_event0[i]) & (time<=link_event1[i]))[0]
-    #     link[link_dex] = True
         
     # LOSS OF FINE GUIDANCE
 
     jitter_freq = 120
-    jitter_offset = np.random.uniform(0, jitter_freq)
+    jitter_offset = rng.uniform(0, jitter_freq)
     t = (quarter[0] - 1) * roll_period - jitter_offset
     jitter_duration = 0.5/24.
     jitter_anomaly  = 0.1/24.
     jitter_events   = []
 
     while t < quarter[-1] * roll_period:            
-        jitter_event = np.random.poisson(lam=jitter_freq)
+        jitter_event = rng.poisson(lam=jitter_freq)
         t += jitter_event
         jitter_events.append(t)
 
@@ -1006,7 +1001,7 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
     event1 = roll_event1 # np.concatenate((roll_event1, link_event1))
 
     for i, J in zip(range(n_jitter), jitter_events):
-        jitter_gap = jitter_duration + np.random.uniform(-jitter_anomaly, jitter_anomaly)
+        jitter_gap = jitter_duration + rng.uniform(-jitter_anomaly, jitter_anomaly)
         jitter_event0[i] = (J - jitter_gap/2) * day2sec
         jitter_event1[i] = (J + jitter_gap/2) * day2sec
         jitter_dex       = np.where((time>=jitter_event0[i]) & (time<=jitter_event1[i]))[0]
@@ -1023,14 +1018,14 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
     # SAFE MODE EVENTS
 
     safe_freq = 270
-    safe_offset = np.random.uniform(0, safe_freq)
+    safe_offset = rng.uniform(0, safe_freq)
     t = (quarter[0] - 1) * roll_period - safe_offset
     safe_duration = 1
     safe_anomaly  = 12/24.
     safe_events   = []
 
     while t < quarter[-1] * roll_period:            
-        safe_event = np.random.poisson(lam=safe_freq)
+        safe_event = rng.poisson(lam=safe_freq)
         t += safe_event
         safe_events.append(t)
         
@@ -1041,7 +1036,7 @@ def getDataGaps(time, quarter=range(1,9), ofile=False, plot=False):
     event1 = np.concatenate((roll_event1, jitter_event1))        
 
     for i, S in zip(range(n_safe), safe_events):
-        safe_gap = safe_duration + np.random.uniform(-safe_anomaly, safe_anomaly)
+        safe_gap = safe_duration + rng.uniform(-safe_anomaly, safe_anomaly)
         safe_event0[i] = (S - safe_gap/2) * day2sec
         safe_event1[i] = (S + safe_gap/2) * day2sec
         safe_dex       = np.where((time>=safe_event0[i]) & (time<=safe_event1[i]))[0]
@@ -1159,7 +1154,6 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     """
     
     # Secure numpy syntax
-    
     if isinstance(time, pd.Series):
         time = time.to_numpy()
     if isinstance(t0, list):
@@ -1167,30 +1161,25 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     if isinstance(td, list):
         td = np.array(td)
         
-    # Create temperature array to write to
-    
+    # Create temperature array to write to    
     time = time / 86400.
     temp = np.zeros_like(time)
 
     # Convert to days
-    
     timeGap0 = t0   / 86400.
     tdurGap  = td   / 86400.
     timeGap1 = timeGap0 + tdurGap
     
     # Unit parameters
-    
     cadence = np.diff(time)[0]
     ndex    = int(timeSpan / cadence)
     n       = len(t0)
 
     # Indices for start and end of each event
-    
     timeDex0 = [np.argmin(np.absolute(time - timeGap0[i])) for i in range(n)]
     timeDex1 = [np.argmin(np.absolute(time - timeGap1[i])) for i in range(n)]
     
     # Linear CCD temperature dependece with gap size
-    
     if not timeScale:
         timeScale = 1/tempConst * tdurGap
     
@@ -1198,7 +1187,6 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
         amplitude = tempConst * tdurGap
 
     # Secure that a single event works
-    
     try: len(timeGap1)
     except: timeGap1 = [timeGap1]
     try: len(timeScale)
@@ -1207,66 +1195,54 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
     except: amplitude = [amplitude]
 
     # Loop over each transient event
-
     for i in range(n):
 
         # Time array during transient event
-        
-        tn = time/timeScale[i]
+        tn = time / timeScale[i]
 
         # Model parameters of transients
-        
         a0 = 0.689
         a1 = -1.6
         b0 = 1 - a0
         b1 = -0.2783
         
         # Secure last event is within time series
-        
         if timeDex1[i]+ndex > len(time):
             timeDex2 = len(time)-1
         else:
             timeDex2 = timeDex1[i] + ndex
 
         # Loop over every time-step in the transient time interval
-
         for j,k in zip(range(timeDex1[i], timeDex2), range(len(tn))):
-            temp[j] += (a0 * np.exp(a1 * tn[k]) +
-                        b0 * np.exp(b1 * tn[k]) * amplitude[i])
+            #temp[j] += (a0 * np.exp(a1 * tn[k]) + b0 * np.exp(b1 * tn[k]) * amplitude[i])
+            temp[j] += (b0 * np.exp(b1 * tn[k]) * amplitude[i])
 
             # Add amplitude for overlapping events
-            
             if (temp[timeDex0[i]] > tempCCD+0.001) and (j==timeDex1[i]):
                amplitude[i] += temp[timeDex0[i]]
 
     # Add CCD zero point temperature
-    
     temp += np.ones_like(temp) * tempCCD
                
     # Plot if requested
     
-    if ofile:
-        
-        fig, ax = plt.subplots(figsize=(9,3))
-        for i in range(n):
-            ax.axvspan(timeGap0[i], timeGap1[i], color='b', alpha=0.2)
-        ax.plot(time, temp, '-', lw=1, c='deeppink')
-        ax.set_xlabel('Time [d]')
-        ax.set_ylabel('CCD temperature [K]')
-        ax.set_xlim(np.min(time), np.max(time))
-        plt.tight_layout()
+    fig, ax = plt.subplots(figsize=(9, 3.5))
+
+    for i in range(n):
+        ax.axvspan(timeGap0[i], timeGap1[i], color='b', alpha=0.2)
+    ax.plot(time, temp, '-', lw=1, c='deeppink')
+    ax.set_xlabel('Time [d]')
+    ax.set_ylabel('CCD temperature [K]')
+    ax.set_xlim(np.min(time), np.max(time))
+    plt.tight_layout()
 
     # Plot figure above
-        
     if plot: plt.show()        
 
     # Save data if requested
-
     if ofile:
         np.savetxt(ofile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
         fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
-        
-    # That's it!
         
     return temp
 
@@ -1275,7 +1251,7 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
 
 
 
-def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
+def getGain(sigma=3, gain0CCD=False, seed=None, ofile=False, plot=False):
 
     """ointing Reproducibility Error (PRE) in PLM reference frame.
     
@@ -1288,6 +1264,10 @@ def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
     ------
     """
 
+    
+    # Initialise random generator
+    rng = np.random.default_rng()
+    
     # Total number of CCD x 2 halves
 
     nCCD = 104
@@ -1296,8 +1276,8 @@ def getGain(sigma=3, gain0CCD=False, ofile=False, plot=False):
 
     if not gain0CCD: gain0CCD = 1.8
     gainRef = gain0CCD / sigma
-    deltaGainF = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
-    deltaGainE = np.array([np.random.normal(0, gainRef) for i in range(nCCD)])
+    deltaGainF = np.array([rng.normal(0, gainRef) for i in range(nCCD)])
+    deltaGainE = np.array([rng.normal(0, gainRef) for i in range(nCCD)])
     
     # Plot distributions
     

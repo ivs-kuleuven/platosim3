@@ -1287,7 +1287,7 @@ class PLATOnium(object):
 
         if self.stitch is not None and len(lc.mask_update_events()) > 1:
             if self.verbose > 1:
-                print(f'Running stitching model  : {self.stitch}')
+                print(f'Running stitching  model : {self.stitch}')
 
             # Perform stitching
             lc.stitch(method=self.stitch, segment=5, replace=True, plot=self.plotPost)
@@ -1302,7 +1302,7 @@ class PLATOnium(object):
 
         if self.clipWotan:
             if self.verbose > 1:
-                print('Running sigma-clip model : Wotan')
+                print('Running sigma-clip model : wotan')
 
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
