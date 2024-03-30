@@ -229,10 +229,23 @@ def plot_standardized_residuals(data, lsFit, K, reg='x', lsModel='OLS', figsize=
 
 
 
-def model_selection(AIC_j, BIC_j, k=False, N=False, show=False):
+def model_selection(AIC_j, BIC_j, method='BIC', show=False):
 
-    # k : Number of unknown parameters -> list
-    # N : Number of observations -> int
+    """Perform a model comparison from the AIC and BIC parameters.
+    
+    The AIC and BIC useful to avoid overfitting. The AIC and BIC
+    are essential parameters to penalize the increased complexity
+    of a model compared the goodness of fit. The model uses the:
+    k : Number of unknown parameters
+    N : Number of observations
+
+    Notes
+    -----
+    Typically the BIC is superior to the AIC when N > 50. Hence,
+    as this is true for PLATO light curves we use the BIC as the
+    default method to select the best model.
+    """
+
     n = len(AIC_j)
             
     # Akaike and Baysian delta score
@@ -255,16 +268,18 @@ def model_selection(AIC_j, BIC_j, k=False, N=False, show=False):
         p23 = wAIC_i[1] / (wAIC_i[1] + wAIC_i[2])
         b23 = pBIC_i[1] / (pBIC_i[1] + pBIC_i[2])
 
-    # Find best model
+    # Find best model (in %)
+    p12 *= 100; p13 *= 100; p23 *= 100
+    b12 *= 100; b13 *= 100; b23 *= 100
     if n == 2:
-        if p12 > 50:
+        if p12 >= 50:
             best = 1
         else:
             best = 2
     elif n == 3:
-        if p12 > 50 and p13 < 50:
+        if p12 >= 50 and p13 < 50:
             best = 1
-        elif p23 > 50 and p12 < 50:
+        elif p23 >= 50 and p12 < 50:
             best = 2
         else:
             best = 3
@@ -296,6 +311,7 @@ def model_selection(AIC_j, BIC_j, k=False, N=False, show=False):
             print('\nProbability in favour of model 2 over 3')
             print(f'w2/(w2+w3) : {round(p23, 1)} %')
             print(f'p2/(p2+p3) : {round(b23, 1)} %')
+        print(f'\nThe best model is: {best}')
         print('------------------------------\n')
         
     return best

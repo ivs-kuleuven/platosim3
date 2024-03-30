@@ -783,11 +783,13 @@ def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
             if wheel_offloading:
                 dex = rng.integers(1, 24, 1)[0]
                 t = np.linspace(time0[0], time0[-1], len(df_dir.time))
+                # Apply a small random amplitude (+-10%) for variation
+                ampl += ampl * rng.uniform(-0.1, 0.1)
                 # Directional (yaw, picth)
                 if col in ['yaw', 'pitch']:
-                    a = df_dir[f'ncam{dex}'] * ampl/10.
+                    a = df_dir[f'ncam{dex}'] * ampl / 100
                 else:
-                    a = df_rot[f'ncam{dex}'] * ampl/10.
+                    a = df_rot[f'ncam{dex}'] * ampl / 100
                 spline = make_interp_spline(t, a, k=2)
                 wheel  = spline(time0)            
                 df1[col] += wheel
@@ -850,7 +852,7 @@ def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
         
     # Plot figure above     
     if plot: plt.show()
-        
+
     # Save data in one big drift text file for PlatoSim
     if ofile:
         df_1.to_csv(f'{ofile[:-4]}_group1.txt', sep=" ", header=False, index=False)

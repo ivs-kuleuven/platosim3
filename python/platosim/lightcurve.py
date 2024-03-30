@@ -382,7 +382,7 @@ class LightCurve(object):
             varpath = varpath_list
         else:
             errorcode('warning', f'No variable source found for star ID {int(starID)}')
-        
+
         # Read file and add flux column
         df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
         df['flux'] = ut.fromMagToFlux(df.mag)
@@ -1099,7 +1099,7 @@ class LightCurve(object):
         flux_trend   = np.zeros_like(time)
         
         # POLYNOMIAL MODEL
-        
+
         if model == "poly":
 
             for i in range(len(dex)-1):
@@ -1572,7 +1572,7 @@ class LightCurve(object):
                                                     high=sigma_upper,
                                                     method='mad',     # {std, mad}
                                                     center='median')  # {mean, median}
-            
+                    
         # Plot if requested
         if plot:
             self.plot_clip(self.df, column=column, flux_unit=flux_unit)
@@ -1783,7 +1783,7 @@ class LightCurve(object):
             Show the legend [True, False]
         alpha : float
             Alpha transparency of data points
-        figsize : tuple
+5        figsize : tuple
             Matplotlib figsize object (width, height)
 
         Returns
@@ -1803,6 +1803,9 @@ class LightCurve(object):
         if input_model and flux_unit == 'e/s':        
             errorcode('error', 'Flux unit is not valid when comparing to input model! ' +
                       'Use either [norm, ppp, ppt, ppm]')
+
+        # Remove NaNs being outliers
+        self.df = self.df.dropna()        
             
         # Time array
         time = self.time(unit=time_unit)
@@ -1884,7 +1887,22 @@ class LightCurve(object):
         # Set legend
         if legend:
             ax.legend(loc='upper right', ncols=4)
-            
+            # Adjust y padding for legend
+            try:
+                ampl_model = dv.flux.max() - dv.flux.min()
+                ampl_flux  = flux.max() - flux.min()
+                if ampl_model > ampl_flux:
+                    F = dv.flux
+                    pad = 1.35
+                else:
+                    F = flux
+                    pad = 1.1
+            except:
+                F = flux
+                pad = 1.1
+            ymin, ymax = pt.getAxesMinMax(y=F, percentage=5)
+            ax.set_ylim(ymin, ymax*pad)
+
         # Settings
         ax.set_xlim(time.iloc[0], time.iloc[-1])
         ax.set_xlabel(f'Time [{time_unit}]')

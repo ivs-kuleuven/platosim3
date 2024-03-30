@@ -59,13 +59,13 @@ class PLATOnium(object):
         
         # PARSED ARGUMENTS
         
-        self.targetNo      = args.starID
-        self.group         = args.groupID
-        self.camera        = args.cameraID
-        self.quarter       = args.quarter
+        self.targetNo = args.starID
+        self.group    = args.groupID
+        self.camera   = args.cameraID
+        self.quarter  = args.quarter
 
-        self.seed          = args.seed
-        self.performance   = args.performance
+        self.seed        = args.seed
+        self.performance = args.performance
         
         self.inputFile     = args.ifil
         self.outputDir     = args.odir
@@ -79,23 +79,24 @@ class PLATOnium(object):
         self.varSourceList = args.varlist
         self.compress      = args.compress
         
-        self.cadence       = args.cadence
-        self.simTime       = args.tdur
-        self.simExposures  = args.nexp
-        self.simBeginExp   = args.bexp
-        self.picID         = args.pic
-        self.mag           = args.mag
-        self.noCon         = args.nocon
-        self.conDeltaMag   = args.con_dmag
-        self.conDisLimit   = args.con_dist
-        self.reuseJitter   = args.jit_reuse
-        self.fullFrame     = args.fullframe
+        self.cadence      = args.cadence
+        self.simTime      = args.tdur
+        self.simExposures = args.nexp
+        self.simBeginExp  = args.bexp
+        self.picID        = args.pic
+        self.mag          = args.mag
+        self.noCon        = args.nocon
+        self.conDeltaMag  = args.con_dmag
+        self.conDisLimit  = args.con_dist
+        self.reuseJitter  = args.jit_reuse
+        self.fullFrame    = args.fullframe
 
-        self.maskUpdate   = args.mask
-        self.clipWotan    = args.clip
-        self.detrend      = args.detrend
-        self.stitch       = args.stitch
-        self.plotPost     = args.check
+        self.maskUpdate = args.mask
+        self.clipWotan  = args.clip
+        self.detrend    = args.detrend
+        self.poly_deg   = args.poly_deg
+        self.stitch     = args.stitch
+        self.plotPost   = args.check
         
         self.pipeline       = args.pipeline
         self.conFluxError   = args.con_ferr
@@ -238,6 +239,10 @@ class PLATOnium(object):
         else:
             self.postProcess = False
 
+        # Check if polynomial degree is requested
+        if not isinstance(self.poly_deg, int):
+            self.poly_deg = False
+            
         # Monitor script speed
         self.tic  = datetime.datetime.now()
         self.tic0 = datetime.datetime.now()            
@@ -1225,7 +1230,8 @@ class PLATOnium(object):
 
         
         # INTRODUCE GAPS
-
+        # TODO
+        
         # Load file produced by payload.py
         # inputFileGap = self.inputDir.joinpath('instrumentGap.ftr')
         
@@ -1242,31 +1248,31 @@ class PLATOnium(object):
         # TODO check exp model! Ask Pierre for correction 
 
         # Apply step if CCD(T) file exists
-        inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
+        # inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
         
-        if inputFileGTT.is_file():
-            if self.verbose > 1:
-                print('Running transient  model : gain(T)')
+        # if inputFileGTT.is_file():
+        #     if self.verbose > 1:
+        #         print('Running transient  model : gain(T)')
 
-            # Load CCD gain temperature file
-            dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
-            dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
-            temp = dt.temp.to_numpy()
+        #     # Load CCD gain temperature file
+        #     dt = pd.read_csv(inputFileGTT, sep=' ', names=['time', 'temp'])
+        #     dt = dt.iloc[self.beginExposureNr:self.beginExposureNr+self.numExposures]
+        #     temp = dt.temp.to_numpy()
 
-            # Fetch the gap durations
-            inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
-            dg = pd.read_feather(inputFileGap)
-            tdur = dg.td.iloc[0] / 86400
+        #     # Fetch the gap durations
+        #     inputFileGap = self.inputDir.joinpath('instrumentGAP.tab')
+        #     dg = pd.read_feather(inputFileGap)
+        #     tdur = dg.td.iloc[0] / 86400
 
-            # Use correct gain from either F or E side
-            tempNominal   = sim['CCD/NominalOperatingTemperature']
-            gainCCD       = sim['CCD/Gain/RefValueRight']
-            gainFEE       = sim['FEE/Gain/RefValueRight']
-            gainStability = sim['FEE/Gain/Stability']
+        #     # Use correct gain from either F or E side
+        #     tempNominal   = sim['CCD/NominalOperatingTemperature']
+        #     gainCCD       = sim['CCD/Gain/RefValueRight']
+        #     gainFEE       = sim['FEE/Gain/RefValueRight']
+        #     gainStability = sim['FEE/Gain/Stability']
             
-            # Perfect correction
-            lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
-                            replace=True, plot=self.plotPost)
+        #     # Perfect correction
+        #     lc.correct_gain(temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
+        #                     replace=True, plot=self.plotPost)
 
             
         # DETRENDING
@@ -1276,7 +1282,8 @@ class PLATOnium(object):
                 print(f'Running detrending model : {self.detrend}')
 
             # Perform detrending
-            lc.detrend(model=self.detrend, degree=False, replace=True, plot=self.plotPost)
+            lc.detrend(model=self.detrend, degree=self.poly_deg, replace=True,
+                       plot=self.plotPost)
             
             if self.verbose > 1:
                 self.tocDetrend = datetime.datetime.now() - self.tic
@@ -1962,11 +1969,12 @@ sim_group.add_argument('--jit_reuse', action='store_true',       help='Flag to r
 sim_group.add_argument('--fullframe', action='store_true',       help='Flag to simulate a full-frame CCD -> CCDcode = starID')
 
 phot_group = parser.add_argument_group('PHOTOMETRY PARAMETERS')
-phot_group.add_argument('--mask',    metavar='DAY',  type=float, help='Option to overwrite the mask-update in inputfile [days]')
-phot_group.add_argument('--detrend', metavar='NAME', type=str,   help='Name of detrending method to activate [poly, wotan]')
-phot_group.add_argument('--stitch',  metavar='NAME', type=str,   help='Name of stitching method to activate [lowess, median]')
-phot_group.add_argument('--clip',    action='store_true',        help='Flag to activate outlier rejection using Wotan (> 4 sigma)')
-phot_group.add_argument('--check',   action='store_true',        help='Flag to plot the requested post-processing steps')
+phot_group.add_argument('--mask',     metavar='DAY',  type=float, help='Option to overwrite the mask-update in inputfile [days]')
+phot_group.add_argument('--detrend',  metavar='NAME', type=str,   help='Name of detrending method to activate [poly, wotan]')
+phot_group.add_argument('--poly_deg', metavar='INT',  type=int,   help='Degree of polynomial of trend (use with --detrend poly)')
+phot_group.add_argument('--stitch',   metavar='NAME', type=str,   help='Name of stitching method to activate [lowess, median]')
+phot_group.add_argument('--clip',     action='store_true',        help='Flag to activate outlier rejection using Wotan (> 4 sigma)')
+phot_group.add_argument('--check',    action='store_true',        help='Flag to plot the requested post-processing steps')
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline', action='store_true',           help='Flag to activate proto-type pipeline')
