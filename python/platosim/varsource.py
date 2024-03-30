@@ -1973,6 +1973,70 @@ class SMBHB(object):
 #                         EXOPLANETS                           #
 #==============================================================#
 
+class Exoplanet(object):
+
+    """Class for modelling exoplanets.
+    """
+
+    def __init__(self, seed=False):
+
+        # Random number generator
+        self.rng = ut.rng(seed)
+
+
+        
+    def ldc(self, ):
+
+        """Compute the Limb Darkening (LD) coefficients.
+
+        This module uses the software LDTk:        
+        """
+
+        if self.verbose > 1:
+            print('\nComputing limb darkening coefficients with LDTk')
+            
+        # Convert input parameters
+        wvl_tele  = self.wvl_tele.value  # [nm]
+        tran_tele = self.tra_tele        # [0-1]
+
+        # Interpolate (piecewise cubic) into higher resolution grid
+        grid_no  = 1000
+        wvl_int  = np.linspace(wvl_tele[0], wvl_tele[-1], grid_no)
+        passband = make_interp_spline(wvl_tele, tran_tele, k=3)
+        tran_int = passband(wvl_int)
+
+        # Create passband object
+        filters = [TabulatedFilter('plato', wvl_int, tran_int)]
+
+        # Create instance of class
+        # NOTE uncertainties are vital for the software to work!
+        sc = LDPSetCreator(teff=(self.Teff.value, 50),
+                           logg=(self.logg, 0.20),
+                           z=(self.Z, 0.05),
+                           filters=filters)
+
+        # Create the limb darkening profiles
+        ps = sc.create_profiles()
+
+        # Estimate quadratic law coefficients
+        # Take care of occations when LDTk fails
+        try:
+            u, _ = ps.coeffs_qd(do_mc=True)
+        except:
+            self.ldc = [0.430, 0.170]
+            errorcode('warning', 'LD coefficients failed for ' +
+                      f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
+        else:
+            self.ldc = u[0]
+
+        return self.ldc
+
+
+
+
+        
+    
+    
 
 class LimbDarkening(funcFit.OneDFit):
 
@@ -2017,6 +2081,8 @@ class LimbDarkening(funcFit.OneDFit):
         See links:
         Webpage : https://phoenix.astro.physik.uni-goettingen.de/
         Download: http://phoenix.astro.physik.uni-goettingen.de/data/
+
+        NOTE not used anymore py VarSim.
         """
 
         #  Convert input parameters
@@ -2129,24 +2195,22 @@ class DopplerBeaming(funcFit.OneDFit):
         wvl_c = self['wvl_c'].to('m')
         Ms    = self['Ms'].to('kg')
         Mp    = self['Mp'].to('kg')
-        #Teff  = self['Teff'].to('K')
+        Teff  = self['Teff'].to('K')
 
         # Correction factor (alpha) between true bolmetric flux and finite flux:
-        # We use Sphorer (2017) Eq.5 analytical expression obtained approximating a blackbody spectrum.
-        # In bolometric light alpha = 1, but otherwise deviating due to finite bandpass measurement.
-
+        # We use Sphorer+2017 Eq.5 analytical expression obtained approximating
+        # a blackbody spectrum. In bolometric light, alpha=1, but otherwise
+        # deviating due to finite bandpass measurement.
         xx = c.h * c.c / (wvl_c * c.k_B * Teff)
         alpha = 1/4. * xx*np.exp(xx)/(np.exp(xx) - 1)
 
-        # Amplitude: Sphorer (2019) Eq. 3
-
+        # Amplitude: Sphorer (2019) Eq. 3:
         A = (0.0028 * alpha * P.to('d')**(-1/3) * (Ms.to('M_sun') + Mp.to('M_sun'))**(-2/3) *
              Mp.to('M_sun') * np.sin(i)) * 1e6
 
         # RV signal as function of nu: Murray & Correia (2011) Eq. 61, 65 and 66
         # NOTE "astar" in the following is the reduced semimajor axies due to the common
         # center-of-mass and "K" is the relative RV semi-amplitude of the star.
-
         phi = (x.value - t0.value) / P.value * u.rad
         astar = Mp/(Mp + Ms) * a
         K     = 2.*np.pi/P * astar * np.sin(i)/np.sqrt(1. - e**2)
@@ -2154,7 +2218,6 @@ class DopplerBeaming(funcFit.OneDFit):
         RV    = K * (np.cos(2*np.pi*phi + w) - e*np.cos(w))
 
         # Final beaming effect [ppm]: Second term in Eq.1 from Sphorer (2017) but normalized
-
         y = 4 * alpha * RV/c.c * 1e6
 
         return y.value, A.value
@@ -2192,7 +2255,6 @@ class EllipsoidalDistortion(funcFit.OneDFit):
     def evaluate(self, x, nu):
 
         # Convert to SI units
-
         x  = x.to('s')
         nu = nu * u.rad
         e  = self['e']
@@ -2206,28 +2268,22 @@ class EllipsoidalDistortion(funcFit.OneDFit):
         Mp = self['Mp'].to('kg')
 
         # Orbital phase
-
         phi = (x.value - t0.value) / P.value
 
         # Coefficient accounting for the stellar LD and GD: Sphorer (2019) Eq.8
-
         alpha = 0.15 * (15. + self["u"]) * (1. + self["g"])/(3. - self["u"])
 
         # Amplitude of the ellipsoidal variation: Sphorer (2019) Eq.7
-
         A = alpha * Mp/Ms * (Rs/a)**3 * np.sin(i)**2 * 1e6
 
         # Add parameterization of elliptical orbits: Murray & Correia (2011) Eq.20
         # This is just 1 for e=0
-
         a1 = (1 + e*np.cos(nu)) / (1. - e**2)
 
         # Add parameterization of the ellipsoidal distortion itself
-
         a2 = - np.cos(4 * np.pi * phi)
 
         # Final ellipsoidal distortion [ppm]
-
         y = A * a1 * a2
 
         return y.value, A.value
