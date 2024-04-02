@@ -1357,6 +1357,28 @@ class LightCurve(object):
                 
                 if method == 'lowess':
 
+                    #------------ TODO integrate into bin method
+                    binsize = 0.5
+                    
+                    time = df_b.time
+                    flux = df_b.flux_stitch
+                    tdur = time.iloc[-1] - time.iloc[0]
+                    tbin = binsize*3600
+                    bins = int(tdur/tbin)
+                    flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    time = time[:-1] + np.diff(time)[0]/2.
+                    df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
+
+                    time = df_a.time
+                    flux = df_a.flux_stitch
+                    tdur = time.iloc[-1] - time.iloc[0]
+                    tbin = binsize*3600
+                    bins = int(tdur/tbin)
+                    flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    time = time[:-1] + np.diff(time)[0]/2.
+                    df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    #-------------
+                    
                     # Lowess smoothing
                     lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
                     lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
@@ -1380,15 +1402,15 @@ class LightCurve(object):
                     # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
                     # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
                     # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
-                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'k--')
-                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'k--')
+                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'w--')
+                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'w--')
                     # plt.title(f'Flux jump: {flux_jump}')
                     # df = self.df.loc[i-segment*2:i+segment*2]
                     # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
-                    # plt.ylim(df.flux.min(), df.flux.max())
                     # plt.show()
                     #-------------- debug
-                     
+
+                    
                 elif method == 'median':
                     
                     # Use median value on either side to stitch
