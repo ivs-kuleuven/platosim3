@@ -193,19 +193,27 @@ class VarSim(object):
         self.star_params   = args.star_params
         self.planet_params = args.planet_params
 
-        # Solar-like models
-        self.gran_model  = args.gran
-        self.puls_model  = args.puls        
-        self.spot_model  = args.spot
-        self.flare_model = args.flare        
         #self.phase_curve = args.phase_curve TODO
 
-        # Activate models by default
-        if args.spot is None:
-            args.spot = True
-        if args.flare is None:
-            args.flare = True
-            
+        # Use Aigrain2015 by default
+        # if args.gran in ['None', 'Kallinger2014']:
+        #     if args.granosc == 'None':
+        #         args.granosc = 'Aigrain2015'
+        # else:
+        #     args.granosc = False
+        
+        # Use Aigrain2015 by default (NOTE only model currently)
+        if args.spot == 'None':
+            args.spot = 'Aigrain2015'
+        elif not args.spot in ['Aigrain2015']:
+            args.spot = False
+
+        # Use Doorsselaere2017 by default
+        if args.flare == 'None':
+            args.flare = 'Doorsselaere2017'
+        elif not args.flare in ['Doorsselaere2017', 'ToyModel']:
+            args.flare = False
+
         # Project modes
         self.kul20 = args.kul20
         self.mocka = args.mocka
@@ -640,7 +648,8 @@ class VarSim(object):
             self.R    = star[1] * u.R_sun
             self.Teff = star[2] * u.K
             self.logg = star[3]
-            self.Z    = star[4]            
+            self.Z    = star[4]
+            self.spec = None
             
         # If Gaia ID is parsed
         elif self.mocka:
@@ -1192,7 +1201,7 @@ class VarSim(object):
 
         """Generate light curve for aperiodic variables.
 
-        This class is of BAF stars with so-called surface spots.
+        TODO in construction
         """
         
         # Start script
@@ -1416,9 +1425,14 @@ class VarSim(object):
     def ldc(self):
 
         """Compute the Limb Darkening (LD) coefficients.
+
+        This module uses the code: LDTk        
         """
-        
-        #  Convert input parameters
+
+        if self.verbose > 1:
+            print('\nComputing limb darkening coefficients with LDTk')
+            
+        # Convert input parameters
         wvl_tele  = self.wvl_tele.value  # [nm]
         tran_tele = self.tra_tele        # [0-1]
 
@@ -1451,26 +1465,40 @@ class VarSim(object):
                       f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
         else:
             self.ldc = u[0]
-                    
+
+        # Show parameters
+        if self.verbose > 1:
+            print(f"LD coefficients        : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
+
+        # Store parameters
+        self.df['u1'] = self.ldc[0]
+        self.df['u2'] = self.ldc[1]
 
             
-    def planet_model(self): # TODO Include into class
+
+            
+    def planet_model(self):
 
         """Calculation of exoplanet model parameters.
 
-        The following equations are from chapters in Seager et al. (2010): "Exoplanets":
+        Resources
+        ---------
+        Equations are from chapters Seager et al. (2010) "Exoplanets":
         Winn (2014)             : https://arxiv.org/pdf/1001.2010.pdf
         Murray & Correia (2011) : https://arxiv.org/abs/1009.1738v2
-        NOTE Both "a" and "Rs" are given in units of Rstar.
+        
+        Notes
+        -----
+        Both "a" and "Rs" are given in units of Rstar.
 
         Assumptions
         -----------
         - The calculations in this code block are under the following assumptions that
-        that eclipses are centered around conjunction. This is not valid for extremely
-        eccentric and close-in orbits with grazing eclipses. However, non-grazing close
-        in orbits are still valid.
+          that eclipses are centered around conjunction. This is not valid for extremely
+          eccentric and close-in orbits with grazing eclipses. However, non-grazing close
+          in orbits are still valid.
         - The time seperation between transit and occultation in the following is a
-        first order approximation in "e" by integrating "dt/dF".
+          first order approximation in "e" by integrating "dt/dF".
         """
 
         # Stellar parameters
@@ -1478,11 +1506,10 @@ class VarSim(object):
         Ms   = self.M.to('kg')
         Rs   = self.R.to('m')
         Teff = self.Teff.to('K')
-
         
         # LOAD PLANET MODEL
         
-        if args.planet == 'random': # TODO implement as part of KUL20 mode!
+        if self.kul20:
 
             # Select benchmark planets
             name_benchmark = ['Earth-like', 'Neptune-like', 'Jupiter-like']
@@ -1518,8 +1545,8 @@ class VarSim(object):
             # Simple for now
             e = 0
 
-            # Unbiased uniform distribution 
-            #i = np.arccos(np.random.uniform(0, 90/85-1)) * 180/np.pi * u.deg  # between 85-90 deg
+            # Unbiased uniform distribution [85-90 deg]
+            #i = np.arccos(np.random.uniform(0, 90/85-1)) * 180/np.pi * u.deg 
             i = 90 * u.deg
             
             # Uniform orientation
@@ -1534,6 +1561,7 @@ class VarSim(object):
             Mp = Mp.to('kg')
         
         elif args.planet_params is None:
+
             # Load exoplanet parameters [SI units]
             try:
                 params = self.load_exoplanet(args.planet)
@@ -1552,6 +1580,7 @@ class VarSim(object):
                 dT = params['dT'].to('K').value
             
         else:
+
             # Load exoplanet parameters [SI units]
             params = args.planet_params[0]
             t0 = (params[0] * u.d).to('s')
@@ -1606,28 +1635,30 @@ class VarSim(object):
         if self.verbose > 1:
             errorcode('module', '\nPlanet eclipse model')
             print('')
-            print("Planet name        : {}".format(args.planet))
-            print("Planet mass        : {:.2f}".format(Mp.to('M_earth')))
-            print("Planet radius      : {:.2f}".format(Rp.to('R_earth')))
-            print("Semimajor axis     : {:.2f} starRad".format(a.to('m')/Rs.to('m')))
-            print("Eccentricity       : {:.3f}".format(e))
-            print("Inclination        : {:.2f}".format(i.to('deg')))
-            print("Arg. of periastron : {:.2f}".format(w.to('deg')))
-            print("Orbital Period     : {:.2f}".format(P.to('d')))
-            print("Time of emphemeris : {:.2f}".format(t0.to('d')))
-            print("Total tra duration : {:.3f}".format(t_tra_tot.to('h')))
-            print("Full  tra duration : {:.3f}".format(t_tra_ful.to('h')))
-            print("In/Egress duration : {:.3f}".format(tau_tra.to('min')))
-            print("Impact parameter   : {:.3f}".format(b_tra))
-            # if self.phase_curve: TODO
-            #     print('')
-            #     print("\nTransit-to-Occultation time  : {:.3f}".format(dt_c.to('d')))
-            #     print("Total occultation duration   : {:.3f}".format(t_occ_tot.to('h')))
-            #     print("Full  occultation duration   : {:.3f}".format(t_occ_ful.to('h')))
-            #     print("In/Egress occult. duration   : {:.3f}".format(tau_occ.to('min')))
-            #     print("Impact parameter Occultation : {:.3f}\n".format(b_occ))
-            
-        # Store parameters
+            print("Planet name            : {}".format(args.planet))
+            print("Planet mass            : {:.2f}".format(Mp.to('M_earth')))
+            print("Planet radius          : {:.2f}".format(Rp.to('R_earth')))
+            print('')
+            print("Semimajor axis         : {:.2f} starRad".format(a.to('m')/Rs.to('m')))
+            print("Eccentricity           : {:.3f}".format(e))
+            print("Inclination            : {:.2f}".format(i.to('deg')))
+            print("Argument of periastron : {:.2f}".format(w.to('deg')))
+            print('')
+            print("Time of emphemeris     : {:.2f}".format(t0.to('d')))
+            print("Orbital period         : {:.2f}".format(P.to('d')))
+            print("Transit-to-Occult time : {:.3f}".format(dt_c.to('d')))
+            print('')
+            print("Total transit duration : {:.3f}".format(t_tra_tot.to('h')))
+            print("Full  transit duration : {:.3f}".format(t_tra_ful.to('h')))
+            print("In/Eg transit duration : {:.3f}".format(tau_tra.to('min')))
+            print("Impact parameter (tra) : {:.3f}".format(b_tra))
+            print('')
+            print("Total occult. duration : {:.3f}".format(t_occ_tot.to('h')))
+            print("Full  occult. duration : {:.3f}".format(t_occ_ful.to('h')))
+            print("In/Eg occult. duration : {:.3f}".format(tau_occ.to('min')))
+            print("Impact parameter (occ) : {:.3f}\n".format(b_occ))
+
+        # Parameters for parameterization file
         self.df['Mp_Mearth'] = Mp.to('M_earth').value
         self.df['Rp_Rearth'] = Rp.to('R_earth').value
         self.df['a_Rstar']   = (a.to('R_sun')/Rs).value
@@ -1636,8 +1667,6 @@ class VarSim(object):
         self.df['e']         = e
         self.df['i_deg']     = i.to('deg').value
         self.df['w_deg']     = w.to('deg').value
-        self.df['u1']        = self.ldc[0]
-        self.df['u2']        = self.ldc[1]
 
         # Store parameters
         self.Mp = Mp
@@ -1670,21 +1699,27 @@ class VarSim(object):
         """
 
         # Limb darkening model options:
-        if args.ldm: limbDarkModel = args.lmd
-        else: limbDarkModel = 'quadratic'
+        if args.ldm:
+            limbDarkModel = args.lmd
+        else:
+            limbDarkModel = 'quadratic'
 
         # Initialize batman model
         batman_params = batman.TransitParams()
-        batman_params.t0        = self.t0.to('d').value
-        batman_params.per       = self.P.to('d').value
-        batman_params.a         = (self.a.to('m')/self.R.to('m')).value
-        batman_params.ecc       = self.e
-        batman_params.inc       = self.i.to('deg').value
-        batman_params.w         = self.w.to('deg').value
-        batman_params.rp        = (self.Rp.to('m')/self.R.to('m')).value
-        batman_params.u         = self.ldc
         batman_params.limb_dark = limbDarkModel
+        batman_params.u   = self.ldc
+        batman_params.t0  = self.t0.to('d').value
+        batman_params.per = self.P.to('d').value
+        batman_params.a   = (self.a.to('m')/self.R.to('m')).value
+        batman_params.ecc = self.e
+        batman_params.inc = self.i.to('deg').value
+        batman_params.w   = self.w.to('deg').value
+        batman_params.rp  = (self.Rp.to('m')/self.R.to('m')).value
 
+        # Model parameters for eclipse
+        #params.fp          = 0.001
+        #params.t_secondary = 0.5
+        
         # Initializes transit model and extract light curve [ppm]
         model = batman.TransitModel(batman_params, self.time.value)
         self.lc['tran'] = (model.light_curve(batman_params) - 1) * 1e6
@@ -1698,7 +1733,7 @@ class VarSim(object):
         # Print to bash
         if self.verbose > 1:
             print(f"Mid-transit depth  : {np.abs(np.min(self.lc.tran)):.1f} ppm")
-            print(f"LD coefficients    : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
+
 
 
 
@@ -1951,7 +1986,7 @@ class VarSim(object):
                 self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
                 
             # Plot combined light curve [flux -> ppm]
-            if self.plot:
+            if self.plot and self.star != 'constant':
                 lc = self.lc
                 lc.flux = (lc.flux - 1) * 1e6
                 fig, ax = pt.plot_final_lc(lc)
@@ -2034,8 +2069,12 @@ class VarSim(object):
             v.star_ceph()
 
         else:
+            # Constant star
+            if args.star == 'constant':
+                pass
+            
             # Solar-like stars
-            if args.star or args.star_params:
+            elif args.star or args.star_params:
                 if args.spot:
                     v.solar_spots()
                 if args.flare is not False:
@@ -2044,18 +2083,15 @@ class VarSim(object):
                     v.solar_granosc()
                     
             # Include exoplanet
-            if args.planet or args.planet_params or args.planet == 'random':
+            if args.planet or args.planet_params:
                 v.ldc()
                 v.planet_model()
                 v.planet_transit()
-
-                # For hot-Jupiters include phase curve TODO
-                # if args.phase_curve:
-                #     v.planet_occultation()
-                #     v.planet_beaming()
-                #     v.planet_ellipsoidal()
-                #     if not args.kul20 and args.plot:
-                #         v.plot_phase_curve()
+                v.planet_occultation()
+                v.planet_beaming()
+                v.planet_ellipsoidal()
+                if args.plot:
+                    v.plot_phase_curve()
 
         # Combine and save
         self.run_prolog()
@@ -2090,27 +2126,29 @@ class VarSim(object):
         
     def mode_kul20(self):
 
-        """Given stellar properties asign variable signal.
+        """Mode designed for KUL20 -> Called by "--kul20 <int>".
+
+        TODO needs to be tested again!
         """
-        
-        # Notes on flag "--kul20" -> used for KUL20
-        # 0 -> Std/constant (2 hamonics)
+
+        # Meaning of integer parsed:
+        # 0 -> Std star (roAp with 2 hamonics)
         # 1 -> Gran, Puls
         # 2 -> Gran, puls, Spot
         # 3 -> Gran, Puls, Spots, Exo
         # x -> Constant stars is any other number x
         if args.kul20 == 0:
             args.star = 'roAp'
-        if args.kul20 in (1, 2, 3):
-            args.star          = 'Sun'
+        if args.kul20 in [1, 2, 3]:
+            args.star   = 'Sun'
             args.planet_params = False
         if args.kul20 == 2:
-            args.spot          = True
-            args.planet        = False
+            args.spot   = True
+            args.planet = False
         if args.kul20 == 3:
-            args.spot          = True
-            args.planet        = 'random'
-        if not args.kul20 in (0, 1, 2, 3):
+            args.spot   = True
+            args.planet = 'kul20'
+        if not args.kul20 in [0, 1, 2, 3]:
             args.kul20 = False
 
         # Add steps from default mode
@@ -2150,7 +2188,7 @@ class VarSim(object):
         starIDs = []
         varSourceFiles = []
         
-        # Check mode TODO remove later
+        # Check mode
         if starVar == 'tar':
             nstar = 1
             istar = range(nstar)
@@ -2439,11 +2477,10 @@ class VarSim(object):
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
 
-
 parser.add_argument('-p', '--plot',     action='store_true',     help='Flag to plot the synthetic models')
 parser.add_argument('-o', '--ofile',    metavar='STR', type=str, help='Output filename [<path/to/ofile.txt>]')
 parser.add_argument('-v', '--verbose',  metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
-parser.add_argument('--notes',          action='store_true',     help='Flag to show the notes of the available models')
+parser.add_argument('-n', '--notes',    action='store_true',     help='Flag to show the notes of the available models')
 
 obs_group = parser.add_argument_group('OBS PARAMETERS')
 obs_group.add_argument('--time',    metavar='DAY',  type=int, help='Duration of simulation (Default: 90 days)')
@@ -2453,25 +2490,25 @@ obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Photometric 
 obs_group.add_argument('--seed',    metavar='INT',  type=int, help='Option to bootstrap seed to reproduce results')
 
 star_group = parser.add_argument_group('STAR PARAMETERS')
-star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star (check "--notes")')
+star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star (check --notes)')
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
-                        help='Stellar model parameters (check "--notes")')
-star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, False]')
-star_group.add_argument('--puls',     metavar='RELATION', type=str, help='Scaling relation of Pulsations [Corsaro2013, False]')
-star_group.add_argument('--spot',     metavar='BOOL',     type=str, help='Inclusion of stellar spots [True, False]')
-star_group.add_argument('--flare',    metavar='MODEL',     type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, False]')
+                        help='Stellar model parameters (check --notes)')
+star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, no]')
+star_group.add_argument('--puls',     metavar='RELATION', type=str, help='Scaling relation of Pulsations [Corsaro2013, no]')
+star_group.add_argument('--spot',     metavar='MODEL',    type=str, help='Model of stellar spots [Aigrain2015, no]')
+star_group.add_argument('--flare',    metavar='MODEL',    type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, no]')
 star_group.add_argument('--pulslist', metavar='FILE',     type=str, help='Use file with pulsations [frequencies/(c/d), amplitudes/dmag, phases/rad]')
 
 star_group = parser.add_argument_group('BINARY PARAMETERS')
-star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check "--notes")')
+star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
 #star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
 #                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
 
 
 planet_group = parser.add_argument_group('PLANET PARAMETERS')
-planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet (check "--notes")')
+planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
-                          help='Planet model parameters (check "--notes")')
+                          help='Planet model parameters (check --notes)')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
 planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darkening model [quadratic]')
 
