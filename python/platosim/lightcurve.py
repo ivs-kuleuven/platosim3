@@ -1098,7 +1098,7 @@ class LightCurve(object):
         # Prepare arrays to store light curve
         flux_detrend = np.zeros_like(time)
         flux_trend   = np.zeros_like(time)
-        
+        poly_deg = []
         # POLYNOMIAL MODEL
 
         if model == "poly":
@@ -1125,19 +1125,20 @@ class LightCurve(object):
                     AIC_j = [fit1.aic, fit2.aic, fit3.aic]
                     BIC_j = [fit1.bic, fit2.bic, fit3.bic]
                     deg = st.model_selection(AIC_j, BIC_j, show=False)
-
+                    poly_deg.append(deg)
+                    
                     # Check if a higher degree is needed
-                    dt = len(time_segment)*25/86400
-                    if dt > 60:
-                        if ( (deg == 1 and fit2.bic > fit1.bic) or
-                             (deg == 2 and fit3.bic > fit2.bic) ):
-                            deg += 1
-                    #---------- Debugging
+                    # dt = len(time_segment)*25/86400
+                    # if dt > 60:
+                    #     if ( (deg == 1 and fit2.bic > fit1.bic) or
+                    #          (deg == 2 and fit3.bic > fit2.bic) ):
+                    #         deg += 1
+                    #------------------ Debugging
                     # print(deg, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
                     # print(fit1.summary())
                     # print(fit2.summary())
                     # print(fit3.summary())
-                    #---------- Debugging
+                    #----------------------------
                     
                 # Perform fit
                 poly = np.polyfit(time_segment, flux_segment, deg=deg)
