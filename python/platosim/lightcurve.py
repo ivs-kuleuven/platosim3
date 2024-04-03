@@ -381,7 +381,7 @@ class LightCurve(object):
         elif varpath_list.is_file():
             varpath = varpath_list
         else:
-            errorcode('warning', f'No variable source found for star ID {int(starID)}')
+            return
 
         # Read file and add flux column
         df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
@@ -492,6 +492,7 @@ class LightCurve(object):
         os.system(f"rm -f {path}/*.hdf5")
         os.system(f"rm -f {path}/*.ftr")
         os.system(f"rm -f {path}/*.cat")
+        os.system(f"rm -f {path}/*.table")
         os.system(f"rm -f {path}/*.invert")
 
         
@@ -1231,12 +1232,9 @@ class LightCurve(object):
         """
         
         # Get varsource light curve
-        try:
-            lc_var = self.varsource()
-        except:
-            rows = 2
-            varsource = False
-        else:
+        rows = 2
+        lc_var = self.varsource()
+        if lc_var is not None:
             rows = 3
             varsource = True
             time_var = lc_var["time"] / c.day
@@ -1284,7 +1282,7 @@ class LightCurve(object):
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
         
         # Plot detrend-median vs input
-        if varsource:
+        if lc_var is not None:
             ax[2].plot(time,     flux_median, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(time_var, flux_var,    '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
@@ -1300,7 +1298,7 @@ class LightCurve(object):
         for i in dex[1:-1]:
             ax[0].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             ax[1].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
-            if varsource:
+            if lc_var is not None:
                 ax[2].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             
         # Layout
@@ -1477,12 +1475,9 @@ class LightCurve(object):
         """        
 
         # Get varsource light curve        
-        try:
-            lc_var = self.varsource()
-        except:
-            rows = 2
-            varsource = False
-        else:
+        rows = 2
+        lc_var = self.varsource()
+        if lc_var is not None:
             rows = 3
             varsource = True
             time_var = lc_var["time"] / c.day
@@ -1525,7 +1520,7 @@ class LightCurve(object):
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
 
         # Plot detrend-median vs. input
-        if varsource:
+        if lc_var is not None:
             ax[2].plot(time,     flux_median, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(time_var, flux_var,    '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
@@ -1542,7 +1537,7 @@ class LightCurve(object):
         for i in dex[1:-1]:
             ax[0].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             ax[1].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
-            if varsource:
+            if lc_var is not None:
                 ax[2].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             
         # Layout
@@ -1562,17 +1557,17 @@ class LightCurve(object):
 
         """Sigma clipping of light curve.
 
-        This function use a moving median filter to reject 3 sigma outliers 
-        from the out-of-eclipsed data. This is done to secure that a simple 
-        median convolution do not mis-interp sharp and deep transit signatures
-        as outliers. Use a 16 point-width moving median to reject 3 sigma outliers.
+        This function use a moving median filter to reject outliers from 
+        the out-of-eclipsed data. This is done to secure that a simple 
+        median convolution do not mis-interp sharp and deep transit 
+        signatures as outliers.
         """
 
         # Auto select sigma from emperical tests
-        if not magnitude == None:
+        if magnitude is not None:
             # Cuts optimized for N-CAMs of 25s cadence
             # Higher sigma for lower bound to protect eclipses
-            sigma_lower = 8
+            sigma_lower = 10
             if magnitude <= 10:
                 sigma_upper = 5
             elif magnitude > 10 and magnitude < 11:                
@@ -1616,12 +1611,9 @@ class LightCurve(object):
         """
 
         # Get varsource light curve        
-        try:
-            lc_var = self.varsource()
-        except:
-            rows = 2
-            varsource = False
-        else:
+        rows = 2
+        lc_var = self.varsource()
+        if lc_var is not None:
             rows = 3
             varsource = True
             time_var = lc_var["time"] / c.day
@@ -1685,7 +1677,7 @@ class LightCurve(object):
         ax[1].legend(ncols=2, loc='upper right')
 
         # Plot detrend-median vs. input
-        if varsource:
+        if lc_var is not None:
             ax[2].plot(time_new, flux_med, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(time_var, flux_var, '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
@@ -2472,6 +2464,8 @@ class LightCurve(object):
         >> lcs = LightCurve(</path/to/simulations>, mode='multi')
         >> df = lcs.stat_sim_table('/path/to/filename.ftr')
         """
+
+        print('Creating simulation table:')
         
         # Check if file already exists or create it
         try:
