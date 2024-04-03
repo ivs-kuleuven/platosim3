@@ -61,7 +61,8 @@ filename_mod = odir_modes / f'{filename_modes}.ftr'
 
 # Merge ligth curves
 lcs = LightCurve(idir, 'multi')
-lc = lcs.merge(flux_group_mean=True, binsize=600)
+
+lc = lcs.merge(flux_group_mean=True, binsize=600, suffix='ftr')
 
 # Extract light curve
 df = lc.data()
@@ -69,8 +70,6 @@ df = df.dropna(subset=['flux']).reset_index(drop=True)
 
 # Subtract mean
 df.flux = (df.flux - df.flux.mean())
-
-
 
 # Save final light curve
 ds = df
