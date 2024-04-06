@@ -1015,8 +1015,8 @@ class LightCurve(object):
         fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
 
         # Plot simulation and trend
-        ax[0].plot(time, flux,      '.', c='k',         ms=1,   alpha=0.2, label='Before')
-        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=0.2, alpha=1.0, label='Gain median')
+        ax[0].plot(time, flux,      '.', c='k',         ms=1,  alpha=0.2, label='Before')
+        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=.2, alpha=1.0, label='Gain median')
         ax[0].set_xlim(time.iloc[0], time.iloc[-1])
         ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
         
@@ -1106,23 +1106,32 @@ class LightCurve(object):
         flux_detrend = np.zeros_like(time)
         flux_trend   = np.zeros_like(time)
 
-        # POLYNOMIAL MODEL
+        # Check if transits should be masked TODO check
+        if mask and model == 'wotan':
+            mask = wotan.transit_mask(time=time,
+                                      period=mask[0]*c.day,
+                                      duration=mask[1]*c.day,
+                                      T0=mask[2]*c.day)
+        
+        # Loop over mask-update segments
+        
+        for i in range(len(dex)-1):
 
-        if model == "poly":
+            # Fetch segment
+            time_i = time[dex[i]:dex[i+1]]
+            flux_i = flux[dex[i]:dex[i+1]]
+        
+            # POLYNOMIAL MODEL
 
-            for i in range(len(dex)-1):
-
-                # Fetch segment
-                time_segment = time[dex[i]:dex[i+1]]
-                flux_segment = flux[dex[i]:dex[i+1]]
+            if model == "poly":
 
                 # Use model selection if None
                 if degree:
                     deg = degree
                 else:
                     df = pd.DataFrame()
-                    df['x'] = time_segment
-                    df['y'] = flux_segment
+                    df['x'] = time_i
+                    df['y'] = flux_i
                     model1 = 'y ~ x'
                     model2 = 'y ~ x + I(x**2)'
                     model3 = 'y ~ x + I(x**2) + I(x**3)'
@@ -1140,43 +1149,69 @@ class LightCurve(object):
                     deg = st.model_selection(AIC_j, BIC_j, show=False)
                     
                     # Check if a higher degree is needed
-                    dt = len(time_segment)*25/86400
+                    dt = len(time_i)*25/86400
                     if dt > 60:
                         if ( (deg == 1 and fit2.bic > fit1.bic) or
                              (deg == 2 and fit3.bic > fit2.bic) ):
                             deg += 1
                     
                 # Perform fit
-                poly = np.polyfit(time_segment, flux_segment, deg=deg)
+                poly = np.polyfit(time_i, flux_i, deg=deg)
                 
                 # Trend of light curve
-                trend = np.polyval(poly, time_segment)
+                trend = np.polyval(poly, time_i)
                 flux_trend[dex[i]:dex[i+1]] = trend
 
                 # Detrended flux
                 if column == 'flux_stitch':
-                    detrend = (flux_segment/1e3 + 1) / (trend/1e3 + 1)
+                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
                 else:
-                    detrend = flux_segment / trend
+                    detrend = flux_i / trend
                 flux_detrend[dex[i]:dex[i+1]] = detrend
+
+            # LOWESS MODEL
+
+            elif model == 'lowess':
+
+                #------------ TODO integrate into bin method
+                binsize = 0.5
+                tbin = binsize*3600    
+                tdur = time_i.iloc[-1] - time_i.iloc[0]
+                bins = int(tdur/tbin)
+                flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins=bins)
+                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+                #------------
                 
-        # WOTAN MODEL
+                # Lowess smoothing
+                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/3)
+
+                # Fit Theil–Sen median slope
+                res_theil = theilslopes(lowess[:,1], time_bin, 0.90, method='separate')
+                res_lsq   = linregress(time_bin, lowess[:,1])
+
+                # Trend of light curve (rebin to original cadence)
+                trend = res_lsq[0] * time_i + res_lsq[1]
+                flux_trend[dex[i]:dex[i+1]] = trend
+
+                # Detrended flux
+                if column == 'flux_stitch':
+                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
+                else:
+                    detrend = flux_i / trend
+                flux_detrend[dex[i]:dex[i+1]] = detrend                
+                #-------------- debug
+                # plt.figure()
+                # plt.plot(time_i, flux_i, 'k.')
+                # plt.plot(time_bin, flux_bin, 'b.')
+                # plt.plot(lowess[:,0], lowess[:,1], 'r-')
+                # plt.plot(time_i, trend, 'w--')
+                # plt.xlim(time_i.iloc[0], time_i.iloc[-1])
+                # plt.show()
+                #-------------- debug
+    
+            # WOTAN MODEL
         
-        elif model == "wotan":
-
-            # Check if transits should be masked
-            if mask:
-                mask = wotan.transit_mask(time=time,
-                                          period=mask[0]*c.day,
-                                          duration=mask[1]*c.day,
-                                          T0=mask[2]*c.day)
-
-            # Run Wotan in segments after mask-updates
-            for i in range(len(dex)-1):
-
-                # Mask-update segments
-                time_i = time[dex[i]:dex[i+1]]
-                flux_i = flux[dex[i]:dex[i+1]]
+            elif model == "wotan":
 
                 # Bin data per 10min for robust detrending
                 tday_i = time_i / 86400.
@@ -1607,20 +1642,20 @@ class LightCurve(object):
 
         # Get varsource light curve        
         rows = 2
-        lc_var = self.varsource()
-        if lc_var is not None:
+        dv = self.varsource()
+        if dv is not None:
             rows = 3
-            varsource = True
-            time_var = lc_var["time"] / c.day
+            dv.time /= 86400.
             # Compatability
-            if 'flux' in lc_var:
+            if 'flux' in dv:
                 # PlatoSim tag: 3.6.0-297-gd76ba1b7
-                flux_var = lc_var['flux'] - 1
+                dv.flux = dv.flux - 1
             elif 'comb' in lc_var:
-                flux_var = lc_var['comb']
+                dv['flux'] = dv.comb
             else:
-                flux_var = lc_var['sum']
-            flux_var *= 1e3 # [ppt]
+                dv['flux'] = dv['sum']
+            # Convert to [ppt]
+            dv.flux *= 1e3
         
         # Original data frame
         time_old  = df.time / c.day
@@ -1636,7 +1671,7 @@ class LightCurve(object):
         time_new = df2.time / c.day
         flux_new = df2[column]
         flux_med = median_filter(flux_new, 144) # [ppt]
-
+        
         # Select correct flux unit        
         if column in df:
             if flux_unit == 'e/s':
@@ -1666,20 +1701,20 @@ class LightCurve(object):
         
         # Plot light curve without outliers
         ax[1].plot(time_new, flux_new, '.', c='k', ms=2, alpha=0.1, label='After')
-        ax[1].plot(time_new, flux_med,  '-', c='royalblue', lw=0.5, label='1h median')
+        ax[1].plot(time_new, flux_med, '-', c='royalblue', lw=0.5,  label='1h median')
         ax[1].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
         ax[1].set_ylabel(f'Flux [{flux_unit}]')
         ax[1].legend(ncols=2, loc='upper right')
 
         # Plot detrend-median vs. input
-        if lc_var is not None:
+        if dv is not None:
             ax[2].plot(time_new, flux_med, '-', c='royalblue', lw=0.5, alpha=1.0)
-            ax[2].plot(time_var, flux_var, '-', c='darkblue',  lw=1.0, alpha=1.0,
+            ax[2].plot(dv.time,  dv.flux,  '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
             ax[2].set_xlim(time_new.iloc[0], time_new.iloc[-1])
             ax[2].set_ylabel('Flux [ppt]')
             ax[2].legend(ncol=1, markerscale=5, loc='upper right')
-
+            
         # Layout
         ax[0].set_title('Outlier rejection')
         ax[rows-1].set_xlabel('Time [days]')
