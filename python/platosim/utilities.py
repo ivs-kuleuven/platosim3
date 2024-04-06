@@ -1398,7 +1398,121 @@ def copyInputYAML(field, odir):
 
 
 
+def copyVizierInputYAML(field, odir):
 
+    """Function to copy and adjust a yaml ready to launch.
+
+    Parameters
+    ----------
+    field : str
+        Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
+    odir : str, pathlib object
+        Absolute output directory (pathlib object)
+
+    Notes
+    -----
+    The zero-point flux of a P=0 G2V-star [phot/s/m^2/nm] is 
+    converted to the PLATO passband since PlatoSim uses the
+    V magnitude as a standard.
+    """
+
+    # Get files names of YAML files
+    yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+    yaml_new = odir / "inputfile_vizier.yaml"
+
+    # Copy YAML if it doesn't exist already
+    if not yaml_new.is_file():
+
+        shutil.copy(yaml_old, yaml_new)
+
+        # Find and replace a few strings:
+        with open(yaml_new, 'r') as file:
+            filedata = file.read()
+            filedata = filedata.replace('inputfiles/starcatalog.txt', field)
+            filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+            filedata = filedata.replace('BackgroundValue:               -1',
+                                        'BackgroundValue:               0')
+            filedata = filedata.replace('IncludeCosmicsInSubField:        yes',
+                                        'IncludeCosmicsInSubField:        no')
+            filedata = filedata.replace('IncludeCosmicsInSmearingMap:     yes',
+                                        'IncludeCosmicsInSmearingMap:     no')
+            filedata = filedata.replace('IncludeCosmicsInBiasMap:         yes',
+                                        'IncludeCosmicsInBiasMap:         no')
+            filedata = filedata.replace('UseJitter:                       yes',
+                                        'UseJitter:                       no')
+            filedata = filedata.replace('IncludeAberrationCorrection:     yes',
+                                        'IncludeAberrationCorrection:     no')
+            filedata = filedata.replace('IncludePointLikeGhosts:          yes',
+                                        'IncludePointLikeGhosts:          no')
+            filedata = filedata.replace('IncludeChargeDiffusion:      yes',
+                                        'IncludeChargeDiffusion:      no')
+            filedata = filedata.replace('IncludeFlatfield:                yes',
+                                        'IncludeFlatfield:                no')
+            filedata = filedata.replace('IncludeDarkSignal:               yes',
+                                        'IncludeDarkSignal:               no')
+            filedata = filedata.replace('IncludeBFE:                      yes',
+                                        'IncludeBFE:                      no')
+            filedata = filedata.replace('IncludePhotonNoise:              yes',
+                                        'IncludePhotonNoise:              no')
+            filedata = filedata.replace('IncludeReadoutNoise:             yes',
+                                        'IncludeReadoutNoise:             no')
+            filedata = filedata.replace('IncludeCTIeffects:               yes',
+                                        'IncludeCTIeffects:               no')
+            filedata = filedata.replace('IncludeOpenShutterSmearing:      yes',
+                                        'IncludeOpenShutterSmearing:      no')
+            filedata = filedata.replace('IncludeQuantumEfficiency:        yes',
+                                        'IncludeQuantumEfficiency:        no')
+            filedata = filedata.replace('IncludeRelativeTransmissivity:   yes',
+                                        'IncludeRelativeTransmissivity:   no')
+            filedata = filedata.replace('IncludePolarization:             yes',
+                                        'IncludePolarization:             no')
+            filedata = filedata.replace('IncludeParticulateContamination: yes',
+                                        'IncludeParticulateContamination: no')
+            filedata = filedata.replace('IncludeMolecularContamination:   yes',
+                                        'IncludeMolecularContamination:   no')
+            filedata = filedata.replace('IncludeConvolution:              yes',
+                                        'IncludeConvolution:              no')
+            filedata = filedata.replace('IncludeFullWellSaturation:       yes',
+                                        'IncludeFullWellSaturation:       no')
+            filedata = filedata.replace('IncludeDigitalSaturation:        yes',
+                                        'IncludeDigitalSaturation:        no')
+            filedata = filedata.replace('IncludeQuantisation:             yes',
+                                        'IncludeQuantisation:             no')
+            filedata = filedata.replace('IncludeGainNonlinearity:         yes',
+                                        'IncludeGainNonlinearity:         no')
+            filedata = filedata.replace('WritePixelMaps:                  yes',
+                                        'WritePixelMaps:                  no')
+            filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                        'WriteBiasMaps:                   no ')
+            filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                        'WriteSmearingMaps:               no ')
+            filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                        'WriteFlatfieldMap:               no ')
+            filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                        'WriteThroughputMaps:             no ')
+            filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                        'WriteTransmissionEfficiency:     no ')
+            filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                        'WriteBackgroundMap:              no ')
+            filedata = filedata.replace('WriteCTI:                        yes',
+                                        'WriteCTI:                        no ')
+            filedata = filedata.replace('WriteACS:                        yes',
+                                        'WriteACS:                        no ')
+            filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                        'WriteTelescopeACS:               no ')
+            filedata = filedata.replace('WriteStarCatalog:                yes',
+                                        'WriteStarCatalog:                no ')
+            filedata = filedata.replace('WriteGhostPositions:             yes',
+                                        'WriteGhostPositions:             no ')
+            filedata = filedata.replace('WriteCosmics:                    yes',
+                                        'WriteCosmics:                    no ')
+
+            # Write the file out again
+            with open(yaml_new, 'w') as file:
+                file.write(filedata)
+
+
+                
 #--------------------------------------------------------------#
 #        FUNCTIONS TO GENERATE THE PIC-VARSIM CATALOGS         #
 #--------------------------------------------------------------#

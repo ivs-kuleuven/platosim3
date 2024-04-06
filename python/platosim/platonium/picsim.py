@@ -877,13 +877,15 @@ Notes on PIC catalogue creation:
         """
 
         if self.verbose > 1:
-            errorcode('software', '\nVizier PLATO FOV query')
+            errorcode('software', '\nVizier PLATO FOV query\n')
 
         # Arguments for GaiaDR3 star query        
-        self.field  = args.vizier
-        self.bright = args.yale_stars
-        self.astro  = args.gaia_astro
-
+        self.field    = args.vizier
+        self.bright   = args.yale_stars
+        self.stellar  = args.gaia_stellar
+        self.variable = args.gaia_variable
+        self.quasar   = args.gaia_quasar
+        
         # Magnitude limits
         if args.magmin is None:
             self.magmin = 0
@@ -902,7 +904,7 @@ Notes on PIC catalogue creation:
             errorcode('error', 'Option --vizier needs a output destination!')
 
         # Check for inconsitent query
-        if self.bright and self.astro:
+        if self.bright and self.stellar:
             errorcode('error', 'Flags "yale_stars" and "gaia_astro" cannot be parsed at once!')
             
         # Constants [deg]
@@ -1040,17 +1042,21 @@ Notes on PIC catalogue creation:
         Authors: Juan Cabrera & Nicholas Jannsen
         https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access
         """
-                
+
         if self.verbose > 1:
-            print('\nStart Gaia DR3 query using magnitude limits: ' +
-                  f'{self.magmin} - {self.magmax}')
-            
+            print(f'Adding stellar  columns : {self.stellar}')
+            print(f'Adding variable columns : {self.variable}')
+            print(f'Adding quasar   columns : {self.quasar}')
+            print(f'\nStart Gaia DR3 query for magnitudes : {self.magmin} - {self.magmax}')
+
         # Query stars within the FOV of each grid
         for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
             
             df0 = sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
                                      maglim_min=self.magmin, maglim_max=self.magmax,
-                                     flag_astro=self.astro, flag_quasar=True,
+                                     flag_stellar=self.stellar,
+                                     flag_variable=self.variable,
+                                     flag_quasar=self.quasar,
                                      ofile=f'{self.filename}.vot')
 
             # Contatenate catalogue
@@ -1106,10 +1112,95 @@ Notes on PIC catalogue creation:
             df0.reset_index(drop=True, inplace=True)
             df0.to_feather(ofile)
 
-            
+        # Run PLATOnium simulations to create final catalogue
+        self.flag_combine = True
+        if self.flag_combine:
 
-        
-        
+            if self.verbose > 1:
+                print(f'\nRunning PLATOnium find stars within the focal plane')
+                
+            # Copy YAML to output
+            ut.copyVizierInputYAML(self.field, self.outputDir)
+            platonium=os.getenv('PLATO_PROJECT_HOME')+'/python/platosim/platonium/platonium.py'
+
+            # Query stars within the FOV of each grid
+            for ccd in tqdm(range(1,5), bar_format=ut.tqdmBar()):
+                for group in range(1,5):
+                    os.system(f'python {platonium} {ccd} {group} 1 1 --fullframe ' +
+                              f'-i {self.outputDir}/inputfile_vizier.yaml ' +
+                              f'-o {self.outputDir} --nexp 1 -v 0 -w')
+
+            if self.verbose > 1:
+                print(f'\nCombing catalogues into final PLATO {self.field} catalogue')
+
+            # Load full-frame stellar catalogues
+            group, cam = 1, 1
+            df11 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
+            df12 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
+            df13 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
+            df14 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
+            group, cam = 2, 1
+            df21 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
+            df22 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
+            df23 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
+            df24 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
+            group, cam = 3, 1
+            df31 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
+            df32 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
+            df33 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
+            df34 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
+            group, cam = 4, 1
+            df41 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
+            df42 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
+            df43 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
+            df44 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
+
+            # Remove all files again after loaded
+            os.system(f'rm {self.outputDir}/Ncam*')
+            os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
+            
+            # Combine all CCD catalogue into one
+            df = pd.concat([df11, df12, df13, df14, df21, df22, df23, df24,
+                            df31, df32, df33, df34, df41, df42, df43, df44])
+
+            # Drop a few columns
+            df = df.drop(columns=['xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
+
+            # Sort after gaia DR3
+            df = df.sort_values(by=['gaiaDR3'])
+
+            # Fetch N-CAM group visibility
+            N = df.shape[0]
+            ncams = np.zeros(N)
+            if self.verbose > 1:
+                print('\nFetching the N-CAM observability for each star:')
+
+            for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+
+                # Fetch 4 values ahead (since max 4 groups)
+                dx = df.iloc[i:i+4]
+
+                # Subtract star ID and count zeros = N-CAM visibility:
+                # Row with highest ncams value is the one we keep below
+                diff = np.array(dx.gaiaDR3).astype(int) - int(dx.gaiaDR3.iloc[0])
+                ncams[i] = np.count_nonzero(diff==0)
+
+            # Add column 
+            df['ncams'] = (ncams * 6).astype(int)
+
+            # Drop dublicates and keep highest count
+            df = df.drop_duplicates(subset=['gaiaDR3'])
+
+            # Sort after ncams and Pmag
+            df0 = df.sort_values(by=['ncams', 'Pmag'])
+
+            # Save catalogue be used by varsim
+            df0.reset_index(drop=True, inplace=True)
+            df0.to_feather(f'{self.outputDir}/starcat_GaiaDR3_{self.field}.ftr')
+
+
+
+            
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
@@ -1143,8 +1234,10 @@ viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
 viz_group.add_argument('--magmin', type=float, metavar='MAG',   help='Min magnitude to query (Default: 0 mag)')
 viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 15 mag)')
-viz_group.add_argument('--yale_stars', action='store_true',     help='Flag to add the Yale bright stars catalogue')
-viz_group.add_argument('--gaia_astro', action='store_true',     help='Flag to add parameters from the Astrophysical Gaia table')
+viz_group.add_argument('--yale_stars',    action='store_true',  help='Flag to add the Yale bright stars catalogue')
+viz_group.add_argument('--gaia_stellar',  action='store_true',  help='Flag to add stellar parameters to catalogue')
+viz_group.add_argument('--gaia_variable', action='store_true',  help='Flag to add variabe parameters to catalogue')
+viz_group.add_argument('--gaia_quasar',   action='store_true',  help='Flag to add Quasars parameters to catalogue')
 
 que_group = parser.add_argument_group('GENERIC QUERY OPTIONS')
 que_group.add_argument('--dmag', type=int, metavar='MAG',    help='Delta magnitude target-to-contaminant limit (Default: 5 mag)')
