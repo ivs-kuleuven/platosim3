@@ -225,7 +225,7 @@ class PLATOnium(object):
         if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # [pixel]
 
         # Check parsing of detrending model
-        if not self.detrend in [None, 'poly', 'wotan']:
+        if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
             errorcode('error', 'Not a valid detrending model!')
 
         # Check parsing of detrending model
@@ -1315,9 +1315,12 @@ class PLATOnium(object):
             else: flux_unit='e/s'
 
             # Perform sigma-clipping
-            lc.clip(model='wotan', magnitude=self.df.mag,
-                    replace=True, plot=self.plotPost, flux_unit=flux_unit)
-
+            try:
+                lc.clip(model='wotan', magnitude=self.df.mag,
+                        replace=True, plot=self.plotPost, flux_unit=flux_unit)
+            except:
+                pass
+            
             if self.verbose > 1:
                 self.tocWotanClip = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
