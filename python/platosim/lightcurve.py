@@ -1049,10 +1049,9 @@ class LightCurve(object):
 
     
     def detrend(self, column='flux', model="poly",
-                degree=False, gradient=False,            # Model -> Polynomial
-                method="biweight", window=3, mask=None,  # Model -> Wotan
-                gapsize=0.1, segments=True,
-                replace=False, plot=False):
+                degree=False, gradient=False,                      # Model -> Polynomial
+                method="biweight", window=3, tbin=1/6, mask=None,  # Model -> Wotan
+                segments=True, replace=False, plot=False):
                 
         """Detrend time series.
 
@@ -1060,7 +1059,7 @@ class LightCurve(object):
         a simply polynomial model or the Wotan module specialized for
         exoplanet transit vetting.
 
-        NOTE: Wotan removed stellar variability (spots modulation, pulsations,
+        NOTE: Wotan removes stellar variability (spots modulation, pulsations,
               and granulation) so another module is needed to preserve these.
 
         Parameters
@@ -1076,8 +1075,16 @@ class LightCurve(object):
             Method to be used by Wotan (wotan parameter)
         window : float
             Window size to be used for detrending [days] (wotan parameter)
+        tbin : float
+            Time duration to bin data before running Wotan (for speed)
         mask : bool, float
             List with [period, duration, t0] to mask out periodic signal [all in days]
+        segments : bool
+            Flag to perform detrending on mask-update segments
+        replace : bool
+            Flag to replace 'flux' column in df with 'flux_detrend' column
+        plot : bool
+            Flag to activate dianostic plot of module
         """
         
         # Remove clipped NaNs
@@ -1098,7 +1105,7 @@ class LightCurve(object):
         # Prepare arrays to store light curve
         flux_detrend = np.zeros_like(time)
         flux_trend   = np.zeros_like(time)
-        poly_deg = []
+
         # POLYNOMIAL MODEL
 
         if model == "poly":
@@ -1109,7 +1116,7 @@ class LightCurve(object):
                 time_segment = time[dex[i]:dex[i+1]]
                 flux_segment = flux[dex[i]:dex[i+1]]
 
-                # Select
+                # Use model selection if None
                 if degree:
                     deg = degree
                 else:
@@ -1122,23 +1129,22 @@ class LightCurve(object):
                     fit1 = sm.OLS.from_formula(formula=model1, data=df).fit()
                     fit2 = sm.OLS.from_formula(formula=model2, data=df).fit()
                     fit3 = sm.OLS.from_formula(formula=model3, data=df).fit()
-                    AIC_j = [fit1.aic, fit2.aic, fit3.aic]
-                    BIC_j = [fit1.bic, fit2.bic, fit3.bic]
-                    deg = st.model_selection(AIC_j, BIC_j, show=False)
-                    poly_deg.append(deg)
-                    
-                    # Check if a higher degree is needed
-                    # dt = len(time_segment)*25/86400
-                    # if dt > 60:
-                    #     if ( (deg == 1 and fit2.bic > fit1.bic) or
-                    #          (deg == 2 and fit3.bic > fit2.bic) ):
-                    #         deg += 1
-                    #------------------ Debugging
+                    #---------------------------- Debugging
                     # print(deg, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
                     # print(fit1.summary())
                     # print(fit2.summary())
                     # print(fit3.summary())
-                    #----------------------------
+                    #-------------------------------------
+                    AIC_j = [fit1.aic, fit2.aic, fit3.aic]
+                    BIC_j = [fit1.bic, fit2.bic, fit3.bic]
+                    deg = st.model_selection(AIC_j, BIC_j, show=False)
+                    
+                    # Check if a higher degree is needed
+                    dt = len(time_segment)*25/86400
+                    if dt > 60:
+                        if ( (deg == 1 and fit2.bic > fit1.bic) or
+                             (deg == 2 and fit3.bic > fit2.bic) ):
+                            deg += 1
                     
                 # Perform fit
                 poly = np.polyfit(time_segment, flux_segment, deg=deg)
@@ -1168,43 +1174,32 @@ class LightCurve(object):
             # Run Wotan in segments after mask-updates
             for i in range(len(dex)-1):
 
-                # Bin data per 1h for robust detrending
+                # Mask-update segments
                 time_i = time[dex[i]:dex[i+1]]
                 flux_i = flux[dex[i]:dex[i+1]]
-                dx = pd.DataFrame({'time': time_i, 'flux':flux_i})
-                lc = LightCurve(dx, 'multi')
-                df = lc.bin(binsize=0.5)
-                df.time *= 3600. # [d -> s]
-                
-                # Perform detrending
-                _, trend = wotan.flatten(df.time,
-                                         df.flux,
+
+                # Bin data per 10min for robust detrending
+                tday_i = time_i / 86400.
+                tdur = tday_i.iloc[-1] - tday_i.iloc[0]
+                bins = int(tdur/tbin)
+                flux_bin, time_bin, _ = binned_statistic(tday_i, flux_i, 'median', bins=bins)
+                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+
+                # Perform detrending [Wotan needs time units in days!]
+                _, trend = wotan.flatten(time_bin,
+                                         flux_bin,
                                          method=method,
-                                         window_length=window*c.day,
-                                         break_tolerance=gapsize*c.day,
+                                         window_length=window,
                                          edge_cutoff=0.0,
                                          return_trend=True,
                                          robust=True,
                                          mask=mask)
-                
+
                 # Interpolate back to original cadence
-                spline_trend = make_interp_spline(df.time, trend, k=1)
+                spline_trend = make_interp_spline(time_bin*86400, trend, k=1)
                 flux_detrend[dex[i]:dex[i+1]] = flux_i / spline_trend(time_i)
                 flux_trend[dex[i]:dex[i+1]]   = spline_trend(time_i)
-                
-            # Run Wotan in segments after mask-updates
-            # for i in range(len(dex)-1):
-            #     data = wotan.flatten(time[dex[i]:dex[i+1]],
-            #                          flux[dex[i]:dex[i+1]],
-            #                          method=method,
-            #                          window_length=window*c.day,
-            #                          break_tolerance=gapsize*c.day,
-            #                          return_trend=True,
-            #                          robust=True,
-            #                          mask=mask)
-            #     flux_detrend[dex[i]:dex[i+1]] = data[0]
-            #     flux_trend[dex[i]:dex[i+1]]   = data[1]
-                
+                                
         # PROLOGUE
                 
         # Convert into ppm
@@ -1225,7 +1220,6 @@ class LightCurve(object):
 
 
     
-
     
     def plot_detrend(self, df, column='flux', figsize=(9,8)):
 
@@ -2113,7 +2107,7 @@ class LightCurve(object):
             
         # Plot quarter marks
         ymax = np.max(flux_max)
-        ypos = ymax + ymax * ax.margins()[1]/13
+        ypos = ymax + ymax * ax.margins()[1]/7
         for q in np.unique(Q):
             time_Q = q*ut.quarter()
             xpos = time_Q - 50
