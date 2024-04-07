@@ -38,33 +38,29 @@ star = f'{args.starID}'.zfill(9)
 idir = Path(args.idir).resolve() / star
 odir = Path(args.odir).resolve()
 
-#folders = natsort.natsorted(glob.glob(f'{idir}/*'))
-#folder = Path(f)
-#starID = folder.stem
-
 errorcode('software', f'\nReducing star {star}')
-    
-odir_table = odir / 'table'
-odir_final = odir / 'final'
 
-odir_table.mkdir(parents=True, exist_ok=True)
-odir_final.mkdir(parents=True, exist_ok=True)
+# Create output directory
+odir.mkdir(parents=True, exist_ok=True)
+os.system(f'chmod 755 {odir}')
 
-os.system(f'chmod 755 {odir_table}')
-os.system(f'chmod 755 {odir_final}')
-
-filename_tab = odir_table / f'lc_{star}.tab'
-filename_ftr = odir_final / f'lc_{star}.ftr'
+# Output files
+filename_tab = odir / f'lc_{star}.tab'
+filename_ftr = odir / f'lc_{star}.ftr'
 
 # Merge ligth curves
 lcs = LightCurve(idir, 'multi')
 
+# Unpack data
 print('Unpacking data')
 lcs.unpack()
 
-lcs.stat_sim_table(ofile=filename_tab, clean=True)
+# Create simulation table
+lcs.stat_sim_table(ofile=filename_tab)
 
+# Merge data and bin to 10 min cadence
 lcs.merge(ofile=filename_ftr, suffix='ftr', binsize=1/6,
           flux_group_mean=True, flux_offset=True)
 
+# Removing unpacked data
 lcs.remove()
