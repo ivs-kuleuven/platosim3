@@ -1314,9 +1314,23 @@ class PLATOnium(object):
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
 
+            # Auto select sigma from emperical tests
+            # Cuts optimized for N-CAMs of 25s cadence
+            if self.df.mag <= 10:
+                sigma_upper = 5
+            elif self.df.mag > 10 and self.df.mag < 11:                
+                sigma_upper = 4.5
+            else:
+                sigma_upper = 4
+
+            # Larger lower bound sigma to protect eclipses                    
+            if self.detrend == 'wotan':
+                sigma_lower = 10
+        
             # Perform sigma-clipping
             try:
-                lc.clip(model='wotan', magnitude=self.df.mag,
+                lc.clip(model='wotan',
+                        sigma_lower=sigma_lower, sigma_upper=sigma_upper,
                         replace=True, plot=self.plotPost, flux_unit=flux_unit)
             except:
                 pass

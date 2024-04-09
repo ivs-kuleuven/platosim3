@@ -73,8 +73,7 @@ class LightCurve(object):
         >> lcs = LightCurve("</path/to/files>", "multi")
     """
 
-    def __init__(self, filename, mode="single", base='e/s',
-                 ncam=False, path=False):
+    def __init__(self, filename, mode="single", base='e/s', path=False):
 
         # Constants
         self.pixelSize = 18  # [micron]
@@ -107,6 +106,9 @@ class LightCurve(object):
             elif self.filename.is_dir():
                 self.path = Path(filename)
 
+        # Common parameters (depding on mode)
+        self.mask_updates = np.array([])
+        
                 
         # SINGLE-CAMERA SIMULATION
         
@@ -118,9 +120,6 @@ class LightCurve(object):
 
                 # Simply load file
                 self.df = pd.read_feather(filename)
-
-                # No mask updates
-                self.mask_updates = np.array([])
 
                 # Drop some columns
                 if 'chi2' in self.df:
@@ -153,15 +152,20 @@ class LightCurve(object):
 
                 
         # MULTI-CAMERA SIMULATIONS
-                
+            
         elif mode == "multi":
-                
-            # Correct obs info if it's a merged light curve
-            self.ncam = ncam
+    
+            # No actions so far
+            pass
 
-            # No mask updates if multi mode
-            self.mask_updates = np.array([])
 
+        # FINAL LC MODE
+            
+        elif mode == 'final':
+
+            # Simply load file
+            self.df = pd.read_feather(filename)
+                        
             
         # COMMON ACTIONS
 
@@ -360,21 +364,24 @@ class LightCurve(object):
         """Fetch the noise-less light curve.
         """
 
-        starID = self.path.stem[:9]
-
         # Check if path or file is parsed
         
-        if self.path.is_dir():
-            path   = self.path
-            starID = path.stem[:9]
-            varpath_file = path.parents[1] / "varsource" / f'varsource_{starID}.txt'
-            varpath_list = path.parents[1] / "varsource" / starID / 'varsource_001.txt'
+        if self.mode == 'final':
+            path   = self.path.parents[1]
+            starID = self.filename.stem[-9:]
+            
+        elif self.path.is_dir():
+            path   = self.path.parents[1]
+            starID = self.path.stem[:9]
             
         elif self.filename.is_file():
-            path = self.path.parents[1]
-            varpath_file = path / "varsource" / f"varsource_{starID}.txt"
-            varpath_list = path / "varsource" / starID / 'varsource_001.txt'
+            path   = self.path.parents[1]
+            starID = path.stem[:9]
 
+        # Two options for storage
+        varpath_file = path / 'varsource' / f'varsource_{starID}.txt'
+        varpath_list = path / 'varsource' / starID / 'varsource_001.txt'            
+            
         # Check if file can be found
         if varpath_file.is_file():
             varpath = varpath_file
@@ -893,6 +900,7 @@ class LightCurve(object):
     
 
 
+    
     def time_indices(self):
 
         indices = self.get_time_gaps()
@@ -904,25 +912,33 @@ class LightCurve(object):
     
     
 
-    def gaps(self, filename, beginExposureNr, numExposures,
-             replace=False, plot=False):
+    
+    def gaps(self, filename, replace=False, plot=False):
 
         """Introduce gaps due to downtime and quarters.
+        
+        NOTE: this finction needs the instrumentGAP.tab file
+              which is a product of payload.py
         """
+        
+        self.df['flux_gaps'] = self.df.flux
         
         # Open file with gaps timings
         dg = pd.read_feather(filename)
-        dg = dg.iloc[beginExposureNr:beginExposureNr+numExposures]
 
-        # Apply gaps as NaNs
-        self.df['flux_gaps'] = self.df.flux
-        self.df.flux_gaps.loc[dg['all']] = np.nan
-        
+        # Find start and end of each gap and replace with NaN
+        for i in range(dg.shape[0]):
+            t0 = dg.t0.iloc[i]
+            t1 = dg.t0.iloc[i] + dg.td.iloc[0]                
+            dex0 = ut.findNearestIndex(self.df.time, t0)
+            dex1 = ut.findNearestIndex(self.df.time, t1)
+            self.df.flux_gaps.loc[dex0:dex1] = np.nan
+
         # Overwrite flux column        
         if replace:
             self.df.flux = self.df.flux_gaps
             self.df.drop(columns=['flux_gaps'], inplace=True)
-        
+
         return self.df
 
 
@@ -1582,28 +1598,11 @@ class LightCurve(object):
 
     
     def clip(self, column='flux', model="scipy",
-             sigma_lower=4, sigma_upper=4, window=0.5, magnitude=None,
+             sigma_lower=4, sigma_upper=4, window=0.5,
              plot=False, replace=False, flux_unit='e/s'):
 
         """Sigma clipping of light curve.
-
-        This function use a moving median filter to reject outliers from 
-        the out-of-eclipsed data. This is done to secure that a simple 
-        median convolution do not mis-interp sharp and deep transit 
-        signatures as outliers.
         """
-
-        # Auto select sigma from emperical tests
-        if magnitude is not None:
-            # Cuts optimized for N-CAMs of 25s cadence
-            # Higher sigma for lower bound to protect eclipses
-            sigma_lower = 10
-            if magnitude <= 10:
-                sigma_upper = 5
-            elif magnitude > 10 and magnitude < 11:                
-                sigma_upper = 4.5
-            else:
-                sigma_upper = 4
                 
         # Sigma clipping methods
         
@@ -1860,11 +1859,11 @@ class LightCurve(object):
         # Original data
         if type(group) is np.int:
             flux = self.flux(unit=flux_unit)
-            if legend:
-                lab = f"N-CAM {group}.{camera} Q{quarter}"
+            lab = f"N-CAM {group}.{camera} Q{quarter}"
 
         # Altered data (e.g. merged)
         else:
+            lab = "Merged data"
             if flux_unit == 'e/s':
                 errorcode('error', 'Unit not valid for merged data! '+
                           'Use either [norm, ppp, ppt, ppm]')
@@ -1876,8 +1875,6 @@ class LightCurve(object):
                 flux = (self.flux(unit='e/s') - 1) * 1e3
             elif flux_unit == 'ppm':
                 flux = (self.flux(unit='e/s') - 1) * 1e6
-            if legend:
-                lab = "Merged data"
 
         # Start plotting
 
@@ -1985,7 +1982,8 @@ class LightCurve(object):
         elif cen_unit == "rel": lab_unit = "- Mean [pixel]" 
         elif cen_unit == "cen": lab_unit = "- Center [pixel]"
         elif cen_unit == "mm":  lab_unit = "[mm]" 
-        else: errorcode("error", "No such centroid unit! Availble option: [pix, rel, cen, mm]")
+        else:
+            errorcode("error", "No such centroid unit! Availble option: [pix, rel, cen, mm]")
 
         # Convert to days
         time = self.time(unit=time_unit)
@@ -2305,8 +2303,10 @@ class LightCurve(object):
             df0.to_feather(ofile)
             os.system(f'chmod 755 {ofile}')
             
-        if verbose: print('Done!')
-        return LightCurve(df0, mode="multi", ncam=ncam, path=self.path)
+        if verbose:
+            print('Done!')
+            
+        return LightCurve(df0, mode="multi", path=self.path)
 
 
 
@@ -2458,7 +2458,7 @@ class LightCurve(object):
         
         # Set a global light curve object
 
-        return LightCurve(df0, mode="multi", ncam=False)
+        return LightCurve(df0, mode="multi")
 
 
 
@@ -2686,7 +2686,7 @@ class LightCurve(object):
 
                     # Merge all observations for the same quarter [ppm]
                     
-                    lc, ncam, flag = lcs.merge(quarter=q, flux_group_mean=True, suffix=suffix)
+                    lc = lcs.merge(quarter=q, flux_group_mean=True, suffix=suffix)
 
                     # Check that any light curve exist for a given quarter
 
@@ -2706,7 +2706,8 @@ class LightCurve(object):
                             df1 = pd.DataFrame(data, index=[0])
                             
                         else:
-                            data = {"star":i, "quarter":q, "ncam":ncam, "NSR":NSR, "flag":flag}
+                            data = {"star":i, "quarter":q, "ncam":ncam,
+                                    "NSR":NSR, "flag":flag}
                             df1 = pd.DataFrame(data, index=[0])
                             
                         # Add data to data frame
@@ -3057,19 +3058,22 @@ class LightCurve(object):
 
                         # Write data to feather
                         data = {"star":i, "mag":mag, "rOA":rOA, "quarter":q, "ncam":ncam, 
-                                "ncon":ncon, "rcon":rcon, "SPR":SPR, "NSR":NSR, "flux_err":flux_err,
-                                "flag":flag}
+                                "ncon":ncon, "rcon":rcon, "SPR":SPR, "NSR":NSR,
+                                "flux_err":flux_err, "flag":flag}
                         df = df.append(data, ignore_index=True)
 
                 # Delete unpacked files again to not overflow storage memory
-                for files_ftr in glob.iglob(os.path.join(path, '*.ftr')):    os.remove(files_ftr)
-                for files_cat in glob.iglob(os.path.join(path, '*.cat')):    os.remove(files_cat)
-                for files_inv in glob.iglob(os.path.join(path, '*.invert')): os.remove(files_inv)
+                for files_ftr in glob.iglob(os.path.join(path, '*.ftr')):
+                    os.remove(files_ftr)
+                for files_cat in glob.iglob(os.path.join(path, '*.cat')):
+                    os.remove(files_cat)
+                for files_inv in glob.iglob(os.path.join(path, '*.invert')):
+                    os.remove(files_inv)
 
         # Save final feather
-        df = df.astype({"star":int, "mag":np.float32,  "rOA":np.float32, "quarter":int, "ncam":int, 
-                        "ncon":int, "rcon":np.float32, "SPR":np.float32, "NSR":np.float32,
-                        "flux_err":np.float32, "flag":str})
+        df = df.astype({"star":int, "mag":np.float32,  "rOA":np.float32, "quarter":int,
+                        "ncam":int, "ncon":int, "rcon":np.float32, "SPR":np.float32,
+                        "NSR":np.float32, "flux_err":np.float32, "flag":str})
 
         # Sort data frame
         df = df.sort_values(by=["star", "quarter"])
