@@ -859,18 +859,18 @@ class Simulation(object):
             if passband == "blue":
                 self.__setitem__("ObservingParameters/Fluxm0",                  "5.81803986e7")
                 self.__setitem__("Camera/ThroughputBandwidth",                  "165")
-                #self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
+                self.__setitem__("Camera/ThroughputLambdaC",                    "600")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
                 
             if passband == "red":
                 self.__setitem__("ObservingParameters/Fluxm0",                  "4.13786857e7")
                 self.__setitem__("Camera/ThroughputBandwidth",                  "335")
-                #self.__setitem__("Camera/ThroughputLambdaC",                    "860")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
+                self.__setitem__("Camera/ThroughputLambdaC",                    "832")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
 
         return
 
