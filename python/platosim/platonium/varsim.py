@@ -2477,10 +2477,10 @@ class VarSim(object):
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
 
-parser.add_argument('-p', '--plot',     action='store_true',     help='Flag to plot the synthetic models')
-parser.add_argument('-o', '--ofile',    metavar='STR', type=str, help='Output filename [<path/to/ofile.txt>]')
-parser.add_argument('-v', '--verbose',  metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
-parser.add_argument('-n', '--notes',    action='store_true',     help='Flag to show the notes of the available models')
+parser.add_argument('-p', '--plot',    action='store_true',     help='Flag to plot the synthetic models')
+parser.add_argument('-n', '--notes',   action='store_true',     help='Flag to show the available models')
+parser.add_argument('-o', '--ofile',   metavar='STR', type=str, help='Output filename [<path/to/ofile.txt>]')
+parser.add_argument('-v', '--verbose', metavar='INT', type=int, help='Verbosity level [0, 1, 3] (Default: 1)')
 
 obs_group = parser.add_argument_group('OBS PARAMETERS')
 obs_group.add_argument('--time',    metavar='DAY',  type=int, help='Duration of simulation (Default: 90 days)')
@@ -2490,7 +2490,7 @@ obs_group.add_argument('--inst',    metavar='NAME', type=str, help='Photometric 
 obs_group.add_argument('--seed',    metavar='INT',  type=int, help='Option to bootstrap seed to reproduce results')
 
 star_group = parser.add_argument_group('STAR PARAMETERS')
-star_group.add_argument('--star', metavar='NAME', type=str, help='Benchmark star (check --notes)')
+star_group.add_argument('--star',     metavar='NAME',     type=str, help='Benchmark star (check --notes)')
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
                         help='Stellar model parameters (check --notes)')
 star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, no]')
@@ -2504,7 +2504,6 @@ star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark ec
 #star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
 #                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
 
-
 planet_group = parser.add_argument_group('PLANET PARAMETERS')
 planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
@@ -2512,12 +2511,13 @@ planet_group.add_argument('--planet_params', action='append', type=float, nargs=
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
 planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darkening model [quadratic]')
 
-dis_group = parser.add_argument_group('DISTRIBUTION MODES')
-dis_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')
-dis_group.add_argument('--mocka', action='append', type=str, nargs=5, metavar=('PROJECT', 'STAR', 'ID', 'VAR' 'ODIR'), help='Option designed for MOCKA')
+mode_group = parser.add_argument_group('DISTRIBUTION MODES')
+mode_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')
+mode_group.add_argument('--mocka', action='append', type=str, nargs=5, metavar=('PROJECT', 'STAR', 'ID', 'VAR', 'ODIR'),
+                        help='Option designed for MOCKA')
 
 args = parser.parse_args()
-
+#exit()
 #--------------------------------------------------------------#
 #                            WORKFLOW                          #
 #--------------------------------------------------------------#

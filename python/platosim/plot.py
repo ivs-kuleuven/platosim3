@@ -3441,7 +3441,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = simfile.getApertureMask(showMaskOfStarID, imgNumber)
+            rowIndices, colIndices, _, _, _, _ = simfile.getApertureMask(showMaskOfStarID,
+                                                                         imgNumber)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='royalblue', facecolor='none', hatch="/",

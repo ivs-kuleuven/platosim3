@@ -1851,11 +1851,13 @@ class SimFile (object):
         maskSize: ndarray
             The number of pixels a mask contains 
         maskNSR: ndarray 
-            The Noise-to-Signal ratio of the flux. Noise coming from target + contaminants + sky + instrument.
-            Signal coming from the target.
+            The Noise-to-Signal ratio of the flux. Noise coming from 
+            target + contaminants + sky + instrument. Signal coming 
+            from the target.
         maskSPR: ndarray 
-            Stellar pollution ratio. The ratio of the flux inside the mask coming from contaminants and the
-            flux coming from target + contaminants + sky. A number between 0 and 1.
+            Stellar pollution ratio. The ratio of the flux inside the
+            mask coming from contaminants and the flux coming from 
+            target + contaminants + sky. A number between 0 and 1.
 
         Notes
         -----

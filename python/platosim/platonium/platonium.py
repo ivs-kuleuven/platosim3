@@ -507,14 +507,13 @@ class PLATOnium(object):
         timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-
+        
         # CONFIGURE CAMERA
 
         # NOTE these function sets the correct CCD configuration and cadence
         #      and if requested also performance and time conditions
-        
+        # NOTE parameter "normal" is used in the subfield selection
         if self.groupID == 'Fast':
-            # Parameter "normal" used in subfield selection
             normal = False
             sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
         else:
@@ -522,21 +521,20 @@ class PLATOnium(object):
             sim.useNormalCamera(self.performance, self.timeStart)
 
         # Secure correct zero-point flux w.r.t. passband used
-        # NOTE: if "mag" column exist the YAML entry "Fluxm0" is used
-        # TODO should be a part of simulation.py
+        # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
         if self.magPB == 'Pmag':
-            sim['ObservingParameters/Fluxm0'] = 0.73244782244e8
+            sim['ObservingParameters/Fluxm0'] = 7.3244782244e7
         elif self.magPB == 'PBmag':
-            sim['ObservingParameters/Fluxm0'] = 0.73244782244e8 # TODO
+            sim['ObservingParameters/Fluxm0'] = 5.81803986e7
         elif self.magPB == 'PRmag':
-            sim['ObservingParameters/Fluxm0'] = 0.73244782244e8 # TODO
-            
+            sim['ObservingParameters/Fluxm0'] = 4.13786857e7
+
         
         # CONFIGURE TIMING
-
-        # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
         
         # Cadence of time series [s]
+        # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
+        # NOTE This is overwritten for F-CAM by sim.useFastCameras()
         if self.cadence:
             sim['ObservingParameters/CycleTime'] = self.cadence
         else:
@@ -562,8 +560,8 @@ class PLATOnium(object):
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1) * 86400. / self.cadence)
-
-
+            
+            
         # PHOTOMETRY ALA MARCHIORI
 
         # The mask-update interval [days]
@@ -714,6 +712,8 @@ class PLATOnium(object):
             sim["CCD/Position"] = str(self.ccdCode)
 
             if self.groupID == 'Fast':
+                # TODO readout time is not correct if not GroupID = Fast -> New feature 
+                sim["Telescope/GroupID"] = 'Fast'
                 shieldRows = sim["CCDPositions/MetallicShield/ShieldRowCoordinates"]
                 shieldCols = sim["CCDPositions/MetallicShield/ShieldColumnCoordinates"]
                 sim["SubField/ZeroPointRow"]    = shieldRows[0]
@@ -880,12 +880,11 @@ class PLATOnium(object):
 
     
     def create_seeds(self, sim):
-        """
-        Module to select and load the random seeds.
+
+        """Module to select and load the random seeds.
         """
 
         # Initialise random number generator after user or clock
-        
         if not self.seed:
             seed = 123456789
             rng  = np.random.default_rng()
@@ -928,8 +927,8 @@ class PLATOnium(object):
 
             
     def create_inputfiles(self, sim):
-        """
-        Function to create ascii input files for PlatoSim.
+
+        """Function to create ascii input files for PlatoSim.
         """
         
         # SAVE STELLAR CATALOGS AND TARGET LISTS
@@ -1002,8 +1001,8 @@ class PLATOnium(object):
     def show_subfield(self, sim):
 
         """Function to show: 
-        (1) where the target star is situated in the CCD focal plane
-        (2) the first subfield/imagette of the simulation
+        1) where the target star is situated in the CCD focal plane
+        2) the first subfield/imagette of the simulation
         This function exit the simulation.
         """
 
@@ -1314,9 +1313,23 @@ class PLATOnium(object):
             if self.detrend: flux_unit='ppt'
             else: flux_unit='e/s'
 
+            # Auto select sigma from emperical tests
+            # Cuts optimized for N-CAMs of 25s cadence
+            if self.df.mag <= 10:
+                sigma_upper = 5
+            elif self.df.mag > 10 and self.df.mag < 11:                
+                sigma_upper = 4.5
+            else:
+                sigma_upper = 4
+
+            # Larger lower bound sigma to protect eclipses                    
+            if self.detrend == 'wotan':
+                sigma_lower = 10
+        
             # Perform sigma-clipping
             try:
-                lc.clip(model='wotan', magnitude=self.df.mag,
+                lc.clip(model='wotan',
+                        sigma_lower=sigma_lower, sigma_upper=sigma_upper,
                         replace=True, plot=self.plotPost, flux_unit=flux_unit)
             except:
                 pass
