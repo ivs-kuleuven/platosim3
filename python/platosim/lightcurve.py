@@ -1199,11 +1199,12 @@ class LightCurve(object):
                 #------------
                 
                 # Lowess smoothing
-                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/3)
+                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/10)
 
                 # Fit Theil–Sen median slope
+                p = 100 # Ignore start and end points 0.5h * 100 ~ 2 days
                 res_theil = theilslopes(lowess[:,1], time_bin, 0.90, method='separate')
-                res_lsq   = linregress(time_bin, lowess[:,1])
+                res_lsq   = linregress(time_bin[p:-p], lowess[p:-p,1])
 
                 # Trend of light curve (rebin to original cadence)
                 trend = res_lsq[0] * time_i + res_lsq[1]
@@ -1220,6 +1221,8 @@ class LightCurve(object):
                 # plt.plot(time_i, flux_i, 'k.')
                 # plt.plot(time_bin, flux_bin, 'b.')
                 # plt.plot(lowess[:,0], lowess[:,1], 'r-')
+                # plt.plot(time_bin[p], lowess[p,1], 'y*')
+                # plt.plot(time_bin[-p], lowess[-p,1], 'y*')
                 # plt.plot(time_i, trend, 'w--')
                 # plt.xlim(time_i.iloc[0], time_i.iloc[-1])
                 # plt.show()
@@ -1272,7 +1275,7 @@ class LightCurve(object):
 
     
     
-    def plot_detrend(self, df, column='flux', figsize=(9,8)):
+    def plot_detrend(self, df, column='flux', figsize=(9,10)):
 
         """Plot a detrended light curve and make a O-C plot.
         """
@@ -1281,7 +1284,7 @@ class LightCurve(object):
         rows = 2
         lc_var = self.varsource()
         if lc_var is not None:
-            rows = 3
+            rows = 4
             varsource = True
             time_var = lc_var["time"] / c.day
             # Compatability
@@ -1327,8 +1330,11 @@ class LightCurve(object):
         ax[1].set_ylabel('Flux [ppt]')
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
         
-        # Plot detrend-median vs input
+        # Compare to model
         if lc_var is not None:
+            
+            # Plot detrend-median vs input
+            flux_var -= np.median(flux_var)
             ax[2].plot(time,     flux_median, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(time_var, flux_var,    '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
@@ -1336,6 +1342,14 @@ class LightCurve(object):
             ax[2].set_ylabel('Flux [ppt]')
             ax[2].legend(ncol=1, markerscale=5, loc='upper right')
 
+            # Plot O-C diagram
+            dex0 = ut.findNearestIndex(time_var, time.iloc[0])
+            flux_varsource = flux_var.iloc[dex0:dex0+time.shape[0]]
+            oc = flux_detrend.to_numpy() - flux_varsource.to_numpy()
+            ax[3].plot(time, oc, '.', c='k', ms=1, alpha=0.2)
+            ax[3].plot([time.iloc[0], time.iloc[-1]], [0,0], '-', c='tomato', lw=1)
+            ax[3].set_ylabel('O-C [ppt]')
+            
         # If any, plot mask-update events
         if self.mask_updates.any():
             dex = self.flux_indices()
@@ -1346,6 +1360,7 @@ class LightCurve(object):
             ax[1].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             if lc_var is not None:
                 ax[2].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
+                ax[3].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             
         # Layout
         ax[0].set_title('Light curve detrending')
@@ -1634,7 +1649,7 @@ class LightCurve(object):
             
 
     
-    def plot_clip(self, df, column='flux', flux_unit='e/s', figsize=(9,8)):
+    def plot_clip(self, df, column='flux', flux_unit='e/s', figsize=(9,10)):
 
         """Plot a clipped light curve for outliers.
         """
@@ -1713,6 +1728,15 @@ class LightCurve(object):
             ax[2].set_xlim(time_new.iloc[0], time_new.iloc[-1])
             ax[2].set_ylabel('Flux [ppt]')
             ax[2].legend(ncol=1, markerscale=5, loc='upper right')
+
+            # Plot O-C diagram
+            # flux_var = dv.flux.loc[~df.flux_clip.isna()]
+            # dex0 = ut.findNearestIndex(dv.time, time_new.iloc[0])
+            # flux_varsource = flux_var.iloc[dex0:dex0+time_new.shape[0]]
+            # oc = flux_new.to_numpy() - flux_varsource.to_numpy()
+            # ax[3].plot(time_new, oc, '.', c='k', ms=1, alpha=0.2)
+            # ax[3].plot([time_new.iloc[0], time_new.iloc[-1]], [0,0], '-', c='tomato', lw=1)
+            # ax[2].set_ylabel('O-C [ppt]')
             
         # Layout
         ax[0].set_title('Outlier rejection')
