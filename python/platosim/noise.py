@@ -682,7 +682,7 @@ def getAPE(alpha, delta, kappa, sigma=3,
 
 
 
-def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
+def getTED(quarter, model="poly", wheel_offloading=True, ampl=2,
            ofile=False, seed=None, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
@@ -707,7 +707,7 @@ def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
 
     # Random number generator
     rng = ut.rng(seed)
-    
+
     # Constants
     time0 = np.arange(0, ut.year()/4, 25)
     cols  = ["yaw", "pitch", "roll"]

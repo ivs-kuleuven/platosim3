@@ -67,7 +67,12 @@ class Payload(object):
 
         # Optional parameters
         self.seed = args.seed
-        self.ted_ampl = args.ted_ampl
+
+        # TED amplitude
+        if args.ted_ampl is None:
+            self.ted_ampl = 2
+        else:
+            self.ted_ampl = args.ted_ampl
         
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
         if args.verbose == 0:
