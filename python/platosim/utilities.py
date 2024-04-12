@@ -1098,7 +1098,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-    
+
     NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
     return NSR
@@ -1158,6 +1158,96 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
     signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
 
     return noise / signal
+
+
+
+
+
+def snr_noise_peak(path, mag=9, cadence=1800, N=1000):
+
+    # Import star shadow module
+    import pandas as pd
+    from tqdm import tqdm
+    from star_shadow.timeseries_functions import extract_single
+    
+    f0 = 0.7324478224428527
+    noise_jitter     = getJitterNoiseLimitNSR(rms=0.037, tdur=cadence, level='camera')
+    noise_photon_06  = getPhotonNoiseLimitNSR(mag, passband='V', tdur=cadence, ncam=6)  * f0
+    noise_photon_12  = getPhotonNoiseLimitNSR(mag, passband='V', tdur=cadence, ncam=12) * f0
+    noise_photon_18  = getPhotonNoiseLimitNSR(mag, passband='V', tdur=cadence, ncam=18) * f0
+    noise_photon_24  = getPhotonNoiseLimitNSR(mag, passband='V', tdur=cadence, ncam=24) * f0
+    noise_background = getBackgroundNoiseLimitNSR(mag, tdur=cadence, passband='P')
+    
+    noise_06 = noise_jitter + noise_photon_06 + noise_background
+    noise_12 = noise_jitter + noise_photon_12 + noise_background
+    noise_18 = noise_jitter + noise_photon_18 + noise_background
+    noise_24 = noise_jitter + noise_photon_24 + noise_background
+    
+    time = np.arange(0, 4*365.25, cadence/86400.)
+    snr = np.zeros((N, 4))
+
+    for i in tqdm(range(N), bar_format=tqdmBar()): 
+        # Noise time series
+        lc_noise_06 = np.random.normal(0, noise_06, len(time)) 
+        lc_noise_12 = np.random.normal(0, noise_12, len(time)) 
+        lc_noise_18 = np.random.normal(0, noise_18, len(time)) 
+        lc_noise_24 = np.random.normal(0, noise_24, len(time)) 
+
+        # Estimate SNR of frequency of maximum power
+        _, snr[i, 0], _ = extract_single(time, lc_noise_06, select='sn', verbose=True)
+        _, snr[i, 1], _ = extract_single(time, lc_noise_12, select='sn', verbose=True)
+        _, snr[i, 2], _ = extract_single(time, lc_noise_18, select='sn', verbose=True)
+        _, snr[i, 3], _ = extract_single(time, lc_noise_24, select='sn', verbose=True)
+    
+    # Save file
+    filename = f'{path}/snr_{cadence}s_{mag}mag.ftr'
+    dx = pd.DataFrame({'snr06':snr[:,0], 'snr12':snr[:,1], 'snr18':snr[:,2], 'snr24':snr[:,3]})
+    dx.to_feather(filename)
+    
+    return dx
+
+
+
+
+
+def snr_plot(path, mag, cadence, bins=50, sigma=3, show_snr=False, figsize=(8,5)):
+
+    import pandas as pd    
+    filename = f'{path}/snr_{cadence}s_{mag}mag.ftr'
+    dx = pd.read_feather(filename)
+    
+    fig, ax = plt.subplots(1,1, figsize=figsize)
+    
+    # Plots
+    h1 = ax.hist(dx.snr06, bins=bins, histtype='step', label=r'$n_{\rm CAM} = 6$',
+                 fc='b', ec='b', fill=True, alpha=0.3)
+    h2 = ax.hist(dx.snr12, bins=bins, histtype='step', label=r'$n_{\rm CAM} = 12$',
+                 fc='g', ec='g', fill=True, alpha=0.3)
+    h3 = ax.hist(dx.snr18, bins=bins, histtype='step', label=r'$n_{\rm CAM} = 18$',
+                 fc='r', ec='r', fill=True, alpha=0.3)
+    h4 = ax.hist(dx.snr24, bins=bins, histtype='step', label=r'$n_{\rm CAM} = 24$',
+                 fc='m', ec='m', fill=True, alpha=0.3)
+    
+    val = [h1[1].mean() + sigma*h1[1].std(), h2[1].mean() + sigma*h2[1].std(), 
+           h3[1].mean() + sigma*h3[1].std(), h4[1].mean() + sigma*h4[1].std()]
+    
+    ax.axvline(x=val[0], c="b", ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=val[1], c="g", ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=val[2], c="r", ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=val[3], c="m", ls="--", lw=1.5, zorder=2)
+    
+    # Settings
+    ax.legend(loc='upper right')
+    ax.set_xlabel(r'SNR amplitude')
+    ax.set_ylabel('Number of stars')
+    plt.tight_layout()
+    plt.show()
+
+    # Print best SNR criterions
+    if show_snr:
+        print(val)
+    
+    return fig, ax
 
 
 
