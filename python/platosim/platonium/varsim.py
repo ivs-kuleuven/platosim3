@@ -195,22 +195,30 @@ class VarSim(object):
 
         #self.phase_curve = args.phase_curve TODO
 
-        # Use Aigrain2015 by default
-        # if args.gran in ['None', 'Kallinger2014']:
-        #     if args.granosc == 'None':
-        #         args.granosc = 'Aigrain2015'
-        # else:
-        #     args.granosc = False
+        # Use Kallinger2014 by default
+        if args.gran == None: 
+            args.gran = 'Kallinger2014'
+        elif not args.gran in ['Kallinger2014']:
+            args.gran = False
+
+        # Use Corsaro2013 by default
+        if args.puls == None: 
+            args.puls = 'Corsaro2013'
+        elif not args.puls in ['Corsaro2013']:
+            args.puls = False
         
-        # Use Aigrain2015 by default (NOTE only model currently)
-        if args.spot == 'None':
+        # Use Aigrain2015 by default
+        if args.spot == None:
             args.spot = 'Aigrain2015'
         elif not args.spot in ['Aigrain2015']:
             args.spot = False
 
         # Use Doorsselaere2017 by default
-        if args.flare == 'None':
-            args.flare = 'Doorsselaere2017'
+        if args.flare == None:
+            if args.spot:
+                args.flare = 'Doorsselaere2017'
+            else:
+                args.flare = 'ToyModel'
         elif not args.flare in ['Doorsselaere2017', 'ToyModel']:
             args.flare = False
 
@@ -868,20 +876,13 @@ class VarSim(object):
 
         if self.verbose > 1:
             errorcode('module', '\nSolar-like oscillations\n')
-
+            print(f'Scaling relation gran : {args.gran}')
+            print(f'Scaling relation puls : {args.puls}')
+            
         # Initialize and prepare model input
         params = [self.Teff, self.R, self.M, self.L]
         model  = SolarLikeOscillator(self.time, params, self.idir, seed=self.seed)
 
-        # Default scaling relations
-        if args.gran is None:
-            args.gran = 'Kallinger2014'
-        if args.puls is None:
-            args.puls = 'Corsaro2013'
-        if self.verbose > 1:
-            print(f'Scaling relation gran : {args.gran}')
-            print(f'Scaling relation puls : {args.puls}')
-            
         # Model granulation
         if args.gran is not None:
             params_gran = model.init_granulation(scaling=args.gran)
@@ -983,7 +984,7 @@ class VarSim(object):
 
         # Start script
         if self.verbose > 1:
-            errorcode('module', '\nSolar flares\n')
+            errorcode('module', '\nStellar flares\n')
         
         # Initialise model
         time  = self.time.to('d').value
@@ -1962,6 +1963,11 @@ class VarSim(object):
         stars    = ['roAp', 'dSct', 'gDor', 'RRLyr', 'Ceph']
         binaries = ['EB', 'SMBH']
 
+        # If all signals are ignored then it is a constant star
+        if ((args.gran is False or args.puls is False) and
+            args.spot is False and args.flare is False):
+            self.star = 'constant'
+            
         # Combine all signals for solar-like stars
         if (not self.star in stars and
             not self.binary in binaries and
@@ -1977,14 +1983,14 @@ class VarSim(object):
                 self.lc['flux'] += self.lc.spot
             if 'flare' in self.lc:
                 self.lc['flux'] += self.lc.flare
-                
+
             # Convert to relative flux to multiply with transits
             self.lc['flux'] = self.lc['flux'] / 1e6 + 1 
                 
             # Spots and transits are multiplicative
             if 'tran' in self.lc:
                 self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
-                
+
             # Plot combined light curve [flux -> ppm]
             if self.plot and self.star != 'constant':
                 lc = self.lc
@@ -2072,14 +2078,14 @@ class VarSim(object):
             # Constant star
             if args.star == 'constant':
                 pass
-            
+
             # Solar-like stars
             elif args.star or args.star_params:
                 if args.spot:
                     v.solar_spots()
                 if args.flare is not False:
                     v.solar_flares()
-                if not args.gran or not args.puls:
+                if args.gran and args.puls:
                     v.solar_granosc()
                     
             # Include exoplanet
@@ -2493,11 +2499,11 @@ star_group = parser.add_argument_group('STAR PARAMETERS')
 star_group.add_argument('--star',     metavar='NAME',     type=str, help='Benchmark star (check --notes)')
 star_group.add_argument('--star_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
                         help='Stellar model parameters (check --notes)')
-star_group.add_argument('--gran',     metavar='RELATION', type=str, help='Scaling relation of Granulation [Kallinger2014, no]')
-star_group.add_argument('--puls',     metavar='RELATION', type=str, help='Scaling relation of Pulsations [Corsaro2013, no]')
-star_group.add_argument('--spot',     metavar='MODEL',    type=str, help='Model of stellar spots [Aigrain2015, no]')
-star_group.add_argument('--flare',    metavar='MODEL',    type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, no]')
-star_group.add_argument('--pulslist', metavar='FILE',     type=str, help='Use file with pulsations [frequencies/(c/d), amplitudes/dmag, phases/rad]')
+star_group.add_argument('--gran',     metavar='MODEL', type=str, help='Model of stellar granulation [Kallinger2014, no]')
+star_group.add_argument('--puls',     metavar='MODEL', type=str, help='Model of stellar pulsations [Corsaro2013, no]')
+star_group.add_argument('--spot',     metavar='MODEL', type=str, help='Model of stellar spots [Aigrain2015, no]')
+star_group.add_argument('--flare',    metavar='MODEL', type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, no]')
+star_group.add_argument('--pulslist', metavar='FILE',  type=str, help='Use file with pulsations [frequencies/(c/d), amplitudes/dmag, phases/rad]')
 
 star_group = parser.add_argument_group('BINARY PARAMETERS')
 star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')

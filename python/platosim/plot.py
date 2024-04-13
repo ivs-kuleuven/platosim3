@@ -3029,10 +3029,11 @@ def plot_final_lc(lc, figsize=(9,8)):
     # Fetch component or set to zero
     
     zeros = np.zeros(len(lc['time']))
-    if 'gran' not in lc: lc.gran = zeros.tolist()
-    if 'puls' not in lc: lc.puls = zeros.tolist()
-    if 'spot' not in lc: lc.spot = zeros.tolist()    
-    if 'tran' not in lc: lc.tran = zeros.tolist()
+    if 'gran'  not in lc: lc.gran  = zeros.tolist()
+    if 'puls'  not in lc: lc.puls  = zeros.tolist()
+    if 'spot'  not in lc: lc.spot  = zeros.tolist()
+    if 'flare' not in lc: lc.flare = zeros.tolist()    
+    if 'tran'  not in lc: lc.tran  = zeros.tolist()
 
     # Handle time units
     

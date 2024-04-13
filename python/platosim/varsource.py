@@ -690,7 +690,7 @@ class StellarFlares(object):
         self.tscale = self.rng.uniform(1, 150, n_flares) / (24 * 60.)
 
         # Amplitude distibution of flares (< 10 ppt) [norm]
-        self.ampl = self.rng.exponential(0.01, n_flares)
+        self.ampl = self.rng.exponential(0.001, n_flares)
 
         return n_rate, n_flares
 
@@ -753,9 +753,8 @@ class StellarFlares(object):
             self.ampl *= activity_rate
                 
         # FWHM time scale of flare [min -> d]
-        scale_fwhm = self.ampl / self.ampl.max() * 2
-        self.tscale = self.rng.uniform(1, 200, n_flares) / (24 * 60.) * scale_fwhm
-
+        scale_fwhm = self.ampl / self.ampl.max() / 2
+        self.tscale = self.rng.uniform(10, 200, n_flares) / (24 * 60.) * scale_fwhm
         return n_rate_a, n_flares
         
 
