@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-This file contains tools to generate artificial noise time series
+This file contains tools to generate and anslyse noise signals.
 """
 
 # Python standard
@@ -31,7 +31,7 @@ day2sec = 86400.
 
 
 #--------------------------------------------------------------#
-#                   TIME AND FREQUENCY DOMAIN                  #
+#                        FREQUENCY DOMAIN                      #
 #--------------------------------------------------------------#
 
 
@@ -154,13 +154,16 @@ def DFTpower2(time, signal, freqs):
 
 
 
-def astropy_scargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
+def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
+
     import astropy.timeseries as apy
+
     # times and signal are mean subtracted (reduce correlation and avoid peak at f=0)
     mean_t = np.mean(times)
     mean_s = np.mean(signal)
     times_ms = times - mean_t
     signal_ms = signal - mean_s
+
     # setup
     n = len(signal)
     t_tot = np.ptp(times_ms)
@@ -171,11 +174,14 @@ def astropy_scargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
         fn = 1 / (2 * np.min(times_ms[1:] - times_ms[:-1]))
     nf = int((fn - f0) / df + 0.001) + 1
     f1 = f0 + np.arange(nf) * df
+
     # use the astropy fast algorithm and normalise afterward
     ls = apy.LombScargle(times_ms, signal_ms, fit_mean=False, center_data=False)
     s1 = ls.power(f1, normalization='psd', method='fast', assume_regular_frequency=True)
+
     # replace negative by zero (just in case - have seen it happen)
     s1[s1 < 0] = 0
+
     # convert to the wanted normalisation
     if norm == 'distribution':  # statistical distribution
         s1 /= np.var(signal_ms)
@@ -183,10 +189,16 @@ def astropy_scargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
         s1 = np.sqrt(4 / n) * np.sqrt(s1)
     elif norm == 'density':  # power density
         s1 = (4 / n) * s1 * t_tot
+        
     return f1, s1
 
 
 
+
+
+#--------------------------------------------------------------#
+#                          TIME DOMAIN                         #
+#--------------------------------------------------------------#
 
 
 def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=False):
@@ -333,6 +345,289 @@ def timeSeriesFromMeanPSD(freq, psd):
 
     return time, signal
 
+
+
+
+
+#--------------------------------------------------------------#
+#                     OPTIMUM SNR CRITERION                    #
+#--------------------------------------------------------------#
+
+
+def getNoisePeakSNR(cadence, quarters=1, N=1000, odir=None):
+
+    """Find SNR of largest noise peak.
+
+    This function generates a white noise PLATO light curve with
+    a duration equal to the number of mission quarters parsed.
+    Note that it is assumed that two days are lost overall for
+    every mission quarter.
+
+    Parameters
+    ----------
+    cadence : int
+        Cadence (exposure + readout time) for observation [s]
+    quarters : int
+        Number of mission quarters (e.g. 1, 2, ...)
+    N : int 
+        Number of iterative calculations to make
+    odir : str
+        Output directory to save file (handy for large N)
+
+    Returns
+    -------
+    Data frame with N number of SNR values. 
+
+    NOTE this function needs platonium packages.
+    """
+        
+    from tqdm import tqdm
+
+    # Prepare for calculation
+    
+    texp = cadence / 86400.
+    tdur = quarters * (quarter() - 2)
+    time = np.arange(0, tdur, texp)
+    df   = 0.1 / np.ptp(time)
+    snr  = np.zeros(N)
+
+    # Loop over N iterations
+    
+    for i in tqdm(range(N), bar_format=tqdmBar()):
+        
+        noise = np.random.normal(0, 1, len(time))
+        freq, ampl = astropyLombScargle(time, noise, df=df)        
+        ampl /= np.median(ampl)
+        snr[i] = np.max(ampl) / np.median(ampl)
+
+    dx = pd.DataFrame({'snr':snr})
+
+    # Save output file
+    
+    if odir:
+        filename = f'{odir}/snr_quarters{quarters}_cadence{cadence}.ftr'
+        dx.to_feather(filename)
+
+    return dx
+
+
+
+
+
+def plotNoisePeakSNR(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
+
+    """Plot SNR histogram of largest noise peak and FAP.
+
+    Parameters
+    ----------
+    path : str
+        Directory where SNR file are stored 
+    cadence : int
+        Cadence (exposure + readout time) for observation [s]
+    quarters : int
+        Number of mission quarters (e.g. 1, 2, ...)
+    fap : float 
+        False Alarm Probability (FAP) matching SNR criterion
+    bins : int
+        Number of histogram bins to plot
+    figsize : mpl object
+        Matplotlib figure object to alter figure dimentions
+
+    Returns
+    -------
+    fig, ax : mpl figure objects
+
+    NOTE this function needs platonium packages.
+    """
+
+    import platosim.statistics as st
+
+    # Load file with SNR values    
+    
+    filename = f'{path}/snr_quarters{quarters}_cadence{cadence}.ftr'
+    dx = pd.read_feather(filename)
+
+    # Calculate requested FAP
+    
+    snr_fap = st.hist_fap(dx.snr, fap=fap)[0]
+
+    # Start plotting
+
+    fig, ax = plt.subplots(1,1, figsize=figsize)
+    # Plots
+    ax.hist(dx, bins=bins, histtype='step', label=r'$\Delta t = $'+f' {cadence}s',
+            fc='b', ec='b', fill=True, alpha=0.3)
+    ax.axvline(x=snr_fap, c="b", ls="--", lw=1.5, zorder=2)
+    # Settings
+    ax.set_xlabel(r'SNR amplitude')
+    ax.set_ylabel('Number of stars')
+    # Settings
+    ax.legend(loc='upper right')
+    plt.tight_layout()
+    plt.show()
+
+    # Print best SNR criterions
+    print(snr_fap)
+    
+    return fig, ax
+
+
+
+
+
+
+def getMultiCadenceNoisePeakSNR(quarters=1, N=1000, odir=None):
+
+    """Find SNR of largest noise peak.
+
+    This is a custom function to calculate the SNR for
+    the three cadences {25 50, 600} seconds.
+
+    Parameters
+    ----------
+    quarters : int
+        Number of mission quarters (e.g. 1, 2, ...)
+    N : int 
+        Number of iterative calculations to make
+    odir : str
+        Output directory to save file (handy for large N)
+
+    Returns
+    -------
+    Data frame with N number of SNR values. 
+
+    NOTE this function needs platonium packages.
+    """
+    
+    from tqdm import tqdm
+
+    # Prepare for calculation
+    
+    tdur = quarters * (quarter() - 2)
+    cadence = np.array([25, 50, 600]) / 86400
+    time0 = np.arange(0, tdur, cadence[0])
+    time1 = np.arange(0, tdur, cadence[1])
+    time2 = np.arange(0, tdur, cadence[2])
+    df0 = 0.1 / np.ptp(time0)
+    df1 = 0.1 / np.ptp(time1)
+    df2 = 0.1 / np.ptp(time2)
+    snr = np.zeros((N, 3))
+
+    # Loop over N iterations
+    
+    for i in tqdm(range(N), bar_format=tqdmBar()):
+    
+        noise0 = np.random.normal(0, 1, len(time0))
+        noise1 = np.random.normal(0, 1, len(time1))
+        noise2 = np.random.normal(0, 1, len(time2))
+
+        # Introduce 2 day gaps (do not work with simple DFT)
+        # for i in range(1, quarters+1):
+        #     t0 = (i * quarter()) - 2
+        #     t1 =  i * quarter()
+        #     dex0 = np.where((time0 > t0) & (time0 < t1))
+        #     dex1 = np.where((time1 > t0) & (time1 < t1))
+        #     dex2 = np.where((time2 > t0) & (time2 < t1))
+        #     time0  = np.delete(time0, dex0)
+        #     time1  = np.delete(time1, dex1)
+        #     time2  = np.delete(time2, dex2)
+        #     noise0 = np.delete(noise0, dex0)
+        #     noise1 = np.delete(noise1, dex1)
+        #     noise2 = np.delete(noise2, dex2)
+        
+        freq0, ampl0 = astropyLombScargle(time0, noise0, df=df0)
+        freq1, ampl1 = astropyLombScargle(time1, noise1, df=df1)
+        freq2, ampl2 = astropyLombScargle(time2, noise2, df=df2)
+        
+        ampl0 /= np.median(ampl0)
+        ampl1 /= np.median(ampl1)
+        ampl2 /= np.median(ampl2)
+    
+        snr[i, 0] = np.max(ampl0) / np.median(ampl0)
+        snr[i, 1] = np.max(ampl1) / np.median(ampl1)
+        snr[i, 2] = np.max(ampl2) / np.median(ampl2)
+
+    dx = pd.DataFrame({'snr25':snr[:,0], 'snr50':snr[:,1], 'snr600':snr[:,2]})
+
+    # Save output to file
+    
+    if odir:
+        filename = f'{path}/snr_quarters{quarters}.ftr'
+        dx.to_feather(filename)
+
+    return dx
+    
+
+
+
+
+def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
+                                 show_snr=False, figsize=(8,5)):
+
+    """Plot SNR histogram of largest noise peak and FAP.
+    
+    This is a custom function to plot the SNR for
+    the three cadences {25 50, 600} seconds.
+
+    Parameters
+    ----------
+    path : str
+        Directory where SNR file are stored 
+    quarters : int
+        Number of mission quarters (e.g. 1, 2, ...)
+    fap : float 
+        False Alarm Probability (FAP) matching SNR criterion
+    bins : int
+        Number of histogram bins to plot
+    figsize : mpl object
+        Matplotlib figure object to alter figure dimentions
+
+    Returns
+    -------
+    fig, ax : mpl figure objects
+
+    NOTE this function needs platonium packages.
+    """
+    
+    import platosim.statistics as st
+
+    # Load file with SNR values
+    
+    filename = f'{odir}/snr_quarters{quarters}.ftr'
+    dx = pd.read_feather(filename)
+
+    # Calculate requested FAP
+    
+    snr_fap0 = st.hist_fap(dx.iloc[:,0], fap=fap)[0]
+    snr_fap1 = st.hist_fap(dx.iloc[:,1], fap=fap)[0]
+    snr_fap2 = st.hist_fap(dx.iloc[:,2], fap=fap)[0]
+
+    # Start plotting
+    
+    fig, ax = plt.subplots(1,1, figsize=figsize)
+    # Plots
+    ax.hist(dx.iloc[:,0], bins=bins, histtype='step', label=r'$\Delta t = 25$s',
+            fc='b', ec='b', fill=True, alpha=0.3)
+    ax.hist(dx.iloc[:,1], bins=bins, histtype='step', label=r'$\Delta t = 50$s',
+            fc='g', ec='g', fill=True, alpha=0.3)
+    ax.hist(dx.iloc[:,2], bins=bins, histtype='step', label=r'$\Delta t = 600$s',
+            fc='m', ec='m', fill=True, alpha=0.3)
+    ax.axvline(x=snr_fap0, c="b", ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=snr_fap1, c="g", ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=snr_fap2, c="m", ls="--", lw=1.5, zorder=2)
+    # Labels
+    ax.set_xlabel(r'SNR amplitude')
+    ax.set_ylabel('Number of stars')
+    # Settings
+    ax.legend(loc='upper right')
+    plt.tight_layout()
+    plt.show()
+
+    # Print best SNR criterions
+    if show_snr:
+        print([snr_fap0, snr_fap1, snr_fap2])
+    
+    return fig, ax
 
 
 
@@ -1159,7 +1454,7 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
 
 
-def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.1, timeSpan=30,
+def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.1,timeSpan=30,
                           timeScale=False, amplitude=False, ofile=False, plot=False):
 
     """Function to model detector temperature transients.

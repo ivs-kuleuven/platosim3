@@ -975,14 +975,14 @@ def getPointingField(name, unit='deg'):
           'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
           'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
           'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0],      # TN of KUL20
-          'JUAN':  [ 86.79870,    -46.395950,    2.74]}     # Test for Juan
+          'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # TN of KUL20
 
     # Check data field exists
     
-    try: p = PF[name]
-    except KeyError: errorcode('error', 'Not valid PLATO field! ' +
-                               'Options: {LOPS2, LOPN1, SFP, NPF}')
+    try:
+        p = PF[name]
+    except KeyError:
+        errorcode('error', 'Not valid PLATO field! Options: {LOPS2, LOPN1, SPF, NPF}')
 
     # Convert units and return
     
