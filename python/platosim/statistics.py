@@ -21,6 +21,26 @@ from statsmodels.graphics.gofplots import qqplot
 #                       OLS/WLS STATISTICS                     #
 #--------------------------------------------------------------#
 
+def hist_fap(hist, fap=0.1):
+
+    """Calculate the False Alarm Probability (PAP) of a histogram.
+
+    hist : ndarray
+         Array of histogram counts
+    fap : float
+        False Alarm Probability (FAP) in percent [%]
+    """
+    
+    wanted_percentiles = [100-fap]
+    sx = np.array(hist)
+    sx.sort()
+    cx = sx.cumsum()
+    percentile_sx = [sx[int(len(hist) * p / 100.)] for p in wanted_percentiles]
+    percentile_cx = [sx[cx.searchsorted(cx[-1] * p / 100)] for p in wanted_percentiles]
+
+    return percentile_cx
+
+
 
 def colortheme(theme):
 

@@ -154,6 +154,40 @@ def DFTpower2(time, signal, freqs):
 
 
 
+def astropy_scargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
+    import astropy.timeseries as apy
+    # times and signal are mean subtracted (reduce correlation and avoid peak at f=0)
+    mean_t = np.mean(times)
+    mean_s = np.mean(signal)
+    times_ms = times - mean_t
+    signal_ms = signal - mean_s
+    # setup
+    n = len(signal)
+    t_tot = np.ptp(times_ms)
+    f0 = max(f0, 0.01 / t_tot)  # don't go lower than T/100
+    if (df == 0):
+        df = 0.1 / t_tot
+    if (fn == 0):
+        fn = 1 / (2 * np.min(times_ms[1:] - times_ms[:-1]))
+    nf = int((fn - f0) / df + 0.001) + 1
+    f1 = f0 + np.arange(nf) * df
+    # use the astropy fast algorithm and normalise afterward
+    ls = apy.LombScargle(times_ms, signal_ms, fit_mean=False, center_data=False)
+    s1 = ls.power(f1, normalization='psd', method='fast', assume_regular_frequency=True)
+    # replace negative by zero (just in case - have seen it happen)
+    s1[s1 < 0] = 0
+    # convert to the wanted normalisation
+    if norm == 'distribution':  # statistical distribution
+        s1 /= np.var(signal_ms)
+    elif norm == 'amplitude':  # amplitude spectrum
+        s1 = np.sqrt(4 / n) * np.sqrt(s1)
+    elif norm == 'density':  # power density
+        s1 = (4 / n) * s1 * t_tot
+    return f1, s1
+
+
+
+
 
 def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=False):
 
@@ -682,7 +716,7 @@ def getAPE(alpha, delta, kappa, sigma=3,
 
 
 
-def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
+def getTED(quarter, model="poly", wheel_offloading=True, ampl=2,
            ofile=False, seed=None, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
@@ -707,7 +741,7 @@ def getTED(quarter, model="poly", wheel_offloading=True, ampl=3.5,
 
     # Random number generator
     rng = ut.rng(seed)
-    
+
     # Constants
     time0 = np.arange(0, ut.year()/4, 25)
     cols  = ["yaw", "pitch", "roll"]
