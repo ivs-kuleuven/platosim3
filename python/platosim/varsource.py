@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-This script contains all relevant functions and classes that 
-are used by the PLATOnium script "varsim.py".
+This file contains all relevant functions and classes 
+that are used by the PLATOnium script "varsim.py".
 
 NOTE This class needs the Poetry install: 
      >> poetry install --with platonium 
@@ -659,12 +659,12 @@ class StellarFlares(object):
     the wanted flares.
     """
 
-    def __init__(self, time, BC=None, seed=False):
+    def __init__(self, time, scale=None, seed=False):
         
         # Store array
-        self.time = time
-        self.rng  = ut.rng(seed)
-        self.BC   = BC
+        self.time  = time
+        self.scale = scale
+        self.rng   = ut.rng(seed)
 
         
 
@@ -762,8 +762,8 @@ class StellarFlares(object):
     def evaluate(self):
 
         # Apply bolometric correction
-        if self.BC:
-            self.ampl *= self.BC
+        if self.scale:
+            self.ampl *= self.scale
 
         # Prepare flux array
         self.flux = np.ones_like(self.time)
@@ -1226,10 +1226,11 @@ class SurfaceModulations(object):
     PLATO passband.
     """
 
-    def __init__(self, time, seed=None):
+    def __init__(self, time, scale=None, seed=None):
         
-        self.time = time
-        self.rng  = ut.rng(seed)
+        self.time  = time
+        self.scale = scale       
+        self.rng   = ut.rng(seed)
     
 
         
@@ -1253,6 +1254,10 @@ class SurfaceModulations(object):
         
         # Create light curve
         mag = np.cos(2*np.pi * (self.time/P)) + A * np.cos(4*np.pi * (self.time/P) + phi)
+    
+        # Apply passband correction
+        if self.scale:
+            amplitude_range *= self.scale
 
         # Scale amplitude within the range
         scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
@@ -1292,11 +1297,11 @@ class Pulsator(object):
     """Class to generate time series from list of pulsation modes.
     """
 
-    def __init__(self, time, power, BC=None, seed=False):
+    def __init__(self, time, power, scale=None, seed=None):
 
         self.time  = time
         self.power = power
-        self.BC    = BC
+        self.scale = scale
         
         # Random number generator
         self.rng = ut.rng(seed)
@@ -1412,10 +1417,6 @@ class Pulsator(object):
         # Convert freq unit [c/d]
         if freq_unit == 'day':
             self.df.freq = 1 / self.df.freq
-
-        # Apply bolometric correction
-        if self.BC:
-            self.ampl_unit *= self.BC
                 
         # Convert ampl unit [mag]
         if ampl_unit == 'mmag':
@@ -1446,9 +1447,8 @@ class Pulsator(object):
         P0_kde    = scipy.stats.gaussian_kde(dm.P0)
         dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
         slope_kde = scipy.stats.gaussian_kde(dm.slope)
-        A_kde     = scipy.stats.gaussian_kde(dm.A_max)
         
-        # Select number modes
+        # Select number modes (secure at least 5 modes)
         N_ran = np.arange(dm.N.min(), dm.N.max(), 1)
         N = int(pd.Series(N_ran).sample(1, weights=N_kde(N_ran)).to_numpy()[0])
         if N < 5: N = 5
@@ -1487,9 +1487,9 @@ class Pulsator(object):
         A_i[n_max] = A_i[n_dex]
         A_i[n_dex] = A_max0
 
-        # Apply bolometric correction
-        if self.BC:
-            A_i = (1 - ut.fromMagToFlux(A_i)) * self.BC
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
         
         # Draw random periods not part of the pattern (max 1/8 of ampl)
@@ -1541,6 +1541,11 @@ class Pulsator(object):
         param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
         A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
@@ -1967,10 +1972,14 @@ class SMBHB(object):
         plt.tight_layout()
         plt.show()
     
-    
+
+
+
+        
 #==============================================================#
 #                         EXOPLANETS                           #
 #==============================================================#
+
 
 class Exoplanet(object):
 
