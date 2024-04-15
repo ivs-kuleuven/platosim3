@@ -315,11 +315,13 @@ class VarSim(object):
         self.timeStart = timeStart * u.d
 
         # Load the instrument passband
-        if args.inst: self.intrument = args.inst
-        else: self.instrument = 'plato'
+        if args.inst:
+            self.intrument = args.inst
+        else:
+            self.instrument = 'plato'
         passband = pd.read_csv(self.idir + f'/passband_{self.instrument}.txt', comment='#')
         self.wvl_tele = passband.wavelength.to_numpy() * u.nm  # Wavelengths [nm]
-        self.tra_tele = passband.passband.to_numpy()           # Normalized transmission
+        self.tra_tele = passband.absolute.to_numpy()           # Absolute transmission
         
         # Define pandas data frame to store all signals
         self.lc = pd.DataFrame(data=self.time.to('s').value, columns=['time'])
@@ -737,28 +739,25 @@ class VarSim(object):
         
 
 
-            
+                    
     def stellar_spectrum(self):
 
         """Calculates the bolometric correction from high-res spectra.
         
-        This function uses the model grid method described in Sarkar+2018:
-        https://academic.oup.com/mnras/article/481/3/2871/5092616
-
-        # NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
+        NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
         """
 
         if self.verbose > 1:
             errorcode('module', '\nStellar spectrum\n')
         
        # Load parameters
-        wvl_tele  = self.wvl_tele.to('AA').value
-        tran_tele = self.tra_tele
         Teff = self.Teff.value
         logg = self.logg
         Z    = self.Z
         R    = self.R
         L    = self.L
+        wvl_tele  = self.wvl_tele.to('AA').value
+        tran_tele = self.tra_tele
         
         # Initialise class for synthetic spectra
         spec = Spectrum(verbose=self.verbose)
@@ -779,69 +778,153 @@ class VarSim(object):
 
         # Fetch high resolution spectra
         if Teff <= 12200:
-            wvl1_in, flux1_in = spec.getPhoenixHiResFITS(Teff_lower, logg, Z, alpha=0)
-            wvl2_in, flux2_in = spec.getPhoenixHiResFITS(Teff_upper, logg, Z, alpha=0)
+            self.wvl1_in, self.flux1_in = spec.getPhoenixHiResFITS(Teff_lower, logg, Z, 0)
+            self.wvl2_in, self.flux2_in = spec.getPhoenixHiResFITS(Teff_upper, logg, Z, 0)
         else:
-            wvl1_in, flux1_in = spec.getAtlasFITS(Teff_lower, logg, Z, alpha=0)
-            wvl2_in, flux2_in = spec.getAtlasFITS(Teff_upper, logg, Z, alpha=0)
-        
-        # Cut off IR part TODO delete?
-        # wvl_max  = 13000
-        # dex      = np.where(wvl1_in > wvl_max)
-        # wvl1_in  = np.delete(wvl1_in, dex)      # [AA]
-        # wvl2_in  = np.delete(wvl2_in, dex)      # [AA]
-        # flux1_in = np.delete(flux1_in, dex)     # [ergs/s/cm2/AA]
-        # flux2_in = np.delete(flux2_in, dex)     # [ergs/s/cm2/AA]
-        
+            self.wvl1_in, self.flux1_in = spec.getAtlasFITS(Teff_lower, logg, Z, alpha=0)
+            self.wvl2_in, self.flux2_in = spec.getAtlasFITS(Teff_upper, logg, Z, alpha=0)
+                
         # Check that the interpolation between the two SEDs can be done
-        if len(wvl1_in) != len(wvl2_in):
-            errorcode('error', 'Spectra are not of same size! Check interpolation')
+        if len(self.wvl1_in) != len(self.wvl2_in):
+            errorcode('error', 'Spectra are not of the same size! Check interpolation')
 
         # Create SED for star by interpolating nearby absolutely calibrated spectra
-        wvl  = (wvl1_in + wvl2_in) / 2.
-        flux = (flux1_in + (Teff-Teff_lower) * (flux2_in-flux1_in) *
-                float(Teff_upper-Teff_lower)**-1)
+        self.wvl_star  = (self.wvl1_in + self.wvl2_in) / 2.
+        self.flux_star = (self.flux1_in + (Teff-Teff_lower) * (self.flux2_in-self.flux1_in) *
+                          float(Teff_upper-Teff_lower)**-1)
 
-        # Measure bolometric luminosity from SED [ergs/s]
-        L1_bolometric = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux1_in, wvl1_in)
-        L2_bolometric = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux2_in, wvl2_in)
+        # Consistnecy check
+        if self.verbose > 1:
+            Lum = 4*np.pi*(R.cgs.value)**2 * np.trapz(self.flux_star, self.wvl_star)
+            print(f'Theoretical luminosity : {L.to("erg/s"):.3e}')
+            print(f'Synthetic   luminosity : {Lum * u.erg/u.s:.3e}\n')            
+
+        # Rebinned spectrum
+        wvl_equi = np.arange(wvl_tele[0], wvl_tele[-1], 1)
+        wvl_equi, flux_equi = ut.rebin3(wvl_equi, self.wvl_star, self.flux_star)
+
+        # Get passband correction TODO absolute of TESS!
+        #self.corr_tess   = self.passband_correction(passband_a='plato', passband_b='tess')
+        self.scale_kepler = self.passband_correction(passband_a='plato', passband_b='kepler')
+        self.luminosity_correction()
+        if self.verbose > 1:
+            print(f'Amplitude correction for oscillations  : {self.bol_coeff:.3f}')
+            print(f'Passband  correction (Kepler -> PLATO) : {self.scale_kepler:.3f}')
+
+        # Plot interpolation
+        if args.plot:
+            pt.plotSED(self.wvl_star,  self.wvl1_in,  self.wvl2_in,  wvl_equi,
+                       self.flux_star, self.flux1_in, self.flux2_in, flux_equi,
+                       Teff, Teff_upper, Teff_lower)
+
+        
+
             
+            
+    def passband_correction(self, passband_a='plato', passband_b='kepler'):
+
+        """Fetch passband data.
+        """
+
+        # Fetch passbands
+        N = 10000
+        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True,n=N)
+        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True,n=N)
+
+        # Fetch stellar spectrum
+        wave_star = self.wvl_star / 10 # [AA -> nm]
+        flux_star = self.flux_star
+        
+        # Flux within passband A and rebin to equidistant grid
+        dex_wave_min_a = ut.findNearestIndex(wave_star, wave_a[0])
+        dex_wave_max_a = ut.findNearestIndex(wave_star, wave_a[-1])
+        wave_star_a    = wave_star[dex_wave_min_a:dex_wave_max_a]
+        flux_star_a    = flux_star[dex_wave_min_a:dex_wave_max_a]
+        wave_equi_a, flux_equi_a = ut.rebin3(wave_a, wave_star, flux_star)
+
+        # Flux within passband B and rebin to equidistant grid
+        dex_wave_min_b = ut.findNearestIndex(wave_star, wave_b[0])
+        dex_wave_max_b = ut.findNearestIndex(wave_star, wave_b[-1])
+        wave_star_b    = wave_star[dex_wave_min_b:dex_wave_max_b]
+        flux_star_b    = flux_star[dex_wave_min_b:dex_wave_max_b]
+        wave_equi_b, flux_equi_b = ut.rebin3(wave_b, wave_star, flux_star)
+
+        # Flux within passbands
+        flux_tran_a = flux_equi_a * tran_a
+        flux_tran_b = flux_equi_b * tran_b
+
+        # Integrate to find ratio for correction
+        F_a = np.trapz(flux_tran_a, wave_equi_a)
+        F_b = np.trapz(flux_tran_b, wave_equi_b)
+
+        # Debug-------------------------------------------
+        # plt.figure(figsize=(8,6))
+        # plt.plot(wave_equi_a, flux_tran_a, 'k-', lw=1, label=passband_a)
+        # plt.plot(wave_equi_b, flux_tran_b, 'b-', lw=1, label=passband_b, alpha=0.7)
+        # ylab = r'$T_{\lambda} \cdot F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ \AA$^{-1}$ sr$^{-1}$]'
+        # plt.xlabel('Wavelength [nm]')
+        # plt.ylabel(ylab)
+        # plt.xlim(min(wave_equi_a[0], wave_equi_b[0]),
+        #          max(wave_equi_a[-1], wave_equi_b[-1]))
+        # plt.legend()
+        # plt.tight_layout()
+        # plt.show()
+        #-------------------------------------------------
+        
+        return F_a / F_b
+
+        
+            
+
+    def luminosity_correction(self):
+
+        """Compute the luminosity gradient.
+
+        This correction is used to scale the p-mode oscillation
+        ampltitudes as function of the luminosity gradient.
+
+        This function uses the model grid method described in Sarkar+2018:
+        https://academic.oup.com/mnras/article/481/3/2871/5092616
+        """
+        
+        # Load parameters
+        Teff = self.Teff.value
+        logg = self.logg
+        Z    = self.Z
+        R    = self.R
+        L    = self.L        
+        wvl_tele  = self.wvl_tele.to('AA').value
+        tran_tele = self.tra_tele
+        
+        # Measure bolometric luminosity from SED [ergs/s]
+        L1_bolometric = 4*np.pi*(R.cgs.value)**2 * np.trapz(self.flux1_in, self.wvl1_in)
+        L2_bolometric = 4*np.pi*(R.cgs.value)**2 * np.trapz(self.flux2_in, self.wvl2_in)
+        
         # Luminosity amplitude gradient in passband
-        dex_wvl_min = ut.findNearestIndex(wvl, wvl_tele[0])
-        dex_wvl_max = ut.findNearestIndex(wvl, wvl_tele[-1])
+        dex_wvl_min = ut.findNearestIndex(self.wvl_star, wvl_tele[0])
+        dex_wvl_max = ut.findNearestIndex(self.wvl_star, wvl_tele[-1])
         if dex_wvl_max - dex_wvl_min == 1:
             L1_passband = (4*np.pi * (R.cgs.value)**2 *
-                           ( wvl1_in[dex_wvl_max] -  wvl1_in[dex_wvl_min]) *
-                           (flux1_in[dex_wvl_max] + flux1_in[dex_wvl_min]) / 2.)
+                           ( self.wvl1_in[dex_wvl_max] -  self.wvl1_in[dex_wvl_min]) *
+                           (self.flux1_in[dex_wvl_max] + self.flux1_in[dex_wvl_min]) / 2.)
             L2_passband = (4*np.pi * (R.cgs.value)**2 *
-                           ( wvl2_in[dex_wvl_max] -  wvl2_in[dex_wvl_min]) *
-                           (flux2_in[dex_wvl_max] + flux2_in[dex_wvl_min]) / 2.)
+                           ( self.wvl2_in[dex_wvl_max] -  self.wvl2_in[dex_wvl_min]) *
+                           (self.flux2_in[dex_wvl_max] + self.flux2_in[dex_wvl_min]) / 2.)
         else:
             L1_passband = (4*np.pi * (R.cgs.value)**2 *
-                           np.trapz(flux1_in[dex_wvl_min:dex_wvl_max],
-                                     wvl1_in[dex_wvl_min:dex_wvl_max]))
+                           np.trapz(self.flux1_in[dex_wvl_min:dex_wvl_max],
+                                     self.wvl1_in[dex_wvl_min:dex_wvl_max]))
             L2_passband = (4*np.pi * (R.cgs.value)**2 *
-                           np.trapz(flux2_in[dex_wvl_min:dex_wvl_max],
-                                     wvl2_in[dex_wvl_min:dex_wvl_max]))
+                           np.trapz(self.flux2_in[dex_wvl_min:dex_wvl_max],
+                                     self.wvl2_in[dex_wvl_min:dex_wvl_max]))
         
         # Bolometric cofficient
         self.bol_coeff = (ut.diff(L2_passband,   L1_passband) /
                           ut.diff(L2_bolometric, L1_bolometric))
-        
-        # Consistnecy check
-        if self.verbose > 1:
-            Lum = 4*np.pi*(R.cgs.value)**2 * np.trapz(flux, wvl)
-            print(f'Theoretical luminosity : {L.to("erg/s"):.3e}')
-            print(f'Synthetic   luminosity : {Lum * u.erg/u.s:.3e}')            
-            print(f'Bolometric coefficient : {self.bol_coeff:.4f}')
 
         # Return parameters
         self.df['BC'] = self.bol_coeff
             
-        # Rebinned spectrum TODO delete?
-        wvl_equi = np.arange(wvl_tele[0], wvl_tele[-1], 1)
-        wvl_equi, flux_equi = ut.rebin3(wvl_equi, wvl, flux)
-
         # # Absolute bolometric magnitude of star TODO delete?
         # M_bolometric = round(ut.diff(L2_bolometric, L1_bolometric) /
         #                      ut.diff(Teff_upper, Teff_lower), 2)
@@ -852,14 +935,6 @@ class VarSim(object):
         #     print(f'Absolute magnitude bol : {round(M_bolometric, 4)}')
         #     print(f'Absolute magnitude lam : {round(M_passband,   4)}')            
         
-        # PROLOGUE
-
-        # Plot interpolation
-        if args.plot:
-            pt.plotSED(wvl, wvl1_in, wvl2_in, wvl_equi,
-                       flux, flux1_in, flux2_in, flux_equi,
-                       Teff, Teff_upper, Teff_lower)
-
 
 
 
@@ -878,6 +953,9 @@ class VarSim(object):
             errorcode('module', '\nSolar-like oscillations\n')
             print(f'Scaling relation gran : {args.gran}')
             print(f'Scaling relation puls : {args.puls}')
+
+        # Get amplitude correction
+        self.luminosity_correction()
             
         # Initialize and prepare model input
         params = [self.Teff, self.R, self.M, self.L]
@@ -988,7 +1066,7 @@ class VarSim(object):
         
         # Initialise model
         time  = self.time.to('d').value
-        model = StellarFlares(time, seed=self.seed)
+        model = StellarFlares(time, scale=self.scale_kepler, seed=self.seed)
             
         # Select model
         
@@ -1043,7 +1121,7 @@ class VarSim(object):
         # Start script
         if self.verbose > 1:
             errorcode('module', '\nbeta Cephei pulsator\n')
-
+            
         # Initialize and prepare model input
         time  = self.time.to('d').value
         model = GravityOscillator(time, power=1.0, seed=self.seed)
@@ -1053,7 +1131,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+        self.lc['flux'] = ut.fromMagToFlux(mag) * self.corr_tess
 
 
 
@@ -1067,7 +1145,7 @@ class VarSim(object):
         # Start script
         if self.verbose > 1:
             errorcode('module', '\ndelta Scuti pulsator\n')
-
+            
         # Initialize and prepare model input
         time  = self.time.to('d').value
         model = Pulsator(time, power=1.0, seed=self.seed)
@@ -1120,7 +1198,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=2.2, BC=self.bol_coeff, seed=self.seed)
+        model = Pulsator(time, power=2.2, scale=self.scale_kepler, seed=self.seed)
         
         # Check model parsed
         
@@ -1177,7 +1255,7 @@ class VarSim(object):
 
         # Initialize class
         time  = self.time.to('d').value
-        model = SurfaceModulations(time, seed=self.seed)
+        model = SurfaceModulations(time, self.corr_kepler, seed=self.seed)
 
         # Prepare model parameters
         params = model.initToyModel()
@@ -1248,7 +1326,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=1, seed=self.seed)
+        model = Pulsator(time, power=1, scale=self.corr_kepler, seed=self.seed)
         
         # Check variable model parsed
         
@@ -1262,7 +1340,7 @@ class VarSim(object):
             
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
 
@@ -1278,7 +1356,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=1, seed=self.seed)
+        model = Pulsator(time, 1, self.corr_kepler, self.seed)
         
         # Check variable model parsed
 
@@ -1292,7 +1370,7 @@ class VarSim(object):
             
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
 
@@ -1304,7 +1382,7 @@ class VarSim(object):
         """
 
         if self.verbose > 1:
-            errorcode('module', '\nLPV pulsator\n')
+            errorcode('module', '\nLong Period Variable\n')
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
@@ -2056,7 +2134,7 @@ class VarSim(object):
 
         # Bolometric correction
         self.stellar_spectrum()
-                        
+        
         # Include stellar variability
            
         if args.star == 'gDor':
@@ -2349,11 +2427,12 @@ class VarSim(object):
                     # Later spectral types are more likely to have spots:
                     # NOTE Colour cut is transition region -> rad. vs. conv. envelopes
                     if self.df.BP_RP > 0.4:
-                        if   self.df.spec == 'F': p_spot = 0.2
-                        elif self.df.spec == 'G': p_spot = 0.8
-                        elif self.df.spec == 'K': p_spot = 0.9
-                        elif self.df.spec == 'M': p_spot = 1.0
-                        p_spot = ss.rv_discrete(values=(vals, (1-p_spot, p_spot))).rvs()
+                        # if   self.df.spec == 'F': p_spot = 0.2
+                        # elif self.df.spec == 'G': p_spot = 0.8
+                        # elif self.df.spec == 'K': p_spot = 0.9
+                        # elif self.df.spec == 'M': p_spot = 1.0
+                        # p_spot = ss.rv_discrete(values=(vals, (1-p_spot, p_spot))).rvs()
+                        p_spot = 1
                         
                     # Probability of flares TODO probabilities?
                     # Later spectral types are more likely to have flares

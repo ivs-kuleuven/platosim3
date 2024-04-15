@@ -975,14 +975,14 @@ def getPointingField(name, unit='deg'):
           'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
           'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
           'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0],      # TN of KUL20
-          'JUAN':  [ 86.79870,    -46.395950,    2.74]}     # Test for Juan
+          'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # TN of KUL20
 
     # Check data field exists
     
-    try: p = PF[name]
-    except KeyError: errorcode('error', 'Not valid PLATO field! ' +
-                               'Options: {LOPS2, LOPN1, SFP, NPF}')
+    try:
+        p = PF[name]
+    except KeyError:
+        errorcode('error', 'Not valid PLATO field! Options: {LOPS2, LOPN1, SPF, NPF}')
 
     # Convert units and return
     
@@ -1194,169 +1194,6 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
     signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
 
     return noise / signal
-
-
-
-
-
-
-def snr_noise_peak0(path, cadence, quarters=1, N=1000):
-
-    # Import star shadow module
-    from tqdm import tqdm
-    from star_shadow.timeseries_functions import extract_single
-    from platosim.noise import astropy_scargle
-
-    
-    texp = cadence / 86400.
-    tdur = quarters * (quarter() - 2)
-    time = np.arange(0, tdur, texp)
-    df   = 0.1 / np.ptp(time)
-    snr  = np.zeros(N)
-    
-    for i in tqdm(range(N), bar_format=tqdmBar()):
-    
-        noise = np.random.normal(0, 1, len(time))
-        freq, ampl = astropy_scargle(time, noise, df=df)        
-        ampl /= np.median(ampl)
-        snr[i] = np.max(ampl) / np.median(ampl)
-
-    filename = f'{path}/snr_quarters{quarters}_cadence{cadence}.ftr'
-    dx = pd.DataFrame({'snr':snr})
-    dx.to_feather(filename)
-
-    return dx
-
-
-
-def snr_plot0(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
-
-    import platosim.statistics as st
-    filename = f'{path}/snr_quarters{quarters}_cadence{cadence}.ftr'
-    dx = pd.read_feather(filename)
-    snr_fap = st.hist_fap(dx.snr, fap=fap)[0]
-    
-    fig, ax = plt.subplots(1,1, figsize=figsize)
-    
-    # Plots
-    h1 = ax.hist(dx, bins=bins, histtype='step', label=r'$\Delta t = $'+f' {cadence}s',
-                 fc='b', ec='b', fill=True, alpha=0.3)
-    ax.axvline(x=snr_fap, c="b", ls="--", lw=1.5, zorder=2)
-    
-    # Settings
-    ax.legend(loc='upper right')
-    ax.set_xlabel(r'SNR amplitude')
-    ax.set_ylabel('Number of stars')
-    plt.tight_layout()
-    plt.show()
-
-    # Print best SNR criterions
-    print(snr_fap)
-    
-    return fig, ax
-
-
-
-
-
-
-def snr_noise_peak(path, quarters=1, N=1000):
-
-    # Import star shadow module
-    from tqdm import tqdm
-    from star_shadow.timeseries_functions import extract_single
-    from platosim.noise import astropy_scargle
-    
-    tdur = quarters * (quarter() - 2)
-    cadence = np.array([25, 50, 600]) / 86400
-
-    time0 = np.arange(0, tdur, cadence[0])
-    time1 = np.arange(0, tdur, cadence[1])
-    time2 = np.arange(0, tdur, cadence[2])
-    
-    df0 = 0.1 / np.ptp(time0)
-    df1 = 0.1 / np.ptp(time1)
-    df2 = 0.1 / np.ptp(time2)
-
-    snr = np.zeros((N, 3))
-    
-    for i in tqdm(range(N), bar_format=tqdmBar()):
-    
-        noise0 = np.random.normal(0, 1, len(time0))
-        noise1 = np.random.normal(0, 1, len(time1))
-        noise2 = np.random.normal(0, 1, len(time2))
-
-        # Introduce 2 day gaps (do not work with simple DFT)
-        # for i in range(1, quarters+1):
-        #     t0 = (i * quarter()) - 2
-        #     t1 =  i * quarter()
-        #     dex0 = np.where((time0 > t0) & (time0 < t1))
-        #     dex1 = np.where((time1 > t0) & (time1 < t1))
-        #     dex2 = np.where((time2 > t0) & (time2 < t1))
-        #     time0  = np.delete(time0, dex0)
-        #     time1  = np.delete(time1, dex1)
-        #     time2  = np.delete(time2, dex2)
-        #     noise0 = np.delete(noise0, dex0)
-        #     noise1 = np.delete(noise1, dex1)
-        #     noise2 = np.delete(noise2, dex2)
-        
-        freq0, ampl0 = astropy_scargle(time0, noise0, df=df0)
-        freq1, ampl1 = astropy_scargle(time1, noise1, df=df1)
-        freq2, ampl2 = astropy_scargle(time2, noise2, df=df2)
-        
-        ampl0 /= np.median(ampl0)
-        ampl1 /= np.median(ampl1)
-        ampl2 /= np.median(ampl2)
-    
-        snr[i, 0] = np.max(ampl0) / np.median(ampl0)
-        snr[i, 1] = np.max(ampl1) / np.median(ampl1)
-        snr[i, 2] = np.max(ampl2) / np.median(ampl2)
-
-    filename = f'{path}/snr_quarters{quarters}.ftr'
-    dx = pd.DataFrame({'snr25':snr[:,0], 'snr50':snr[:,1], 'snr600':snr[:,2]})
-    dx.to_feather(filename)
-
-    return dx
-    
-
-
-
-
-def snr_plot(path, fap=0.1, quarters=1, bins=50, show_snr=False, figsize=(8,5)):
-
-    import platosim.statistics as st
-    filename = f'{path}/snr_quarters{quarters}.ftr'
-    dx = pd.read_feather(filename)
-
-    snr_fap0 = st.hist_fap(dx.iloc[:,0], fap=fap)
-    snr_fap1 = st.hist_fap(dx.iloc[:,1], fap=fap)
-    snr_fap2 = st.hist_fap(dx.iloc[:,2], fap=fap)
-    
-    fig, ax = plt.subplots(1,1, figsize=figsize)
-    
-    # Plots
-    h1 = ax.hist(dx.iloc[:,0], bins=bins, histtype='step', label=r'$\Delta t = 25$s',
-                 fc='b', ec='b', fill=True, alpha=0.3)
-    h2 = ax.hist(dx.iloc[:,1], bins=bins, histtype='step', label=r'$\Delta t = 50$s',
-                 fc='g', ec='g', fill=True, alpha=0.3)
-    h3 = ax.hist(dx.iloc[:,2], bins=bins, histtype='step', label=r'$\Delta t = 600$s',
-                 fc='m', ec='m', fill=True, alpha=0.3)
-    ax.axvline(x=snr_fap0, c="b", ls="--", lw=1.5, zorder=2)
-    ax.axvline(x=snr_fap1, c="g", ls="--", lw=1.5, zorder=2)
-    ax.axvline(x=snr_fap2, c="m", ls="--", lw=1.5, zorder=2)
-    
-    # Settings
-    ax.legend(loc='upper right')
-    ax.set_xlabel(r'SNR amplitude')
-    ax.set_ylabel('Number of stars')
-    plt.tight_layout()
-    plt.show()
-
-    # Print best SNR criterions
-    if show_snr:
-        print([snr_fap0[0], snr_fap1[0], snr_fap2[0]])
-    
-    return fig, ax
 
 
 
