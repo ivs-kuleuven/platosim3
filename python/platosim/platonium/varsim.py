@@ -691,7 +691,7 @@ class VarSim(object):
         if not self.mocka:
             self.L = self.R.value**2 * (self.Teff.value/self.Teff_sun)**4 * u.L_sun
 
-        # Secure spectral type exist:
+        # Secure spectral type exist (assuming main-sequence star):
         # https://sites.uni.edu/morgans/astro/course/Notes/section2/spectraltemps.html 
         if self.spec in [None, '', 'CSTAR', 'unknown']:
             Teff = self.Teff.value
@@ -803,13 +803,16 @@ class VarSim(object):
         wvl_equi = np.arange(wvl_tele[0], wvl_tele[-1], 1)
         wvl_equi, flux_equi = ut.rebin3(wvl_equi, self.wvl_star, self.flux_star)
 
-        # Get passband correction TODO absolute of TESS!
-        #self.corr_tess   = self.passband_correction(passband_a='plato', passband_b='tess')
-        self.scale_kepler = self.passband_correction(passband_a='plato', passband_b='kepler')
+        # Get bolometric correction for solar-like oscillations
         self.luminosity_correction()
+        
+        # Get passband correction
+        self.scale_tess   = self.passband_correction(passband_a='plato', passband_b='tess')
+        self.scale_kepler = self.passband_correction(passband_a='plato', passband_b='kepler')
         if self.verbose > 1:
             print(f'Amplitude correction for oscillations  : {self.bol_coeff:.3f}')
             print(f'Passband  correction (Kepler -> PLATO) : {self.scale_kepler:.3f}')
+            print(f'Passband  correction (TESS   -> PLATO) : {self.scale_tess:.3f}')
 
         # Plot interpolation
         if args.plot:
@@ -853,15 +856,11 @@ class VarSim(object):
         flux_tran_a = flux_equi_a * tran_a
         flux_tran_b = flux_equi_b * tran_b
 
-        # Integrate to find ratio for correction
-        F_a = np.trapz(flux_tran_a, wave_equi_a)
-        F_b = np.trapz(flux_tran_b, wave_equi_b)
-
         # Debug-------------------------------------------
         # plt.figure(figsize=(8,6))
         # plt.plot(wave_equi_a, flux_tran_a, 'k-', lw=1, label=passband_a)
         # plt.plot(wave_equi_b, flux_tran_b, 'b-', lw=1, label=passband_b, alpha=0.7)
-        # ylab = r'$T_{\lambda} \cdot F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ \AA$^{-1}$ sr$^{-1}$]'
+        # ylab=r'$T_{\lambda} \cdot F_{\lambda}$ [erg s$^{-1}$ cm$^{-2}$ \AA$^{-1}$ sr$^{-1}$]'
         # plt.xlabel('Wavelength [nm]')
         # plt.ylabel(ylab)
         # plt.xlim(min(wave_equi_a[0], wave_equi_b[0]),
@@ -870,7 +869,11 @@ class VarSim(object):
         # plt.tight_layout()
         # plt.show()
         #-------------------------------------------------
-        
+
+        # Integrate to find ratio for correction
+        F_a = np.trapz(flux_tran_a, wave_equi_a)
+        F_b = np.trapz(flux_tran_b, wave_equi_b)
+
         return F_a / F_b
 
         
@@ -922,8 +925,8 @@ class VarSim(object):
         self.bol_coeff = (ut.diff(L2_passband,   L1_passband) /
                           ut.diff(L2_bolometric, L1_bolometric))
 
-        # Return parameters
-        self.df['BC'] = self.bol_coeff
+        # Store correction
+        self.df['A_bol_corr'] = self.bol_coeff
             
         # # Absolute bolometric magnitude of star TODO delete?
         # M_bolometric = round(ut.diff(L2_bolometric, L1_bolometric) /
@@ -1066,7 +1069,7 @@ class VarSim(object):
         
         # Initialise model
         time  = self.time.to('d').value
-        model = StellarFlares(time, scale=self.scale_kepler, seed=self.seed)
+        model = StellarFlares(time, scale=self.bol_coeff, seed=self.seed)
             
         # Select model
         
@@ -1171,7 +1174,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
 
@@ -1196,6 +1199,9 @@ class VarSim(object):
         if self.verbose > 1:
             errorcode('module', '\ngamma Doradus pulsator\n')
 
+        # Store correction
+        self.df['A_corr'] = self.scale_kepler
+            
         # Initialize and prepare model input
         time  = self.time.to('d').value
         model = Pulsator(time, power=2.2, scale=self.scale_kepler, seed=self.seed)
@@ -1400,7 +1406,7 @@ class VarSim(object):
             
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.bol_coeff
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
 
