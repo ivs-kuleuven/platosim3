@@ -202,9 +202,10 @@ class VarSim(object):
             args.gran = False
 
         # Use Corsaro2013 by default
+        # NOTE allow parsing puls models
         if args.puls == None: 
             args.puls = 'Corsaro2013'
-        elif not args.puls in ['Corsaro2013']:
+        elif args.puls == 'no':
             args.puls = False
         
         # Use Aigrain2015 by default
@@ -1170,7 +1171,7 @@ class VarSim(object):
         else:
             if self.verbose > 1:
                 print('Generating mock object from toy model')
-            model.initToyModel([0.1, 30], [0.01, 0.03])
+            model.initToyModel([5, 30], [0.01, 0.03])
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)

@@ -252,7 +252,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
         if title: ax[0].set_title(str(title))
         
         # Generate DFT for regular sampling
-        fn = np.max(freq)
+        fn = np.max(freq) + 0.1
         df = np.diff(time)[0] * 2
         freq0, ampl0 = DFTpower(time, signal*1e3, f0=0, fn=fn, df=df)
         amax = np.max(ampl0)
@@ -265,7 +265,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
         ax[1].plot(freq0, ampl0, '-', c='deeppink', lw=1, label='DFT')
         ax[1].set_ylabel(r'Amplitude [mmag]')
         ax[1].set_xlabel(r'Frequency [c/d]')
-        ax[1].set_xlim(0, np.max(freq))
+        ax[1].set_xlim(0, fn)
         ax[1].set_ylim(-0.1*amax, amax+0.1*amax)
         ax[1].legend()
 
@@ -606,15 +606,17 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
     
     fig, ax = plt.subplots(1,1, figsize=figsize)
     # Plots
+    aa = 0.4
+    c = ['darkblue', 'orange', 'm']
     ax.hist(dx.iloc[:,0], bins=bins, histtype='step', label=r'$\Delta t = 25$s',
-            fc='b', ec='b', fill=True, alpha=0.3)
+            fc=c[0], ec=c[0], fill=True, alpha=aa)
     ax.hist(dx.iloc[:,1], bins=bins, histtype='step', label=r'$\Delta t = 50$s',
-            fc='g', ec='g', fill=True, alpha=0.3)
+            fc=c[1], ec=c[1], fill=True, alpha=0.5)
     ax.hist(dx.iloc[:,2], bins=bins, histtype='step', label=r'$\Delta t = 600$s',
-            fc='m', ec='m', fill=True, alpha=0.3)
-    ax.axvline(x=snr_fap0, c="b", ls="--", lw=1.5, zorder=2)
-    ax.axvline(x=snr_fap1, c="g", ls="--", lw=1.5, zorder=2)
-    ax.axvline(x=snr_fap2, c="m", ls="--", lw=1.5, zorder=2)
+            fc=c[2], ec=c[2], fill=True, alpha=aa)
+    ax.axvline(x=snr_fap0, c=c[0], ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=snr_fap1, c=c[1], ls="--", lw=1.5, zorder=2)
+    ax.axvline(x=snr_fap2, c=c[2], ls="--", lw=1.5, zorder=2)
     # Labels
     ax.set_xlabel(r'SNR amplitude')
     ax.set_ylabel('Number of stars')
