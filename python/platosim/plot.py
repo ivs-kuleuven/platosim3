@@ -47,7 +47,7 @@ lw = 0.5  # Line-width
 pt = 0.1  # Percentage
 
 # Define some nice colors
-colors_sea = ['royalblue', 'lightseagreen', 'limegreen']
+colors_sea = ['purple', 'royalblue', 'lightseagreen', 'limegreen']
 colors_hot = ['tomato', 'darkorange', 'gold']
 colors_new = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
 
@@ -3029,10 +3029,11 @@ def plot_final_lc(lc, figsize=(9,8)):
     # Fetch component or set to zero
     
     zeros = np.zeros(len(lc['time']))
-    if 'gran' not in lc: lc.gran = zeros.tolist()
-    if 'puls' not in lc: lc.puls = zeros.tolist()
-    if 'spot' not in lc: lc.spot = zeros.tolist()    
-    if 'tran' not in lc: lc.tran = zeros.tolist()
+    if 'gran'  not in lc: lc.gran  = zeros.tolist()
+    if 'puls'  not in lc: lc.puls  = zeros.tolist()
+    if 'spot'  not in lc: lc.spot  = zeros.tolist()
+    if 'flare' not in lc: lc.flare = zeros.tolist()    
+    if 'tran'  not in lc: lc.tran  = zeros.tolist()
 
     # Handle time units
     
@@ -3041,12 +3042,13 @@ def plot_final_lc(lc, figsize=(9,8)):
     
     # Start plotting
     
-    fig, ax = plt.subplots(4, 1, figsize=figsize, sharex=True)
+    fig, ax = plt.subplots(5, 1, figsize=figsize, sharex=True)
 
-    ax[0].plot(time, p_modes, '-', c=colors_sea[0], label='Gran + Puls')
-    ax[1].plot(time, lc.spot, '-', c=colors_sea[1], label='Spots')
-    ax[2].plot(time, lc.tran, '-', c=colors_sea[2], label='Transits')
-    ax[3].plot(time, lc.flux, '-', c='k',           label='Combined')
+    ax[0].plot(time, p_modes,  '-', c=colors_sea[0], label='Gran + Puls')
+    ax[1].plot(time, lc.spot,  '-', c=colors_sea[1], label='Spots')
+    ax[2].plot(time, lc.flare, '-', c=colors_sea[2], label='Flares')
+    ax[3].plot(time, lc.tran,  '-', c=colors_sea[3], label='Transits')
+    ax[4].plot(time, lc.flux,  '-', c='k',           label='Combined')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
@@ -3440,7 +3442,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = simfile.getApertureMask(showMaskOfStarID, imgNumber)
+            rowIndices, colIndices, _, _, _, _ = simfile.getApertureMask(showMaskOfStarID,
+                                                                         imgNumber)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='royalblue', facecolor='none', hatch="/",

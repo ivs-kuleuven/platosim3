@@ -365,7 +365,8 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
 
 def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
-                    flag_astro=False, ofile=False):
+                    flag_stellar=False, flag_variable=False, flag_quasar=False,
+                    ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
     
@@ -392,58 +393,57 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
     See: "Search" -> "Advanced (ADQL)" -> "Gaia Data Release 3"
 
     NOTE Query only valid for Gmag < 17, else gaps are intoduced!
-    Use additional queries e.g. in bins of 1 mag for Gmah > 17.
+    Use additional queries e.g. in bins of 0.5 mag for Gmag > 17.
     """
 
     # Fetch columns from catalogues
+    colname = ['gaia.designation',
+               'gaia.source_id',
+               'gaia.ra',
+               'gaia.dec',
+               'gaia.phot_g_mean_mag',
+               'gaia.bp_rp',
+               'gaia.ag_gspphot',
+               'gaia.parallax', 'gaia.parallax_error',
+               'gaia.pmra',
+               'gaia.pmdec',
+               'gaia.ruwe']
 
-    if flag_astro:
-        colname = ['gaia.source_id',
-                   'gaia.ra',
-                   'gaia.dec',
-                   'gaia.phot_g_mean_mag',
-                   'gaia.bp_rp',
-                   'gaia.ag_gspphot',
-                   'gaia.parallax', 'gaia.parallax_error',
-                   'gaia.pmra',
-                   'gaia.pmdec',
-                   'gaia.ruwe',
-                   'gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
-                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',                   
-                   'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
-                   'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
-                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
-                   'astro.spectraltype_esphs']
-        columns = ', '.join(colname)    
-        query_base = f"""SELECT
-        {columns}
-        FROM gaiadr3.gaia_source AS gaia
-        JOIN gaiadr3.astrophysical_parameters AS astro
-          ON gaia.source_id = astro.source_id
-        WHERE 1=CONTAINS(
-          POINT(gaia.ra, gaia.dec),
-          CIRCLE({ra}, {dec}, {radius}))
-          AND gaia.phot_g_mean_mag > {maglim_min}
-          AND gaia.phot_g_mean_mag < {maglim_max}        
-        """
+    if flag_stellar:
+        c = ['gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
+             'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
+             'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
+             'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
+             'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
+             'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
+             'astro.spectraltype_esphs',
+             'astro.evolstage_flame']
+        for i in c: colname.append(i)
 
-    else:
-        colname = ['gaia.source_id',
-                   'gaia.ra',
-                   'gaia.dec',
-                   'gaia.phot_g_mean_mag',
-                   'gaia.bp_rp']
-        columns = ', '.join(colname)    
-        query_base = f"""SELECT
-        {columns}
-        FROM gaiadr3.gaia_source AS gaia
-        WHERE 1=CONTAINS(
-          POINT(gaia.ra, gaia.dec),
-          CIRCLE({ra}, {dec}, {radius}))
-          AND gaia.phot_g_mean_mag > {maglim_min}
-          AND gaia.phot_g_mean_mag < {maglim_max}        
-        """
+    if flag_variable:
+        c = ['gaia.phot_variable_flag',
+             'astro.classlabel_espels',
+             'astro.activityindex_espcs', 'astro.activityindex_espcs_uncertainty']
+        for i in c: colname.append(i)
+        
+    if flag_quasar:
+        c = ['astro.classprob_dsc_combmod_quasar']
+        for i in c: colname.append(i)
+
+    # Construct query cone
+    
+    columns = ', '.join(colname)    
+    query_base = f"""SELECT
+    {columns}
+    FROM gaiadr3.gaia_source AS gaia
+    JOIN gaiadr3.astrophysical_parameters AS astro
+      ON gaia.source_id = astro.source_id
+    WHERE 1=CONTAINS(
+      POINT(gaia.ra, gaia.dec),
+      CIRCLE({ra}, {dec}, {radius}))
+      AND gaia.phot_g_mean_mag > {maglim_min}
+      AND gaia.phot_g_mean_mag < {maglim_max}        
+    """
         
     # We use the urllib to keep the connection open because
     # the sky regions are huge which fails with Gaia.lunch_job
@@ -519,17 +519,18 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
     votable = parse(ofile)
     df = ut.votable2pandas(votable)
     os.remove(ofile)
-    
+
     # Rename columns
 
-    if flag_astro:
-        df = df.rename(columns={'source_id': 'gaiaDR3',
-                                'phot_g_mean_mag': 'Gmag',
-                                'bp_rp': 'BP_RP',
-                                'ag_gspphot': 'Ag',
-                                'parallax': 'plx',
-                                'parallax_error': 'plx_err',
-                                'mh_gspphot': 'Z',
+    df = df.rename(columns={'source_id': 'gaiaDR3',
+                            'phot_g_mean_mag': 'Gmag',
+                            'bp_rp': 'BP_RP',
+                            'ag_gspphot': 'Ag',
+                            'parallax': 'plx',
+                            'parallax_error': 'plx_err'})
+
+    if flag_stellar:
+        df = df.rename(columns={'mh_gspphot': 'Z',
                                 'mh_gspphot_lower': 'Z_low',
                                 'mh_gspphot_upper': 'Z_upp',
                                 'logg_gspphot': 'logg',
@@ -546,24 +547,37 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
                                 'mass_flame_upper': 'M_upp',
                                 'lum_flame': 'L',
                                 'lum_flame_lower': 'L_low',
-                                'lum_flame_upper': 'L_upp',                                
-                                'spectraltype_esphs': 'spec'})
-        df = df.sort_values(by=['BP_RP'])
+                                'lum_flame_upper': 'L_upp',
+                                'spectraltype_esphs': 'spec',
+                                'evolstage_flame': 'evol'})
         # Round Teff column
         df = df.fillna(-1)
         df = df.astype({'Teff':int,
                         'Teff_low':int,
                         'Teff_upp':int})
         df = df.replace({-1:np.nan})
-    else:
-        df = df.rename(columns={'source_id': 'gaiaDR3',
-                                'phot_g_mean_mag': 'Gmag',
-                                'bp_rp': 'BP_RP'})
 
-    # Convert names to string
-    
-    df.gaiaDR3 = df.gaiaDR3.astype(str)
+    if flag_variable:
+        df = df.rename(columns={'phot_variable_flag': 'variable',
+                                'classlabel_espels': 'class',
+                                'activityindex_espcs': 'S',
+                                'activityindex_espcs_uncertainty': 'S_err'})
         
+    if flag_quasar:
+        df = df.rename(columns={'classprob_dsc_combmod_quasar': 'p_quasar'})
+
+    # Remove "Gaia DR" string in designation
+
+    df.designation = df.designation.str[9:]
+        
+    # Sort values
+
+    df = df.sort_values(by=['BP_RP'])
+        
+    # Convert names to string
+
+    df.gaiaDR3 = df.gaiaDR3.astype(str)
+
     # Reset index and return
 
     return df.reset_index(drop=True)

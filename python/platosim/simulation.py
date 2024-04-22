@@ -704,7 +704,7 @@ class Simulation(object):
 
         """Change the detector gain.
 
-        The parameters are from the Mission Parameter Database:
+        The parameters are from the Mission Parameter Database (MPD):
         http://ptoops02.esac.esa.int/mpdb/home
 
         Notes
@@ -729,7 +729,7 @@ class Simulation(object):
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.018348")
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")
 
-        elif performance != False:
+        else:
             raise ValueError("Not valid entry! Use either 'required' or 'designed'")
         
         return
@@ -844,7 +844,7 @@ class Simulation(object):
         self.__setitem__("CCD/NumColumns", "4510")
         self.__setitem__("CCD/NumRows",    "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
-
+        
         # If requested, select basic input parameters from MPD
         
         if performance in ["required", "designed"]:
@@ -857,20 +857,18 @@ class Simulation(object):
             # Select time and wavelength dependent parameters
 
             if passband == "blue":
-                #self.__setitem__("ObservingParameters/Fluxm0",                  "")
-                self.__setitem__("Camera/ThroughputBandwidth",                  "200")
+                self.__setitem__("Camera/ThroughputBandwidth",                  "165")
                 self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
                 
             if passband == "red":
-                #self.__setitem__("ObservingParameters/Fluxm0",                  "")
-                self.__setitem__("Camera/ThroughputBandwidth",                  "380")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "860")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "")
+                self.__setitem__("Camera/ThroughputBandwidth",                  "335")
+                self.__setitem__("Camera/ThroughputLambdaC",                    "832")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
 
         return
 
@@ -1070,6 +1068,7 @@ class Simulation(object):
         # Compute the position of the subfield. xPix and yPix are the CCD coordinates
         # of the star, given a 4510x4510 CCD [colNumber, rowNumber]. The function below
         # also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
+        
         ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY,
                                                                     raStar, decStar,
                                                                     raPlatform, decPlatform,
@@ -1091,7 +1090,22 @@ class Simulation(object):
         CCDOriginOffsetY = rf.CCD[ccdCode]["zeroPointYmm"]
         CCDOrientation   = rf.CCD[ccdCode]["angle"]
 
+        # Fetch CCD code and pixel coordinates (account for field distortion if included)
+        
+        infoCCD = rf.getCCDandPixelCoordinates(raStar, decStar,
+                                               raPlatform, decPlatform, solarPanelOrientation,
+                                               tiltTelescope, azimuthTelescope,
+                                               focalPlaneAngle, focalLength, pixelSize,
+                                               includeFieldDistortion, normal,
+                                               mappedDistortion, distortionCoefficients,
+                                               pathToPsfFile)
+        ccdCode, xCCD, yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
+        
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
+
+        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
+        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
+
         self["CCD/Position"]      = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
@@ -1105,13 +1119,24 @@ class Simulation(object):
         else:
             self["CCD/FirstRowExposed"] = str(0)
 
-        self["SubField/ZeroPointRow"]    = str(yPix - int(subfieldSizeY/2))
-        self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
         self["SubField/NumRows"]    = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
 
-        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
-        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
+        # Secure that the target centrally for even-pixel subfields
+
+        dy = yCCD - int(yCCD)
+        dx = xCCD - int(xCCD)
+
+        if (subfieldSizeY % 2 == 0):
+            if dy >= 0.5:
+                subfieldSizeY -= 1
+
+        if (subfieldSizeX % 2 == 0):
+            if dx >= 0.5:
+                subfieldSizeX -= 1
+                        
+        self["SubField/ZeroPointRow"]    = str(yPix - int(subfieldSizeY/2))
+        self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
 
         # That's it
 
@@ -1200,6 +1225,9 @@ class Simulation(object):
         if self["Telescope/GroupID"] == "Custom":
             azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
             tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
+        elif self["Telescope/GroupID"] == "Fast":
+            azimuthAngle    = np.deg2rad(self["CameraGroups/AzimuthAngle"][4])
+            tiltAngle       = np.deg2rad(self["CameraGroups/TiltAngle"][4])
         else:
             groupID = int(self["Telescope/GroupID"])
             azimuthAngle    = np.deg2rad(self["CameraGroups/AzimuthAngle"][groupID-1])

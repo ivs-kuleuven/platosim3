@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-This script contains all relevant functions and classes that 
-are used by the PLATOnium script "varsim.py".
+This file contains all relevant functions and classes 
+that are used by the PLATOnium script "varsim.py".
 
 NOTE This class needs the Poetry install: 
      >> poetry install --with platonium 
@@ -21,6 +21,7 @@ import h5py
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+import scipy
 from scipy.stats import norm, truncnorm
 from scipy.interpolate import interp1d, make_interp_spline
 from astropy.io import fits
@@ -43,142 +44,7 @@ from platosim.utilities import errorcode
 #                        SOLAR-LIKE STARS                      #
 #==============================================================#
     
-    
-class StellarFlares(object):
-
-    """Model stellar flares.
-
-    A simplistic analytical description of stellar flares described by
-    an sudden flux increase followed by an exponential decay. Given the
-    time of the time series the corresponding flux is returned including
-    the wanted flares.
-    """
-
-    def __init__(self, time, seed=False):
         
-        # Store array
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-
-    def initToyModelBeta0(self): # TODO under construction!
-
-        """Uniform distribution of toy model.
-        """
-
-        # Time in [days] and ampl in [mmag]
-        nflares = self.rng.integers(0, 10, 1)[0]
-        self.tscale = self.rng.uniform(0.01, 0.1, nflares)
-        self.tmax   = self.rng.uniform(0, self.time[-1], nflares)
-        self.ampl   = self.rng.uniform(0, 0.2, nflares)
-
-        return self.tscale, self.tmax, self.ampl
-
-    
-        
-    def evaluate(self, tscale=False, tmax=False, ampl=False, asym=1, plot=False):
-
-        """Analytic model of stellar flares.
-        
-        Parameters
-        ----------
-        tscale : float, ndarray
-            Time scale duration of the flare(s) [days]
-        tmax : float, ndarray
-            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
-        ampl : float, ndarray
-            Amplitude of the flare(s) [mmag]
-        asym : float, ndarray
-            Asymmetry factor of the flare(s)
-        """
-
-        # Check parsing
-        if not tscale: tscale = self.tscale
-        if not tmax:   tmax   = self.tmax
-        if not ampl:   ampl   = self.ampl
-        
-        # Placeholders
-        flux     = np.zeros_like(self.time)
-        self.mag = np.zeros_like(self.time)
-
-        # Sampling
-        dt = np.diff(self.time)[0]
-        
-        # Secure that single flare works
-        try: len(tmax)
-        except: tmax = [tmax]
-        
-        # Loop over each flare event
-        
-        for m in range(len(tmax)):
-
-            # Start and end of flare event
-            t0 = (self.time[0]  - tmax[m])
-            t1 = (self.time[-1] - tmax[m])
-
-            # Time array during flare event
-            tn = np.arange(t0, t1, dt)
-            t  = tn / tscale[m]
-
-            # Model parameters of flare
-            B = asym
-            C = 1/B
-            b = -1.941 - 0.175 + 2.246 + 1
-            c = 1 - 0.689
-
-            # Loop over every time-step in the flare time interval:
-            # NOTE: this is defined relative to this flares maxima
-            # and put in units of the time-scale here the analytic
-            # expressions for the rise and decay are used to determine
-            # the flux of this flare
-
-            for i in range(len(t)):
-
-                # Rise of flare
-                if t[i]*B > -1 and t[i]*B <= 0:
-                    flux[i] += (1
-                                + 1.941 * (t[i]*B)
-                                - 0.175 * (t[i]*B)**2
-                                - 2.246 * (t[i]*B)**3
-                                - b     * (t[i]*B)**4)
-
-                # Decay of flare
-                elif t[i]*C > 0:
-                    flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
-                                c     * np.exp(-0.2783 * t[i]*C))
-
-                # No flare
-                else:
-                    flux[i] += 0
-
-            # Convert to magnitude [mmag]
-            self.mag = flux * ampl[m]
-                    
-        # plot light curve
-        if plot: self.plot()
-            
-        # Return relative flux
-        return self.mag
-
-
-
-    def plot(self):
-
-        """Function to plot result.
-        """
-        plt.figure(figsize=(9, 5))
-        plt.plot(self.time, self.mag, 'k-')
-        plt.xlabel('Time [d]')
-        plt.ylabel(r'$\delta m$ [mmag]')
-        plt.xlim(np.min(self.time), np.max(self.time))
-        plt.tight_layout()
-        plt.show()
-
-
-
-            
-    
 class StellarSpots(object):
     
     """Class to generate rotational star spot modulations.
@@ -248,19 +114,32 @@ class StellarSpots(object):
 
     
     def get_lrhk_from_S_and_bv(self, S, bv):
-        # Cf Noyes et al. (1984, ApJ 279 763, Appendix a)
+        # conversion from S to R (Noyes et al. 1984a, ApJ 279 763, Appendix a)
         lCcf = 1.13 * bv**3 - 3.91 * bv**2 + 2.84 * bv - 0.47 
         if bv < 0.63:
             x = 0.63 - bv
             lCcf += 0.135 * x - 0.814 * x**2 + 6.03 * x**3
-        return -4 + np.log10(1.34) + lCcf + np.log10(S)
+        lrhk = -4 + np.log10(1.34) + lCcf + np.log10(S)    
+        # photospheric correction (Noyes et al. 1984a, ApJ 279 763, Appendix b)    
+        lrphot  = -4.898 + 1.918 * bv**2 -2.893 * bv**3
+        lrhk = np.log10(10**lrhk - 10**lrphot)
+        return lrhk
+    
+
+    def get_Smin_from_bv(self, bv):
+        if bv < 0.94:
+            Smin = 0.144
+        elif bv < 1.07:
+            x = (bv - 0.94) / (1.07 - 0.94)
+            Smin = 0.144 + x * (0.19 - 0.144)
+        else:
+            x = (bv - 1.07) / (1.2 - 1.07)
+            Smin = 0.19 + x * (0.48 - 0.19)
+        return Smin
 
 
     def get_lrhk_from_bv(self, bv):
-        if bv < 0.94:
-            Smin = 0.144
-        else:
-            Smin = 0.0269231 * bv + 0.118892
+        Smin = self.get_Smin_from_bv(bv)
         lrhkmin = self.get_lrhk_from_S_and_bv(Smin, bv)
         lrhkmax = -0.375 * bv - 4.4
         return self.rng.random() * (lrhkmax - lrhkmin) + lrhkmin
@@ -728,7 +607,7 @@ class StellarSpots(object):
         # Finito!
         self.dF, self.dur, self.area, self.time = dF, dur, area, time
         self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
-        return flux, self.params
+        return flux, self.params, self.area
 
     
 
@@ -768,8 +647,237 @@ class StellarSpots(object):
         
     
 
+
+        
+class StellarFlares(object):
+
+    """Model stellar flares.
+
+    A simplistic analytical description of stellar flares described by
+    an sudden flux increase followed by an exponential decay. Given the
+    time of the time series the corresponding flux is returned including
+    the wanted flares.
+    """
+
+    def __init__(self, time, scale=None, seed=False):
+        
+        # Store array
+        self.time  = time
+        self.scale = scale
+        self.rng   = ut.rng(seed)
+
+        
+
+    def initToyModel(self):
+
+        """Uniform distribution of toy model.
+
+        Model parameter from Jasper Thys MSc thesis, which are imspired
+        by the distribution from Van Doorsselaere et al. (2017). 
+        """
+
+        # Rate of flaring events [events/quarter]
+        n_rate = self.rng.uniform(5, 15, 1)[0]
+
+        # Number of flares scales with lenght of time series
+        n_max    = int(n_rate * self.time[-1] / ut.quarter())
+        n_flares = self.rng.integers(1, n_max, 1)[0]
+
+        # Time of peak flare flux [d]
+        self.tmax = self.rng.uniform(0, self.time[-1], n_flares)
+
+        # FWHM time scale of flare [min -> d]
+        self.tscale = self.rng.uniform(1, 150, n_flares) / (24 * 60.)
+
+        # Amplitude distibution of flares (< 10 ppt) [norm]
+        self.ampl = self.rng.exponential(0.001, n_flares)
+
+        return n_rate, n_flares
+
     
 
+    def initDoorsselaere2017(self, odir, spec_type, activity_rate, spot_coverage):
+
+        """Model parameters from Kepler M-dwarf (Van Doorsselaere et al. 2017)
+
+        Notes
+        -----
+        Since the distributions of this paper used the long cadence
+        (i.e. 30-min) Kepler observations, there may be a potential
+        of missing short (<30 min) flaring events.
+        """
+        
+        # Spectral type dependence
+        if spec_type == 'F':
+            a_A, b_A = -0.36, -1.06
+            a_rate, b_rate = -0.21, -0.33
+        elif spec_type == 'G':
+            a_A, b_A = -0.36, -1.35
+            a_rate, b_rate = -0.15, -0.69
+        elif spec_type in ['K', 'M']:
+            a_A, b_A = -0.23, -1.38
+            a_rate, b_rate = -0.13, -0.54
+        else:
+            errorcode('warning', f'Spectral type {spec_type} is not in [F, G, K, M]. ' +
+                      'Ignoring stellar flares..')
+            return
+
+        # Draw random number of grid points to sample from
+        N = self.rng.integers(1000, 5000, 1)[0]
+        
+        # Use rate benchmark of 20 [events/star/quater]
+        # Number of flares scales with lenght of time series and activity rate
+        n_range = np.linspace(0, 12, N)
+        n_func  = 10**(a_rate * n_range + b_rate)
+        n_rate  = pd.Series(n_range).sample(1, weights=n_func).to_numpy()[0]
+        n_rate_a = n_rate * activity_rate
+        n_flares = int(n_rate_a * self.time[-1] / ut.quarter())
+        # Secure at least one flare
+        if n_flares == 0:
+            n_flares += 1
+        
+        # Time a peak flux of flare [d]
+        # We use spot coverage as weight for drawing the flares
+        area = spot_coverage.sum(0)*100
+        time = np.linspace(self.time[0], self.time[-1], len(area))
+        spline = make_interp_spline(time, area, k=3)
+        self.area = spline(self.time)
+        self.tmax = pd.Series(self.time).sample(n_flares, weights=self.area).to_numpy()
+
+        # Amplitude distibution of flares (< 10 ppt) [norm]
+        A_range = np.linspace(0, 10, N)
+        A_func  = 10**(a_A * A_range + b_A)
+        self.ampl = pd.Series(A_range).sample(n_flares, weights=A_func).to_numpy() / 1e3
+        # Secure lower amplitudes for less active stars
+        if activity_rate < 1:
+            self.ampl *= activity_rate
+                
+        # FWHM time scale of flare [min -> d]
+        scale_fwhm = self.ampl / self.ampl.max() / 2
+        self.tscale = self.rng.uniform(10, 200, n_flares) / (24 * 60.) * scale_fwhm
+        return n_rate_a, n_flares
+        
+
+    
+    def evaluate(self):
+
+        # Apply bolometric correction
+        if self.scale:
+            self.ampl *= self.scale
+
+        # Prepare flux array
+        self.flux = np.ones_like(self.time)
+        
+        for i in range(len(self.tmax)):
+            flux_rel = model_flares(self.time, self.tmax[i], self.tscale[i])
+            flux_ratio = flux_rel * self.ampl[i]
+            self.flux *= (flux_ratio + 1)
+
+        # Return parameters
+        df = pd.DataFrame({'tmax_day': self.tmax,
+                           'tscale_day': self.tscale,
+                           'ampl_norm': self.ampl})    
+        return self.flux, df
+
+    
+        
+    def plot(self):
+
+        """Function to plot result.
+        """
+
+        try:
+            self.area
+        except:
+            plt.figure(figsize=(9, 4))        
+            plt.plot(self.time, (self.flux-1)*1e6, 'k-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'Flux [ppm]')
+            plt.xlim(np.min(self.time), np.max(self.time))
+            plt.tight_layout()
+            plt.show()
+        else:
+            fig, ax = plt.subplots(2, 1, figsize=(9, 6))
+            ax[0].plot(self.time, self.area, 'k-')
+            ax[1].plot(self.time, (self.flux-1)*1e6, 'k-')
+            ax[1].set_xlabel('Time [d]')
+            ax[0].set_ylabel(r'Spot coverage [\%]')
+            ax[1].set_ylabel(r'Flux [ppm]')
+            ax[0].set_xlim(np.min(self.time), np.max(self.time))
+            ax[1].set_xlim(np.min(self.time), np.max(self.time))
+            plt.tight_layout()
+            plt.show()
+
+
+        
+@njit
+def model_flares(time, tmax, tscale, asym=1):
+
+    """Analytic model of stellar flares (Daveport+2014)
+
+    Parameters
+    ----------
+    time : ndarray
+        Time points arrray [days]
+    tmax : float
+        Full-width at half-maximum of the flare(s) maximum intensity [days]
+    tscale : float
+        Time scale duration of the flare(s) [days]
+    asym : float
+        Asymmetry factor of the flare(s)
+    """
+
+    # Placeholders
+    flux = np.zeros_like(time)
+
+    # Sampling
+    dt = np.diff(time)[0]
+
+    # Start and end of flare event
+    t0 = (time[0]  - tmax)
+    t1 = (time[-1] - tmax)
+
+    # Time array during flare event
+    tn = np.arange(t0, t1, dt)
+    t  = tn / tscale
+
+    # Model parameters of flare
+    B = asym
+    C = 1/B
+    b = -1.941 - 0.175 + 2.246 + 1
+    c = 1 - 0.689
+
+    # Loop over every time-step in the flare time interval:
+    # NOTE: this is defined relative to this flares maxima
+    # and put in units of the time-scale here the analytic
+    # expressions for the rise and decay are used to determine
+    # the flux of this flare
+
+    for i in range(len(t)):
+
+        # Rise of flare
+        if t[i]*B > -1 and t[i]*B <= 0:
+            flux[i] += (1
+                        + 1.941 * (t[i]*B)
+                        - 0.175 * (t[i]*B)**2
+                        - 2.246 * (t[i]*B)**3
+                        - b     * (t[i]*B)**4)
+
+        # Decay of flare
+        elif t[i]*C > 0:
+            flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
+                        c     * np.exp(-0.2783 * t[i]*C))
+
+        # No flare
+        else:
+            flux[i] += 0
+
+    return flux
+
+
+
+
+        
 class SolarLikeOscillator(object):
 
     """Class to generate gravity oscillation time series.
@@ -1118,10 +1226,11 @@ class SurfaceModulations(object):
     PLATO passband.
     """
 
-    def __init__(self, time, seed=None):
+    def __init__(self, time, scale=None, seed=None):
         
-        self.time = time
-        self.rng  = ut.rng(seed)
+        self.time  = time
+        self.scale = scale       
+        self.rng   = ut.rng(seed)
     
 
         
@@ -1145,6 +1254,10 @@ class SurfaceModulations(object):
         
         # Create light curve
         mag = np.cos(2*np.pi * (self.time/P)) + A * np.cos(4*np.pi * (self.time/P) + phi)
+    
+        # Apply passband correction
+        if self.scale:
+            amplitude_range *= self.scale
 
         # Scale amplitude within the range
         scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
@@ -1179,35 +1292,56 @@ class SurfaceModulations(object):
 #==============================================================#
 
 
-class GravityOscillator(object):
+class Pulsator(object):
 
-    """Class to generate gravity oscillation time series.
+    """Class to generate time series from list of pulsation modes.
     """
 
-    def __init__(self, time, power, seed=False):
+    def __init__(self, time, power, scale=None, seed=None):
 
         self.time  = time
         self.power = power
-
+        self.scale = scale
+        
         # Random number generator
         self.rng = ut.rng(seed)
             
 
+
+    def download(self, odir, filename):
+
+        """Utility to download data.
+        """
         
-    def initToyModel(self, period_range, amplitude_range, nmodes=False):
+        filepath = Path(f'{odir}/{filename}')
+        
+        # Check if a file or a folder is requested
+
+        if not filepath.is_file() and filepath.suffix == '.ftr':
+            print(f'Downloading {filename}')
+            ut.downloadFromFTP(filename=filename, outputDir=odir, server='plato')
+        
+        elif not filepath.is_dir() and filepath.suffix != '.ftr':
+            zipfile = f'{filename}.zip'
+            print(f'Downloading {zipfile} files..')
+            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+            os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
+            os.system(f'rm {odir}/{zipfile}')
+
+            
+        
+    def initToyModel(self, freq_range, ampl_range, nmodes=False):
 
         """Draw pulsations from uniform distribution.
 
         Parameters
         ----------
-        period_range : list
-            Range of pulsation periods [Pmin, Pmax] in unit of [days]
-        amplitude_range : list
-            Range of pulsation amplitudes [Amin, Amax] in units of [mmag]
+        freq_range : list
+            Range of pulsation frequencies [fmin, fmax] in unit of [c/d]
+        ampl_range : list
+            Range of pulsation amplitudes [Amin, Amax] in units of [mag]
         nmodes : int
             Number of pulsation modes to include
-
-        TODO Model gives wrong results! High value at 0 c/d!
         """
         
         # Number of pulsation modes
@@ -1215,137 +1349,250 @@ class GravityOscillator(object):
             nmodes = int(self.rng.normal(50, 5))
         
         # Generate pulsations using uniform distributions
-        self.freq  = self.rng.uniform(0, 2*np.pi, nmodes)
-        self.ampl  = self.rng.uniform(period_range[0], period_range[1], nmodes)
-        self.phase = self.rng.uniform(amplitude_range[0], amplitude_range[1], nmodes)
-        self.starname = 'g-Dor'
+        self.df = pd.DataFrame()
+        self.df['freq']  = self.rng.uniform(freq_range[0], freq_range[1], nmodes)
+        self.df['ampl']  = self.rng.uniform(ampl_range[0], ampl_range[1], nmodes)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, nmodes)
+        self.starname = 'Toy model'
 
-        
-        
-    def initGang2020(self, odir, starID=None):
 
-        """Draw frequencies from Kepler g-Dor legacy.
+
+    def initFromFile(self, odir, sample, starID=None, variable=None):
+
+        """Draw frequencies from Kepler legacies.
         """
 
-        # Name of folder on FTP server
-        filename = 'varsource_gdor_gang2020'
-        dataDir  = Path(f'{odir}/{filename}')
+        # Select sample
         
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
+        if sample == 'Gang2020':
+            suffix   = 'dat'
+            sep      = ' '
+            comment  = '#'
+            freq_unit = 'c/d'
+            ampl_unit = 'norm'
+            filename = 'varsource_gdor_gang2020'
+            names    = ['freq', 'ampl', 'phase', 'snr']
+            
+        elif sample == 'Bowman2018':
+            suffix   = 'txt'
+            sep      = '  '
+            comment  = None
+            freq_unit = 'c/d'
+            ampl_unit = 'mmag'
+            filename = 'varsource_dsct_bowman2018'
+            names    = ['niter', 'freq', 'freq_err', 'ampl', 'ampl_err', 
+                        'phase', 'phase_err', 'snr']
+            
+        elif sample == 'Bodi2023':
+            suffix   = 'fou'
+            sep      = '  '
+            comment  = None
+            freq_unit = 'c/d'
+            ampl_unit = 'mag'
+            names    = ['freq', 'ampl', 'phase']
+            if variable == 'RRLyr':
+                filename = 'varsource_rrly_bodi2023'
+            elif variable == 'Ceph':
+                filename = 'varsource_ceph_bodi2023'
+            else:
+                errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+
         else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
+            errorcode('error', f'No sample named {sample}!')
+        
+        # Download files if not done
+        self.download(odir, filename)
 
         # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
         if starID is None:
             starfile = Path(self.rng.choice(filenames))
         else:
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
+        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+        self.starname = f'{sample}: {starfile.name}'
 
-        # Else load the data
-        self.freq  = 1/df.freq      # [days]
-        self.ampl  = df.ampl * 1e3  # [mag]
-        self.phase = df.phase       # [rad]
-        self.snr   = df.snr
-        self.starname = starfile.name
+        # Convert freq unit [c/d]
+        if freq_unit == 'day':
+            self.df.freq = 1 / self.df.freq
+                
+        # Convert ampl unit [mag]
+        if ampl_unit == 'mmag':
+            self.df.ampl /= 1e3  
+        elif ampl_unit == 'norm':
+            self.df.ampl = -2.5*np.log10(1-self.df.ampl)
+            
+        # Return the star ID
+        return starfile.name
+    
 
+    
+    def initMockaGang2020(self, odir):
+
+        """Draw frequencies from Kepler GDor legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_gdor_gang2020.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
         
+        # Load file containing columns
+        dm = pd.read_feather(filepath)
+        
+        # Generate KDEs
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+        
+        # Select number modes (secure at least 5 modes)
+        N_ran = np.arange(dm.N.min(), dm.N.max(), 1)
+        N = int(pd.Series(N_ran).sample(1, weights=N_kde(N_ran)).to_numpy()[0])
+        if N < 5: N = 5
+        
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
 
+        # Select maximum period from KDE [day]
+        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+        P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
+
+        # First period spacing in pattern from KDE [day]
+        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+        dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
+
+        # Select slope from fit to distribution (cf. Fig. 10 of L20)
+        a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
+        slope = a * np.exp(-b * P0) + c * np.log10(d * P0) + e
+
+        # Create period-spacing pattern [day]
+        P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+        
+        # Draw amplitude below maximum [mag]
+        A_i_ran = np.linspace(0, 0.005, n)
+        param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
+        A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
+        
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max0 = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)        
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max0
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+        
+        # Draw random periods not part of the pattern (max 1/8 of ampl)
+        M = np.random.randint(100, 400)
+        P_puls_i = self.rng.uniform(0.2, 2, size=M)
+        A_puls_i = self.rng.uniform(0, A_max0/10, size=M)
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = 1 / np.append(P_i, P_puls_i)
+        self.df['ampl']  = np.append(A_i, A_puls_i)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
+
+        # Return parameters
+        return N, P0, dP0, slope, A_max0, self.df
+    
+
+
+    def initMockaBowman2018(self, odir):
+
+        """Draw frequencies from Kepler DSct legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_dsct_bowman2018.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+
+        # Load file containing columns
+        df = pd.read_feather(filepath)
+
+        # Generate KDEs
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        A_kde = scipy.stats.gaussian_kde(df.ampl)
+        
+        # Select number modes
+        N = self.rng.integers(20, 40, 1)[0]
+
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
+
+        # Select frequcies from KDE [day]
+        f_ran = np.linspace(df.freq.min(), df.freq.max(), n)
+        f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
+
+        # Draw amplitude below maximum [mag]
+        A_ran = np.linspace(df.ampl.min(), df.ampl.max(), n)
+        param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
+        A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
+        A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+        
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = self.rng.integers(-5, 5, 1)[0]
+        n_dex = int(N/2 + n_off)
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = f_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.df = self.df.sort_values('freq').reset_index(drop=True)
+        self.starname = 'MOCKA: delta Scuti (Bowman+2018)'
+
+        # Return parameters
+        return self.df
+        
+        
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
-        """
 
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
+        time [day], freq [c/d], ampl [mag], phase [rad]
+        """
+        
+        return ns.timeSeriesFromFourier(self.time, self.df.freq, self.df.ampl, self.df.phase,
+                                        power=self.power, title=self.starname, plot=plot)
    
 
 
 
-
-class ClassicalPulsator(object):
-
-    """Class to generate variability classical pulsators
-    """
-
-    def __init__(self, time, seed=False):
-        
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-        
-    def initFromFile(self, odir, starID=None):
-
-        """Draw frequencies from Kepler g-Dor legacy.
-        """
-
-        # Name of folder on FTP server
-        filenames = glob.glob(f'{self.idir}/RRL-CEP/*.fou')
-        starfile = random.choice(filenames)
-        
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
-        else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starfile = Path(self.rng.choice(filenames))
-        else:
-            starfile = Path(filenames[starID-1])
-            
-        # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
-
-        # Else load the data
-        self.starname  = starfile.name
-        self.period    = df.freq        # [days]
-        self.amplitude = df.ampl * 1e3  # [mag]
-        self.phase     = df.phase       # [rad]
-        self.snr       = df.snr
-
-
-        
-    def evaluate(self, plot=False):
-
-        """Evaluate and return generated model.
-        """
-
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
-
-
-
-
-
-
+    
 #==============================================================#
 #                         OTHER OBJECTS                        #
 #==============================================================#
-
 
 
 class EclipsingBinary(object):
 
     """Models Eclipsing Binaries (EBs).
     """
-
 
     def __init__(self, time, seed=None):
 
@@ -1359,80 +1606,9 @@ class EclipsingBinary(object):
 
     def read_parameters_hdf5(self, file_name, verbose=False):
 
-        """Read the full model parameters of the linear, sinusoid
+        """Copy of method from STARSHADOW:
+        Read the full model parameters of the linear, sinusoid
         and eclipse models to an hdf5 file.
-
-        Parameters
-        ----------
-        file_name: str
-            File name (including path) for loading the results.
-        verbose: bool
-            If set to True, this function will print some information.
-
-        Returns
-        -------
-        results: dict
-            Contains:
-            sin_mean: None, list[numpy.ndarray[float]]
-                Parameter mean values for the linear and sinusoid model in the order they appear below.
-                linear parameters: const, slope,
-                sinusoid parameters: f_n, a_n, ph_n
-            sin_err: None, list[numpy.ndarray[float]]
-                Parameter error values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_err, sl_err,
-                sinusoid parameters: f_n_err, a_n_err, ph_n_err
-            sin_hdi: None, list[numpy.ndarray[float]]
-                Parameter hdi values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_hdi, sl_hdi,
-                sinusoid parameters: f_n_hdi, a_n_hdi, ph_n_hdi
-            sin_select: None, list[numpy.ndarray[bool]]
-                Sinusoids that pass certain selection criteria
-                passed_sigma, passed_snr, passed_h
-            ephem: None, numpy.ndarray[float]
-                Ephemerides of the EB, p_orb and t_zero
-            ephem_err: None, numpy.ndarray[float]
-                Error values for the ephemerides, p_err and t_zero_err
-            ephem_err: None, numpy.ndarray[float]
-                Hdi values for the ephemerides, p_hdi and t_zero_hdi
-            phys_mean: None, numpy.ndarray[float]
-                Parameter mean values for the physical eclipse model in the order they appear below.
-                ecosw, esinw, cosi, phi_0, log_rr, log_sb,
-                extra parametrisations: e, w, i, r_sum, r_rat, sb_rat
-            phys_err: None, numpy.ndarray[float]
-                Parameter error values for the physical eclipse model in the order they appear below.
-                ecosw_err, esinw_err, cosi_err, phi_0_err, log_rr_err, log_sb_err,
-                Extra parametrisation: e_err, w_err, i_err, r_sum_err, r_rat_err, sb_rat_err
-            phys_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the physical eclipse model in the order they appear below.
-                ecosw_hdi, esinw_hdi, cosi_hdi, phi_0_hdi, log_rr_hdi, log_sb_hdi,
-                Extra parametrisations: e_hdi, w_hdi, i_hdi, r_sum_hdi, r_rat_hdi, sb_rat_hdi
-            timings: None, numpy.ndarray[float]
-                Eclipse timings of minima and first and last contact points, internal tangency
-                and eclipse depth of the primary and secondary:
-                t_1, t_2, t_1_1, t_1_2, t_2_1, t_2_2, t_b_1_1, t_b_1_2, t_b_2_1, t_b_2_2, depth_1, depth_2
-            timings_err: None, numpy.ndarray[float]
-                Parameter error values for the eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            timings_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the eclipse timings and depths:
-                t_1_hdi, t_2_hdi, t_1_1_hdi, t_1_2_hdi, t_2_1_hdi, t_2_2_hdi,
-                t_b_1_1_hdi, t_b_1_2_hdi, t_b_2_1_hdi, t_b_2_2_hdi, depth_1_hdi, depth_2_hdi
-            timings_indiv_err: None, numpy.ndarray[float]
-                Parameter error values for the individual eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            var_stats: None, list[union(float, numpy.ndarray[float])]
-                Variability level diagnostic statistics
-                std_1, std_2, std_3, std_4, ratios_1, ratios_2, ratios_3, ratios_4
-            stats: None, list[float]
-                Some statistics: t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level
-            i_sectors: numpy.ndarray[int]
-                Pair(s) of indices indicating the separately handled timespans
-                in the piecewise-linear curve.
-            text: list[str]
-                Some information about the file and data:
-                identifier, data_id, description and date_time
         """
         # check some input
         ext = os.path.splitext(os.path.basename(file_name))[1]
@@ -1527,27 +1703,33 @@ class EclipsingBinary(object):
                               e[0], w[0], i[0], r_sum[0], r_rat[0], sb_rat[0]])
         phys_err = np.array([ecosw[1], esinw[1], cosi[1], phi_0[1], log_rr[1], log_sb[1],
                              e[1], w[1], i[1], r_sum[1], r_rat[1], sb_rat[1]])
-        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4], log_rr[2:4], log_sb[2:4],
-                             e[2:4], w[2:4], i[2:4], r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
+        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4],
+                             log_rr[2:4], log_sb[2:4], e[2:4], w[2:4], i[2:4],
+                             r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
         timings = np.array([t_1[0], t_2[0], t_1_1[0], t_1_2[0], t_2_1[0], t_2_2[0],
-                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0], depth_1[0], depth_2[0]])
+                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0],
+                            depth_1[0], depth_2[0]])
         timings_err = np.array([t_1[1], t_2[1], t_1_1[1], t_1_2[1], t_2_1[1], t_2_2[1],
-                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1], depth_1[1], depth_2[1]])
-        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4], t_2_1[2:4], t_2_2[2:4],
-                                t_b_1_1[2:4], t_b_1_2[2:4], t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
+                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1],
+                                depth_1[1], depth_2[1]])
+        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4],
+                                t_2_1[2:4], t_2_2[2:4], t_b_1_1[2:4], t_b_1_2[2:4],
+                                t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
         timings_indiv_err = np.array([t_1[4], t_2[4], t_1_1[4], t_1_2[4], t_2_1[4], t_2_2[4],
-                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4], depth_1[4], depth_2[4]])
+                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4],
+                                      depth_1[4], depth_2[4]])
         var_stats = [ratios_1[0], ratios_2[0], ratios_3[0], ratios_4[0],
                      ratios_1[1:], ratios_2[1:], ratios_3[1:], ratios_4[1:]]
         stats = [t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level]
         text = [identifier, data_id, description, date_time]
         # put everything in a dict
-        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi, 'sin_select': sin_select,
+        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi,
+                   'sin_select': sin_select,
                    'ephem': ephem, 'ephem_err': ephem_err, 'ephem_hdi': ephem_hdi,
                    'phys_mean': phys_mean, 'phys_err': phys_err, 'phys_hdi': phys_hdi,
                    'timings': timings, 'timings_err': timings_err, 'timings_hdi': timings_hdi,
                    'timings_indiv_err': timings_indiv_err,
-                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors, 'text': text}
+                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors,'text': text}
         if verbose:
             print(f'Loaded analysis file with identifier: {identifier}, created on {date_time}. \n'
                   f'data_id: {data_id}. Description: {description} \n')
@@ -1561,43 +1743,49 @@ class EclipsingBinary(object):
         """
 
         # Name of folder on FTP server
-        filename = 'varsource_EBs_kepler_ijspeert2021'
+        filename = 'varsource_ebs_ijspeert2021'
         dataDir  = Path(f'{odir}/{filename}')
         
         # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            folders = glob.glob(f'{odir}/{filename}/*')
-        else:
+        if not dataDir.is_dir():
             zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
+            if self.verbose > 1:
+                print(f'Downloading {zipfile} files..')
             ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
             os.system(f'unzip {odir}/{zipfile} -d {odir}')
             os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starDir = Path(self.rng.choice(folders))
-        else:
-            starDir = Path(filenames[starID-1])
             
+        # If requested, select specific star or else do a random draw
+        folders = glob.glob(f'{odir}/{filename}/*')
+        starDir = Path(self.rng.choice(folders))
+                    
         # Load file containing columns
         starfile = starDir / f'{starDir.name}_2.hdf5' 
         result   = self.read_parameters_hdf5(starfile)
         data     = result['sin_mean']
-
-        # Else load the data
-        self.freq  = data[2]      # [days]
-        self.ampl  = data[3] * 1e3 #df.ampl * 1e3  # [mag]
-        self.phase = data[4] #df.phase       # [rad]
+        self.freq  = data[2]  # [c/d]
+        self.ampl  = data[3]  # [mag]
+        self.phase = data[4]  # [rad]
         self.starname = str(starDir.stem)
 
+        # Extract period if avilable
+        starfile = starDir / f'{starDir.name}_5.hdf5'
+        try:
+            result = self.read_parameters_hdf5(starfile)
+            params = result['ephem']
+            P = params[0]
+        except:
+            P = None
 
+        return self.starname, P
+        
 
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
         """
-
+        
         return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
                                         plot=plot, title=self.starname)
         
@@ -1784,11 +1972,79 @@ class SMBHB(object):
         plt.tight_layout()
         plt.show()
     
-    
+
+
+
+        
 #==============================================================#
 #                         EXOPLANETS                           #
 #==============================================================#
 
+
+class Exoplanet(object):
+
+    """Class for modelling exoplanets.
+    """
+
+    def __init__(self, seed=False):
+
+        # Random number generator
+        self.rng = ut.rng(seed)
+
+
+        
+    def ldc(self, ):
+
+        """Compute the Limb Darkening (LD) coefficients.
+
+        This module uses the software LDTk:        
+        """
+
+        if self.verbose > 1:
+            print('\nComputing limb darkening coefficients with LDTk')
+            
+        # Convert input parameters
+        wvl_tele  = self.wvl_tele.value  # [nm]
+        tran_tele = self.tra_tele        # [0-1]
+
+        # Interpolate (piecewise cubic) into higher resolution grid
+        grid_no  = 1000
+        wvl_int  = np.linspace(wvl_tele[0], wvl_tele[-1], grid_no)
+        passband = make_interp_spline(wvl_tele, tran_tele, k=3)
+        tran_int = passband(wvl_int)
+
+        # Create passband object
+        filters = [TabulatedFilter('plato', wvl_int, tran_int)]
+
+        # Create instance of class
+        # NOTE uncertainties are vital for the software to work!
+        sc = LDPSetCreator(teff=(self.Teff.value, 50),
+                           logg=(self.logg, 0.20),
+                           z=(self.Z, 0.05),
+                           filters=filters)
+
+        # Create the limb darkening profiles
+        ps = sc.create_profiles()
+
+        # Estimate quadratic law coefficients
+        # Take care of occations when LDTk fails
+        try:
+            u, _ = ps.coeffs_qd(do_mc=True)
+        except:
+            self.ldc = [0.430, 0.170]
+            errorcode('warning', 'LD coefficients failed for ' +
+                      f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
+        else:
+            self.ldc = u[0]
+
+        return self.ldc
+
+
+
+
+        
+    
+    
 
 class LimbDarkening(funcFit.OneDFit):
 
@@ -1833,6 +2089,8 @@ class LimbDarkening(funcFit.OneDFit):
         See links:
         Webpage : https://phoenix.astro.physik.uni-goettingen.de/
         Download: http://phoenix.astro.physik.uni-goettingen.de/data/
+
+        NOTE not used anymore py VarSim.
         """
 
         #  Convert input parameters
@@ -1945,24 +2203,22 @@ class DopplerBeaming(funcFit.OneDFit):
         wvl_c = self['wvl_c'].to('m')
         Ms    = self['Ms'].to('kg')
         Mp    = self['Mp'].to('kg')
-        #Teff  = self['Teff'].to('K')
+        Teff  = self['Teff'].to('K')
 
         # Correction factor (alpha) between true bolmetric flux and finite flux:
-        # We use Sphorer (2017) Eq.5 analytical expression obtained approximating a blackbody spectrum.
-        # In bolometric light alpha = 1, but otherwise deviating due to finite bandpass measurement.
-
+        # We use Sphorer+2017 Eq.5 analytical expression obtained approximating
+        # a blackbody spectrum. In bolometric light, alpha=1, but otherwise
+        # deviating due to finite bandpass measurement.
         xx = c.h * c.c / (wvl_c * c.k_B * Teff)
         alpha = 1/4. * xx*np.exp(xx)/(np.exp(xx) - 1)
 
-        # Amplitude: Sphorer (2019) Eq. 3
-
+        # Amplitude: Sphorer (2019) Eq. 3:
         A = (0.0028 * alpha * P.to('d')**(-1/3) * (Ms.to('M_sun') + Mp.to('M_sun'))**(-2/3) *
              Mp.to('M_sun') * np.sin(i)) * 1e6
 
         # RV signal as function of nu: Murray & Correia (2011) Eq. 61, 65 and 66
         # NOTE "astar" in the following is the reduced semimajor axies due to the common
         # center-of-mass and "K" is the relative RV semi-amplitude of the star.
-
         phi = (x.value - t0.value) / P.value * u.rad
         astar = Mp/(Mp + Ms) * a
         K     = 2.*np.pi/P * astar * np.sin(i)/np.sqrt(1. - e**2)
@@ -1970,7 +2226,6 @@ class DopplerBeaming(funcFit.OneDFit):
         RV    = K * (np.cos(2*np.pi*phi + w) - e*np.cos(w))
 
         # Final beaming effect [ppm]: Second term in Eq.1 from Sphorer (2017) but normalized
-
         y = 4 * alpha * RV/c.c * 1e6
 
         return y.value, A.value
@@ -2008,7 +2263,6 @@ class EllipsoidalDistortion(funcFit.OneDFit):
     def evaluate(self, x, nu):
 
         # Convert to SI units
-
         x  = x.to('s')
         nu = nu * u.rad
         e  = self['e']
@@ -2022,28 +2276,22 @@ class EllipsoidalDistortion(funcFit.OneDFit):
         Mp = self['Mp'].to('kg')
 
         # Orbital phase
-
         phi = (x.value - t0.value) / P.value
 
         # Coefficient accounting for the stellar LD and GD: Sphorer (2019) Eq.8
-
         alpha = 0.15 * (15. + self["u"]) * (1. + self["g"])/(3. - self["u"])
 
         # Amplitude of the ellipsoidal variation: Sphorer (2019) Eq.7
-
         A = alpha * Mp/Ms * (Rs/a)**3 * np.sin(i)**2 * 1e6
 
         # Add parameterization of elliptical orbits: Murray & Correia (2011) Eq.20
         # This is just 1 for e=0
-
         a1 = (1 + e*np.cos(nu)) / (1. - e**2)
 
         # Add parameterization of the ellipsoidal distortion itself
-
         a2 = - np.cos(4 * np.pi * phi)
 
         # Final ellipsoidal distortion [ppm]
-
         y = A * a1 * a2
 
         return y.value, A.value
@@ -2060,17 +2308,17 @@ class PlanetMRforecast():
     def __init__(self):
         
         # constant
-        mearth2mjup = 317.828
-        mearth2msun = 333060.4
-        rearth2rjup = 11.21
-        rearth2rsun = 109.2
+        self.mearth2mjup = 317.828
+        self.mearth2msun = 333060.4
+        self.rearth2rjup = 11.21
+        self.rearth2rsun = 109.2
 
         # Boundary
         mlower = 3e-4
         mupper = 3e5
 
         # Number of different populations
-        n_pop = 4
+        self.n_pop = 4
 
         # read parameter file
         filepath = 'inputfiles/data_varsim/varsim_exomass_fitting_parameters.h5' 
@@ -2086,92 +2334,105 @@ class PlanetMRforecast():
 
         # Open file
         h5 = h5py.File(hyper_file, 'r')
-        all_hyper = h5['hyper_posterior'][:]
+        self.all_hyper = h5['hyper_posterior'][:]
         h5.close()
 
 
-    def indicate(M, trans, i):
-        '''
-        indicate which M belongs to population i given transition parameter
-        '''
-        ts = np.insert(np.insert(trans, n_pop-1, np.inf), 0, -np.inf)
+    def indicate(self, M, trans, i):
+
+        """Indicate which M belongs to population i given transition parameter.
+        """
+        
+        ts = np.insert(np.insert(trans, self.n_pop-1, np.inf), 0, -np.inf)
         ind = (M>=ts[i]) & (M<ts[i+1])
+
         return ind
 
 
-    def split_hyper_linear(hyper):
+    
+    def split_hyper_linear(self, hyper):
+
+        """Split hyper and derive c.
         """
-        split hyper and derive c
-        """
-        c0, slope,sigma, trans = \
-        hyper[0], hyper[1:1+n_pop], hyper[1+n_pop:1+2*n_pop], hyper[1+2*n_pop:]
+        
+        c0    = hyper[0]
+        slope = hyper[1:1+self.n_pop] 
+        sigma = hyper[1+self.n_pop:1+2*self.n_pop], 
+        trans = hyper[1+2*self.n_pop:]
         
         c = np.zeros_like(slope)
         c[0] = c0
-        for i in range(1,n_pop):
-                c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
+        for i in range(1, self.n_pop):
+            c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
 
         return c, slope, sigma, trans
 
 
     
-    def piece_linear(hyper, M, prob_R):
-        '''
-        model: straight line
-        '''
-        c, slope, sigma, trans = split_hyper_linear(hyper)
+    def piece_linear(self, hyper, M, prob_R):
+
+        """model: straight line
+        """
+        
+        c, slope, sigma, trans = self.split_hyper_linear(hyper)
         R = np.zeros_like(M)
         for i in range(4):
-                ind = indicate(M, trans, i)
-                mu = c[i] + M[ind]*slope[i]
-                R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
+            ind = self.indicate(M, trans, i)
+            mu = c[i] + M[ind]*slope[i]
+            R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
 
         return R
 
+    
 
-    def ProbRGivenM(radii, M, hyper):
-        '''
-        p(radii|M)
-        '''
-        c, slope, sigma, trans = split_hyper_linear(hyper)
+    def ProbRGivenM(self, radii, M, hyper):
+
+
+        """Probability of R given M: p(radii|M)
+        """
+
+        c, slope, sigma, trans = self.split_hyper_linear(hyper)
         prob = np.zeros_like(M)
 
         for i in range(4):
-                ind = indicate(M, trans, i)
-                mu = c[i] + M[ind]*slope[i]
-                sig = sigma[i]
-                prob[ind] = norm.pdf(radii, mu, sig)
+            ind = self.indicate(M, trans, i)
+            mu = c[i] + M[ind]*slope[i]
+            sig = sigma[i]
+            prob[ind] = norm.pdf(radii, mu, sig)
 
-        prob = prob/np.sum(prob)
+        prob = prob / np.sum(prob)
 
         return prob
 
 
-    def classification( logm, trans ):
-        '''
-        classify as four worlds
-        '''
+    
+    def classification(self, logm, trans):
+
+        """Classify as four worlds.
+        """
+        
         count = np.zeros(4)
         sample_size = len(logm)
 
         for iclass in range(4):
                 for isample in range(sample_size):
-                        ind = indicate( logm[isample], trans[isample], iclass)
+                        ind = self.indicate(logm[isample], trans[isample], iclass)
                         count[iclass] = count[iclass] + ind
 
         prob = count / np.sum(count) * 100.
         print('Terran %(T).1f %%, Neptunian %(N).1f %%, Jovian %(J).1f %%, Star %(S).1f %%' \
                         % {'T': prob[0], 'N': prob[1], 'J': prob[2], 'S': prob[3]})
+
         return None
 
 
     
-    def Mpost2R(mass, unit='Earth', classify='No'):
-        """
-        Forecast the Radius distribution given the mass distribution.
+    def Mpost2R(self, mass, unit='Earth', classify='No'):
+
+        """Forecast the Radius distribution given the mass distribution.
 
         Parameters
-        ---------------
+        ----------
         mass: one dimensional array
                 The mass distribution.
         unit: string (optional)
@@ -2183,7 +2444,7 @@ class PlanetMRforecast():
                 Result will be printed, not returned.
 
         Returns
-        ---------------
+        -------
         radius: one dimensional array
                 Predicted radius distribution in the input unit.
         """
@@ -2194,52 +2455,57 @@ class PlanetMRforecast():
 
         # unit input
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mass = mass * mearth2mjup
+            mass = mass * self.mearth2mjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # mass range
         if np.min(mass) < 3e-4 or np.max(mass) > 3e5:
-                print('Mass range out of model expectation. Returning None.')
-                return None
+            print('Mass range out of model expectation. Returning None.')
+            return None
 
-        ## convert to radius
+        # convert to radius
         sample_size = len(mass)
         logm = np.log10(mass)
         prob = np.random.random(sample_size)
         logr = np.ones_like(logm)
 
-        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
-        hyper = all_hyper[hyper_ind,:]
+        hyper_ind = np.random.randint(low=0, high=np.shape(self.all_hyper)[0],
+                                      size=sample_size)
+        hyper = self.all_hyper[hyper_ind,:]
 
         if classify == 'Yes':
-                classification(logm, hyper[:,-3:])
+            self.classification(logm, hyper[:,-3:])
 
 
         for i in range(sample_size):
-                logr[i] = piece_linear(hyper[i], logm[i], prob[i])
+            logr[i] = piece_linear(hyper[i], logm[i], prob[i])
 
         radius_sample = 10.** logr
 
-        ## convert to right unit
+        # convert to right unit
         if unit == 'Jupiter':
-                radius = radius_sample / rearth2rjup
+            radius = radius_sample / self.rearth2rjup
         else:
-                radius = radius_sample 
+            radius = radius_sample 
 
         return radius
 
 
 
-    def Mstat2R(mean, std, unit='Earth', sample_size=1000, classify = 'No'):	
-        """
-        Forecast the mean and standard deviation of radius given the mena and standard deviation of the mass.
-        Assuming normal distribution with the mean and standard deviation truncated at the mass range limit of the model.
+    def Mstat2R(self, mean, std, unit='Earth', sample_size=1000, classify='No'):	
+
+        """Forecast the mean and standard deviation of radius.
+
+        Forecast the mean and standard deviation of radius given the mean
+        and standard deviation of the mass. Assuming normal distribution
+        with the mean and standard deviation truncated at the mass range
+        limit of the model.
 
         Parameters
-        ---------------
+        ----------
         mean: float
                 Mean (average) of mass.
         std: float
@@ -2248,8 +2514,9 @@ class PlanetMRforecast():
                 Unit of the mass. Options are 'Earth' and 'Jupiter'.
         sample_size: int (optional)
                 Number of mass samples to draw with the mean and std provided.
+
         Returns
-        ---------------
+        -------
         mean: float
                 Predicted mean of radius in the input unit.
         std: float
@@ -2258,38 +2525,40 @@ class PlanetMRforecast():
 
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mean = mean * mearth2mjup
-                std = std * mearth2mjup
+            mean = mean * self.mearth2mjup
+            std  = std  * self.mearth2mjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        mass = truncnorm.rvs( (mlower-mean)/std, (mupper-mean)/std, loc=mean, scale=std, size=sample_size)	
+        mass = truncnorm.rvs((mlower-mean)/std, (mupper-mean)/std,
+                             loc=mean, scale=std, size=sample_size)
+        
         if classify == 'Yes':	
-                radius = Mpost2R(mass, unit='Earth', classify='Yes')
+            radius = self.Mpost2R(mass, unit='Earth', classify='Yes')
         else:
-                radius = Mpost2R(mass, unit='Earth')
+            radius = self.Mpost2R(mass, unit='Earth')
 
         if unit == 'Jupiter':
-                radius = radius / rearth2rjup
+            radius = radius / self.rearth2rjup
 
         r_med = np.median(radius)
         onesigma = 34.1
-        r_up = np.percentile(radius, 50.+onesigma, interpolation='nearest')
+        r_up   = np.percentile(radius, 50.+onesigma, interpolation='nearest')
         r_down = np.percentile(radius, 50.-onesigma, interpolation='nearest')
 
         return r_med, r_up - r_med, r_med - r_down
 
 
 
-    def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
-        """
-        Forecast the mass distribution given the radius distribution.
+    def Rpost2M(self, radius, unit='Earth', grid_size = 1e3, classify = 'No'):
+
+        """Forecast the mass distribution given the radius distribution.
 
         Parameters
-        ---------------
+        ----------
         radius: one dimensional array
                 The radius distribution.
         unit: string (optional)
@@ -2303,67 +2572,67 @@ class PlanetMRforecast():
                 Result will be printed, not returned.
 
         Returns
-        ---------------
+        -------
         mass: one dimensional array
                 Predicted mass distribution in the input unit.
         """
 
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                radius = radius * rearth2rjup
+            radius = radius * self.rearth2rjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 
         # radius range
         if np.min(radius) < 1e-1 or np.max(radius) > 1e2:
-                print('Radius range out of model expectation. Returning None.')
-                return None
-
-
+            print('Radius range out of model expectation. Returning None.')
+            return None
 
         # sample_grid
         if grid_size < 10:
-                print('The sample grid is too sparse. Using 10 sample grid instead.')
-                grid_size = 10
+            print('The sample grid is too sparse. Using 10 sample grid instead.')
+            grid_size = 10
 
         ## convert to mass
         sample_size = len(radius)
         logr = np.log10(radius)
         logm = np.ones_like(logr)
 
-        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
-        hyper = all_hyper[hyper_ind,:]
-
+        hyper_ind = np.random.randint(low=0, high=np.shape(self.all_hyper)[0],
+                                      size=sample_size)
+        hyper = self.all_hyper[hyper_ind,:]
+        
         logm_grid = np.linspace(-3.522, 5.477, 1000)
 
         for i in range(sample_size):
-                prob = ProbRGivenM(logr[i], logm_grid, hyper[i,:])
-                logm[i] = np.random.choice(logm_grid, size=1, p = prob)
+            prob = self.ProbRGivenM(logr[i], logm_grid, hyper[i,:])
+            logm[i] = np.random.choice(logm_grid, size=1, p = prob)
 
         mass_sample = 10.** logm
 
         if classify == 'Yes':
-                classification(logm, hyper[:,-3:])
+            self.classification(logm, hyper[:,-3:])
 
         ## convert to right unit
         if unit == 'Jupiter':
-                mass = mass_sample / mearth2mjup
+            mass = mass_sample / self.mearth2mjup
         else:
-                mass = mass_sample
+            mass = mass_sample
 
         return mass
 
 
 
-    def Rstat2M(mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify = 'No'):	
-        """
-        Forecast the mean and standard deviation of mass given the mean and standard deviation of the radius.
+    def Rstat2M(self, mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify='No'):
+
+        """Forecast the mean and standard deviation of mass given
+        the mean and standard deviation of the radius.
 
         Parameters
-        ---------------
+        ----------
         mean: float
                 Mean (average) of radius.
         std: float
@@ -2375,38 +2644,40 @@ class PlanetMRforecast():
         grid_size: int (optional)
                 Number of grid in the mass axis when sampling mass from radius.
                 The more the better results, but slower process.
+        
         Returns
-        ---------------
+        -------
         mean: float
                 Predicted mean of mass in the input unit.
         std: float
                 Predicted standard deviation of mass.
         """
+        
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mean = mean * rearth2rjup
-                std = std * rearth2rjup
+            mean = mean * self.rearth2rjup
+            std  = std  * self.rearth2rjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        radius = truncnorm.rvs( (0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)	
+        radius = truncnorm.rvs((0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)
         if classify == 'Yes':
-                mass = Rpost2M(radius, 'Earth', grid_size, classify='Yes')
+            mass = self.Rpost2M(radius, 'Earth', grid_size, classify='Yes')
         else:
-                mass = Rpost2M(radius, 'Earth', grid_size)
+            mass = self.Rpost2M(radius, 'Earth', grid_size)
 
         if mass is None:
-                return None
+            return None
 
         if unit=='Jupiter':
-                mass = mass / mearth2mjup
+            mass = mass / self.mearth2mjup
 
         m_med = np.median(mass)
         onesigma = 34.1
-        m_up = np.percentile(mass, 50.+onesigma, interpolation='nearest')
+        m_up   = np.percentile(mass, 50.+onesigma, interpolation='nearest')
         m_down = np.percentile(mass, 50.-onesigma, interpolation='nearest')
 
         return m_med, m_up - m_med, m_med - m_down        

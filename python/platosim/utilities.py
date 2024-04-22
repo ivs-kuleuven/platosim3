@@ -19,11 +19,13 @@ from pathlib import Path
 # PlatoSim standard
 import h5py
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pylab import MaxNLocator
 from prettytable import PrettyTable
+import scipy
 from scipy.ndimage import median_filter
 from scipy.integrate import cumtrapz
 from scipy.stats import gaussian_kde
@@ -316,7 +318,42 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
             ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
             ftp.cwd(f'PLATOSIM/{ftp_subpath}')
 
-            
+
+
+
+
+def get_passband(passband='plato', response='absolute', interpolate=False, k=3, n=1000):
+
+    """Fetch normalised passband data.
+
+    Passbands available: [plato, cheops, tess, kepler]
+    """
+
+    # Import passband
+    path = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_varsim'
+    df  = pd.read_csv(f"{path}/passband_{passband}.txt", comment='#')
+    wvl = df.wavelength  # [nm]
+
+    # Fetch response function
+    if response == 'absolute':
+        tra = df.absolute
+    elif response == 'relative':
+        tra = df.relative
+    else:
+        errorcode('error', 'Not valid response! Use either [absolute, relative]')
+        
+    # Interpolate data if requested
+    if interpolate:
+        passband = scipy.interpolate.make_interp_spline(wvl, tra, k=3)
+        wvl = np.linspace(wvl.iloc[0], wvl.iloc[-1], n)
+        tra = passband(wvl)
+
+    return wvl, tra
+
+    
+
+
+    
 #--------------------------------------------------------------#
 #                      PANDAS OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -800,6 +837,29 @@ def fromMagToRelativeFlux(mag, norm=1e6):
 
 
 
+def normFlux(flux, norm=1e3):
+
+    """Convert magnitude to relative flux
+
+    Parameters
+    ----------
+    flux : float
+        Relative flux around unity
+    norm : float
+        Normalisation contant for relative flux
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux scaled after the normalisation constant.
+    """
+
+    return (flux / np.nanmedian(flux) - 1) * norm
+
+
+
+
+
 
 
 def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
@@ -845,7 +905,7 @@ def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
 
 
-def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
+def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal', stage='dwarf'):
 
     """Conversion from Gaia G_0 magnitude to the PLATO passband.
     
@@ -868,7 +928,10 @@ def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal'):
     # Define coefficient to transform from G to P
     
     if camera == 'normal':
-        coeff = [-0.3613390, 0.0632494, 0.0301607, -0.0163962, 0.0027984, -0.0001679]
+        if stage == 'dwarf': 
+            coeff = [-0.3613390, 0.0632494, 0.0301607, -0.0163962, 0.0027984, -0.0001679]
+        elif stage == 'giant':
+            coeff = [-0.3586933, 0.0598219, 0.0244786, -0.0119261, 0.0017487, -0.0000870]
     elif camera == 'fast_blue':
         coeff = [-0.1386193, 0.1103836, 0.0582385, -0.0144120, 0.0006554, 0.0000251]
     elif camera == 'fast_red':
@@ -912,14 +975,14 @@ def getPointingField(name, unit='deg'):
           'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
           'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
           'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
-          'KUL20': [ 86.79870508, -46.39594703,  0.0],      # TN of KUL20
-          'JUAN':  [ 86.79870,    -46.395950,    2.74]}     # Test for Juan
+          'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # TN of KUL20
 
     # Check data field exists
     
-    try: p = PF[name]
-    except KeyError: errorcode('error', 'Not valid PLATO field! ' +
-                               'Options: {LOPS2, LOPN1, SFP, NPF}')
+    try:
+        p = PF[name]
+    except KeyError:
+        errorcode('error', 'Not valid PLATO field! Options: {LOPS2, LOPN1, SPF, NPF}')
 
     # Convert units and return
     
@@ -1061,8 +1124,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
         if camType == 'fastred':
             zp = 19.81
         # Calculate flux
-        f0 = 0.7324478224428527e8
-        f = 10**(-0.4 * (mag - zp)) * f0
+        f = 10**(-0.4 * (mag - zp))
     else:
         errorcode('error', f'Wrong {camType} name!')
 
@@ -1072,7 +1134,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-    
+
     NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
     return NSR
@@ -1337,7 +1399,7 @@ def copyInputYAML(field, odir):
             filedata = filedata.replace('IncludePhotometry:               no ',
                                         'IncludePhotometry:               yes')
             filedata = filedata.replace('MaskUpdateInterval:              14.0',
-                                        'MaskUpdateInterval:              30.0')
+                                        'MaskUpdateInterval:              30.5')
             filedata = filedata.replace('GroupByExposure:                 yes',
                                         'GroupByExposure:                 no ')
             filedata = filedata.replace('WriteBiasMaps:                   yes',
@@ -1372,7 +1434,121 @@ def copyInputYAML(field, odir):
 
 
 
+def copyVizierInputYAML(field, odir):
 
+    """Function to copy and adjust a yaml ready to launch.
+
+    Parameters
+    ----------
+    field : str
+        Observational PLATO field (e.g. SPF, NPF, LOPS2, LOPN1)
+    odir : str, pathlib object
+        Absolute output directory (pathlib object)
+
+    Notes
+    -----
+    The zero-point flux of a P=0 G2V-star [phot/s/m^2/nm] is 
+    converted to the PLATO passband since PlatoSim uses the
+    V magnitude as a standard.
+    """
+
+    # Get files names of YAML files
+    yaml_old = Path(os.getenv("PLATO_PROJECT_HOME") + "/inputfiles/inputfile.yaml")
+    yaml_new = odir / "inputfile_vizier.yaml"
+
+    # Copy YAML if it doesn't exist already
+    if not yaml_new.is_file():
+
+        shutil.copy(yaml_old, yaml_new)
+
+        # Find and replace a few strings:
+        with open(yaml_new, 'r') as file:
+            filedata = file.read()
+            filedata = filedata.replace('inputfiles/starcatalog.txt', field)
+            filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
+            filedata = filedata.replace('BackgroundValue:               -1',
+                                        'BackgroundValue:               0')
+            filedata = filedata.replace('IncludeCosmicsInSubField:        yes',
+                                        'IncludeCosmicsInSubField:        no')
+            filedata = filedata.replace('IncludeCosmicsInSmearingMap:     yes',
+                                        'IncludeCosmicsInSmearingMap:     no')
+            filedata = filedata.replace('IncludeCosmicsInBiasMap:         yes',
+                                        'IncludeCosmicsInBiasMap:         no')
+            filedata = filedata.replace('UseJitter:                       yes',
+                                        'UseJitter:                       no')
+            filedata = filedata.replace('IncludeAberrationCorrection:     yes',
+                                        'IncludeAberrationCorrection:     no')
+            filedata = filedata.replace('IncludePointLikeGhosts:          yes',
+                                        'IncludePointLikeGhosts:          no')
+            filedata = filedata.replace('IncludeChargeDiffusion:      yes',
+                                        'IncludeChargeDiffusion:      no')
+            filedata = filedata.replace('IncludeFlatfield:                yes',
+                                        'IncludeFlatfield:                no')
+            filedata = filedata.replace('IncludeDarkSignal:               yes',
+                                        'IncludeDarkSignal:               no')
+            filedata = filedata.replace('IncludeBFE:                      yes',
+                                        'IncludeBFE:                      no')
+            filedata = filedata.replace('IncludePhotonNoise:              yes',
+                                        'IncludePhotonNoise:              no')
+            filedata = filedata.replace('IncludeReadoutNoise:             yes',
+                                        'IncludeReadoutNoise:             no')
+            filedata = filedata.replace('IncludeCTIeffects:               yes',
+                                        'IncludeCTIeffects:               no')
+            filedata = filedata.replace('IncludeOpenShutterSmearing:      yes',
+                                        'IncludeOpenShutterSmearing:      no')
+            filedata = filedata.replace('IncludeQuantumEfficiency:        yes',
+                                        'IncludeQuantumEfficiency:        no')
+            filedata = filedata.replace('IncludeRelativeTransmissivity:   yes',
+                                        'IncludeRelativeTransmissivity:   no')
+            filedata = filedata.replace('IncludePolarization:             yes',
+                                        'IncludePolarization:             no')
+            filedata = filedata.replace('IncludeParticulateContamination: yes',
+                                        'IncludeParticulateContamination: no')
+            filedata = filedata.replace('IncludeMolecularContamination:   yes',
+                                        'IncludeMolecularContamination:   no')
+            filedata = filedata.replace('IncludeConvolution:              yes',
+                                        'IncludeConvolution:              no')
+            filedata = filedata.replace('IncludeFullWellSaturation:       yes',
+                                        'IncludeFullWellSaturation:       no')
+            filedata = filedata.replace('IncludeDigitalSaturation:        yes',
+                                        'IncludeDigitalSaturation:        no')
+            filedata = filedata.replace('IncludeQuantisation:             yes',
+                                        'IncludeQuantisation:             no')
+            filedata = filedata.replace('IncludeGainNonlinearity:         yes',
+                                        'IncludeGainNonlinearity:         no')
+            filedata = filedata.replace('WritePixelMaps:                  yes',
+                                        'WritePixelMaps:                  no')
+            filedata = filedata.replace('WriteBiasMaps:                   yes',
+                                        'WriteBiasMaps:                   no ')
+            filedata = filedata.replace('WriteSmearingMaps:               yes',
+                                        'WriteSmearingMaps:               no ')
+            filedata = filedata.replace('WriteFlatfieldMap:               yes',
+                                        'WriteFlatfieldMap:               no ')
+            filedata = filedata.replace('WriteThroughputMaps:             yes',
+                                        'WriteThroughputMaps:             no ')
+            filedata = filedata.replace('WriteTransmissionEfficiency:     yes',
+                                        'WriteTransmissionEfficiency:     no ')
+            filedata = filedata.replace('WriteBackgroundMap:              yes',
+                                        'WriteBackgroundMap:              no ')
+            filedata = filedata.replace('WriteCTI:                        yes',
+                                        'WriteCTI:                        no ')
+            filedata = filedata.replace('WriteACS:                        yes',
+                                        'WriteACS:                        no ')
+            filedata = filedata.replace('WriteTelescopeACS:               yes',
+                                        'WriteTelescopeACS:               no ')
+            filedata = filedata.replace('WriteStarCatalog:                yes',
+                                        'WriteStarCatalog:                no ')
+            filedata = filedata.replace('WriteGhostPositions:             yes',
+                                        'WriteGhostPositions:             no ')
+            filedata = filedata.replace('WriteCosmics:                    yes',
+                                        'WriteCosmics:                    no ')
+
+            # Write the file out again
+            with open(yaml_new, 'w') as file:
+                file.write(filedata)
+
+
+                
 #--------------------------------------------------------------#
 #        FUNCTIONS TO GENERATE THE PIC-VARSIM CATALOGS         #
 #--------------------------------------------------------------#
@@ -1396,8 +1572,6 @@ def loadNumpyTargetsPIC110(inputFileTar):
     nCameraObs : EOL number of cameras seeing the star
     """
 
-    import pandas as pd
-    
     # TARGETS
     
     df = pd.DataFrame()
@@ -1447,8 +1621,6 @@ def createPIC110(path):
     >> createPIC110(<path/to/pLOPN1PIC2.0.0.1-t>)
     """
 
-    import pandas as pd
-    
     # PIC TARGETS
 
     # Load ascii catalogue
@@ -1551,7 +1723,6 @@ def createPIC200(path):
     >> createPIC200(<path/to/pLOPN1PIC2.0.0.1-t>)
     """
 
-    import pandas as pd
     from tqdm import tqdm
     
     field = path[-18:-13]
@@ -1664,7 +1835,6 @@ def createPIC200(path):
 
 def getContaminants(dt, dc, column='PIC', radius=45):
 
-    import pandas as pd
     from tqdm import tqdm
     
     # Query radial distance [arcsec]
