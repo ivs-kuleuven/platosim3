@@ -1318,8 +1318,8 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     # STATION KEEPING MANOEUVRES (~30 days)
 
     station_period   = ut.quarter()/3.
-    station_duration = 1/24
-    station_anomaly  = 0.2/24
+    station_duration = 2/24
+    station_anomaly  = 0.5/24
     # Remove times during quarter rolls
     x = np.arange(station_period, roll_period*quarter[-1], station_period)
     station_events   = np.take(x, np.setdiff1d(np.arange(len(x)), np.arange(2, len(x), 3)))
@@ -1485,7 +1485,7 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     t0 = np.concatenate((roll_event0, station_event0, jitter_event0, safe_event0))
     t1 = np.concatenate((roll_event1, station_event1, jitter_event1, safe_event1))
     dt = pd.DataFrame({'t0':t0, 'td':t1-t0})
-
+    
     # Save file (and plot) if requested
     
     if ofile:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Python module to with astro query functions used by picsim.py.
+Python module containing astro-query functions used by picsim.py.
 
 NOTE This class needs the Poetry install: 
      >> poetry install --with platonium 
@@ -37,6 +37,7 @@ from astroquery.simbad   import Simbad
 from astroquery.mast     import Catalogs
 from astroquery.gaia     import Gaia
 
+# PlatoSim functions
 import platosim.utilities as ut
 
 
