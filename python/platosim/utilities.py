@@ -457,6 +457,48 @@ def rootMeanSquare(array):
 
 
 
+def convolve(data0, filtertype, n): 
+
+    """Function to apply filter convolution.
+
+    The utility takes the flatten data, a string with the desired filter, 
+    and n number of points is should smooth the data with. Compared to the
+    bottleneck package this function do not leave an offset.
+    """
+
+    # Constants:
+    data  = data0.copy()           # Avoid overwritting data:
+    data_new = np.zeros(len(data)) # To pick up new data
+    nzero = np.zeros(2*n+1)        # optimization constant
+
+    # Available filters:
+    if filtertype=='mean':   moving_filter = np.mean
+    if filtertype=='median': moving_filter = np.median
+    if filtertype=='sum':    moving_filter = np.sum
+    if filtertype=='std':    moving_filter = np.std
+
+    # Interval: d[n, 1+n, ... , N-1, N-n]
+    for i in range(len(data)-2*n):   
+        data_new[n+i] = moving_filter(data[range((n+i)-n, (n+i)+n+1)])
+    for i in range(n):
+        # Interval: d[-n, -(n-1), ... , n-1, n] - Low end of data
+        low = nzero
+        low[range(n-i)] = data[0]*np.ones(n-i)
+        low[-(n+1+i):]  = data[range(0, n+1+i)]
+        data_new[i]     = moving_filter(low)
+        # Interval: d[N-n, N-(n-1), ... , N+(n-1), N+n] - High end of data
+        high = nzero
+        high[range(n+1+i)] = data[range(len(data)-(n+i+1), len(data))]
+        high[-(n-i):]      = data[-1]*np.ones(n-i)
+        data_new[len(data)-1-i] = moving_filter(high)
+
+    return data_new
+
+
+
+
+
+
 def normalize(signal, factor=1e6, length=-1):
 
     """Normalize a signal with the option to factorize it.

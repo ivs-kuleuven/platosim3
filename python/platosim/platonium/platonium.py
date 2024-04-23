@@ -1325,7 +1325,9 @@ class PLATOnium(object):
             # Larger lower bound sigma to protect eclipses                    
             if self.detrend == 'wotan':
                 sigma_lower = 10
-        
+            else:
+                sigma_lower = sigma_upper
+                
             # Perform sigma-clipping
             try:
                 lc.clip(model='wotan',
