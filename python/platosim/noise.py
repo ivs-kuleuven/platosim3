@@ -1291,34 +1291,74 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     rng = ut.rng(seed)
 
     # Storage arrays
-    roll   = np.zeros_like(time, dtype=bool)
-    jitter = np.zeros_like(time, dtype=bool)
-    safe   = np.zeros_like(time, dtype=bool)
+    roll    = np.zeros_like(time, dtype=bool)
+    station = np.zeros_like(time, dtype=bool)
+    wheel   = np.zeros_like(time, dtype=bool)
+    jitter  = np.zeros_like(time, dtype=bool)
+    safe    = np.zeros_like(time, dtype=bool)
 
-    # QUARTERLY ROLLS
+    # QUARTERLY ROLLS (~91 days)
 
+    quarter       = np.array(quarter)
     roll_period   = ut.quarter()
     roll_duration = 1.5
     roll_anomaly  = 0.5
+    roll_events   = quarter
+    n_roll        = len(roll_events)
+    roll_event0   = np.zeros(n_roll)
+    roll_event1   = np.zeros(n_roll)
 
-    n_roll = len(quarter)
-    roll_events = quarter
-    roll_event0 = np.zeros(n_roll)
-    roll_event1 = np.zeros(n_roll)
-    
     for i, Q in zip(range(n_roll), roll_events):
-        roll_gap = roll_duration + rng.uniform(-roll_anomaly, roll_anomaly) # [d]
+        roll_gap = roll_duration + rng.uniform(-roll_anomaly, roll_anomaly)       # [d]
         roll_event0[i] = (roll_period * Q - roll_gap/2) * day2sec                 # [s]
         roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec                 # [s]
         roll_dex       = np.where((time>=roll_event0[i]) & (time<=roll_event1[i]))[0]
         roll[roll_dex] = True
+
+    # STATION KEEPING MANOEUVRES (~30 days)
+
+    station_period   = ut.quarter()/3.
+    station_duration = 1/24
+    station_anomaly  = 0.2/24
+    # Remove times during quarter rolls
+    x = np.arange(station_period, roll_period*quarter[-1], station_period)
+    station_events   = np.take(x, np.setdiff1d(np.arange(len(x)), np.arange(2, len(x), 3)))
+    n_station        = len(station_events)
+    station_event0   = np.zeros(n_station)
+    station_event1   = np.zeros(n_station)
+
+    for i, S in zip(range(n_station), station_events):
+        station_gap = station_duration + rng.uniform(-station_anomaly, station_anomaly)
+        station_event0[i] = (S - station_gap/2) * day2sec
+        station_event1[i] = (S + station_gap/2) * day2sec
+        station_dex       = np.where((time>=station_event0[i]) & (time<=station_event1[i]))[0]
+        station[station_dex] = True
+
+    # REACTION WHEEL OFFLOADINGS (~3 days)
+
+    # Period is from DFT of Prime data
+    # wheel_period   = 1/0.334
+    # wheel_duration = 0.05/24.
+    # wheel_anomaly  = 0.01/24.
+    # wheel_events   = np.arange(wheel_period, roll_period*quarter[-1], wheel_period)
+    # wheel_events = np.array(wheel_events)
+    # n_wheel        = len(wheel_events)
+    # wheel_event0   = np.zeros(n_wheel)
+    # wheel_event1   = np.zeros(n_wheel)
+    
+    # for i, W in zip(range(n_wheel), wheel_events):
+    #     wheel_gap = wheel_duration + rng.uniform(-wheel_anomaly, wheel_anomaly)
+    #     wheel_event0[i] = (W - wheel_gap/2) * day2sec
+    #     wheel_event1[i] = (W + wheel_gap/2) * day2sec
+    #     wheel_dex       = np.where((time>=wheel_event0[i]) & (time<=wheel_event1[i]))[0]
+    #     wheel[wheel_dex] = True
         
     # LOSS OF FINE GUIDANCE
 
     jitter_freq = 120
     jitter_offset = rng.uniform(0, jitter_freq)
     t = (quarter[0] - 1) * roll_period - jitter_offset
-    jitter_duration = 0.5/24.
+    jitter_duration = 0.2/24.
     jitter_anomaly  = 0.1/24.
     jitter_events   = []
 
@@ -1387,37 +1427,42 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
     if n_roll != 0:
 
-        fig, ax = plt.subplots(figsize=(9, 3))
+        fig, ax = plt.subplots(figsize=(7.5, 3.8))
         ax.axhline(y=0, linestyle=':', color='k')
 
         for i in range(n_roll):
             ax_roll = ax.axvspan(roll_event0[i]/day2sec, roll_event1[i]/day2sec,
                                  color='b', alpha=0.5)
-            if i == n_roll-1: ax_roll.set_label('Quarter rolls')
+            if i == n_roll-1: ax_roll.set_label('Quarterly rolls')
 
-        # for i in range(n_link):
-        #     ax_link = ax.axvspan(link_event0[i]/day2sec, link_event1[i]/day2sec,
-        #                          color='m', alpha=0.5)
-        #     if i == n_link-1: ax_link.set_label('Downlinks')
+        for i in range(n_station):
+            ax_station = ax.axvspan(station_event0[i]/day2sec, station_event1[i]/day2sec,
+                                    color='m', alpha=0.5)
+            if i == n_station-1: ax_station.set_label('Station keeping')
 
+        # for i in range(n_wheel):
+        #     ax_wheel = ax.axvspan(wheel_event0[i]/day2sec, wheel_event1[i]/day2sec,
+        #                           color='g', alpha=0.5)
+        #     if i == n_wheel-1: ax_wheel.set_label('Wheel offloadings')
+            
         for i in range(n_jitter):
             ax_jitter = ax.axvspan(jitter_event0[i]/day2sec, jitter_event1[i]/day2sec,
                                    color='orange', alpha=0.5)
-            if i == n_jitter-1: ax_jitter.set_label('Loss of FGS')
+            if i == n_jitter-1: ax_jitter.set_label('Loss of fine guidance')
 
         for i in range(n_safe):
             ax_safe = ax.axvspan(safe_event0[i]/day2sec, safe_event1[i]/day2sec,
                                  color='r', alpha=0.5)
-            if i == n_safe-1: ax_safe.set_label('Safe modes')
+            if i == n_safe-1: ax_safe.set_label('Safe mode events')
 
         # Labels
         ax.set_xlabel("Time [days]")
         ax.set_ylabel("Arb.")
-        ax.legend(ncol=4, loc="center", bbox_to_anchor=(0.5, 1.2))
+        ax.legend(ncol=2, loc="center", bbox_to_anchor=(0.5, 1.4))
 
         # Layout
         ax.set_yticklabels([])
-        ax.set_xlim(time[0]/day2sec, time[-1]/day2sec+5)
+        ax.set_xlim(time[0]/day2sec, time[-1]/day2sec+2)
         ax.set_ylim(-1,1)
         plt.tight_layout()
 
@@ -1427,19 +1472,20 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     # Create pandas data frame for different flags    
 
     df = pd.DataFrame()
-    df["time"]   = time
-    df["roll"]   = roll
-    #df["link"]   = link
-    df["jitter"] = jitter
-    df["safe"]   = safe
-    df["all"]    = roll + jitter + safe
+    df["time"]    = time
+    df["roll"]    = roll
+    df["station"] = station
+    #df["wheel"]   = wheel
+    df["jitter"]  = jitter
+    df["safe"]    = safe
+    df["all"]     = roll + station + jitter + safe
         
     # Compute event times
 
-    t0 = np.concatenate((roll_event0, safe_event0))
-    t1 = np.concatenate((roll_event1, safe_event1))
+    t0 = np.concatenate((roll_event0, station_event0, jitter_event0, safe_event0))
+    t1 = np.concatenate((roll_event1, station_event1, jitter_event1, safe_event1))
     dt = pd.DataFrame({'t0':t0, 'td':t1-t0})
-    
+
     # Save file (and plot) if requested
     
     if ofile:
