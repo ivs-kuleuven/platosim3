@@ -2396,7 +2396,7 @@ class LightCurve(object):
     
     def merge(self, quarter=False,
               flux_group_mean=False, flux_offset=False, flux_err=False,
-              binsize=False, detrend=False, clip=False,
+              detrend=False, clip=False, binsize=False,
               ofile=False, verbose=True, suffix="ftr"):
 
         """Merge light curves from a single star.
