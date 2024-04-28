@@ -27,14 +27,25 @@ warnings.filterwarnings("ignore")
 # Parse arguments
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
+
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID', type=int, help='Star ID')
 man_group.add_argument('idir',   type=str, help='Input directory containing star folders')
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
 man_group.add_argument('gdir',   type=str, help='Path to file with data gaps: "instrumentGAP.tab"')
-man_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
-man_group.add_argument('--clean', action='store_true', help='Flag to remove camera data')
+
+opt_group = parser.add_argument_group('OPTIONAL PARAMETERS')
+opt_group.add_argument('--bin_size',  metavar='FLOAT', type=float, help='Time bin size [hours]')
+opt_group.add_argument('--snr_thres', metavar='FLOAT', type=float, help='Optimal SNR criterion')
+opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
+opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
+
 args = parser.parse_args()
+
+# User defined parameters
+verbose   = args.verbose
+bin_size  = args.bin_size  # [hours]
+snr_thres = args.snr_thres
 
 # File paths
 star = f'{args.starID}'.zfill(9)
@@ -59,10 +70,6 @@ filename_tab = odir_table / f'{filename_table}.ftr'
 filename_mod = odir_modes / f'{filename_modes}.ftr'
 filename_gap = gdir / 'instrumentGAP.tab'
 
-# User defined parameters
-cadence   = 0.2  # [hours]
-SNR_thres = 5.34
-
 
 # EXTRACT FINAL LIGHT CURVE
 
@@ -71,10 +78,10 @@ lcs = LightCurve(idir, 'multi')
 
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
-               verbose=args.verbose,
+               verbose=verbose,
                flux_group_mean=True,
                clip=True,
-               binsize=cadence,
+               binsize=bin_size,
                flux_offset=True,
                flux_err=True,
                ofile=filename_ftr)
@@ -97,7 +104,7 @@ df.to_csv(filename_dat, sep=' ', index=False, header=False)
 
 # Perform prewhitening using STARSHADOW
 ss.analyse_lc_from_file(str(filename_dat), save_dir=str(odir_final), stage='freq',
-                        overwrite=True, verbose=args.verbose, sn_thr=SNR_thres)
+                        overwrite=True, verbose=args.verbose, sn_thr=snr_thres)
 
 # Load file containing columns
 folder_hdf5   = odir_final  / f'{filename_final}_analysis'
