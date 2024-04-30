@@ -1527,7 +1527,7 @@ class Pulsator(object):
         A_kde = scipy.stats.gaussian_kde(df.ampl)
         
         # Select number modes
-        N = self.rng.integers(20, 40, 1)[0]
+        N = self.rng.integers(10, 40, 1)[0]
 
         # Randomly select grid step to 
         n = self.rng.integers(100, 500, 1)[0]
@@ -1537,7 +1537,9 @@ class Pulsator(object):
         f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
 
         # Draw amplitude below maximum [mag]
-        A_ran = np.linspace(df.ampl.min(), df.ampl.max(), n)
+        m = self.rng.uniform(0.001, 0.02)
+        print(m)
+        A_ran = np.linspace(0, m, n)
         param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
         A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()

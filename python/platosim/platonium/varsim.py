@@ -816,7 +816,7 @@ class VarSim(object):
             print(f'Passband  correction (TESS   -> PLATO) : {self.scale_tess:.3f}')
 
         # Plot interpolation
-        if args.plot:
+        if args.plot and self.verbose == 3:
             pt.plotSED(self.wvl_star,  self.wvl1_in,  self.wvl2_in,  wvl_equi,
                        self.flux_star, self.flux1_in, self.flux2_in, flux_equi,
                        Teff, Teff_upper, Teff_lower)
@@ -1141,7 +1141,7 @@ class VarSim(object):
 
 
         
-    def star_dsct(self): # TODO test 
+    def star_dsct(self):
 
         """Generate light curves for delta-Scuti stars.
         """
@@ -1262,7 +1262,7 @@ class VarSim(object):
 
         # Initialize class
         time  = self.time.to('d').value
-        model = SurfaceModulations(time, self.corr_kepler, seed=self.seed)
+        model = SurfaceModulations(time, self.scale_kepler, seed=self.seed)
 
         # Prepare model parameters
         params = model.initToyModel()
@@ -1333,7 +1333,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=1, scale=self.corr_kepler, seed=self.seed)
+        model = Pulsator(time, power=1, scale=self.scale_kepler, seed=self.seed)
         
         # Check variable model parsed
         
