@@ -300,17 +300,18 @@ class PLATOnium(object):
         else:
 
             # Add sample name if pipeline is activated
-            if self.pipeline and self.sample is not None:
-                extra_str = f'_{self.sample}'
+            if self.sample is not None:
+                extra_str = f'{self.sample}'
             else:
                 extra_str = ''
 
             # Fetch PIC targets and contaminants
             try:
-                picTarFile = glob.glob(f'{self.inputDir}/starcat{extra_str}**targets.ftr')[0]
-                picConFile = glob.glob(f'{self.inputDir}/starcat{extra_str}**contaminants.ftr')[0]
+                picTarFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**targets.ftr')[0]
+                picConFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**contaminants.ftr')[0]
                 df = pd.read_feather(picTarFile)
                 dc = pd.read_feather(picConFile)
+                
             except IndexError:
                 errorcode('error', f'Stellar {self.sample} catalogue do not exist!')
 
@@ -1981,7 +1982,7 @@ sim_group.add_argument('--bexp',     metavar='NO.',  type=int,   help='Number of
 sim_group.add_argument('--pic',      metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')
 sim_group.add_argument('--mag',      metavar='PMAG', type=float, help='Option to overwrite target magnitude in inputfile')
 sim_group.add_argument('--con_dmag', metavar='MAG',  type=float, help='Threshold in dmag of contaminant(s) (Default: 5 mag)')
-sim_group.add_argument('--con_dist', metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 15 as)')
+sim_group.add_argument('--con_dist', metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 45 as)')
 sim_group.add_argument('--nocon',     action='store_true',       help='Flag to ignore all stellar contaminants')
 sim_group.add_argument('--jit_reuse', action='store_true',       help='Flag to reuse an AOCS jitter file across all quarters')
 sim_group.add_argument('--fullframe', action='store_true',       help='Flag to simulate a full-frame CCD -> CCDcode = starID')
