@@ -1487,8 +1487,8 @@ class Pulsator(object):
         # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
         
-        # Draw amplitude below maximum [mag]
-        A_i_ran = np.linspace(0, 0.02, n)
+        # Draw amplitude below maximum (15 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.015, n)
         param   = [1.4225080146060183, 8.415648200068788e-07, 0.00012715214085614303]
         A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
@@ -1510,15 +1510,15 @@ class Pulsator(object):
             A_i = 2.5 * np.log10(1 + A_i)
         
         # Draw random periods not part of the pattern (max 1/8 of ampl)
-        M = 1 #np.random.randint(100, 400)
-        P_puls_i = self.rng.uniform(0.2, 3.5, size=M)
-        A_puls_i = self.rng.uniform(0, A_max/10, size=M)
+        # M = 0
+        # P_puls_i = self.rng.uniform(0.2, 3.5, size=M)
+        # A_puls_i = self.rng.uniform(0, A_max/20, size=M)
 
         # Create new data frame
         self.df = pd.DataFrame()
-        self.df['freq']  = 1 / np.append(P_i, P_puls_i)
-        self.df['ampl']  = np.append(A_i, A_puls_i)
-        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
         self.starname = 'MOCKA: SPB star (Pedersen+2021)'
 
         # Return parameters
@@ -1568,8 +1568,8 @@ class Pulsator(object):
         # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
         
-        # Draw amplitude below maximum [mag]
-        A_i_ran = np.linspace(0, 0.005, n)
+        # Draw amplitude below maximum (20 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.02, n)
         param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
         A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
@@ -1590,16 +1590,11 @@ class Pulsator(object):
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
         
-        # Draw random periods not part of the pattern (max 1/8 of ampl)
-        M = np.random.randint(100, 400)
-        P_puls_i = self.rng.uniform(0.2, 3, size=M)
-        A_puls_i = self.rng.uniform(0, A_max/10, size=M)
-
         # Create new data frame
         self.df = pd.DataFrame()
-        self.df['freq']  = 1 / np.append(P_i, P_puls_i)
-        self.df['ampl']  = np.append(A_i, A_puls_i)
-        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  =A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
         self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
 
         # Return parameters
@@ -1635,9 +1630,7 @@ class Pulsator(object):
         f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
 
         # Draw amplitude below maximum [mag]
-        m = self.rng.uniform(0.001, 0.02)
-        print(m)
-        A_ran = np.linspace(0, m, n)
+        A_ran = np.linspace(0, 0.2, n)
         param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
         A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
