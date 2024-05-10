@@ -1487,8 +1487,8 @@ class Pulsator(object):
         # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
         
-        # Draw amplitude below maximum (15 mmag) [mag]
-        A_i_ran = np.linspace(0, 0.015, n)
+        # Draw amplitude below maximum (20 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.02, n)
         param   = [1.4225080146060183, 8.415648200068788e-07, 0.00012715214085614303]
         A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
