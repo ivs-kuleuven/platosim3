@@ -91,8 +91,9 @@ Usage example:
 Besides producing variable templates for solar-like stars, it is
 also possible to create a template for pulsating stars that are
 more massive and more evolved than the Sun:
-  - delta-Scuti    (dSct)  [ToyModel, Bowman2018, mocka]
-  - gamma-Doradus  (gDor)  [ToyModel, Gang2020,   mocka]
+  - Slowly puls B  (SPB)   [ToyModel, Pedersen2021, mocka]
+  - delta-Scuti    (dSct)  [ToyModel, Bowman2018,   mocka]
+  - gamma-Doradus  (gDor)  [ToyModel, Gang2020,     mocka]
   - roAp star      (roAp)  [ToyModel]
   - RR Lyrae       (RRLyr) [Bodi2023]
   - Cepheid        (Ceph)  [Bodi2023]
@@ -109,7 +110,6 @@ Usages examples:
 
 # TODO models to implement
   # - beta Cephei    (bCep)  [ToyModel, Aerts2024,  mocka]
-  # - SPB star       (SPB)   [ToyModel, Aerts2024,  mocka] 
   # - LPV            (LPV)
   # - DAV/DBV        (WD)
 
@@ -416,10 +416,10 @@ class VarSim(object):
 
         #----------------------------------
 
-        if source == 'gDor':
-            M = 1.26 * u.M_sun
-            R = 1.20 * u.R_sun
-            Teff = 6071 * u.K
+        if source == 'SPB':
+            M = 2.5 * u.M_sun
+            R = 5.0 * u.R_sun
+            Teff = 12000 * u.K
             logg = 4.0
             Z    = 0.0
         
@@ -430,6 +430,13 @@ class VarSim(object):
             logg = 4.0
             Z    = 0.0
 
+        if source == 'gDor':
+            M = 1.26 * u.M_sun
+            R = 1.20 * u.R_sun
+            Teff = 6071 * u.K
+            logg = 4.0
+            Z    = 0.0
+            
         if source == 'roAp':
             M = 1.26 * u.M_sun
             R = 1.20 * u.R_sun
@@ -1053,7 +1060,9 @@ class VarSim(object):
         self.spot_coverage = area
         
         # Plot model
-        if self.plot: model.plot()
+        if self.plot:
+            model.plot()
+            plt.show()
         
 
 
@@ -1078,8 +1087,7 @@ class VarSim(object):
             if self.verbose > 1:
                 print('Model generation : Daveport+2014')
                 print('Model parameters : Doorsselaere+2017')
-            params = model.initDoorsselaere2017(self.idir, self.spec,
-                                                self.df.AR_ARsun, self.spot_coverage)
+            params = model.initDoorsselaere2017(self.spec,self.df.AR_ARsun, self.spot_coverage)
             
         elif args.flare == 'ToyModel':
             if self.verbose > 1:
@@ -1136,6 +1144,71 @@ class VarSim(object):
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
         self.lc['flux'] = ut.fromMagToFlux(mag) * self.corr_tess
+
+
+
+
+
+    def star_spb(self):
+
+        """Generate light curve for a SPB star.
+
+        Notes 
+        -----
+        This function uses the "varsouce.Pulsator" class.
+        This class provide two model generations:
+        1) Toy model using a characteristic power of 2.2
+        2) Draw (freq, ampl, phase) from Kepler observations by
+           using the flag "--puls pedersen2021".
+        3) Create mock object using the Kepler sample, based on
+           an analytic model and KDE histograms.
+        """
+
+        # Start script
+        if self.verbose > 1:
+            errorcode('module', '\nSPB pulsator\n')
+
+        # Store correction
+        self.df['A_corr'] = self.scale_kepler
+            
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = Pulsator(time, power=2.2, scale=self.scale_kepler, seed=self.seed)
+        
+        # Check model parsed
+        
+        if args.puls == 'Pedersen2021':
+            if self.verbose > 1:
+                print('Selecting a mock object from Kepler sample (Pedersen+2021)')            
+            model.initFromFile(self.idir, args.puls, starID=self.starID)
+
+        elif args.puls == 'mocka':
+            if self.verbose > 1:
+                print('Generating mock object using Kepler sample (Pedersen+2021)')
+                
+            params = model.initMockaPedersen2021(self.idir)
+            self.df['N_modes']     = params[0]
+            self.df['P0_day']      = params[1]
+            self.df['DeltaP0_day'] = params[2]
+            self.df['slope']       = params[3]
+            self.df['Amax_mag']    = params[4]
+            self.dm = params[5]
+            
+            if self.verbose > 1:
+                print(f'Number of pulsation modes : {params[0]}')
+                print(f'First period in pattern   : {params[1]:.5f} day')
+                print(f'First period-spacing      : {params[2]:.5f} day')
+                print(f'Slope of period-spacing   : {params[3]:.4f}')
+                print(f'Maximum mode amplitude    : {params[4]*1e3:.3f} mmag')
+            
+        else:
+            if self.verbose > 1:
+                print('Generating mock object from toy model')            
+            model.initToyModel([0.2, 3.2], [0.5, 2.5])
+
+        # Return model [mag -> ppm]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
 
@@ -2045,7 +2118,7 @@ class VarSim(object):
             self.lc['time'] += self.timeStart * 86400
         
         # Variability classes
-        stars    = ['roAp', 'dSct', 'gDor', 'RRLyr', 'Ceph']
+        stars    = ['bCep', 'SPB', 'dSct', 'gDor', 'roAp', 'RRLyr', 'Ceph']
         binaries = ['EB', 'SMBH']
 
         # If all signals are ignored then it is a constant star
@@ -2144,12 +2217,15 @@ class VarSim(object):
         
         # Include stellar variability
            
-        if args.star == 'gDor':
-            v.star_gdor()
+        if args.star == 'SPB':
+            v.star_spb()
 
         elif args.star == 'dSct':
             v.star_dsct()
 
+        elif args.star == 'gDor':
+            v.star_gdor()
+                        
         elif args.star == 'roAp':
             v.star_roap()
             
@@ -2479,7 +2555,7 @@ class VarSim(object):
             if starType == 'bCep':
                 self.star_bcep()
             elif starType == 'SPB':
-                self.star_spbs()
+                self.star_spb()
             elif starType == 'dSct':
                 self.star_dsct()
             elif starType == 'gDor':

@@ -210,9 +210,9 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     time : ndarray, pdframe
         Time points of which light curve will be generated [s]
     freq : ndarray, pdframe
-        Frequencies of sinusoids [as input]
+        Frequencies of sinusoids [c/d]
     ampl : ndarray, pdframe
-        Amplitudes of sinusoids [as input]
+        Amplitudes of sinusoids [mag]
     phase : ndarray, pdframe
         Phases of sinusoids [rad]
 
@@ -235,11 +235,17 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     for i in range(N):
         signal += ampl[i] * np.sin((2*np.pi * freq[i]) * time + phase[i])
 
-    # Normalize the magnitude so its values is in [-1, 1] (so roots are not undefined)
-    # Then add 1, raise the power and substract 1
+    # Normalize the magnitude so its values is in [-1, 1]
+    # Then add 1, such that the roots are not undefined
+    # Raise the power
+    # Normalise the signal [0, 1]
+    # Subtract the mean and multiple with overall amplityde
     A = np.max(np.abs(signal))
-    signal = A * ( (1 + signal/A)**power - 1 )
-
+    signal = (1 + signal / A)**power
+    signal = signal / np.max(signal)
+    signal = A * (signal - np.mean(signal))
+    #signal = A * ( (1 + signal/A)**power - 1 )
+        
     # If requested, plot model 
     if plot:
         fig, ax = plt.subplots(2, 1, figsize=(12, 7))

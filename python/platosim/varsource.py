@@ -611,39 +611,38 @@ class StellarSpots(object):
 
     
 
-    def plot(self):
+    def plot(self, title='params', panels=3, figsize=(11,8)):
 
         """Plot spot modulation model.
         """
 
-        fig, axes = plt.subplots(3,1, figsize=(11,8), sharex=True)
-        ttl= ('Model: ' +
-              r'${\rm AR} = $'+f'{self.params[2]:5.3f}, ' +
-              r'${\rm CL} = $'+f'{self.params[6]:6.3f} yr, ' +
-              r'$P_{\rm min} = $'+f'{self.params[4]:6.2f} d, ' +
-              r'$P_{\rm max} = $'+f'{self.params[5]:6.2f} d, ' +
-              r'$L_{\rm max} = $'+f'{self.params[8]:5.2f}'+r'$^{\circ}$, ' +
-              r'$i = $'+f'{self.params[9]:6.2f}'+r'$^{\circ}$')
-        axes[0].set_title(ttl, fontsize='18')
-        axes[0].set_facecolor('yellow')
-        axes[0].axhline(y=0, color='k', linestyle='--')
+        fig, axes = plt.subplots(panels,1, figsize=figsize, sharex=True)
+        if title == 'params': 
+            title= ('Model: ' +
+                    r'${\rm AR} = $'+f'{self.params[2]:5.3f}, ' +
+                    r'${\rm CL} = $'+f'{self.params[6]:6.3f} yr, ' +
+                    r'$P_{\rm min} = $'+f'{self.params[4]:6.2f} d, ' +
+                    r'$P_{\rm max} = $'+f'{self.params[5]:6.2f} d, ' +
+                    r'$L_{\rm max} = $'+f'{self.params[8]:5.2f}'+r'$^{\circ}$, ' +
+                    r'$i = $'+f'{self.params[9]:6.2f}'+r'$^{\circ}$')
+        if title:
+            axes[0].set_title(title, fontsize='18')
+        axes[0].set_facecolor('lemonchiffon')
+        axes[0].axhline(y=0, color='gray', linestyle='--')
         for j in range(self.nspot):
-            if self.t0[j] < -10:
-                continue
-            if self.t0[j] > self.dur:
-                continue
-            axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8,
-                         markersize=self.amax[j]*(1./3e-4)*5)
+            if self.t0[j] < -10: continue
+            if self.t0[j] > self.dur: continue
+            axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8, ms=self.amax[j]*(1./3e-4)*5)
         axes[0].set_ylim(-90,90)
-        axes[0].set_ylabel('Spot latitude [deg]')
-        axes[1].plot(self.time, self.area.sum(0)*100, 'k-')
-        axes[1].set_ylabel(r'Spot coverage [\%]')        
-        axes[2].plot(self.time, self.dF.sum(0)*1e6, 'k-')
-        axes[2].set_ylabel('Relative flux [ppm]')
+        axes[0].set_ylabel(r'Latitude [$^{\circ}$]')
+        axes[1].plot(self.time, self.area.sum(0)*1e3, 'k-')
+        axes[1].set_ylabel(r'Coverage [ppt]')        
+        axes[2].plot(self.time, self.dF.sum(0)*1e3, 'k-')
+        axes[2].set_ylabel('Spot flux [ppt]')
         axes[2].set_xlim(0, self.dur)
-        axes[2].set_xlabel('Time [days]')
+        axes[-1].set_xlabel('Time [days]')
         plt.tight_layout(h_pad=0.1)
-        plt.show()
+        return fig, axes
         
     
 
@@ -696,7 +695,7 @@ class StellarFlares(object):
 
     
 
-    def initDoorsselaere2017(self, odir, spec_type, activity_rate, spot_coverage):
+    def initDoorsselaere2017(self, spec_type, activity_rate, spot_coverage):
 
         """Model parameters from Kepler M-dwarf (Van Doorsselaere et al. 2017)
 
@@ -741,7 +740,7 @@ class StellarFlares(object):
         area = spot_coverage.sum(0)*100
         time = np.linspace(self.time[0], self.time[-1], len(area))
         spline = make_interp_spline(time, area, k=3)
-        self.area = spline(self.time)
+        self.area = np.abs(spline(self.time))
         self.tmax = pd.Series(self.time).sample(n_flares, weights=self.area).to_numpy()
 
         # Amplitude distibution of flares (< 10 ppt) [norm]
@@ -1314,7 +1313,7 @@ class Pulsator(object):
         """
         
         filepath = Path(f'{odir}/{filename}')
-        
+
         # Check if a file or a folder is requested
 
         if not filepath.is_file() and filepath.suffix == '.ftr':
@@ -1373,6 +1372,14 @@ class Pulsator(object):
             filename = 'varsource_gdor_gang2020'
             names    = ['freq', 'ampl', 'phase', 'snr']
             
+        elif sample == 'Pedersen2021':
+            suffix   = 'dat'
+            sep      = ' '
+            comment  = '#'
+            freq_unit = 'day'
+            ampl_unit = 'ppm'
+            filename = 'varsource_SPB_pedersen2021'
+            
         elif sample == 'Bowman2018':
             suffix   = 'txt'
             sep      = '  '
@@ -1411,7 +1418,13 @@ class Pulsator(object):
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+        if sample == 'Pedersen2021':
+            dn = np.loadtxt(starfile, comments=comment, usecols=[0,2,4])
+            self.df = pd.DataFrame({'freq':dn[:,0], 'ampl':dn[:,1], 'phase':dn[:,2]})
+        else:
+            self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+
+        # Filename of star
         self.starname = f'{sample}: {starfile.name}'
 
         # Convert freq unit [c/d]
@@ -1423,10 +1436,94 @@ class Pulsator(object):
             self.df.ampl /= 1e3  
         elif ampl_unit == 'norm':
             self.df.ampl = -2.5*np.log10(1-self.df.ampl)
+        elif ampl_unit == 'ppm':
+            self.df.ampl = -2.5*np.log10(1-self.df.ampl/1e6)
             
         # Return the star ID
         return starfile.name
     
+
+
+    def initMockaPedersen2021(self, odir):
+
+        """Draw frequencies from Kepler SPB star legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_SPB_pedersen2021.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+
+        # Load file containing columns
+        dm = pd.read_feather(filepath)
+        
+        # Generate KDEs
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+        
+        # Select number modes (secure at least 5 modes)
+        N_ran = np.arange(dm.N.min(), dm.N.max(), 1)
+        N = int(pd.Series(N_ran).sample(1, weights=N_kde(N_ran)).to_numpy()[0])
+        if N < 5: N = 5
+        
+        # Randomly select grid step to 
+        n = self.rng.integers(100, 500, 1)[0]
+
+        # Select maximum period from KDE [day]
+        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+        P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
+
+        # First period spacing in pattern from KDE [day]
+        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+        dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
+
+        # Select slope from fit to distribution (cf. Fig. 10 of L20)
+        # Compared to gDor stars, we here use the KDE
+        slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
+        slope = pd.Series(slope_ran).sample(1, weights=slope_kde(slope_ran)).to_numpy()[0]
+
+        # Create period-spacing pattern [day]
+        P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+        
+        # Draw amplitude below maximum (15 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.015, n)
+        param   = [1.4225080146060183, 8.415648200068788e-07, 0.00012715214085614303]
+        A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
+        A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
+        
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)
+        if n_dex > n_off/2: n_dex = int(n_dex - 1)
+        A_i[n_max] = A_i[n_dex]
+        A_i[n_dex] = A_max
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+        
+        # Draw random periods not part of the pattern (max 1/8 of ampl)
+        # M = 0
+        # P_puls_i = self.rng.uniform(0.2, 3.5, size=M)
+        # A_puls_i = self.rng.uniform(0, A_max/20, size=M)
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.starname = 'MOCKA: SPB star (Pedersen+2021)'
+
+        # Return parameters
+        return N, P0, dP0, slope, A_max, self.df
+
 
     
     def initMockaGang2020(self, odir):
@@ -1471,41 +1568,37 @@ class Pulsator(object):
         # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
         
-        # Draw amplitude below maximum [mag]
-        A_i_ran = np.linspace(0, 0.005, n)
+        # Draw amplitude below maximum (20 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.02, n)
         param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
         A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
-        A_max0 = A_i[n_max]
+        A_max = A_i[n_max]
 
         # Swap max peak location with offset
         n_off = np.random.randint(-5, 5)
-        n_dex = int(N/2 + n_off)        
+        n_dex = int(N/2 + n_off)
+        if n_dex > n_off/2: n_dex = int(n_dex - 1) 
         A_i[n_max] = A_i[n_dex]
-        A_i[n_dex] = A_max0
+        A_i[n_dex] = A_max
 
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
         
-        # Draw random periods not part of the pattern (max 1/8 of ampl)
-        M = np.random.randint(100, 400)
-        P_puls_i = self.rng.uniform(0.2, 2, size=M)
-        A_puls_i = self.rng.uniform(0, A_max0/10, size=M)
-
         # Create new data frame
         self.df = pd.DataFrame()
-        self.df['freq']  = 1 / np.append(P_i, P_puls_i)
-        self.df['ampl']  = np.append(A_i, A_puls_i)
-        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N+M)
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  =A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
         self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
 
         # Return parameters
-        return N, P0, dP0, slope, A_max0, self.df
+        return N, P0, dP0, slope, A_max, self.df
     
 
 
@@ -1537,9 +1630,7 @@ class Pulsator(object):
         f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
 
         # Draw amplitude below maximum [mag]
-        m = self.rng.uniform(0.001, 0.02)
-        print(m)
-        A_ran = np.linspace(0, m, n)
+        A_ran = np.linspace(0, 0.2, n)
         param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
         A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
         A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
