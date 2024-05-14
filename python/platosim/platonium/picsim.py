@@ -1074,25 +1074,31 @@ Notes on PIC catalogue creation:
         df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
         df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
         df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
-        
-        # If requested, add bright stars not available in the Gaia catalogue
+
+        # If requested, add bright stars not available in the Gaia catalogue (G > 2)
+        # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}
         if self.bright:
-            sirius  = {'gaiaDR3':'Sirius', 'ra':101.2871667, 'dec':-16.7161167,
+            Sirius  = {'gaiaDR3':'1', 'ra':101.2871667, 'dec':-16.7161167,
                        'Pmag':  ut.passbandConversionV2P(-1.46, 9940),
                        'PBmag': ut.passbandConversionV2P(-1.46, 9940),
                        'PRmag': ut.passbandConversionV2P(-1.46, 9940)}
-            canopus = {'gaiaDR3':'Canopus', 'ra': 95.9879167, 'dec':-52.6956611,
+            Canopus = {'gaiaDR3':'2', 'ra': 95.9879167, 'dec':-52.6956611,
                        'Pmag':  ut.passbandConversionV2P(-0.72, 7400),
                        'PBmag': ut.passbandConversionV2P(-0.59, 7400),
                        'PRmag': ut.passbandConversionV2P(-0.96, 7400)}
-            epscma  = {'gaiaDR3':'epsCMa', 'ra':104.6564583, 'dec':-28.9720861,
+            epsCMa  = {'gaiaDR3':'3', 'ra':104.6564583, 'dec':-28.9720861,
                        'Pmag':  ut.passbandConversionV2P(1.50, 22900),
                        'PBmag': ut.passbandConversionV2P(1.29, 22900),
                        'PRmag': ut.passbandConversionV2P(1.59, 22900)}
-            df_sirius  = pd.DataFrame([sirius])
-            df_canopus = pd.DataFrame([canopus])
-            df_epscma  = pd.DataFrame([epscma])
-            df = pd.concat([df, df_sirius, df_canopus, df_epscma])
+            gamVel  = {'gaiaDR3':'4', 'ra':122.383126, 'dec':-47.336586,
+                       'Pmag':  ut.passbandConversionV2P(1.78, 21500),
+                       'PBmag': ut.passbandConversionV2P(1.58, 21500),
+                       'PRmag': ut.passbandConversionV2P(1.85, 21500)}
+            df_Sirius  = pd.DataFrame([Sirius])
+            df_Canopus = pd.DataFrame([Canopus])
+            df_epsCMa  = pd.DataFrame([epsCMa])
+            df_gamVel  = pd.DataFrame([gamVel])
+            df = pd.concat([df, df_Sirius, df_Canopus, df_epsCMa, df_gamVel])
 
         # Keep only stars within the camera group FOV
         if self.verbose > 1:

@@ -1440,9 +1440,64 @@ class Pulsator(object):
             self.df.ampl = -2.5*np.log10(1-self.df.ampl/1e6)
             
         # Return the star ID
-        return starfile.name
+        return starfile.stem
     
 
+
+    
+    def initMockaBodi2023(self, odir, variable):
+
+        """Draw frequencies from TESS RR Lyr star legacy.
+        """
+
+        suffix   = 'fou'
+        sep      = '  '
+        comment  = None
+        freq_unit = 'c/d'
+        ampl_unit = 'mag'
+        names    = ['freq', 'ampl', 'phase']
+        filename = 'varsource_rrly_bodi2023'
+
+        # Check variable class
+        if variable == 'RRLyr':
+            filename = 'varsource_rrly_bodi2023'
+        elif variable == 'Ceph':
+            filename = 'varsource_ceph_bodi2023'
+        else:
+            errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+
+        
+        # Download files if not done
+        self.download(odir, filename)
+
+        # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
+        starfile = Path(self.rng.choice(filenames))
+
+        # Load data frame
+        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+
+        # Perturb modes up to 10%
+        f_corr = self.rng.uniform(0.9, 1.1)
+        A_corr = self.rng.uniform(0.9, 1.1)
+        self.df.freq *= f_corr
+        self.df.ampl *= A_corr
+        
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(self.df.ampl)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+            self.df.ampl = A_i
+        
+        # Create new data frame
+        self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
+
+        # Return parameters
+        return starfile.stem, f_corr, A_corr, self.df
+
+        
+
+        
 
     def initMockaPedersen2021(self, odir):
 
