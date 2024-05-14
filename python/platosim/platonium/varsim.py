@@ -796,11 +796,17 @@ class VarSim(object):
         if len(self.wvl1_in) != len(self.wvl2_in):
             errorcode('error', 'Spectra are not of the same size! Check interpolation')
 
+        # Make sure that interpolation converge between the two libaries
+        if Teff_lower == Teff_upper:
+            Teff_diff = 1
+        else:
+            Teff_diff = float(Teff_upper-Teff_lower)
+            
         # Create SED for star by interpolating nearby absolutely calibrated spectra
-        self.wvl_star  = (self.wvl1_in + self.wvl2_in) / 2.
+        self.wvl_star = (self.wvl1_in + self.wvl2_in) / 2.
         self.flux_star = (self.flux1_in + (Teff-Teff_lower) * (self.flux2_in-self.flux1_in) *
-                          float(Teff_upper-Teff_lower)**-1)
-
+                          Teff_diff**-1)
+        
         # Consistnecy check
         if self.verbose > 1:
             Lum = 4*np.pi*(R.cgs.value)**2 * np.trapz(self.flux_star, self.wvl_star)
@@ -821,7 +827,9 @@ class VarSim(object):
             print(f'Amplitude correction for oscillations  : {self.bol_coeff:.3f}')
             print(f'Passband  correction (Kepler -> PLATO) : {self.scale_kepler:.3f}')
             print(f'Passband  correction (TESS   -> PLATO) : {self.scale_tess:.3f}')
-
+        self.df['PD_tess']   = self.scale_tess
+        self.df['PD_kepler'] = self.scale_kepler
+        
         # Plot interpolation
         if args.plot and self.verbose == 3:
             pt.plotSED(self.wvl_star,  self.wvl1_in,  self.wvl2_in,  wvl_equi,
@@ -1357,7 +1365,6 @@ class VarSim(object):
 
         
     def star_aperiodic(self):
-
         """Generate light curve for aperiodic variables.
 
         TODO in construction
@@ -1406,22 +1413,29 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=1, scale=self.scale_kepler, seed=self.seed)
+        model = Pulsator(time, power=1, scale=self.scale_tess, seed=self.seed)
         
         # Check variable model parsed
         
         if args.puls == 'Bodi2023':
             if self.verbose > 1:
-                print('Selecting mock object from Kepler sample (Bodi+2023)')
+                print('Selecting mock object from TESS sample (Bodi+2023)')
             params = model.initFromFile(self.idir, sample=args.puls, variable='RRLyr')
             self.df['starname'] = params[0]
-        else:
-            exit()
             
+        elif args.puls == 'mocka':
+            if self.verbose > 1:
+                print('Generating mock object using TESS sample (Bodi+2023)')
+            params = model.initMockaBodi2023(self.idir, variable='RRLyr')
+            self.df['starname'] = params[0]
+            self.df['f_corr']   = params[1]
+            self.df['A_corr']   = params[2]
+            self.dm             = params[3]
+
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
         self.lc['flux'] = ut.fromMagToFlux(mag)
-
+        
 
 
         
@@ -1436,18 +1450,25 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, 1, self.corr_kepler, self.seed)
+        model = Pulsator(time, 1, self.corr_tess, self.seed)
         
         # Check variable model parsed
 
         if args.puls == 'Bodi2023':
             if self.verbose > 1:
-                print('Selecting mock object from Kepler sample (Bodi+2023)')
+                print('Selecting mock object from TESS sample (Bodi+2023)')
             params = model.initFromFile(self.idir, sample=args.puls, variable='Ceph')
             self.df['starname'] = params[0]
-        else:
-            exit()
             
+        elif args.puls == 'mocka':
+            if self.verbose > 1:
+                print('Generating mock object using TESS sample (Bodi+2023)')
+            params = model.initMockaBodi2023(self.idir, variable='Ceph')
+            self.df['starname'] = params[0]
+            self.df['f_corr']   = params[1]
+            self.df['A_corr']   = params[2]
+            self.dm             = params[3]
+                        
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
         self.lc['flux'] = ut.fromMagToFlux(mag)
