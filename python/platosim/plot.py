@@ -1246,9 +1246,9 @@ def compass(ax, x, y, size):
 
 
             
-def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, showFcamFOV=False, showLegend=True, ncamStars=True,
-                 title=None, fovSize=30, fs=20, ms=1, aa=1, figsize=(9,9)):
+def plotPlatoFOV(pointingField, raStars=0, decStars=0, c=None, magStars=None, system="icrs",
+                 showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
+                 title=None, fovSize=30, fs=20, ms=2, aa=1, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1375,10 +1375,22 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
     if raStars is not None:
         starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
-        scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
-                             transform=ax.get_transform('world'), 
-                             s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
-    
+
+        if c is None:
+            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
+                                 transform=ax.get_transform('world'), 
+                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
+        else:
+            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
+                                 transform=ax.get_transform('world'), 
+                                 c=c, cmap='YlGn', marker=mark, s=40, ec='k', lw=0.1, zorder=5)
+            div = make_axes_locatable(ax)
+            #cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
+            #cax = div.append_axes("right", size="100%", pad=0.1)
+            #cbar = plt.colorbar(scatter, ax=ax, cax=cax, extend='both', orientation='vertical')
+            #cbar.set_label('Mag')
+            #cbar1.ax.invert_yaxis()
+
     # Plot pointing of each camera group
     
     if showGroups:
@@ -3322,6 +3334,72 @@ def plotDetectedPlanets():
 
     
 
+
+def plotHistogramSED(df, title=False, figsize=(8,15)):
+
+
+    # Seperate stars
+    df06 = df[df.ncams ==  6]
+    df12 = df[df.ncams == 12]
+    df18 = df[df.ncams == 18]
+    df24 = df[df.ncams == 24]
+
+    lw = 1.1
+    c = ['royalblue', 'green', 'orange', 'orangered']
+    
+    # Inspect magnitude counts
+    fig, ax = plt.subplots(6, 1, figsize=figsize)
+
+    N = 50
+    ax[0].hist(df06.Pmag, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[0].hist(df12.Pmag, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
+    ax[0].hist(df18.Pmag, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
+    ax[0].hist(df24.Pmag, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[0].set_xlabel(r'PLATO magnitude, $P$')
+    ax[0].set_ylabel('Count')
+    ax[0].legend(loc='best')
+    if title: ax[0].set_title(title, fontsize=20, pad=10)
+    
+    ax[1].hist(df06.M, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[1].hist(df12.M, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
+    ax[1].hist(df18.M, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
+    ax[1].hist(df24.M, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[1].set_xlabel(r'$M$ [$M_{\odot}$]')
+    ax[1].set_ylabel('Count')
+
+    ax[2].hist(df06.R, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[2].hist(df12.R, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
+    ax[2].hist(df18.R, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
+    ax[2].hist(df24.R, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[2].set_xlabel(r'$R$ [$R_{\odot}$]')
+    ax[2].set_ylabel('Count')
+
+    ax[3].hist(df06.Teff, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[3].hist(df12.Teff, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
+    ax[3].hist(df18.Teff, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
+    ax[3].hist(df24.Teff, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[3].set_xlabel(r'$T_{\rm eff}$ [K]')
+    ax[3].set_ylabel('Count')
+
+    ax[4].hist(df06.logg, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[4].hist(df12.logg, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
+    ax[4].hist(df18.logg, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
+    ax[4].hist(df24.logg, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[4].set_xlabel(r'log $g$ [dex]')
+    ax[4].set_ylabel('Count')
+
+    ax[5].hist(df06.Z, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[5].hist(df12.Z, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
+    ax[5].hist(df18.Z, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
+    ax[5].hist(df24.Z, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[5].set_xlabel(r'$Z$ [dex]')
+    ax[5].set_ylabel('Count')
+    
+    plt.tight_layout(pad=0.5)
+
+    return fig, ax
+
+    
 
 #--------------------------------------------------------------#
 #                          ANIMATIONS                          #
