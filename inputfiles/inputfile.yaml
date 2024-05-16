@@ -53,7 +53,7 @@ Platform:
 
 StrayLight:
     FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
-    
+    PstPath:                         inputfiles/Plato_Straylight_PST.txt
 
 Telescope:
 

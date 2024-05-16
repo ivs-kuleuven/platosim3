@@ -123,8 +123,8 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
 
-    int Nrows = 2 * numRowsPixelMap;
-    int Ncolumns = 2 * numColumnsPixelMap;
+    int unsigned Nrows    = 2 * numRowsPixelMap;
+    int unsigned Ncolumns = 2 * numColumnsPixelMap;
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
