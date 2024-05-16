@@ -417,7 +417,7 @@ class StellarSpots(object):
 
         # Set global parameters which are the same for all spots inclination [deg]
         if incl == None:
-            self.incl = np.rad2deg(np.arcos(np.random.uniform()))
+            self.incl = np.rad2deg(np.arcos(self.rng.uniform()))
         else:
             self.incl = incl
 
@@ -470,12 +470,18 @@ class StellarSpots(object):
         area        = np.zeros(len(time)) 
         decay_time  = self.amax[i] / self.decay_rate[i]
         emerge_time = decay_time / 10.0
-        
-        # exponential growth and decay
+
+        # squared exponential growth and decay
         l = time < self.t0[i]
-        area[l] = self.amax[i] * np.exp(-(self.t0[i]-time[l]) / emerge_time)
+        area[l] = self.amax[i] * np.exp(-0.5*(self.t0[i]-time[l])**2 / emerge_time**2)
         l = time >= self.t0[i]
-        area[l] = self.amax[i] * np.exp(-(time[l]-self.t0[i]) / decay_time)
+        area[l] = self.amax[i] * np.exp(-0.5*(time[l]-self.t0[i])**2 / decay_time**2)
+
+        # exponential growth and decay
+        # l = time < self.t0[i]
+        # area[l] = self.amax[i] * np.exp(-(self.t0[i]-time[l]) / emerge_time)
+        # l = time >= self.t0[i]
+        # area[l] = self.amax[i] * np.exp(-(time[l]-self.t0[i]) / decay_time)
         
         # linear growth and decay
         # l = (time >= (self.t0[i]-emerge_time)) * (time < self.t0[i])
@@ -1556,8 +1562,11 @@ class Pulsator(object):
         n_off = np.random.randint(-5, 5)
         n_dex = int(N/2 + n_off)
         if n_dex > n_off/2: n_dex = int(n_dex - 1)
-        A_i[n_max] = A_i[n_dex]
-        A_i[n_dex] = A_max
+        try:
+            A_i[n_max] = A_i[n_dex]
+            A_i[n_dex] = A_max
+        except:
+            pass
 
         # Apply passband correction
         if self.scale:
@@ -1637,9 +1646,12 @@ class Pulsator(object):
         n_off = np.random.randint(-5, 5)
         n_dex = int(N/2 + n_off)
         if n_dex > n_off/2: n_dex = int(n_dex - 1) 
-        A_i[n_max] = A_i[n_dex]
-        A_i[n_dex] = A_max
-
+        try:
+            A_i[n_max] = A_i[n_dex]
+            A_i[n_dex] = A_max
+        except:
+            pass
+        
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale

@@ -207,6 +207,12 @@ class Payload(object):
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, self.G, self.C, self.Q,
                             fcam=False, ofile=filename)
+
+            filename = f"{self.odir}/{self.prefix}_ncam_new.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFileNew(self.N, self.G, self.C,
+                               fcam=False, ofile=filename)
             
             filename = f"{self.odir}/{self.prefix}_fcam.data"
             if self.verbose > 1:
