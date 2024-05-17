@@ -1236,7 +1236,7 @@ class Simulation(object):
 
         # Extract the needed information from the yaml input file
         # Note: groupIDs and ccdIDs start counting from 1...
-        print(self["CCD/Position"])
+
         if self["Telescope/GroupID"] == "Custom":
             azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
             tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
