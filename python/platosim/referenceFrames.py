@@ -4,6 +4,7 @@
 import os
 import sys
 import math
+import warnings
 
 # PlatoSim standard
 import h5py
@@ -1663,6 +1664,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         Nrows = CCD[ccdCode]["Nrows"]
         Ncols = CCD[ccdCode]["Ncols"]
         firstRow = CCD[ccdCode]["firstRow"]
+
         if (xCCDpix < 0)      or (yCCDpix < firstRow): continue
         if (xCCDpix >= Ncols) or (yCCDpix >= Nrows):   continue
 
@@ -1920,7 +1922,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
     # If the CCD code is None, the star does not fall on any ccd -> error
 
-    if ccdCode == None:
+    if ccdCode is None:
         return None, None, None
 
     # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
@@ -1947,7 +1949,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
 
 
-def skyToPixelCoordinates(sim, raStar, decStar, normal):
+def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
 
     """From equatorial to pixel coordinates.
 
@@ -1973,8 +1975,6 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
        Full width (# of columns) of the subfield [pix]
     subfieldSizeY : int
        Full height (# of rows) of the subfield [pix]
-    normal : bool
-       True for the normal camera configuration, False for the fast cameras
 
     Return
     ------
@@ -1987,17 +1987,19 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     yCCDpix : int 
         Y-coordinate (row) of star on the CCD [pix]
         If not on CCD: None
+    normal:
+        Is depricated and should no longer be used.
     """
 
     # Resolve which distortion model is used (if any)
-    
+
     if (sim["PSF/Model"] == "MappedFromFile"):
         includeFieldDistortion = True
         distortionCoefficients = None
         pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
         mappedDistortion       = True
     elif (sim["Camera/IncludeFieldDistortion"] == "yes"  or
-          sim["Camera/IncludeFieldDistortion"] == True):
+          sim["Camera/IncludeFieldDistortion"] is True):
         distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
         pathToPsfFile          = None
         mappedDistortion       = False
@@ -2018,6 +2020,14 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
+    normalCamera          = sim["Telescope/GroupID"] != "Fast"
+
+    # TODO: This should be removed in the next major release, together with the normal argument in this function.
+    if normal is not None:
+        warnings.warn("\nThe optional argument: normal is depricated is no longer used.\nThis value will from now on be derived from the Simulation argument in the function.", category=DeprecationWarning, stacklevel=2)
+        if not normal == normalCamera:
+            warnings.warn("\nThe value for normal is not consistent with the one specified in the Simulation argument.\nThis function will use the specified normal value, but keep in mind that this is different from the one defined in sim.", category=DeprecationWarning, stacklevel=2)
+            normalCamera = normal
 
     # Get the pixel coordinates on the CCD
 
@@ -2027,11 +2037,11 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal):
                                                               tiltTelescope, azimuthTelescope,
                                                               focalPlaneAngle, focalLength,
                                                               pixelSize, includeFieldDistortion,
-                                                              normal, mappedDistortion,
+                                                              normalCamera, mappedDistortion,
                                                               distortionCoefficients, pathToPsfFile)
 
     # That's it!
-    
+
     return ccdCode, xCCDpixel, yCCDpixel
 
 
@@ -2142,7 +2152,7 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
                                          focalPlaneAngle, focalLength)
 
     # That's it!
-    
+
     return ra, dec
 
 
