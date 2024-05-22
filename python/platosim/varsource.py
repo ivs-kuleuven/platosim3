@@ -1448,63 +1448,95 @@ class Pulsator(object):
         # Return the star ID
         return starfile.stem
     
+        
 
+    def initMockaGang2020(self, odir):
 
-    
-    def initMockaBodi2023(self, odir, variable):
-
-        """Draw frequencies from TESS RR Lyr star legacy.
+        """Draw frequencies from Kepler GDor legacy.
         """
 
-        suffix   = 'fou'
-        sep      = '  '
-        comment  = None
-        freq_unit = 'c/d'
-        ampl_unit = 'mag'
-        names    = ['freq', 'ampl', 'phase']
-        filename = 'varsource_rrly_bodi2023'
-
-        # Check variable class
-        if variable == 'RRLyr':
-            filename = 'varsource_rrly_bodi2023'
-        elif variable == 'Ceph':
-            filename = 'varsource_ceph_bodi2023'
-        else:
-            errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
-
-        
-        # Download files if not done
+        # Download analysis file
+        filename = 'varsim_mocka_gdor_gang2020.ftr'
+        filepath = Path(f'{odir}/{filename}')
         self.download(odir, filename)
+        
+        # Load file containing columns
+        dm = pd.read_feather(filepath)
+        
+        # Generate KDEs
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+        
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_ran = np.arange(N_min, dm.N.max(), 1)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+        
+        # Randomly select grid step to 
+        n = self.rng.integers(10000, 100000, 1)[0]
 
-        # If requested, select specific star or else do a random draw
-        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
-        starfile = Path(self.rng.choice(filenames))
+        # Prevent unphysical patterns with P_i > 3.3
+        P_max = 5
+        while P_max > 3.3:
 
-        # Load data frame
-        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+            # Select maximum period from KDE [day]
+            P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+            P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
 
-        # Perturb modes up to 10%
-        f_corr = self.rng.uniform(0.9, 1.1)
-        A_corr = self.rng.uniform(0.9, 1.1)
-        self.df.freq *= f_corr
-        self.df.ampl *= A_corr
+            # First period spacing in pattern from KDE [day]
+            dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+            dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
+
+            # Select slope from fit to distribution (cf. Fig. 10 of L20)
+            a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
+            slope = a * np.exp(-b * P0) + c * np.log10(d * P0) + e
+
+            # Create period-spacing pattern [day]
+            P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+
+            # Check maximum period
+            P_max = P_i.max()
+            
+        # Draw amplitude below maximum (20 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.02, n)
+        param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
+        A_i_fit = ss.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2]) + 5e-5
+        A_i = np.array(random.choices(A_i_ran, weights=A_i_fit, k=N))
+
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)
+        if n_dex > n_off/2:
+            n_dex = int(n_dex - 1) 
+        try:
+            A_i[n_max] = A_i[n_dex]
+            A_i[n_dex] = A_max
+        except:
+            pass
         
         # Apply passband correction
         if self.scale:
-            A_i = (1 - ut.fromMagToFlux(self.df.ampl)) * self.scale
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
-            self.df.ampl = A_i
-        
+
         # Create new data frame
-        self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
+        self.df = pd.DataFrame()
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
 
         # Return parameters
-        return starfile.stem, f_corr, A_corr, self.df
+        return N, P0, dP0, slope, A_max, self.df
 
-        
-
-        
-
+    
+    
     def initMockaPedersen2021(self, odir):
 
         """Draw frequencies from Kepler SPB star legacy.
@@ -1523,31 +1555,38 @@ class Pulsator(object):
         P0_kde    = scipy.stats.gaussian_kde(dm.P0)
         dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
         slope_kde = scipy.stats.gaussian_kde(dm.slope)
-        
+
         # Select number modes (secure at least 5 modes)
         N_min = 5
         N_ran = np.arange(N_min, dm.N.max(), 1)
         N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
-        
+
         # Randomly select grid step to
         n = self.rng.integers(10000, 100000, 1)[0]
 
-        # Select maximum period from KDE [day]
-        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
-        P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
+        # Prevent unphysical patterns with P_i > 3.3
+        P_max = 4
+        while P_max > 3.3:
+            
+            # First period in pattern from KDE [day]
+            P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+            P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
 
-        # First period spacing in pattern from KDE [day]
-        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
-        dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
+            # First period spacing in pattern from KDE [day]
+            dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+            dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
 
-        # Select slope from fit to distribution (cf. Fig. 10 of L20)
-        # Compared to gDor stars, we here use the KDE
-        slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
-        slope = random.choices(slope_ran, weights=slope_kde(slope_ran), k=1)[0]
+            # Select slope from fit to distribution (cf. Fig. 10 of L20)
+            # Compared to gDor stars, we here use the KDE
+            slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
+            slope = random.choices(slope_ran, weights=slope_kde(slope_ran), k=1)[0]
 
-        # Create period-spacing pattern [day]
-        P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
-        
+            # Create period-spacing pattern [day]
+            P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+
+            # Check maximum
+            P_max = P_i.max()
+            
         # Draw amplitude below maximum (20 mmag) [mag]
         A_i_ran = np.linspace(0, 0.02, n)
         param   = [1.4225080146060183, 8.415648200068788e-07, 0.00012715214085614303]
@@ -1584,86 +1623,6 @@ class Pulsator(object):
         self.df['ampl']  = A_i
         self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
         self.starname = 'MOCKA: SPB star (Pedersen+2021)'
-
-        # Return parameters
-        return N, P0, dP0, slope, A_max, self.df
-
-
-    
-    def initMockaGang2020(self, odir):
-
-        """Draw frequencies from Kepler GDor legacy.
-        """
-
-        # Download analysis file
-        filename = 'varsim_mocka_gdor_gang2020.ftr'
-        filepath = Path(f'{odir}/{filename}')
-        self.download(odir, filename)
-        
-        # Load file containing columns
-        dm = pd.read_feather(filepath)
-        
-        # Generate KDEs
-        N_kde     = scipy.stats.gaussian_kde(dm.N)
-        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
-        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
-        slope_kde = scipy.stats.gaussian_kde(dm.slope)
-        
-        # Select number modes (secure at least 5 modes)
-        N_min = 5
-        N_ran = np.arange(N_min, dm.N.max(), 1)
-        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
-        
-        # Randomly select grid step to 
-        n = self.rng.integers(10000, 100000, 1)[0]
-
-        # Select maximum period from KDE [day]
-        P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
-        P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
-
-        # First period spacing in pattern from KDE [day]
-        dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
-        dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
-
-        # Select slope from fit to distribution (cf. Fig. 10 of L20)
-        a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
-        slope = a * np.exp(-b * P0) + c * np.log10(d * P0) + e
-
-        # Create period-spacing pattern [day]
-        P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
-        
-        # Draw amplitude below maximum (20 mmag) [mag]
-        A_i_ran = np.linspace(0, 0.02, n)
-        param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
-        A_i_fit = ss.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2]) + 5e-5
-        A_i = np.array(random.choices(A_i_ran, weights=A_i_fit, k=N))
-
-        # Max peak amplitude
-        n_max = np.argmax(A_i)
-        A_max = A_i[n_max]
-
-        # Swap max peak location with offset
-        n_off = np.random.randint(-5, 5)
-        n_dex = int(N/2 + n_off)
-        if n_dex > n_off/2:
-            n_dex = int(n_dex - 1) 
-        try:
-            A_i[n_max] = A_i[n_dex]
-            A_i[n_dex] = A_max
-        except:
-            pass
-        
-        # Apply passband correction
-        if self.scale:
-            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
-
-        # Create new data frame
-        self.df = pd.DataFrame()
-        self.df['freq']  = 1 / P_i
-        self.df['ampl']  = A_i
-        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
-        self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
 
         # Return parameters
         return N, P0, dP0, slope, A_max, self.df
@@ -1730,6 +1689,61 @@ class Pulsator(object):
         return self.df
         
         
+
+
+    def initMockaBodi2023(self, odir, variable):
+
+        """Draw frequencies from TESS RR Lyr star legacy.
+        """
+
+        suffix   = 'fou'
+        sep      = '  '
+        comment  = None
+        freq_unit = 'c/d'
+        ampl_unit = 'mag'
+        names    = ['freq', 'ampl', 'phase']
+        filename = 'varsource_rrly_bodi2023'
+
+        # Check variable class
+        if variable == 'RRLyr':
+            filename = 'varsource_rrly_bodi2023'
+        elif variable == 'Ceph':
+            filename = 'varsource_ceph_bodi2023'
+        else:
+            errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+
+        
+        # Download files if not done
+        self.download(odir, filename)
+
+        # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
+        starfile = Path(self.rng.choice(filenames))
+
+        # Load data frame
+        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+
+        # Perturb modes up to 10%
+        f_corr = self.rng.uniform(0.9, 1.1)
+        A_corr = self.rng.uniform(0.9, 1.1)
+        self.df.freq *= f_corr
+        self.df.ampl *= A_corr
+        
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(self.df.ampl)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+            self.df.ampl = A_i
+        
+        # Create new data frame
+        self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
+
+        # Return parameters
+        return starfile.stem, f_corr, A_corr, self.df
+
+
+
+
     
     def evaluate(self, plot=False):
 
