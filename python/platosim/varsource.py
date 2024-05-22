@@ -22,7 +22,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import scipy
-from scipy.stats import norm, truncnorm
+import scipy.stats as ss
 from scipy.interpolate import interp1d, make_interp_spline
 from astropy.io import fits
 from astropy.table import Table
@@ -1525,25 +1525,25 @@ class Pulsator(object):
         slope_kde = scipy.stats.gaussian_kde(dm.slope)
         
         # Select number modes (secure at least 5 modes)
-        N_ran = np.arange(dm.N.min(), dm.N.max(), 1)
-        N = int(pd.Series(N_ran).sample(1, weights=N_kde(N_ran)).to_numpy()[0])
-        if N < 5: N = 5
+        N_min = 5
+        N_ran = np.arange(N_min, dm.N.max(), 1)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
         
-        # Randomly select grid step to 
-        n = self.rng.integers(100, 500, 1)[0]
+        # Randomly select grid step to
+        n = self.rng.integers(10000, 100000, 1)[0]
 
         # Select maximum period from KDE [day]
         P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
-        P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
+        P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
 
         # First period spacing in pattern from KDE [day]
         dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
-        dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
+        dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
 
         # Select slope from fit to distribution (cf. Fig. 10 of L20)
         # Compared to gDor stars, we here use the KDE
         slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
-        slope = pd.Series(slope_ran).sample(1, weights=slope_kde(slope_ran)).to_numpy()[0]
+        slope = random.choices(slope_ran, weights=slope_kde(slope_ran), k=1)[0]
 
         # Create period-spacing pattern [day]
         P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
@@ -1551,8 +1551,8 @@ class Pulsator(object):
         # Draw amplitude below maximum (20 mmag) [mag]
         A_i_ran = np.linspace(0, 0.02, n)
         param   = [1.4225080146060183, 8.415648200068788e-07, 0.00012715214085614303]
-        A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
-        A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
+        A_i_fit = ss.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2]) + 5e-5
+        A_i = np.array(random.choices(A_i_ran, weights=A_i_fit, k=N))
         
         # Max peak amplitude
         n_max = np.argmax(A_i)
@@ -1610,20 +1610,20 @@ class Pulsator(object):
         slope_kde = scipy.stats.gaussian_kde(dm.slope)
         
         # Select number modes (secure at least 5 modes)
-        N_ran = np.arange(dm.N.min(), dm.N.max(), 1)
-        N = int(pd.Series(N_ran).sample(1, weights=N_kde(N_ran)).to_numpy()[0])
-        if N < 5: N = 5
+        N_min = 5
+        N_ran = np.arange(N_min, dm.N.max(), 1)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
         
         # Randomly select grid step to 
-        n = self.rng.integers(100, 500, 1)[0]
+        n = self.rng.integers(10000, 100000, 1)[0]
 
         # Select maximum period from KDE [day]
         P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
-        P0 = pd.Series(P0_ran).sample(1, weights=P0_kde(P0_ran)).to_numpy()[0]
+        P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
 
         # First period spacing in pattern from KDE [day]
         dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
-        dP0 = pd.Series(dP0_ran).sample(1, weights=dP0_kde(dP0_ran)).to_numpy()[0]
+        dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
 
         # Select slope from fit to distribution (cf. Fig. 10 of L20)
         a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
@@ -1635,9 +1635,9 @@ class Pulsator(object):
         # Draw amplitude below maximum (20 mmag) [mag]
         A_i_ran = np.linspace(0, 0.02, n)
         param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
-        A_i_fit = scipy.stats.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2])
-        A_i = pd.Series(A_i_ran).sample(N, weights=A_i_fit).to_numpy()
-        
+        A_i_fit = ss.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2]) + 5e-5
+        A_i = np.array(random.choices(A_i_ran, weights=A_i_fit, k=N))
+
         # Max peak amplitude
         n_max = np.argmax(A_i)
         A_max = A_i[n_max]
@@ -1645,7 +1645,8 @@ class Pulsator(object):
         # Swap max peak location with offset
         n_off = np.random.randint(-5, 5)
         n_dex = int(N/2 + n_off)
-        if n_dex > n_off/2: n_dex = int(n_dex - 1) 
+        if n_dex > n_off/2:
+            n_dex = int(n_dex - 1) 
         try:
             A_i[n_max] = A_i[n_dex]
             A_i[n_dex] = A_max
@@ -1656,11 +1657,11 @@ class Pulsator(object):
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
-        
+
         # Create new data frame
         self.df = pd.DataFrame()
         self.df['freq']  = 1 / P_i
-        self.df['ampl']  =A_i
+        self.df['ampl']  = A_i
         self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
         self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
 
@@ -2539,7 +2540,7 @@ class PlanetMRforecast():
         for i in range(4):
             ind = self.indicate(M, trans, i)
             mu = c[i] + M[ind]*slope[i]
-            R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
+            R[ind] = ss.norm.ppf(prob_R[ind], mu, sigma[i])
 
         return R
 
@@ -2558,7 +2559,7 @@ class PlanetMRforecast():
             ind = self.indicate(M, trans, i)
             mu = c[i] + M[ind]*slope[i]
             sig = sigma[i]
-            prob[ind] = norm.pdf(radii, mu, sig)
+            prob[ind] = ss.norm.pdf(radii, mu, sig)
 
         prob = prob / np.sum(prob)
 
@@ -2693,8 +2694,8 @@ class PlanetMRforecast():
             print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        mass = truncnorm.rvs((mlower-mean)/std, (mupper-mean)/std,
-                             loc=mean, scale=std, size=sample_size)
+        mass = ss.truncnorm.rvs((mlower-mean)/std, (mupper-mean)/std,
+                                loc=mean, scale=std, size=sample_size)
         
         if classify == 'Yes':	
             radius = self.Mpost2R(mass, unit='Earth', classify='Yes')
@@ -2823,7 +2824,7 @@ class PlanetMRforecast():
             print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        radius = truncnorm.rvs((0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)
+        radius = ss.truncnorm.rvs((0-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)
         if classify == 'Yes':
             mass = self.Rpost2M(radius, 'Earth', grid_size, classify='Yes')
         else:
