@@ -2,6 +2,7 @@
 #include "ConfigurationParameters.h"
 #include "Constants.h"
 #include <iostream>
+#include <numeric>
 #include <sstream>
 #include <vector>
 
@@ -85,7 +86,26 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
 
     std::array<std::vector<std::array<double, 29>>, 5> PST_interpolated = getStrayLightAtDetector(rho, PST, irradiance_alpha);
-    getNumberOfStraylightPhotoelectronsAtDetector(PST_interpolated);
+    std::array<std::vector<double>, 5> strayLightPhotoelectronsAtDetector =
+        getNumberOfStraylightPhotoelectronsAtDetector(PST_interpolated);
+    std::array<double,5> staylightAtDetector = integrateOverGrid(strayLightPhotoelectronsAtDetector);
+}
+
+
+
+
+std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double>, 5> &strayLight)
+{
+    std::cout << " " << std::endl;
+    std::array<double, 5> totalElectrons;
+
+    for (int i = 0; i < 5; i++)
+    {
+        totalElectrons[i] =
+            std::accumulate(strayLight[i].begin(), strayLight[i].end(), 0);
+    }
+    std::cout << totalElectrons[0] << std::endl;
+    return totalElectrons;
 }
 
 
@@ -615,11 +635,13 @@ std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alph
 
 
 
-void StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<std::array<double, 29>>, 5> &PST)
+std::array<std::vector<double>, 5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<std::array<double, 29>>, 5> &PST)
 {
 
     std::array<double, 29> energyOfPhoton;
     std::array<double, 29> wavelengths;
+    std::array<std::vector<double>, 5> numberOfStraylightPhotoelectronsAtDetector;
+
     for (unsigned int wavelength_idx = 0; wavelength_idx < 29; wavelength_idx++)
     {
         double wavelength = 400 + wavelength_idx * 25;
@@ -629,13 +651,11 @@ void StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::v
 
     }
 
-    std::cout << "Energy photon :" << energyOfPhoton[0] << std::endl;
     for (int i = 0; i < 5; i++)
     {
-
+	std::vector<double> strayLightElectronsPerPixelPerSecond;
         std::vector<std::array<double, 29>> PST_AZ = PST[i];
-	std::cout << "\t" << i << std::endl;
-        std::cout << PST_AZ.size() << std::endl;
+
 	for (std::array<double, 29> E_PST : PST_AZ)
         {
             // We integrate out the wavelengths for every gridpoint
@@ -648,12 +668,14 @@ void StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::v
                          E_PST[wl_idx + 1] / energyOfPhoton[wl_idx + 1]);
             }
 
-            double straylightPhotoelectronsAtDetectorPerPixPerSecond = integral * std::pow(pixelSize,2);
-            std::cout << integral << std::endl;
-
-	}
+            double straylightPhotoelectrons =
+                integral * std::pow(pixelSize, 2);
+            
+	    strayLightElectronsPerPixelPerSecond.push_back(straylightPhotoelectrons);
+        }
+        numberOfStraylightPhotoelectronsAtDetector[i] = strayLightElectronsPerPixelPerSecond;
     }
-    std::cout << PST.size() << std::endl;
+    return numberOfStraylightPhotoelectronsAtDetector;
 
 }
 
