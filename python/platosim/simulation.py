@@ -20,6 +20,7 @@ import ast
 import math
 import datetime
 import subprocess
+import warnings
 
 # PlatoSim standard
 import yaml
@@ -876,7 +877,7 @@ class Simulation(object):
 
 
     
-    def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY, normal=True):
+    def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY, normal=None):
 
         """Set the subfield around pixel coordinates.
         
@@ -966,7 +967,7 @@ class Simulation(object):
 
 
 
-    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True):
+    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=None):
 
         """Set subfield around stellar coordinates
 
@@ -998,8 +999,9 @@ class Simulation(object):
             Width (i.e. number of columns) of the subiield [pixels]
         subfieldSizeY : int
             Height (i.e. number of rows) of the sub-field [pixels]
-        normal : bool
-            True for the normal camera configuration, False for the fast cameras
+        normal : 
+            Is depricated and should no longer be used.
+        
 
         Return
         ------
@@ -1014,7 +1016,7 @@ class Simulation(object):
         >>> raStar = np.deg2rad(90.0)                                      # [rad]
         >>> decStar = np.deg2rad(-48.0)                                    # [rad]
         >>> subfieldSizeX, subfieldSizeY = 8,8                             # [pixels]
-        >>> success = sim.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, normal=True)
+        >>> success = sim.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY)
         >>> print(success)
         """
 
@@ -1044,6 +1046,16 @@ class Simulation(object):
         focalLength     = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize       = float(self["CCD/PixelSize"])
+        normalCamera    = self["Telescope/GroupID"] != "Fast"
+
+        # TODO: This should be removed in the next major release, together with the normal argument in this function.
+        if normal is not None:
+                warnings.warn("\nThe optional argument: normal is depricated is no longer used.\nThis value will from now on be derived from the value of Simulation[Telescope/GroupID].", category=DeprecationWarning, stacklevel=2)
+                if not normal == normalCamera:
+                    warnings.warn("\nThe value for the argument normal is not consistent with the one specified in the Simulation[Telescope/GroupID].\nThis function will use the specified normal value, but keep in mind that this is different from the one defined in the inputfile.", category=DeprecationWarning, stacklevel=2)
+                    normalCamera = normal
+                
+                
 
         # If the psf is MappedFromFile we need to include mapped field distortion
 
@@ -1076,7 +1088,7 @@ class Simulation(object):
                                                                     tiltTelescope, azimuthTelescope,
                                                                     focalPlaneAngle,
                                                                     focalLength, pixelSize,
-                                                                    includeFieldDistortion, normal,
+                                                                    includeFieldDistortion, normalCamera,
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
                                                                     pathToPsfFile)
@@ -1091,21 +1103,24 @@ class Simulation(object):
         CCDOrientation   = rf.CCD[ccdCode]["angle"]
 
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
-        
+
         infoCCD = rf.getCCDandPixelCoordinates(raStar, decStar,
                                                raPlatform, decPlatform, solarPanelOrientation,
                                                tiltTelescope, azimuthTelescope,
                                                focalPlaneAngle, focalLength, pixelSize,
-                                               includeFieldDistortion, normal,
+                                               includeFieldDistortion, normalCamera,
                                                mappedDistortion, distortionCoefficients,
                                                pathToPsfFile)
         ccdCode, xCCD, yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
         
+        # F-Cam can drop the F suffix  for the CCD position (1F, 2F,.. -> 1, 2,..)
+        if not normalCamera:
+            ccdCode = ccdCode[0]
+
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
         self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
         self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
-
         self["CCD/Position"]      = str(ccdCode)
         self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
         self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
@@ -1221,7 +1236,7 @@ class Simulation(object):
 
         # Extract the needed information from the yaml input file
         # Note: groupIDs and ccdIDs start counting from 1...
-
+        print(self["CCD/Position"])
         if self["Telescope/GroupID"] == "Custom":
             azimuthAngle    = np.deg2rad(self["Telescope/AzimuthAngle"])
             tiltAngle       = np.deg2rad(self["Telescope/TiltAngle"])
@@ -1708,8 +1723,7 @@ class Simulation(object):
             subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i],
                                                                    decTargetsRad[i],
                                                                    subfieldSize,
-                                                                   subfieldSize,
-                                                                   normal=True)
+                                                                   subfieldSize)
             if subfieldIsOnCCD:
                 xFP, yFP = rf.skyToFocalPlaneCoordinates(raTargetsRad[i],
                                                          decTargetsRad[i],
@@ -1797,7 +1811,7 @@ class Simulation(object):
         for i in range(len(ra)):
 
             subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                                   6, 6, normal=True)
+                                                                   6, 6)
             if subfieldIsOnCCD:
 
                 # Fetch CCD code and pixel coordinates (account for field distortion in included)
