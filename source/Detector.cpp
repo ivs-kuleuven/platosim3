@@ -198,6 +198,9 @@ Detector::Detector(ConfigurationParameters &configParam,
         backgroundMap.zeros(numRowsPixelMap, numColumnsPixelMap);
     }
 
+    // TO BE REMOVED:
+    StrayLight a = StrayLight(configParam, hdf5file, camera, *this);
+
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
     // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
     // disabled, all pixels of the detector are inside the FOV.

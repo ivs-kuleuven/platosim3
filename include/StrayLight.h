@@ -20,7 +20,7 @@
 
 
 class Camera;
-
+class Detector;
 
 struct GridPoint
 {
@@ -28,30 +28,43 @@ struct GridPoint
     double size;
 };
 
+struct CelestialObject
+{
+    double radius;
+    double reflectivity;
+};
+
 
 class StrayLight : public HDF5Writer
 {
   public:
     StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
-               Camera &camera);
+               Camera &camera, Detector &detector);
     // virtual ~StrayLight();
 
     void configure(ConfigurationParameters &configParam);
+
+    void getStrayLightMoon(double row, double column);
     // void updateParameters(double time);
 
-  protected:
+protected:
+    CelestialObject moon;
+    CelestialObject earth;
+    void getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int nGridPoints);
+
     std::vector<GridPoint> getGrid(double radius, unsigned int nPoints);
-    void readInFile(std::string orbitPath, std::vector<arma::vec> &sc,
-                    std::vector<arma::vec> &moon, std::vector<arma::vec> &sun);
+    void readInFile(std::string orbitPath, std::vector<arma::vec> &sc_pos,
+                    std::vector<arma::vec> &moon_pos, std::vector<arma::vec> &sun_pos);
     std::vector<std::string> splitLine(std::string &line);
     std::vector<arma::vec>
     getCelestialObjectGridSpectralRadiance(arma::vec sun, arma::vec object,
-                                           double reflexivity,
+                                           double reflectivity,
                                            std::vector<GridPoint> &grid);
     std::array<double, 29> SolarSpectralIrradiance(double distance);
-    std::tuple<std::vector<double>, std::vector<double>,
-                std::vector<arma::vec>, std::vector<arma::vec>>
-    getIrradianceAtCamera(Camera &camera, std::vector<GridPoint> grid,
+    std::tuple<std::vector<double>, std::vector<double>, std::vector<arma::vec>,
+               std::vector<arma::vec>>
+    getIrradianceAtCamera(Camera &camera, double row, double column,
+                          std::vector<GridPoint> grid,
                           std::vector<arma::vec> emmitterIrradiance,
                           arma::vec emmitterPosition, arma::vec cameraPosition);
     std::array<std::vector<std::array<double, 29>>, 5> getStrayLightAtDetector(
@@ -72,12 +85,14 @@ class StrayLight : public HDF5Writer
     std::array<double, 4> getCubicParameters(double x_0, double x_1,
                                              double y_0, double y_1,
                                              double d0, double d1);
-    std::pair<std::array<std::vector<int>, 5>,
-              std::array<std::vector<std::array<double, 29>>, 5>>
-    getPST(std::string pstPath);
-    std::vector<arma::vec> moon;
-    std::vector<arma::vec> sc;
-    std::vector<arma::vec> sun;
+
+    void getPST(std::string pstPath);
+    std::vector<arma::vec> moon_positions;
+    std::vector<arma::vec> sc_positions;
+    std::vector<arma::vec> sun_positions;
+
+    std::array<std::vector<std::array<double, 29>>, 5> PST;
+    std::array<std::vector<int>, 5> rho;
 
     double radiusFOV;
     double pixelSize;
@@ -88,6 +103,7 @@ class StrayLight : public HDF5Writer
     int AZs[5];
 
     Camera &camera;
+    Detector &detector;
 };
 
 

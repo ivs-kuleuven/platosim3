@@ -22,8 +22,8 @@ double operator-(Time t1, Time t2) { return difftime(t1.t, t2.t); }
  *
  */
 StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
-                       Camera &camera)
-    : HDF5Writer(hdf5File), camera(camera)
+                       Camera &camera, Detector &detector)
+    : HDF5Writer(hdf5File), camera(camera), detector(detector)
 {
     // Parse the parameters from the configuration file.
 
@@ -57,32 +57,60 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
     std::string orbitPath =
         configParam.getAbsoluteFilename("StrayLight/FilePath");
-    readInFile(orbitPath, sc, moon, sun);
+    readInFile(orbitPath, sc_positions, moon_positions, sun_positions);
 
     // Read in the PST file and save it into vectors.
 
     std::string pstPath = configParam.getAbsoluteFilename("StrayLight/PstPath");
-    std::array<std::vector<std::array<double, 29>>, 5> PST;
-    std::array<std::vector<int>, 5> rho;
 
-    tie(rho, PST) = getPST(pstPath);
+    getPST(pstPath);
 
-    // Let's do the moon
+
+    // Create the two celestial objects
+    moon.radius = radiusMoon;
+    moon.reflectivity = moon_reflectivity;
+
+
+
+
+
+    getStrayLightMoon(0, 0);
+}
+
+
+
+
+
+void StrayLight::getStrayLightMoon(double row, double column)
+{
+
+    // We should give the positions of the sc, moon and sun
+    arma::vec sun_pos = sun_positions[0];
+    arma::vec moon_pos = moon_positions[0];
+    arma::vec sc_pos = sc_positions[0];
+
+    getStrayLightObject(moon, sun_pos, moon_pos, sc_pos, row, column, 100);
+}
+
+
+void StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int gridPoints)
+{
+    // Esteblish a grid around the celestial object
 
     std::vector<GridPoint> grid;
-    grid = getGrid(radiusMoon, 100);
+    grid = getGrid(object.radius, gridPoints);
 
     std::vector<arma::vec> celestialObjectSpectralRadiance =
-        getCelestialObjectGridSpectralRadiance(sun[0], moon[0],
-                                               moon_reflectivity, grid);
-
+        getCelestialObjectGridSpectralRadiance(sun_pos, object_pos,
+                                               object.reflectivity, grid);    
 
     std::vector<double> irradiance_alpha;
     std::vector<double> grid_alpha;
     std::vector<arma::vec> x;
     std::vector<arma::vec> y;
     std::tie(irradiance_alpha, grid_alpha, x, y) = getIrradianceAtCamera(
-        camera, grid, celestialObjectSpectralRadiance, moon[0], sc[0]);
+        camera, row, column, grid, celestialObjectSpectralRadiance, object_pos,
+        sc_pos);
 
 
     std::array<std::vector<std::array<double, 29>>, 5> PST_interpolated = getStrayLightAtDetector(rho, PST, irradiance_alpha);
@@ -94,9 +122,9 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
 
 
+
 std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double>, 5> &strayLight)
 {
-    std::cout << " " << std::endl;
     std::array<double, 5> totalElectrons;
 
     for (int i = 0; i < 5; i++)
@@ -104,7 +132,9 @@ std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double
         totalElectrons[i] =
             std::accumulate(strayLight[i].begin(), strayLight[i].end(), 0);
     }
-    std::cout << totalElectrons[0] << std::endl;
+
+    for (int i=0; i<5; i++) {
+	std::cout << totalElectrons[i] << std::endl;}
     return totalElectrons;
 }
 
@@ -117,12 +147,12 @@ std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double
  *
  * \param: sun           Position of the sun.
  * \param: object        Position of the celestial object.
- * \param: reflexivity   Reflexivity of the celestial object.
+ * \param: reflectivity  Reflectivity of the celestial object.
  * \param: grid          The grid around the celstial object.
  *
  */
 std::vector<arma::vec> StrayLight::getCelestialObjectGridSpectralRadiance(
-    arma::vec sun, arma::vec object, double reflexivity,
+    arma::vec sun, arma::vec object, double reflectivity,
     std::vector<GridPoint> &grid)
 {
 
@@ -156,8 +186,8 @@ std::vector<arma::vec> StrayLight::getCelestialObjectGridSpectralRadiance(
         {
             // Bright side of the object
 
-            // reflexivity of the celestial object
-            double a = reflexivity * cos_gamma * cos_gamma / Constants::PI;
+            // reflectivity of the celestial object
+            double a = reflectivity * cos_gamma * cos_gamma / Constants::PI;
 
             // cosider the solar spectral irradiance using Plank's law
             arma::vec irradiance(29);
@@ -278,12 +308,12 @@ std::vector<std::string> StrayLight::splitLine(std::string &line)
 
 
 
-void StrayLight::readInFile(std::string orbitPath, std::vector<arma::vec> &sc,
-                            std::vector<arma::vec> &moon,
-                            std::vector<arma::vec> &sun)
+void StrayLight::readInFile(std::string orbitPath, std::vector<arma::vec> &sc_position,
+                            std::vector<arma::vec> &moon_position,
+                            std::vector<arma::vec> &sun_position)
 {
     Time t0 = Time("20260611T190026");
-
+ 
     double lower_bound = cycleTime * beginExposures;
     double upper_bound = cycleTime * numExposure + lower_bound;
 
@@ -335,9 +365,9 @@ void StrayLight::readInFile(std::string orbitPath, std::vector<arma::vec> &sc,
             moon_row[2] = std::stod(value_of_line[13]);
 
 	    // We add these values and convert from [km] units to [m] units
-            sc.push_back(sc_row * 1000);
-            sun.push_back(sun_row * 1000);
-            moon.push_back(moon_row * 1000);
+            sc_position.push_back(sc_row * 1000);
+            sun_position.push_back(sun_row * 1000);
+            moon_position.push_back(moon_row * 1000);
         }
     }
 }
@@ -398,9 +428,7 @@ std::array<double, 29> StrayLight::SolarSpectralIrradiance(double distance)
  *
  * \param: pstPath  Path to the corresponding PST file.
  */
-std::pair<std::array<std::vector<int>, 5>,
-          std::array<std::vector<std::array<double, 29>>, 5>>
-StrayLight::getPST(std::string pstPath)
+void StrayLight::getPST(std::string pstPath)
 {
     // Read PST file
     // Save PST file in datastructure
@@ -416,8 +444,6 @@ StrayLight::getPST(std::string pstPath)
         std::vector<std::array<double, 4>> PST;
         while (getline(pstFile, line))
         {
-
-
 
             // Skip empty lines
 
@@ -477,7 +503,8 @@ StrayLight::getPST(std::string pstPath)
         rho_a[0].push_back(int(pst[0]));
     }
 
-    return std::make_pair(rho_a, PST_interpolated);
+    rho = rho_a;
+    PST = PST_interpolated;
 }
 
 
@@ -712,10 +739,6 @@ std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
 
     std::array<double, 4> parameters = {a, b, c, d};
 
-    // std::cout << " " << std::endl;
-    // std::cout << a * std::pow(x_0, 3) + b * std::pow(x_0, 2) + c * x_0 + d
-    // << " => " << y_0 << std::endl;
-    // std::cout << a * std::pow(x_1, 3) + b * std::pow(x_1, 2) + c * x_1 + d << " => " << y_1 << std::endl;
     return parameters;
 }
 
@@ -724,8 +747,9 @@ std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
 
 
 std::tuple<std::vector<double>, std::vector<double>, std::vector<arma::vec>,
-            std::vector<arma::vec>>
-StrayLight::getIrradianceAtCamera(Camera &camera, std::vector<GridPoint> grid,
+           std::vector<arma::vec>>
+StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
+                                  std::vector<GridPoint> grid,
                                   std::vector<arma::vec> emmitterIrradiance,
                                   arma::vec emmitterPosition,
                                   arma::vec cameraPosition)
@@ -735,14 +759,15 @@ StrayLight::getIrradianceAtCamera(Camera &camera, std::vector<GridPoint> grid,
 
     double cos_alpha_max = cos(radiusFOV);
 
-    // Camera pointing vectors
+    // pointing vectors
+    double xFPmm, yFPmm;
+    tie(xFPmm, yFPmm) = detector.pixelToFocalPlaneCoordinates(row, column);
 
     double alpha, delta;
     double lambda, beta;
-
-    tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(0, 0);
+    tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(xFPmm, yFPmm);
     equatorial2ecliptic(alpha, delta, lambda, beta);
-
+    std::cout << "lambda: " << lambda * 180 / 3.1415 << "\tbeta: " << beta * 180 / 3.1415 << std::endl;
     
 
     arma::vec nCamera = {cos(lambda) * cos(beta), sin(lambda) * cos(beta),
@@ -767,7 +792,9 @@ StrayLight::getIrradianceAtCamera(Camera &camera, std::vector<GridPoint> grid,
             sqrt(arma::as_scalar(grid[idx].point.t() * grid[idx].point));
         double cos_alpha2 = arma::as_scalar(nCamera.t() * n_Cam_Grid);
 
-        
+        // std::cout << "Grid -> SC pointing: " << n_Cam_Grid << std::endl;
+        // std::cout << "pointing SC: " << nCamera << std::endl;
+        std::cout << "angle: " << 180 * acos(nCamera.t() * n_Cam_Grid) / 3.1415  << std::endl;
         arma::vec E(29);
 
         if (cos_alpha1 < 0)
