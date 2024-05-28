@@ -1246,9 +1246,11 @@ def compass(ax, x, y, size):
 
 
             
-def plotPlatoFOV(pointingField, raStars=0, decStars=0, c=None, magStars=None, system="icrs",
+def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
+                 raStars=0, decStars=0, magStars=None, ms=2, aa=1,
+                 c=None, clabel=None, cmap='Spectral', s=40,
                  showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
-                 title=None, fovSize=30, fs=20, ms=2, aa=1, figsize=(9,9)):
+                 title=None, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1383,13 +1385,9 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, c=None, magStars=None, sy
         else:
             scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
                                  transform=ax.get_transform('world'), 
-                                 c=c, cmap='YlGn', marker=mark, s=40, ec='k', lw=0.1, zorder=5)
-            div = make_axes_locatable(ax)
-            #cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
-            #cax = div.append_axes("right", size="100%", pad=0.1)
-            #cbar = plt.colorbar(scatter, ax=ax, cax=cax, extend='both', orientation='vertical')
-            #cbar.set_label('Mag')
-            #cbar1.ax.invert_yaxis()
+                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=0.1, zorder=5)
+            cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
+            cbar.set_label(clabel)
 
     # Plot pointing of each camera group
     
@@ -1450,6 +1448,7 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, c=None, magStars=None, sy
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
     ax.tick_params(axis='both', labelsize=fs)
+    plt.tight_layout()
     
     # Return figure
     
@@ -3337,7 +3336,13 @@ def plotDetectedPlanets():
 
 def plotHistogramSED(df, title=False, figsize=(8,15)):
 
-
+    # Compute ranges
+    P_min, P_max = df.Pmag.min(), df.Pmag.max()
+    M_min, M_max = df.M.min(), df.M.max()
+    R_min, R_max = df.R.min(), df.R.max()
+    Teff_min, Teff_max = df.Teff.min(), df.Teff.max()
+    logg_min, logg_max = df.logg.min(), df.logg.max()
+    Z_min, Z_max = df.Z.min(), df.Z.max()
     # Seperate stars
     df06 = df[df.ncams ==  6]
     df12 = df[df.ncams == 12]
@@ -3351,49 +3356,44 @@ def plotHistogramSED(df, title=False, figsize=(8,15)):
     fig, ax = plt.subplots(6, 1, figsize=figsize)
 
     N = 50
-    ax[0].hist(df06.Pmag, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
-    ax[0].hist(df12.Pmag, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
-    ax[0].hist(df18.Pmag, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
-    ax[0].hist(df24.Pmag, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[0].hist(df06.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[0], lw=lw)
+    ax[0].hist(df12.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[1], lw=lw)
+    ax[0].hist(df18.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[2], lw=lw)
+    ax[0].hist(df24.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[3], lw=lw)
     ax[0].set_xlabel(r'PLATO magnitude, $P$')
-    ax[0].set_ylabel('Count')
-    ax[0].legend(loc='best')
     if title: ax[0].set_title(title, fontsize=20, pad=10)
     
-    ax[1].hist(df06.M, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
-    ax[1].hist(df12.M, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
-    ax[1].hist(df18.M, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
-    ax[1].hist(df24.M, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[1].hist(df06.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[0], lw=lw)
+    ax[1].hist(df12.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[1], lw=lw)
+    ax[1].hist(df18.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[2], lw=lw)
+    ax[1].hist(df24.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[3], lw=lw)
     ax[1].set_xlabel(r'$M$ [$M_{\odot}$]')
-    ax[1].set_ylabel('Count')
 
-    ax[2].hist(df06.R, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
-    ax[2].hist(df12.R, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
-    ax[2].hist(df18.R, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
-    ax[2].hist(df24.R, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[2].hist(df06.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[0], lw=lw)
+    ax[2].hist(df12.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[1], lw=lw)
+    ax[2].hist(df18.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[2], lw=lw)
+    ax[2].hist(df24.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[3], lw=lw)
     ax[2].set_xlabel(r'$R$ [$R_{\odot}$]')
-    ax[2].set_ylabel('Count')
 
-    ax[3].hist(df06.Teff, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
-    ax[3].hist(df12.Teff, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
-    ax[3].hist(df18.Teff, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
-    ax[3].hist(df24.Teff, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[3].hist(df06.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[0], lw=lw)
+    ax[3].hist(df12.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[1], lw=lw)
+    ax[3].hist(df18.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[2], lw=lw)
+    ax[3].hist(df24.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[3], lw=lw)
     ax[3].set_xlabel(r'$T_{\rm eff}$ [K]')
-    ax[3].set_ylabel('Count')
 
-    ax[4].hist(df06.logg, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
-    ax[4].hist(df12.logg, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
-    ax[4].hist(df18.logg, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
-    ax[4].hist(df24.logg, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[4].hist(df06.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[0], lw=lw)
+    ax[4].hist(df12.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[1], lw=lw)
+    ax[4].hist(df18.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[2], lw=lw)
+    ax[4].hist(df24.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[3], lw=lw)
     ax[4].set_xlabel(r'log $g$ [dex]')
-    ax[4].set_ylabel('Count')
 
-    ax[5].hist(df06.Z, bins=N, histtype='step', label='6',  ec=c[0], lw=lw)
-    ax[5].hist(df12.Z, bins=N, histtype='step', label='12', ec=c[1], lw=lw)
-    ax[5].hist(df18.Z, bins=N, histtype='step', label='18', ec=c[2], lw=lw)
-    ax[5].hist(df24.Z, bins=N, histtype='step', label='24', ec=c[3], lw=lw)
+    ax[5].hist(df06.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[5].hist(df12.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='12', ec=c[1], lw=lw)
+    ax[5].hist(df18.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='18', ec=c[2], lw=lw)
+    ax[5].hist(df24.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='24', ec=c[3], lw=lw)
     ax[5].set_xlabel(r'$Z$ [dex]')
-    ax[5].set_ylabel('Count')
+    ax[5].legend(loc='upper left')
+    for i in range(6): ax[i].set_ylabel('Count')
     
     plt.tight_layout(pad=0.5)
 

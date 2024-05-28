@@ -239,13 +239,13 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     # Then add 1, such that the roots are not undefined
     # Raise the power
     # Normalise the signal [0, 1]
-    # Subtract the mean and multiple with overall amplityde
+    # Subtract the mean and multiply with overall amplityde
     A = np.max(np.abs(signal))
     signal = (1 + signal / A)**power
     signal = signal / np.max(signal)
     signal = A * (signal - np.mean(signal))
     #signal = A * ( (1 + signal/A)**power - 1 )
-        
+
     # If requested, plot model 
     if plot:
         fig, ax = plt.subplots(2, 1, figsize=(12, 7))

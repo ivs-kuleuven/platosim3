@@ -1450,7 +1450,7 @@ class VarSim(object):
 
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, 1, self.corr_tess, self.seed)
+        model = Pulsator(time, 1, self.scale_tess, self.seed)
         
         # Check variable model parsed
 
