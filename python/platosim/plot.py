@@ -1442,7 +1442,7 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     if showLegend and showGroups:
         ax.legend(loc='upper right')    
     if title is not None:
-        ax.set_title(title, fontsize=fs+2)        
+        ax.set_title(title, fontsize=fs+2, pad=10)        
     ax.set_xlabel('RA',  fontsize=fs)
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)
