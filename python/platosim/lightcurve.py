@@ -523,7 +523,7 @@ class LightCurve(object):
     #     #256 ['Manual exclude']
         
     #     return flag
-    
+
                 
 
 
@@ -2445,7 +2445,7 @@ class LightCurve(object):
         if verbose:
             print(f'Processing star ID {star}')
             print('Merging light curves')
-        
+
         for i in range(nfiles):
 
             # Fetch light curve object            
@@ -2532,8 +2532,12 @@ class LightCurve(object):
         # Perform signma clipping
         if clip:
             if verbose: print('Removing outliers')
+            # Perform extra sigma clipping to remove outliers
+            if clip <= 10: sigma = 5
+            elif clip > 10 and clip < 11: sigma = 4.5
+            else: sigma = 4
             lc  = LightCurve(df0, mode="multi", path=self.path)
-            df0 = lc.clip(model='wotan', replace=True, sigma_lower=4.5, sigma_upper=4.5)
+            df0 = lc.clip(model='wotan', replace=True, sigma_lower=sigma, sigma_upper=sigma)
             
         # Copy light curve object
         if binsize:
