@@ -76,11 +76,15 @@ filename_gap = gdir / 'instrumentGAP.tab'
 # Construct light curve object
 lcs = LightCurve(idir, 'multi')
 
+# Save simulation table
+if args.verbose: print('Saving simulation table')
+ds = lc.stat_sim_table(filename_tab)
+
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
                verbose=verbose,
                flux_group_mean=True,
-               clip=True,
+               clip=ds.mag.iloc[0],
                binsize=bin_size,
                flux_offset=True,
                flux_err=True,
@@ -90,10 +94,6 @@ lc = lcs.merge(suffix='ftr',
 if args.verbose: print('Introducing data gaps')
 df = lc.gaps(filename_gap, replace=True)
 df = df.dropna()
-
-# Save simulation table
-if args.verbose: print('Saving simulation table')
-lc.stat_sim_table(filename_tab)
 
 
 # STAR SHADOW ANALYSIS
