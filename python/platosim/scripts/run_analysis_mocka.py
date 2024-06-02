@@ -78,7 +78,7 @@ lcs = LightCurve(idir, 'multi')
 
 # Save simulation table
 if args.verbose: print('Saving simulation table')
-ds = lc.stat_sim_table(filename_tab)
+ds = lcs.stat_sim_table(filename_tab)
 
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
