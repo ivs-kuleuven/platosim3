@@ -458,6 +458,14 @@ class VarSim(object):
             logg = 4.0
             Z    = 0.0
             
+        if source == 'Misc':
+            M = 2.0 * u.M_sun
+            R = 2.0 * u.R_sun
+            Teff = 7500 * u.K
+            logg = 4.0
+            Z    = 0.0
+
+
             
         return M, R, Teff, logg, Z
 
@@ -1233,7 +1241,7 @@ class VarSim(object):
             
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = Pulsator(time, power=1.0, seed=self.seed)
+        model = Pulsator(time, power=1.0, scale=self.scale_kepler, seed=self.seed)
 
         if args.puls == 'Bowman2018':
             if self.verbose > 1:
@@ -1244,7 +1252,7 @@ class VarSim(object):
         elif args.puls == 'mocka':
             if self.verbose > 1:
                 print('Generating mock object using Kepler sample (Bowman+2018)')
-            self.dm = model.initMockaBowman2018(self.idir)
+            self.dm = model.initMockaBowman2018(self.idir)            
             if self.verbose > 1:
                 print(f'Number of pulsation modes : {self.dm.shape[0]}')
                 print(f'Maximum mode amplitude    : {self.dm.ampl.max()*1e3:.1f} mmag')
@@ -1281,9 +1289,6 @@ class VarSim(object):
         if self.verbose > 1:
             errorcode('module', '\ngamma Doradus pulsator\n')
 
-        # Store correction
-        self.df['A_corr'] = self.scale_kepler
-            
         # Initialize and prepare model input
         time  = self.time.to('d').value
         model = Pulsator(time, power=2.2, scale=self.scale_kepler, seed=self.seed)
@@ -1324,12 +1329,46 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-
-            
-
-
         #def star_hybrid(self):
 
+
+        
+    def star_misc(self):
+
+        """Generate light curves for beta Cephei stars.
+        """
+
+        # Start script
+        if self.verbose > 1:
+            errorcode('module', '\nMiscellaneous OGLE variable\n')
+
+        # Initialize and prepare model input
+        time  = self.time.to('d').value
+        model = Pulsator(time, power=1, scale=None, seed=self.seed)
+        
+        # Check model parsed
+        
+        if self.verbose > 1:
+            print('Generating mock object using OGLE sample')
+
+        self.dm = model.initMockaMiscellaneous(self.idir, startype=None)
+        #self.dm = params[0]
+        # self.df['ogle'] = params[1]
+        # self.df['type'] = params[2]
+        # self.df['evol'] = params[3]
+            
+        # if self.verbose > 1:
+        #     print(f'Type of variable      : {params[1]}')
+        #     print(f'Main pulsation period : {params[2]:.3f} day')
+            
+        # Return model [mag -> ppm]
+        mag = model.evaluate(plot=args.plot)
+        self.lc['flux'] = ut.fromMagToFlux(mag)
+
+
+
+
+        
     def star_roap(self):
 
         """Generate light curve for roAp stars.
@@ -2256,6 +2295,9 @@ class VarSim(object):
         elif args.star == 'Ceph':
             v.star_ceph()
 
+        elif args.star == 'Misc':
+            v.star_misc()
+            
         else:
             # Constant star
             if args.star == 'constant':
