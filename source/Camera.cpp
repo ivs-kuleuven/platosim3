@@ -719,6 +719,12 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             }
         }
 
+        if (numStarsInSubField == 0)
+        {
+            detectedStarInfo[startTime][0] = {{0., 0., 0., 0., 0., 0.}};
+        }
+
+
         if(includePointLikeGhosts)
         {
             // Loop over the selected originators of symmetric point-like ghosts and
