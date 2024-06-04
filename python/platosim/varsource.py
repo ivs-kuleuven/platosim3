@@ -1558,7 +1558,8 @@ class Pulsator(object):
 
         # Select number modes (secure at least 5 modes)
         N_min = 5
-        N_ran = np.arange(N_min, dm.N.max(), 1)
+        N_max = dm.N.max()
+        N_ran = np.arange(N_min, N_max, 1)
         N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
 
         # Randomly select grid step to
@@ -1612,11 +1613,6 @@ class Pulsator(object):
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
         
-        # Draw random periods not part of the pattern (max 1/8 of ampl)
-        # M = 0
-        # P_puls_i = self.rng.uniform(0.2, 3.5, size=M)
-        # A_puls_i = self.rng.uniform(0, A_max/20, size=M)
-
         # Create new data frame
         self.df = pd.DataFrame()
         self.df['freq']  = 1 / P_i
@@ -1634,48 +1630,52 @@ class Pulsator(object):
         """Draw frequencies from Kepler DSct legacy.
         """
 
-        # Download analysis file
+        # Download file containing all modes of stars
         filename = 'varsim_mocka_dsct_bowman2018.ftr'
         filepath = Path(f'{odir}/{filename}')
         self.download(odir, filename)
-
-        # Load file containing columns
         df = pd.read_feather(filepath)
 
-        # Generate KDEs
-        f_kde = scipy.stats.gaussian_kde(df.freq)
-        A_kde = scipy.stats.gaussian_kde(df.ampl)
+        # Download file containing number statistics
+        filename = 'varsim_mocka_dsct_bowman2018_modes.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        dm = pd.read_feather(filepath)
+
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_max = dm.N.max()
+        N_ran = np.arange(N_min, N_max, 1)
+        N_kde = scipy.stats.gaussian_kde(dm.N)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+
+        # Randomly select grid step to
+        n = self.rng.integers(10000, 100000, 1)[0]
         
-        # Select number modes
-        N = self.rng.integers(10, 40, 1)[0]
-
-        # Randomly select grid step to 
-        n = self.rng.integers(100, 500, 1)[0]
-
         # Select frequcies from KDE [day]
-        f_ran = np.linspace(df.freq.min(), df.freq.max(), n)
-        f_i = pd.Series(f_ran).sample(N, weights=f_kde(f_ran)).to_numpy()
+        f_min = df.freq.min()
+        f_max = df.freq.max()
+        f_ran = np.linspace(f_min, f_max, n)
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        f_i = np.array(random.choices(f_ran, weights=f_kde(f_ran), k=N))
 
         # Draw amplitude below maximum [mag]
-        A_ran = np.linspace(0, 0.2, n)
+        A_ran = np.linspace(0, df.ampl.max(), n)
         param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
-        A_i_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2])
-        A_i = pd.Series(A_ran).sample(N, weights=A_kde(A_ran)).to_numpy()
+        A_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2]) + 1e-5
+        A_i = np.array(random.choices(A_ran, weights=A_fit, k=N))
 
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
             A_i = 2.5 * np.log10(1 + A_i)
-        
-        # Max peak amplitude
-        n_max = np.argmax(A_i)
-        A_max = A_i[n_max]
 
-        # Swap max peak location with offset
-        n_off = self.rng.integers(-5, 5, 1)[0]
-        n_dex = int(N/2 + n_off)
-        A_i[n_max] = A_i[n_dex]
-        A_i[n_dex] = A_max
+        # Swap max peak location if not in [5, 25] c/d
+        # This is based on observations from:
+        # (Rodríguez & López-González 2000; Rodríguez et al. 2000)
+        n_max = np.argmax(A_i)
+        if f_i[n_max] < 5 or f_i[n_max] > 25:
+            f_i[n_max] = self.rng.integers(5, 25, 1)[0]
 
         # Create new data frame
         self.df = pd.DataFrame()
@@ -1742,8 +1742,42 @@ class Pulsator(object):
         return starfile.stem, f_corr, A_corr, self.df
 
 
+    def initMockaMiscellaneous(self, odir, startype=None):
+
+        """Draw frequencies from Kepler DSct legacy.
+        """
+
+        if startype in [None, 'mocka', 'Misc']:
+            types = ['Mira', 'SVR', 'OSARG']
+            startype = random.choices(types, k=1)[0]
+            
+        # Select star type
+        if startype == 'Mira':
+            filename = 'varsim_OGLE_Mira.txt'
+        elif startype == 'SVR':
+            filename = 'varsim_OGLE_SVR.txt'
+        elif startype == 'OSARG':
+            filename = 'varsim_OGLE_OSARG.txt'
+            
+        # Download file containing all modes of stars
+        filepath = Path(f'{odir}/{filename}')
+        #self.download(odir, filename)
+        dn = np.loadtxt(filepath, comments='#', usecols=[10, 11, 12, 13, 14, 15])
+
+        # Randomly select star 
+        i = self.rng.integers(0, dn.shape[0], 1)[0]
+        self.df = pd.DataFrame({'freq':1/np.array([dn[i][0], dn[i][2], dn[i][4]]),
+                                'ampl':np.array([dn[i][1], dn[i][3], dn[i][5]]),
+                                'phase':self.rng.uniform(0, 2*np.pi, len(dn[i][::2]))})
+
+        # Create new data frame
+        self.starname = f'MOCKA: LPV - {startype} (OGLE survey)'
+
+        # Return parameters
+        return self.df
 
 
+    
     
     def evaluate(self, plot=False):
 
