@@ -125,7 +125,7 @@ class PLATOnium(object):
                 errorcode('error', 'Fast camera can only be [1, 2] = [blue, red]')
         else:
             errorcode('error', 'Camera-group can only be [1, 2, 3, 4, 5] (Fast = 5)')
-
+            
         # Select full-frame CCD
         if self.fullFrame:
             self.ccdCode = self.targetNo
@@ -753,7 +753,7 @@ class PLATOnium(object):
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
-                            f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
+                            f'{self.groupID} {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             # Terminate script
             exit()
@@ -1009,9 +1009,13 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 1:
-            errorcode('message', f'\n[PlatoSim]: Visualizing simulation for N-CAM ' +
-                      f'{self.group}.{self.camera} Q{self.quarter}\n')
-        
+            if self.groupID == 'Fast':
+                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                          f'F-CAM {self.cameraID} Q{self.quarter}\n')
+            else:
+                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                          f'{self.groupID} {self.group}.{self.camera} Q{self.quarter}\n')
+
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()
         sim["ObservingParameters/NumExposures"]      = 1
@@ -1104,7 +1108,7 @@ class PLATOnium(object):
                 ccdID = ''
             if self.groupID == 'Fast':
                 errorcode('message', '\n[PlatoSim]: Simulating' +
-                          f'{ccdID} F-CAM {self.camera} Q{self.quarter} ' + 
+                          f'{ccdID} F-CAM {self.cameraID} Q{self.quarter} ' + 
                           f'for {self.numExposures} exposures')
             else:
                 errorcode('message', f'\n[PlatoSim]: Simulating' +
