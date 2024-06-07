@@ -504,7 +504,7 @@ class PLATOnium(object):
         # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
 
-        # Start time of simulation
+        # Start time of simulation [s] 
         timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
@@ -530,7 +530,7 @@ class PLATOnium(object):
         elif self.magPB == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 4.13786857e7
 
-        
+
         # CONFIGURE TIMING
         
         # Cadence of time series [s]
@@ -561,7 +561,7 @@ class PLATOnium(object):
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1) * 86400. / self.cadence)
-            
+
             
         # PHOTOMETRY ALA MARCHIORI
 
@@ -591,9 +591,14 @@ class PLATOnium(object):
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
-        sim["Telescope/GroupID"]      = 'Custom'
-        sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-        sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
+        # TODO for now it is not possible to use GroupID = Custom since this uses
+        #      the N-CAM readout and results in a negative exposure time (and error)
+        if self.groupID == 'Fast':
+            sim["Telescope/GroupID"] = 'Fast'
+        else:
+            sim["Telescope/GroupID"]      = 'Custom'
+            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
+            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
 
 
         # POINTING ERRORS

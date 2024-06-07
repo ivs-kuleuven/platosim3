@@ -442,7 +442,8 @@ class Simulation(object):
         
         Return
         ------
-        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
+        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception
+        is raised.
         """
 
         if executionTime:
@@ -477,11 +478,10 @@ class Simulation(object):
                                                inputFilename, outputFilename, logFilename,
                                                str(logLevel)],
                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            # print(str(completedProcess.stdout.decode("utf-8")))
-            # print(str(completedProcess.stderr.decode("utf-8")))
-
+            
             if completedProcess.returncode:
+                print(str(completedProcess.stdout.decode("utf-8")))
+                print(str(completedProcess.stderr.decode("utf-8")))
                 raise Exception("Simulation.run(): PlatoSim returned with " +
                                 f"exit code {completedProcess.returncode}.")
 
@@ -1550,10 +1550,9 @@ class Simulation(object):
             raise ValueError("Simulation::getReadoutTime() Unknown readout mode " +
                              f"specification in configuration file: {readoutMode}")
 
-
-        serialTransferTime       = self["CCD/SerialTransferTime"]       * 1e-9  # [ns] -> [s]
-        parallelTransferTime     = self["CCD/ParallelTransferTime"]     * 1E-6  # [micro s] -> [s]
-        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6  # [micro s] -> [s]
+        serialTransferTime       = self["CCD/SerialTransferTime"]   * 1e-9  # [ns -> s]
+        parallelTransferTime     = self["CCD/ParallelTransferTime"] * 1e-6  # [micro s -> s]
+        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1e-6 # [micro s -> s]
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]    # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]  # [pixels]
