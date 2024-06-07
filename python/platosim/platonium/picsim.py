@@ -603,8 +603,8 @@ Notes on PIC catalogue creation:
         # Plot Zoom-in on FOV
         if df.shape[0] > 1000: mag = None
         else: mag = df.mag.to_numpy()
-        self.fig1, ax = pt.plotPlatoFOV(self.field, df.ra, df.dec, magStars=mag,
-                                        showGroups=False, title=self.title)
+        self.fig1, ax = pt.plotPlatoFOV(self.field, ncamStars=True, title=self.title,
+                                        raStars=df.ra, decStars=df.dec, magStars=mag)
         if self.plot: plt.show()
 
         # Plot sample distribution in Teff vs. Radius
