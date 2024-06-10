@@ -855,21 +855,21 @@ class Simulation(object):
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL, camera="Fast")
 
-            # Select time and wavelength dependent parameters
+        # Select time and wavelength dependent parameters
 
-            if passband == "blue":
-                self.__setitem__("Camera/ThroughputBandwidth",                  "165")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
-                
-            if passband == "red":
-                self.__setitem__("Camera/ThroughputBandwidth",                  "335")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "832")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
+        if passband == "blue":
+            self.__setitem__("Camera/ThroughputBandwidth",                  "165")
+            self.__setitem__("Camera/ThroughputLambdaC",                    "600")
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
+
+        if passband == "red":
+            self.__setitem__("Camera/ThroughputBandwidth",                  "335")
+            self.__setitem__("Camera/ThroughputLambdaC",                    "832")
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
 
         return
 
