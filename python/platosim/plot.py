@@ -1377,7 +1377,6 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
 
     if raStars is not None:
         starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
-
         if c is None:
             scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
                                  transform=ax.get_transform('world'), 
