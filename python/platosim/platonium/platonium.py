@@ -125,7 +125,7 @@ class PLATOnium(object):
                 errorcode('error', 'Fast camera can only be [1, 2] = [blue, red]')
         else:
             errorcode('error', 'Camera-group can only be [1, 2, 3, 4, 5] (Fast = 5)')
-
+            
         # Select full-frame CCD
         if self.fullFrame:
             self.ccdCode = self.targetNo
@@ -504,33 +504,11 @@ class PLATOnium(object):
         # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
 
-        # Start time of simulation
+        # Start time of simulation [s] 
         timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-        
-        # CONFIGURE CAMERA
 
-        # NOTE these function sets the correct CCD configuration and cadence
-        #      and if requested also performance and time conditions
-        # NOTE parameter "normal" is used in the subfield selection
-        if self.groupID == 'Fast':
-            normal = False
-            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
-        else:
-            normal = True
-            sim.useNormalCamera(self.performance, self.timeStart)
-
-        # Secure correct zero-point flux w.r.t. passband used
-        # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
-        if self.magPB == 'Pmag':
-            sim['ObservingParameters/Fluxm0'] = 7.3244782244e7
-        elif self.magPB == 'PBmag':
-            sim['ObservingParameters/Fluxm0'] = 5.81803986e7
-        elif self.magPB == 'PRmag':
-            sim['ObservingParameters/Fluxm0'] = 4.13786857e7
-
-        
         # CONFIGURE TIMING
         
         # Cadence of time series [s]
@@ -561,7 +539,7 @@ class PLATOnium(object):
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1) * 86400. / self.cadence)
-            
+
             
         # PHOTOMETRY ALA MARCHIORI
 
@@ -591,9 +569,37 @@ class PLATOnium(object):
         sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
-        sim["Telescope/GroupID"]      = 'Custom'
-        sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-        sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
+        # TODO for now it is not possible to use GroupID = Custom since this uses
+        #      the N-CAM readout and results in a negative exposure time (and error)
+        if self.groupID == 'Fast':
+            sim["Telescope/GroupID"] = 'Fast'
+        else:
+            sim["Telescope/GroupID"]      = 'Custom'
+            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
+            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
+
+
+        # CONFIGURE CAMERA
+
+        # NOTE these function sets the correct CCD configuration and cadence
+        #      and if requested also performance and time conditions
+        # NOTE parameter "normal" is used in the subfield selection
+
+        if self.groupID == 'Fast':
+            normal = False
+            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
+        else:
+            normal = True
+            sim.useNormalCamera(self.performance, self.timeStart)
+
+        # Secure correct zero-point flux w.r.t. passband used
+        # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
+        if self.magPB == 'Pmag':
+            sim['ObservingParameters/Fluxm0'] = 7.324509159344043e7
+        elif self.magPB == 'PBmag':
+            sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
+        elif self.magPB == 'PRmag':
+            sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
 
 
         # POINTING ERRORS
@@ -753,7 +759,7 @@ class PLATOnium(object):
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
                             'do not fall on any of the CCDs for ' +
-                            f'N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
+                            f'{self.groupID} {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             # Terminate script
             exit()
@@ -1009,9 +1015,13 @@ class PLATOnium(object):
 
         # Print to bash
         if self.verbose > 1:
-            errorcode('message', f'\n[PlatoSim]: Visualizing simulation for N-CAM ' +
-                      f'{self.group}.{self.camera} Q{self.quarter}\n')
-        
+            if self.groupID == 'Fast':
+                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                          f'F-CAM {self.cameraID} Q{self.quarter}\n')
+            else:
+                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                          f'{self.groupID} {self.group}.{self.camera} Q{self.quarter}\n')
+
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()
         sim["ObservingParameters/NumExposures"]      = 1
@@ -1029,7 +1039,8 @@ class PLATOnium(object):
         f = sim.run(removeOutputFile=self.overwrite)
             
         # Plot star in CCD focal plane
-        if not self.fullFrame:
+        # TODO plot do not work for F-CAM yet!
+        if not self.fullFrame and not self.groupID == 'Fast':
             fig = plt.figure(figsize=(12,10))
             drawStarInCCDfocalPlane(fig, sim,
                                     self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
@@ -1104,7 +1115,7 @@ class PLATOnium(object):
                 ccdID = ''
             if self.groupID == 'Fast':
                 errorcode('message', '\n[PlatoSim]: Simulating' +
-                          f'{ccdID} F-CAM {self.camera} Q{self.quarter} ' + 
+                          f'{ccdID} F-CAM {self.cameraID} Q{self.quarter} ' + 
                           f'for {self.numExposures} exposures')
             else:
                 errorcode('message', f'\n[PlatoSim]: Simulating' +

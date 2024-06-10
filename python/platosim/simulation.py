@@ -442,7 +442,8 @@ class Simulation(object):
         
         Return
         ------
-        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception is raised.
+        When PlatoSim fails for some reason and returns an error code (!= 0), an Exception
+        is raised.
         """
 
         if executionTime:
@@ -477,11 +478,10 @@ class Simulation(object):
                                                inputFilename, outputFilename, logFilename,
                                                str(logLevel)],
                                                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-            # print(str(completedProcess.stdout.decode("utf-8")))
-            # print(str(completedProcess.stderr.decode("utf-8")))
-
+            
             if completedProcess.returncode:
+                print(str(completedProcess.stdout.decode("utf-8")))
+                print(str(completedProcess.stderr.decode("utf-8")))
                 raise Exception("Simulation.run(): PlatoSim returned with " +
                                 f"exit code {completedProcess.returncode}.")
 
@@ -855,21 +855,21 @@ class Simulation(object):
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL, camera="Fast")
 
-            # Select time and wavelength dependent parameters
+        # Select time and wavelength dependent parameters
 
-            if passband == "blue":
-                self.__setitem__("Camera/ThroughputBandwidth",                  "165")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
-                
-            if passband == "red":
-                self.__setitem__("Camera/ThroughputBandwidth",                  "335")
-                self.__setitem__("Camera/ThroughputLambdaC",                    "832")
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
+        if passband == "blue":
+            self.__setitem__("Camera/ThroughputBandwidth",                  "165")
+            self.__setitem__("Camera/ThroughputLambdaC",                    "600")
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
+
+        if passband == "red":
+            self.__setitem__("Camera/ThroughputBandwidth",                  "335")
+            self.__setitem__("Camera/ThroughputLambdaC",                    "832")
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
 
         return
 
@@ -1550,10 +1550,9 @@ class Simulation(object):
             raise ValueError("Simulation::getReadoutTime() Unknown readout mode " +
                              f"specification in configuration file: {readoutMode}")
 
-
-        serialTransferTime       = self["CCD/SerialTransferTime"]       * 1e-9  # [ns] -> [s]
-        parallelTransferTime     = self["CCD/ParallelTransferTime"]     * 1E-6  # [micro s] -> [s]
-        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1E-6  # [micro s] -> [s]
+        serialTransferTime       = self["CCD/SerialTransferTime"]   * 1e-9  # [ns -> s]
+        parallelTransferTime     = self["CCD/ParallelTransferTime"] * 1e-6  # [micro s -> s]
+        parallelTransferTimeFast = self["CCD/ParallelTransferTimeFast"] * 1e-6 # [micro s -> s]
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]    # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]  # [pixels]
