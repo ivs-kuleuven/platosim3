@@ -508,28 +508,6 @@ class PLATOnium(object):
         timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-        
-        # CONFIGURE CAMERA
-
-        # NOTE these function sets the correct CCD configuration and cadence
-        #      and if requested also performance and time conditions
-        # NOTE parameter "normal" is used in the subfield selection
-        if self.groupID == 'Fast':
-            normal = False
-            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
-        else:
-            normal = True
-            sim.useNormalCamera(self.performance, self.timeStart)
-
-        # Secure correct zero-point flux w.r.t. passband used
-        # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
-        if self.magPB == 'Pmag':
-            sim['ObservingParameters/Fluxm0'] = 7.3244782244e7
-        elif self.magPB == 'PBmag':
-            sim['ObservingParameters/Fluxm0'] = 5.81803986e7
-        elif self.magPB == 'PRmag':
-            sim['ObservingParameters/Fluxm0'] = 4.13786857e7
-
 
         # CONFIGURE TIMING
         
@@ -599,6 +577,29 @@ class PLATOnium(object):
             sim["Telescope/GroupID"]      = 'Custom'
             sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
             sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
+
+
+        # CONFIGURE CAMERA
+
+        # NOTE these function sets the correct CCD configuration and cadence
+        #      and if requested also performance and time conditions
+        # NOTE parameter "normal" is used in the subfield selection
+
+        if self.groupID == 'Fast':
+            normal = False
+            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
+        else:
+            normal = True
+            sim.useNormalCamera(self.performance, self.timeStart)
+
+        # Secure correct zero-point flux w.r.t. passband used
+        # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
+        if self.magPB == 'Pmag':
+            sim['ObservingParameters/Fluxm0'] = 7.324509159344043e7
+        elif self.magPB == 'PBmag':
+            sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
+        elif self.magPB == 'PRmag':
+            sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
 
 
         # POINTING ERRORS
@@ -1038,7 +1039,8 @@ class PLATOnium(object):
         f = sim.run(removeOutputFile=self.overwrite)
             
         # Plot star in CCD focal plane
-        if not self.fullFrame:
+        # TODO plot do not work for F-CAM yet!
+        if not self.fullFrame and not self.groupID == 'Fast':
             fig = plt.figure(figsize=(12,10))
             drawStarInCCDfocalPlane(fig, sim,
                                     self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
