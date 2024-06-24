@@ -2285,7 +2285,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
 
     # Define global colormap
     
-    cmap = plt.cm.get_cmap('coolwarm')
+    cmap = plt.cm.get_cmap(cmap)
     
     # Set figure labels
 
@@ -2333,7 +2333,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     # Extra settings for colorbar after image generation
         
     if norm is None:
-        cb = plt.colorbar(im, extend="max", pad=0.01)
+        cb = plt.colorbar(im, extend="both", pad=0.01)
         cb.set_label(column)
     else:
 
@@ -2397,17 +2397,17 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
             level = 'camera'
         else:
             level = 'instrument'
-        noise_jitter = getJitterNoiseLimitNSR(rms, level=level)
+        noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
         ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
 
         # Photon noise
         ncams = show_ncam_noise_limits
-        noise_photon = getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
+        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
         ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
                 zorder=2, label='Photon noise')
         
         # Background and readout noise
-        noise_background = getBackgroundNoiseLimitNSR(mag, passband=passband)
+        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
