@@ -835,8 +835,8 @@ class VarSim(object):
             print(f'Amplitude correction for oscillations  : {self.bol_coeff:.3f}')
             print(f'Passband  correction (Kepler -> PLATO) : {self.scale_kepler:.3f}')
             print(f'Passband  correction (TESS   -> PLATO) : {self.scale_tess:.3f}')
-        self.df['PD_tess']   = self.scale_tess
-        self.df['PD_kepler'] = self.scale_kepler
+        self.df['PC_tess']   = self.scale_tess
+        self.df['PC_kepler'] = self.scale_kepler
         
         # Plot interpolation
         if args.plot and self.verbose == 3:
