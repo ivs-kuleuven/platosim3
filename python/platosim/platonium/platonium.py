@@ -1613,6 +1613,8 @@ class PLATOnium(object):
         """
         Module to for the on-ground L1 pipeline processing chain.
         """
+        # Make sure to only use one thread since we will use the HPC
+        os.system('export OMP_NUM_THREADS=1')
 
         # Print to bash
         if self.verbose > 1:
@@ -1677,6 +1679,8 @@ class PLATOnium(object):
         """
         Module to for the on-board L1 pipeline processing chain.
         """
+        # Make sure to only use one thread since we will use the HPC
+        os.system('export OMP_NUM_THREADS=1')
 
         # Print to bash
         if self.verbose > 1:
