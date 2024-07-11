@@ -44,6 +44,18 @@ from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
 from platosim.matplotlibrc import setup
 setup()
 
+# pylint: disable=line-too-long
+# pylint: disable=invalid-name
+# pylint: disable=trailing-whitespace
+# pylint: disable=multiple-statements
+# pylint: disable=no-member
+# pylint: disable=bare-except
+# pylint: disable=redefined-outer-name
+# pylint: disable=no-name-in-module
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-branches
+# pylint: disable=consider-using-enumerate
+# pylint: disable=attribute-defined-outside-init
 
 #==============================================================#
 #                        PLATOnium CLASS                       #
@@ -198,7 +210,7 @@ class PLATOnium(object):
         
         # Check if the inputfile.yaml exists
         if not self.inputFile.is_file():
-            errorcode('error', f'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')        
+            errorcode('error', 'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')
             
         # Pipeline paths
         if self.pipeline:
@@ -704,7 +716,7 @@ class PLATOnium(object):
             sim["CCD/Temperature"]         = "FromFile"
             sim["CCD/TemperatureFileName"] = inputFileGTT
             if self.verbose > 1:
-                print(f'Applying thermal transients  (GTT FromFile)')
+                print('Applying thermal transients  (GTT FromFile)')
 
             
         # FULL-FRAME SIMULATION
@@ -1016,10 +1028,10 @@ class PLATOnium(object):
         # Print to bash
         if self.verbose > 1:
             if self.groupID == 'Fast':
-                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                errorcode('message', '\n[PlatoSim]: Visualizing simulation for ' +
                           f'F-CAM {self.cameraID} Q{self.quarter}\n')
             else:
-                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                errorcode('message', '\n[PlatoSim]: Visualizing simulation for ' +
                           f'{self.groupID} {self.group}.{self.camera} Q{self.quarter}\n')
 
         # Control the content of the hdf5 output files
@@ -1118,7 +1130,7 @@ class PLATOnium(object):
                           f'{ccdID} F-CAM {self.cameraID} Q{self.quarter} ' + 
                           f'for {self.numExposures} exposures')
             else:
-                errorcode('message', f'\n[PlatoSim]: Simulating' +
+                errorcode('message', '\n[PlatoSim]: Simulating' +
                           f'{ccdID} N-CAM {self.group}.{self.camera} Q{self.quarter} '
                           f'for {self.numExposures} exposures')
 
@@ -1405,6 +1417,9 @@ class PLATOnium(object):
         """
         Module to run a microscan sequence with PlatoSim.
         """
+        # NOTE: jmcc - moved to top of function
+        # Make sure to only use one thread since we will use the HPC
+        os.system('export OMP_NUM_THREADS=1')
 
         # Print to bash
         if self.verbose > 1:
@@ -1415,14 +1430,14 @@ class PLATOnium(object):
             sim["SubField/SubPixels"] = 64
         else:
             sim["SubField/SubPixels"] = 128
-            
+
         # Prepare for the Archimedean jitter spiral pattern
         nimages = 428
         sim["Platform/UseJitter"]               = 'yes'
         sim["Platform/JitterSource"]            = 'FromFile'
         sim["ObservingParameters/NumExposures"] = nimages
         sim['ObservingParameters/CycleTime']    = 25
-        
+
         # Time of microscan simulation needs to match quarter for PlatoSim to run successfully
         # NOTE Here a new file is created with a appropriate time column to match the observation
         # NOTE This is done once per quarter and CCD time-shift and the file is saved to the
@@ -1433,11 +1448,11 @@ class PLATOnium(object):
 
         # Download microscan file if first run of L1 pipeline
         if not Path(spiralFileBase).is_file():
-            print(f'Downloading miscroscanning file..')
+            print('Downloading miscroscanning file..')
             ut.downloadFromFTP(filename=spiralFileName,
                                outputDir=self.platosimInputDir,
                                server='plato')
-            
+
         if self.quarter == 1 and int(self.df0['CCD']) == 1:
             os.system(f'cp {spiralFileBase} {spiralFileQuarterN}')
         else:
@@ -1459,7 +1474,7 @@ class PLATOnium(object):
         sim["Sky/IncludeVariableSources"]             = False
         sim["Photometry/IncludePhotometry"]           = False
         sim["ControlHDF5Content/WriteSubPixelImages"] = False
-        
+
         # HDF5 content to always include
         sim["ControlHDF5Content/WritePixelMaps"]              = True
         sim["ControlHDF5Content/WriteBiasMaps"]               = True
@@ -1478,14 +1493,16 @@ class PLATOnium(object):
         # If mapped PSF is used the diffused PSFs need to be saved
         if sim["PSF/Model"] == 'MappedFromFile':
             sim["ControlHDF5Content/WriteDiffusedPSF"] = 'yes'
-        
+
         # Save catalog and load it into the inputfile
         # NOTE we need to replace the target name for correct handling by the LESIA pipeline
         numStar = self.numCon + 1
         self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
-        starCatalogFile = f'{self.microscanSimName}.coo'
-        np.savetxt(starCatalogFile, self.ds, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
-        sim["ObservingParameters/StarCatalogFile"] = starCatalogFile
+
+        # NOTE: jmcc - Reza said .coo file not needed any more
+        #starCatalogFile = f'{self.microscanSimName}.coo'
+        #np.savetxt(starCatalogFile, self.ds, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
+        #sim["ObservingParameters/StarCatalogFile"] = starCatalogFile
 
         # MICROSCANNING SIMULATION
 
@@ -1499,46 +1516,56 @@ class PLATOnium(object):
         if self.verbose > 1:
             self.tocMicroscan = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
-            
+
         # PRE-PROCESSING
 
         # Change directory needed to execute scripts
         os.chdir(self.microscanDir)
-        
+
         # Run pre-processing
+        # NOTE: jmcc - moving pproc.py --> psim2datastruc.py
+
+        #if self.verbose > 1:
+        #    errorcode('message', '\n[pproc]: Pre-processing imagettes')
+        #cmd = os.system(f'{self.platoLib}/pproc.py ' +
+        #                f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('pproc.py failed due to the above error!')
+
         if self.verbose > 1:
-            errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        cmd = os.system(f'{self.platoLib}/pproc.py ' +
-                        f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+            errorcode('message', '\n[psim2datastruc.py]: Pre-processing imagettes')
+        mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
+        comm = f'psim2datastruc.py . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        print(os.getcwd()) # DEBUGGING
+        print(comm) # DEBUGGING
+        cmd = os.system(comm)
         if cmd != 0:
-            self.failed('pproc.py failed due to the above error!')
-            
+            self.failed('psim2datastruc.py failed due to the above error!')
 
         # EXTRACT CONTAMINANTS
 
         # Run contaminant extraction
-        if self.verbose > 1:
-            errorcode('message', f'\n[extract_contaminants]: Model contaminant stars')
-            print(f'Include contaminats with dmag < {self.conDeltaMag} from target')
-        cmd = os.system(f'{self.platoLib}/extract_contaminant.py ' +
-                        f'-D {self.conDeltaMag} -e {self.conFluxError} ' + 
-                        f'-s {self.seedTarget} {self.starID} {self.starID} {self.devnull}')
-        if cmd != 0:
-            self.failed('extract_contaminant.py failed due to the above error!')
-            
-        if self.verbose > 1:
-            print('Modelling of contaminants done')
-            
+        # NOTE: jmcc - Reza said call to extract_contaminants no longer needed
+        #if self.verbose > 1:
+        #    errorcode('message', f'\n[extract_contaminants]: Model contaminant stars')
+        #    print(f'Include contaminats with dmag < {self.conDeltaMag} from target')
+        #cmd = os.system(f'{self.platoLib}/extract_contaminant.py ' +
+        #                f'-D {self.conDeltaMag} -e {self.conFluxError} ' + 
+        #                f'-s {self.seedTarget} {self.starID} {self.starID} {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('extract_contaminant.py failed due to the above error!')
+        #
+        #if self.verbose > 1:
+        #    print('Modelling of contaminants done')
+
         # PSF INVERSION
-        
+        # NOTE: jmcc - moving invert_parabolic_multi --> gen_psvinv.py
+        # NOTE: jmcc - Reza said no longer need regularisation parameter
         # Find Regularization parameter for each star
-        PV   = -0.34  # P-V magnitude offset
-        Vmag = self.df['mag'] - PV
-        regs = np.format_float_scientific(10.**(0.51 * Vmag - 14.61))
-        
-        # Make sure to only use one thread since we will use the HPC
-        os.system('export OMP_NUM_THREADS=1')
-        
+        #PV   = -0.34  # P-V magnitude offset
+        #Vmag = self.df['mag'] - PV
+        #regs = np.format_float_scientific(10.**(0.51 * Vmag - 14.61))
+
         # Run the inversion module
         # NOTE Input parameters:
         # -t : Type of microscanning
@@ -1547,32 +1574,44 @@ class PLATOnium(object):
         # -r : Sub-pixel resolution of original PSF
         # -u : Regularisation parameter for the wPRLS method
         # -N : Number of elementary steps over which to calculate averaged positions
-        if self.verbose > 1:
-            errorcode('message', '\n[invert_parabolic_multi]: Run the PSF inversion')
-        cmd = os.system(f'{self.platoLib}/invert_parabolic1_multi ' +
-                        f'-Q -t continuous -m PRLS ' +
-                        f'-N 1 -r 128 -l 128 -p {self.bsres} -u {regs} ' +
-                        f'-d . -i {self.starID} -q {self.starID}/{self.starID}_offsets.txt ' + 
-                        f'-o inversion {self.devnull}')
-        if cmd != 0:
-            self.failed('invert_parabolic_multi failed due to the above error!')
 
-        # TODO check the performance of the inversion!
-        
+
+        #if self.verbose > 1:
+        #    errorcode('message', '\n[invert_parabolic_multi]: Run the PSF inversion')
+        #cmd = os.system(f'{self.platoLib}/invert_parabolic1_multi ' +
+        #                f'-Q -t continuous -m PRLS ' +
+        #                f'-N 1 -r 128 -l 128 -p {self.bsres} -u {regs} ' +
+        #                f'-d . -i {self.starID} -q {self.starID}/{self.starID}_offsets.txt ' + 
+        #                f'-o inversion {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('invert_parabolic_multi failed due to the above error!')
+
+        if self.verbose > 1:
+            errorcode('message', '\n[gen_psfinv.py]: Run the PSF inversion')
+        comm = f"gen_psfinv.py {self.starID} {self.starID} {self.starID} --bsres {self.bsres}"
+        print(comm)
+        cmd = os.system(comm)
+        if cmd != 0:
+            self.failed('gen_psfinv.py failed due to the above error!')
+
+        # check the performance of the inversion!
+        if self.verbose > 1:
+            errorcode('message', '\n[psfinv_quality.py]: Check the PSF inversion quality')
+        comm = f"psfinv_quality.py {self.starID}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
+        print(comm)
+        cmd = os.system(comm)
+        if cmd != 0:
+            self.failed('psfinv_quality.py failed due to the above error!')
+
         # Execution time of module
         if self.verbose > 1:
             self.tocInversion = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
 
-            
-
-        
-
-        
     def run_L1_onground(self):
-
-        """Module to for the on-ground L1 pipeline processing chain.
+        """
+        Module to for the on-ground L1 pipeline processing chain.
         """
 
         # Print to bash
@@ -1583,68 +1622,90 @@ class PLATOnium(object):
         os.chdir(self.pipelineDir)
 
         # PRE-PROCESSING
+        # NOTE: jmcc - moving pproc.py --> psim2datastruc.py
+
+        #if self.verbose > 1:
+        #     errorcode('message', '\n[pproc]: Pre-processing imagettes')
+        #cmd = os.system(f'{self.platoLib}/pproc.py ' +
+        #                f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('pproc.py failed due to the above error!')
 
         if self.verbose > 1:
-             errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        cmd = os.system(f'{self.platoLib}/pproc.py ' +
-                        f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+            errorcode('message', '\n[psim2datastruc.py]: Pre-processing imagettes')
+        mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
+        comm = f'psim2datastruc.py . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        print(os.getcwd()) # DEBUGGING
+        print(comm) # DEBUGGING
+        cmd = os.system(comm)
         if cmd != 0:
-            self.failed('pproc.py failed due to the above error!')
-        
+            self.failed('psim2datastruc.py failed due to the above error!')
+
         # PSF FIITING
 
         # Print to bash
-        if self.verbose > 1:
-            errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
-
+        #if self.verbose > 1:
+        #    errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
         # NOTE using Dierckx's knot distribution (-K 1)
         # NOTE using Levenberg-Marquardt minimization method (default: -M 0)
         # NOTE using B-spline resolution of 10 (-b) matching the PSF resolution!
         # NOTE PRNU knowledge error in % (-p)
-        cmd = os.system(f'{self.platoLib}/psffit.py ' +
-                        f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
-                        f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
-                        f'-f {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                        f'-o {self.starID} {self.starID} {self.devnull}')
+        #cmd = os.system(f'{self.platoLib}/psffit.py ' +
+        #                f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
+        #                f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
+        #                f'-f {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+        #                f'-o {self.starID} {self.starID} {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('psffit.py failed due to the above error!')
+
+        if self.verbose > 1:
+            errorcode('message', '\n[gen_pflux_ts.py]: PSF fitting for light curve generation')
+        psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+        comm = f"gen_pflux_ts.py {self.starID} {self.starID} {self.starID} --psf {psf_path}"
         if cmd != 0:
-            self.failed('psffit.py failed due to the above error!')
-        
+            self.failed('gen_pflux_ts.py failed due to the above error!')
+
         # PROLOGUE
-                
+
         # Execution time of module
         if self.verbose > 1:
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
 
-
-
-
-        
-
     def run_L1_onboard(self):
-
-        """Module to for the on-board L1 pipeline processing chain.
+        """
+        Module to for the on-board L1 pipeline processing chain.
         """
 
         # Print to bash
         if self.verbose > 1:
             errorcode('module', '\nOn-board L1 pipeline')
-            
+
         # Change directory needed to execute scripts
         os.chdir(self.pipelineDir)
 
         # PRE-PROCESSING
 
+        #if self.verbose > 1:
+        #    errorcode('message', '\n[pproc]: Pre-processing imagettes')
+        #cmd = os.system(f'{self.platoLib}/pproc.py ' +
+        #                f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('pproc.py failed due to the above error!')
+
         if self.verbose > 1:
-            errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        cmd = os.system(f'{self.platoLib}/pproc.py ' +
-                        f'--platosim --auto-bg -f {self.starID} {self.devnull}')
+            errorcode('message', '\n[psim2datastruc.py]: Pre-processing imagettes')
+        mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
+        comm = f'psim2datastruc.py . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        print(os.getcwd()) # DEBUGGING
+        print(comm) # DEBUGGING
+        cmd = os.system(comm)
         if cmd != 0:
-            self.failed('pproc.py failed due to the above error!')
+            self.failed('psim2datastruc.py failed due to the above error!')
 
         # APERTURE PHOTOMETRY
-            
+
         # NOTE Input parameters:
         # - Binary mask is default (-T 1)
         # - Write mask FITS files (-M)
@@ -1658,48 +1719,57 @@ class PLATOnium(object):
         # - the current exposure is = last update time + update period
         # - the exposure number must be a multiple of 24 such that the mask update
         #   always occurs at the beginning of a 600s cycle
+        #if self.verbose > 1:
+        #    errorcode('message', '\n[lightcurve.py]: Aperture photometry ala Marchiori+2019')
+        #cmd = os.system(f'{self.platoLib}/lightcurve.py ' +
+        #                f'-M --input-hdf5 --spr_tot --bsres {self.bsres} ' + 
+        #                f'--include-contaminants --add_chromatic_abberation ' +
+        #                f'--update-period {self.maskUpdateRate} ' +
+        #                f'--update-thres {self.maskUpdateThres} ' +
+        #                f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+        #                f'-B {self.starID} -o {self.starID} {self.starID} {self.devnull}')
+        #if cmd != 0:
+        #    self.failed('lightcurve.py failed due to the above error!')
+
         if self.verbose > 1:
-            errorcode('message', '\n[lightcurve.py]: Aperture photometry ala Marchiori+2019')
-        cmd = os.system(f'{self.platoLib}/lightcurve.py ' +
-                        f'-M --input-hdf5 --spr_tot --bsres {self.bsres} ' + 
-                        f'--include-contaminants --add_chromatic_abberation ' +
-                        f'--update-period {self.maskUpdateRate} ' +
-                        f'--update-thres {self.maskUpdateThres} ' +
-                        f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                        f'-B {self.starID} -o {self.starID} {self.starID} {self.devnull}')
+            errorcode('message', '\n[gen_aflux_ts.py]: Aperture photometry ala Marchiori+2019')
+        psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+        comm = f"gen_aflux_ts.py {self.starID} {self.starID} {self.starID} --psf {psf_path}"
         if cmd != 0:
-            self.failed('lightcurve.py failed due to the above error!')
+            self.failed('gen_aflux_ts.py failed due to the above error!')
 
         # JITTER AND DRIFT CORRECTION
 
         if not self.jitterDriftOff:
+            #if self.verbose > 1:
+            #    errorcode('message', '\n[jittercorrection.py]: Jitter & Drift Correction')
+            #cmd = os.system(f'{self.platoLib}/jittercorrection.py ' +
+            #                f'--add_chromatic_abberation -W 128 -r 128 -f {self.prnuError} ' +
+            #                f'--bsres {self.bsres} --seed {self.seedJitter} ' + 
+            #                f'-b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
+            #                f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
+            #                f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
+            #if cmd != 0:
+            #    self.failed('psffit.py failed due to the above error!')
+
             if self.verbose > 1:
-                errorcode('message', '\n[jittercorrection.py]: Jitter & Drift Correction')
-            cmd = os.system(f'{self.platoLib}/jittercorrection.py ' +
-                            f'--add_chromatic_abberation -W 128 -r 128 -f {self.prnuError} ' +
-                            f'--bsres {self.bsres} --seed {self.seedJitter} ' + 
-                            f'-b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
-                            f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-                            f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
+                errorcode('message', '\n[apply_ltdjit_corr.py]: Jitter & Drift Correction')
+            psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+            comm = f"apply_ltdjit_corr.py {self.starID} {self.starID} {self.starID} --psf {psf_path} --cadence {self.cadence}"
             if cmd != 0:
-                self.failed('psffit.py failed due to the above error!')
-            
+                self.failed('apply_ltdjit_corr.py failed due to the above error!')
+
         # PROLOGUE
-                
+
         # Execution time of module
         if self.verbose > 1:
             self.tocOnboard = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-
-        
-
-
     #--------------------------------------------------------------#
     #                            OUTPUTS                           #
     #--------------------------------------------------------------#
 
-    
     def create_sim_table(self, odir):
 
         """Module to create a overview table of the simulation.
