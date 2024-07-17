@@ -351,7 +351,9 @@ class Payload(object):
         if self.aocs and self.odir:
             if self.verbose > 1:
                 errorcode('module', '\nAttitude Control System (ACS)\n')
-            ns.getACS(self.time, seed=self.seed, ofile=self.fileNameACS, plot=self.plot)
+            #ns.getACS(self.time, seed=self.seed, ofile=self.fileNameACS, plot=self.plot)
+            # TODO: JMCC - removed seed as platosim was complaining
+            ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
             if self.odir and self.verbose > 1:
                 print(f"File saved: {self.fileNameACS}")
 
