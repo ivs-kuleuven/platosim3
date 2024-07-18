@@ -788,7 +788,16 @@ tuple<double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
 {
     if (starDB.count(starID) == 0)
     {
-        throw IllegalArgumentException("Sky::GetInfoOfSelectedStarWithID(): starID " + to_string(starID) + " unknown");
+        if (starID == 0)
+        {
+            return {0, 0, 0};
+        }
+        else
+        {
+            throw IllegalArgumentException(
+                "Sky::GetInfoOfSelectedStarWithID(): starID " +
+                to_string(starID) + " unknown");
+        }
     }
     else
     {
