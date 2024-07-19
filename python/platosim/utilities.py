@@ -1145,7 +1145,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     if camType == 'normal':
         texp = 21.
         tcyc = 25.
-        gain = 0.0222 * 2.14   # [ADU/e-]
+        gain = 0.0186 * 2.15   # [ADU/e-]
     else:
         texp = 2.1
         tcyc = 2.5
@@ -1160,13 +1160,18 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     elif passband == 'P':
         # The P passband zero-point
         if camType == 'normal':
-            zp   = 20.77
+            zp   = 21.4 #20.77
         if camType == 'fastblue':
             zp = 20.18
         if camType == 'fastred':
             zp = 19.81
         # Calculate flux
         f = 10**(-0.4 * (mag - zp))
+
+        #f0 = 7.324509159344043e7
+        #f = 10**(-0.4 * mag) * f0
+
+        
     else:
         errorcode('error', f'Wrong {camType} name!')
 
@@ -1185,7 +1190,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
 
 
-def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
+def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600, bg=65, mpix=20):
 
     """NSR estimate in the photon noise limit of bright stars.
 
@@ -1194,16 +1199,20 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
 
     Parameters
     ----------
-    P : float, narray
-        The PLATO passband magnitude.
+    mag : float, narray
+        Magnitude of stars
+    camType : str
+        Either the normal (N) or fast (F) cameras. Default is normal.
     Ncam : float, narray
         Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
     Ntra : float, narray
         Number of transits that can be co-added by phase-folding.
     tdur : float, narray
         Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
-    camType : str
-        Either the normal (N) or fast (F) cameras. Default is normal.
+    bg : float
+        Constant background noise level [e-/s/pixel] 
+    mpix : float
+        Sum of pixels within aperture mask
 
     Return
     ------
@@ -1214,26 +1223,30 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600):
     # Choose cycle and exposure time [s] for either the normal or fast cameras
 
     if camType == 'normal':
-        gain = 1/(0.0222 * 2.14)   # [ADU/e-/pixel]
+        gain = 1 / (0.0222 * 2.14)   # [ADU/e-/pixel]
     else:
         gain = 0.05   # TODO: update gain values for F-CAMs
 
+    # The P passband zero-point flux
+    
     if passband == "V":
         f0 = 1.00179e8
     elif passband == 'P':
-        f0 = 0.7324478224428527e8
+        if camType == 'normal':
+            f0 = 7.324509159344043e7
+        if camType == 'fastblue':
+            f0 = 3.808715439431968e7
+        if camType == 'fastred':
+            f0 = 2.7591704260173317e7
     else:
         errorcode('error', f'Wrong {camType} name!')
         
     # Calculate noise and signal
-    gain = 25
-    bg   = 60  # [e-/s/pixel]
-    mask = 20  # [pixel]
     throughput   = 0.8134999994206865
     transmission = 0.4822896122932434
     
-    noise  = gain * bg * tdur * mask * throughput #* transmission
-    signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.8
+    noise  = gain * bg * tdur * mpix * throughput #* transmission
+    signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.72
 
     return noise / signal
 

@@ -21,6 +21,7 @@ from statsmodels.graphics.gofplots import qqplot
 #                       OLS/WLS STATISTICS                     #
 #--------------------------------------------------------------#
 
+
 def hist_fap(hist, fap=0.1):
 
     """Calculate the False Alarm Probability (PAP) of a histogram.
@@ -39,6 +40,8 @@ def hist_fap(hist, fap=0.1):
     percentile_cx = [sx[cx.searchsorted(cx[-1] * p / 100)] for p in wanted_percentiles]
 
     return percentile_cx
+
+
 
 
 
@@ -90,6 +93,7 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     if model == 'y ~ x': title += fr' + $\theta_1 {x}$'
     if model == 'y ~ x + I(x**2)': title += fr' + $\theta_1 {x} + \theta_2 {x}^2$'
     if model == 'y ~ x + I(x**2) + I(x**3)': title += fr' + $\theta_1 {x} + \theta_2 {x}^2 + \theta_3 {x}^3$'
+    if model == 'y ~ x + I(x**2) + I(x**3) + I(x**4)':title+=fr' + $\theta_1 {x} + \theta_2 {x}^2 + \theta_3 {x}^3 + \theta_4 {x}^4$'
     if model == 'y ~ x + z': title += fr' + $\theta_1$ {x} + \theta_2 z$'
     if model == 'y ~ x + I(np.sin(x))': title += fr' + $\theta_1 {x} + \theta_2 \sin({x})$'            
 
@@ -116,21 +120,20 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     for i in range(len(CI)):
         df_predictions = predictions.summary_frame(alpha=CI[i])
         df_predictions.index = data.x.values
-
         # Plot CI
-        ax.fill_between(df_predictions.index, 
-                        df_predictions.mean_ci_lower, 
-                        df_predictions.mean_ci_upper, 
-                        alpha=0.2, color=color[i+1], zorder=2)
-        ax.plot(data[reg], df_predictions.mean_ci_lower, '-', c=color[i+1], lw=1, zorder=2, label=str((1-CI[i])*100)+'% CI')
-        ax.plot(data[reg], df_predictions.mean_ci_upper, '-', c=color[i+1], lw=1, zorder=2)
+        # ax.fill_between(df_predictions.index, 
+        #                 df_predictions.mean_ci_lower, 
+        #                 df_predictions.mean_ci_upper, 
+        #                 alpha=0.2, color=color[i+1], zorder=2)
+        # ax.plot(data[reg], df_predictions.mean_ci_lower, '-', c=color[i+1], lw=1, zorder=2, label=str((1-CI[i])*100)+'\% CI')
+        # ax.plot(data[reg], df_predictions.mean_ci_upper, '-', c=color[i+1], lw=1, zorder=2)
     
     # Plot PI -> only relevant for OLS
     ax.fill_between(df_predictions.index, 
                     df_predictions.obs_ci_lower, 
                     df_predictions.obs_ci_upper, 
                     alpha=0.2, color=color[-1], zorder=3)
-    ax.plot(data[reg], df_predictions.obs_ci_lower, '-', c=color[-1], lw=1, zorder=2, label=str((1-CI[0])*100)+'% PI')
+    ax.plot(data[reg], df_predictions.obs_ci_lower, '-', c=color[-1], lw=1, zorder=2, label=str((1-CI[0])*100)+'\% PI')
     ax.plot(data[reg], df_predictions.obs_ci_upper, '-', c=color[-1], lw=1, zorder=2)
     
     # Plot best fit and data
@@ -155,17 +158,18 @@ def plot_modelfit(data, lsFit, model, lsModel='OLS', CI=[0.05], alpha=0.1, theme
     
     
     
-    
-def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS',
+def plot_residuals(data, lsFit, reg='x', lsModel='OLS', theme='b', alpha=0.1,
                    figsize=(8,4)):
-
+    
     """Plot the OLS/WLS model fit residuals.
     """
     
     # Choose correct residuals
     
-    if lsModel == 'OLS':  resid = lsFit.resid
-    else: resid = lsFit.resid_pearson
+    if lsModel == 'OLS':
+        resid = lsFit.resid
+    else:
+        resid = lsFit.resid_pearson
 
     # Select the color theme
     
@@ -197,29 +201,6 @@ def plot_residuals(data, lsFit, theme='b', reg='x', alpha=0.1, lsModel='OLS',
     plt.show()
     
     
-
-
-
-def plot_residuals(data, olsFit, color='blue', reg='x'):
-    
-    fig, ax = plt.subplots(1,2, figsize=(20,6))
-
-    # Plot residuals squared vs. observations
-    ax[0].axhline(y = 0, color='k', linestyle='--', alpha=0.8)
-    ax[0].scatter(data[reg], olsFit.resid**2, s=20, color=color)
-    ax[0].set_xlabel(reg)
-    ax[0].set_ylabel(r"Residuals squared, $\varepsilon^2$")
-    ax[0].grid(True, color='gainsboro', linestyle='-', linewidth=0.5)
-
-    # Plot residuals vs. plot
-    ax[1].axhline(y = 0, color='k', linestyle='--', alpha=0.8)
-    ax[1].scatter(olsFit.fittedvalues, olsFit.resid, s=20, color=color)
-    ax[1].set_xlabel("Predicted reponse")
-    ax[1].set_ylabel(r"Residuals, $\epsilon$")
-    ax[1].grid(True, color='gainsboro', linestyle='-', linewidth=0.5)
-    plt.show()
-
-
     
 
     
@@ -282,12 +263,19 @@ def model_selection(AIC_j, BIC_j, method='BIC', show=False):
     # Probabilities
     w12 = wAIC_i[0] / (wAIC_i[0] + wAIC_i[1]) * 100
     p12 = pBIC_i[0] / (pBIC_i[0] + pBIC_i[1]) * 100
-    if n == 3:
+    if n > 2:
         w13 = wAIC_i[0] / (wAIC_i[0] + wAIC_i[2]) * 100
         p13 = pBIC_i[0] / (pBIC_i[0] + pBIC_i[2]) * 100
         w23 = wAIC_i[1] / (wAIC_i[1] + wAIC_i[2]) * 100
         p23 = pBIC_i[1] / (pBIC_i[1] + pBIC_i[2]) * 100
-
+    if n > 3:
+        w14 = wAIC_i[0] / (wAIC_i[0] + wAIC_i[3]) * 100
+        p14 = pBIC_i[0] / (pBIC_i[0] + pBIC_i[3]) * 100
+        w24 = wAIC_i[1] / (wAIC_i[1] + wAIC_i[3]) * 100
+        p24 = pBIC_i[1] / (pBIC_i[1] + pBIC_i[3]) * 100
+        w34 = wAIC_i[2] / (wAIC_i[2] + wAIC_i[3]) * 100
+        p34 = pBIC_i[2] / (pBIC_i[2] + pBIC_i[3]) * 100
+        
     # Find best model (in %)
     if n == 2:
         # AIC probability
@@ -304,18 +292,37 @@ def model_selection(AIC_j, BIC_j, method='BIC', show=False):
         # AIC probability
         if w12 >= 50 and w13 >= 50:
             best_aic = 1
-        elif w23 >= 50 and w12 <= 50:
+        elif w12 <= 50 and w23 >= 50:
             best_aic = 2
         else:
             best_aic = 3
         # BIC probability
         if p12 >= 50 and p13 >= 50:
             best_bic = 1
-        elif p23 >= 50 and p12 <= 50:
+        elif p12 <= 50 and p23 >= 50:
             best_bic = 2
         else:
             best_bic = 3
-
+    elif n == 4:
+        # AIC probability
+        if w12 >= 50 and w13 >= 50 and w14 >= 50:
+            best_aic = 1
+        elif w12 <= 50 and w23 >= 50 and w24 >= 50:
+            best_aic = 2
+        elif w13 <= 50 and w23 <= 50 and w34 >= 50:
+            best_aic = 3            
+        else:
+            best_aic = 4
+        # BIC probability
+        if p12 >= 50 and p13 >= 50 and p14 >= 50:
+            best_bic = 1
+        elif p12 <= 50 and p23 >= 50 and p24 >= 50:
+            best_bic = 2
+        elif p13 <= 50 and p23 <= 50 and p34 >= 50:
+            best_bic = 3            
+        else:
+            best_bic = 4
+            
     # Show model output
     if show:
         print('\n------------------------------')
@@ -327,23 +334,41 @@ def model_selection(AIC_j, BIC_j, method='BIC', show=False):
         print('\nHeuristical likelihood')
         print(f'w1/w2 : {round(wAIC_i[0]/wAIC_i[1], 4)}')
         print(f'p1/p2 : {round(pBIC_i[0]/pBIC_i[1], 4)}')
-        if n == 3:
+        if n > 2:
             print(f'w2/w3 : {round(wAIC_i[1]/wAIC_i[2], 4)}')
             print(f'p2/p3 : {round(pBIC_i[1]/pBIC_i[2], 4)}')
             print(f'w3/w1 : {round(wAIC_i[2]/wAIC_i[0], 4)}')
             print(f'p3/p1 : {round(pBIC_i[2]/pBIC_i[0], 4)}')
+        if n > 3:
+            print(f'w4/w1 : {round(wAIC_i[3]/wAIC_i[0], 4)}')
+            print(f'p4/p1 : {round(pBIC_i[3]/pBIC_i[0], 4)}')
+            print(f'w4/w2 : {round(wAIC_i[3]/wAIC_i[1], 4)}')
+            print(f'p4/p2 : {round(pBIC_i[3]/pBIC_i[1], 4)}')
+            print(f'w4/w3 : {round(wAIC_i[3]/wAIC_i[2], 4)}')
+            print(f'p4/p3 : {round(pBIC_i[3]/pBIC_i[2], 4)}')
             
         print('\nProbability in favour of model 1 over 2')
         print(f'w1/(w1+w2) : {round(w12, 1)} %')
         print(f'p1/(p1+p2) : {round(p12, 1)} %')
-        if n == 3:
+        if n > 2:
             print('\nProbability in favour of model 1 over 3')
             print(f'w1/(w1+w3) : {round(w13, 1)} %')
             print(f'p1/(p1+p3) : {round(p13, 1)} %')
             print('\nProbability in favour of model 2 over 3')
             print(f'w2/(w2+w3) : {round(w23, 1)} %')
-            print(f'p2/(p2+p3) : {round(p23, 1)} %\n')
-            
+            print(f'p2/(p2+p3) : {round(p23, 1)} %')
+        if n > 3:
+            print('\nProbability in favour of model 1 over 4')
+            print(f'w1/(w1+w4) : {round(w14, 1)} %')
+            print(f'p1/(p1+p4) : {round(p14, 1)} %')
+            print('\nProbability in favour of model 2 over 4')
+            print(f'w2/(w2+w3) : {round(w24, 1)} %')
+            print(f'p2/(p2+p3) : {round(p24, 1)} %')
+            print('\nProbability in favour of model 3 over 4')
+            print(f'w3/(w3+w4) : {round(w34, 1)} %')
+            print(f'p3/(p3+p4) : {round(p34, 1)} %')
+
+        print('\n------------------------------')
         print(f'The best AIC model is: {best_aic}')
         print(f'The best BIC model is: {best_bic}')
         print('------------------------------\n')

@@ -377,7 +377,7 @@ class PLATOnium(object):
                 self.dc = self.dc.rename(columns={self.magPB:'mag'})
                 
             # If requested overwrite magnitude of target star
-            if self.mag:
+            if self.mag is not None:
                 self.df.mag = self.mag
                 
             # Limits for contaminants
