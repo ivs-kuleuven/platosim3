@@ -2320,17 +2320,22 @@ void Detector::applyShort2013CTImodel(string map)
             // Interpolate between the BOL and EOL to get the trap density for species k corresponding to the current `internalTime`
 
             arma::Mat<float> currentTrapDensityMap = (meanTrapDensityBOL[k]
-                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration
-                                                     ) * (*radiation);
-
+                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration) * (*radiation);
+            
             // Compute the accumulated number of traps that the charges will
             // cross during the transfer. We loop over all the rows that will
             // be crossed as a double to increase accuracy.
-            arma::Row<double> totalTrapsAsDouble(6, arma::fill::zeros);
-            for (int row = 0; row < zeroPointRow + rowNumber + 1; row++)
+
+            arma::Row<double> totalTrapsAsDouble(numColumnsPixelMap, arma::fill::zeros);
+
+            for (int row = 0; row < rowNumber + 1; row++)
             {
                 totalTrapsAsDouble = totalTrapsAsDouble + currentTrapDensityMap.row(rowNumber);
             }
+
+            double valueRow = (meanTrapDensityBOL[k] + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration);
+            arma::Row<double> uniformRow(numColumnsPixelMap, arma::fill::ones);
+	    totalTrapsAsDouble += zeroPointRow * uniformRow * valueRow;
 
             // We convert the Row<double> into Row<float>
             arma::Row<float> totalTraps =

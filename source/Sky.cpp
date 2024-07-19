@@ -74,13 +74,17 @@ Sky::Sky(ConfigurationParameters &configParams)
     // The path of the file  should have been set in configure().
     if (includeAberrationCorrection)
     {
-        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
-        double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
+        // time0 does not take the begin exposure number into account. This is why this is not the startTime.
+        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+        double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
 
         ifstream orbitFile(orbitPlatoFile);
         if (orbitFile.is_open())
         {
             string line;
+            double startTime = 0;
+            double speed0 = 0;
+            double v0[3] = {0., 0., 0.};
             while (getline(orbitFile, line))
             {
                 // Skip empty lines
@@ -97,12 +101,34 @@ Sky::Sky(ConfigurationParameters &configParams)
                 if (line[0] == '#') continue;
 
                 istringstream buffer(line);
-                vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-                if (time0 <= numbers[1])
+                vector<double> numbers((istream_iterator<double>(buffer)),
+                                       istream_iterator<double>());
+
+                if (time0 + configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime") <= numbers[1])
                 {
+                    // If this is the first entry we need to add the start time values.
+                    // This ensures the first value in the DB is before the first exposure.
+                    if (orbitDB.size() == 0)
+                    {
+                        valarray<double> v = {v0[0], v0[1], v0[2]};
+                        orbitDB.push_back(make_tuple(startTime, v, speed0));  // (time, [v1, v2, v3], |v|)
+                    }
                     valarray<double> v = {numbers[5], numbers[6], numbers[7]};
-                    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
+                    orbitDB.push_back(
+                        make_tuple(numbers[1], v,
+					       numbers[8])); // (time, [v1, v2, v3], |v|)
+                    // This ensures that the last value in the DB is after the last exposure.
                     if (numbers[1] > endTime){break;}
+                }
+                else
+                {
+                    // Keep track of the start values
+                    startTime = numbers[1];
+                    speed0 = numbers[8];
+
+                    v0[0] = numbers[5];
+                    v0[1] = numbers[6];
+                    v0[2] = numbers[7];
                 }
             }
             if (orbitDB.size() == 0.)
@@ -460,17 +486,40 @@ unsigned long Sky::selectGhostOrigsWithinRadiusFrom(double RA0, double dec0, dou
 void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
 {
     using StringUtilities::dtos;
+    valarray<double> v;
+    double speed;
+    {   // We interpolated the values for the velocity (v) and speed (speed)
+	double speed0 = 0;
+	double speed1 = 0;
+	double t0 = 0;
+	double t1 = 0;    
+	valarray<double> v0;
+	valarray<double> v1;
 
-    valarray<double> v = std::get<1>(orbitDB.at(0));
-    double speed = std::get<2>(orbitDB.at(0));
+	for (unsigned int i=1; i < orbitDB.size(); i++)
+	{
+            double time = std::get<0>(orbitDB.at(i));
 
-    for (unsigned int i=0; i < orbitDB.size(); i++)
-    {
-      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-      {
-        speed = std::get<2>(orbitDB.at(i));
-        v     = std::get<1>(orbitDB.at(i));
-      }
+	    if ( time > time0 + startTime)
+            {
+		auto orbitLine0 = orbitDB.at(i - 1);
+		auto orbitLine1 = orbitDB.at(i);
+	    
+		t0 = std::get<0>(orbitLine0);
+		t1 = std::get<0>(orbitLine1);
+
+		speed0 = std::get<2>(orbitLine0);
+		speed1 = std::get<2>(orbitLine1);
+
+		v0 = std::get<1>(orbitLine0);
+		v1 = std::get<1>(orbitLine1);
+
+		break;
+	    }
+        }
+
+        speed = (time0 + startTime - t0) * (speed1 - speed0) / (t1 - t0) + speed0;
+        v = (time0 + startTime - t0) * (v1 - v0) / (t1 - t0) + v0;
     }
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
@@ -596,17 +645,50 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
 {
     using StringUtilities::dtos;
 
-    valarray<double> v = std::get<1>(orbitDB.at(0));
-    double speed = std::get<2>(orbitDB.at(0));
 
-    for (unsigned int i=0; i < orbitDB.size(); i++)
-    {
-      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-      {
-        speed = std::get<2>(orbitDB.at(i));
-        v     = std::get<1>(orbitDB.at(i));
-      }
+    valarray<double> v;
+    double speed;
+    {   // We interpolated the values for the velocity (v) and speed (speed)
+	double speed0 = 0;
+	double speed1 = 0;
+	double t0 = 0;
+	double t1 = 0;    
+	valarray<double> v0;
+	valarray<double> v1;
+
+	for (unsigned int i=1; i < orbitDB.size(); i++)
+	{
+            double time = std::get<0>(orbitDB.at(i));
+
+	    if ( time > time0 + startTime)
+	    {
+		auto orbitLine0 = orbitDB.at(i - 1);
+		auto orbitLine1 = orbitDB.at(i);
+	    
+		t0 = std::get<0>(orbitLine0);
+		t1 = std::get<0>(orbitLine1);
+
+		speed0 = std::get<2>(orbitLine0);
+		speed1 = std::get<2>(orbitLine1);
+
+		v0 = std::get<1>(orbitLine0);
+		v1 = std::get<1>(orbitLine1);
+
+		break;
+	    }
+	}
+
+	if (std::get<0>(orbitDB.at(orbitDB.size()-1)) < time0+startTime) {
+	    speed = speed1;
+	    v = v1;
+	} else {
+	    speed = (time0 + startTime - t0)*(speed1-speed0)/(t1-t0) + speed0;
+	    v = (time0+startTime - t0)*(v1 - v0)/(t1-t0) + v0;
+        }
     }
+
+
+
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
