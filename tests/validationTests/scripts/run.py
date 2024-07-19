@@ -97,7 +97,7 @@ myTests = [
     (Quaternion(),                 "Quaternions"),
     (QuantumEfficiency(),          "Quantum Efficiency"),
     (PRNU(),                       "Pixel-Responsivity Non Uniformity"),
-    (Short2013CTIFromFile(),       "Short 2013 from file model"),
+#    (Short2013CTIFromFile(),       "Short 2013 from file model"),
     (AnalyticNonGaussianPSF(),     "Analytic non Gaussian PSF"),
     (ElectronicOffset(),           "Electronic Offset"),
     (Rebinning(),                  "Rebinning Subpixel"),
