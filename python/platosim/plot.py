@@ -65,15 +65,19 @@ def getAxesMinMax(x=None, y=None, percentage=2):
     using a default spacing in percentage (pt). The user need only to
     specify which axis a min and max limit should be returned from.
     """
-
+    
     pt = percentage / 100.
     
     if x is not None:
+        x = np.sort(x)
         axmin = x[0]  - (x[-1]-x[0])*pt
         axmax = x[-1] + (x[-1]-x[0])*pt
+        
     if y is not None:
+        y = np.sort(y)
         axmin = np.min(y) - (np.max(y)-np.min(y))*pt
         axmax = np.max(y) + (np.max(y)-np.min(y))*pt
+        
     return axmin, axmax
 
 
@@ -2331,10 +2335,15 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.set_ylabel(ylabel)
         
     # Extra settings for colorbar after image generation
-        
+
+    if column == 'rOA':
+        column_label = r'$\vartheta_{\rm OA}$ [deg]'
+    else:
+        column_label = column
+    
     if norm is None:
         cb = plt.colorbar(im, extend="both", pad=0.01)
-        cb.set_label(column)
+        cb.set_label(column_label)
     else:
 
         # Change label
@@ -2342,7 +2351,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
             column_label = r'$n_{\rm CAM}$'
         elif column == 'ncon':
             column_label = r'$n_{\rm contaminants}$'
-
+            
         # Plot the colorbar
         cb = plt.colorbar(im, extend="max", pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
@@ -3350,7 +3359,7 @@ def plotHistogramSED(df, title=False, figsize=(8,15)):
 
     lw = 1.1
     c = ['royalblue', 'green', 'orange', 'orangered']
-    
+
     # Inspect magnitude counts
     fig, ax = plt.subplots(6, 1, figsize=figsize)
 
@@ -3359,41 +3368,43 @@ def plotHistogramSED(df, title=False, figsize=(8,15)):
     ax[0].hist(df12.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[1], lw=lw)
     ax[0].hist(df18.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[2], lw=lw)
     ax[0].hist(df24.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[3], lw=lw)
-    ax[0].set_xlabel(r'PLATO magnitude, $P$')
+    ax[0].set_xlabel(r'PLATO magnitude, $\mathcal{P}$')
     if title: ax[0].set_title(title, fontsize=20, pad=10)
     
     ax[1].hist(df06.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[0], lw=lw)
     ax[1].hist(df12.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[1], lw=lw)
     ax[1].hist(df18.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[2], lw=lw)
     ax[1].hist(df24.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[3], lw=lw)
-    ax[1].set_xlabel(r'$M$ [$M_{\odot}$]')
+    ax[1].set_xlabel(r'Mass, $M$ [$M_{\odot}$]')
 
     ax[2].hist(df06.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[0], lw=lw)
     ax[2].hist(df12.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[1], lw=lw)
     ax[2].hist(df18.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[2], lw=lw)
     ax[2].hist(df24.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[3], lw=lw)
-    ax[2].set_xlabel(r'$R$ [$R_{\odot}$]')
+    ax[2].set_xlabel(r'Radius, $R$ [$R_{\odot}$]')
 
     ax[3].hist(df06.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[0], lw=lw)
     ax[3].hist(df12.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[1], lw=lw)
     ax[3].hist(df18.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[2], lw=lw)
     ax[3].hist(df24.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[3], lw=lw)
-    ax[3].set_xlabel(r'$T_{\rm eff}$ [K]')
+    ax[3].set_xlabel(r'Effective temperature, $T_{\rm eff}$ [K]')
 
     ax[4].hist(df06.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[0], lw=lw)
     ax[4].hist(df12.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[1], lw=lw)
     ax[4].hist(df18.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[2], lw=lw)
     ax[4].hist(df24.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[3], lw=lw)
-    ax[4].set_xlabel(r'log $g$ [dex]')
+    ax[4].set_xlabel(r'Surface gravity, log $g$ [dex]')
 
     ax[5].hist(df06.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='6',  ec=c[0], lw=lw)
     ax[5].hist(df12.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='12', ec=c[1], lw=lw)
     ax[5].hist(df18.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='18', ec=c[2], lw=lw)
     ax[5].hist(df24.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='24', ec=c[3], lw=lw)
-    ax[5].set_xlabel(r'$Z$ [dex]')
+    ax[5].set_xlabel(r'Metallicity, $Z$ [dex]')
     ax[5].legend(loc='upper left')
-    for i in range(6): ax[i].set_ylabel('Count')
-    
+
+    for i in range(6):
+        ax[i].set_ylabel('Count')
+        ax[i].get_yaxis().set_label_coords(-0.07, 0.5)
     plt.tight_layout(pad=0.5)
 
     return fig, ax

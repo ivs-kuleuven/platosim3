@@ -1160,7 +1160,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     elif passband == 'P':
         # The P passband zero-point
         if camType == 'normal':
-            zp   = 21.4 #20.77
+            zp   = 21 #20.77
         if camType == 'fastblue':
             zp = 20.18
         if camType == 'fastred':
@@ -1247,8 +1247,14 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600, b
     
     noise  = gain * bg * tdur * mpix * throughput #* transmission
     signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.72
+    sigma  = noise / signal
 
-    return noise / signal
+    # Method cf. Matuszewskic+2023
+    k = 2250  # background and readout noise [e-]
+    f = 10**(-0.4 * mag) * f0
+    sigma = np.sqrt(k**2/f**2 * tdur)
+    
+    return sigma
 
 
 
