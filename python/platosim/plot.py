@@ -3624,7 +3624,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
             if len(col) > 1:
                 ims.append([imagePlot, title, coor_tar, coor_con])
             else:
-                ims.append([imagePlot, title, coor_tar, mask])
+                ims.append([imagePlot, title, coor_tar])
         else:
             ims.append([imagePlot, title])
 
