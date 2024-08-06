@@ -94,7 +94,20 @@ class SimFile (object):
 
 
 
-            
+    def getVersion(self):
+
+        """Check that photometry has been saved.
+        """
+
+        application = self.hdf5file['Version'].attrs['Application']
+        gitVersion  = self.hdf5file['Version'].attrs['GitVersion']
+
+        return application, gitVersion
+
+
+
+
+    
     #--------------------------------------------------------------#
     #                       INPUT PARAMETERS                       #
     #--------------------------------------------------------------#
