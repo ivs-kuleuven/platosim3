@@ -433,7 +433,7 @@ class LightCurve(object):
         if path is None: path = self.path
 
         # Sort after group, camera, or quarter        
-        if group: G = f"{group}."
+        if group: G = f"Ncam{group}."
         else: G = ""
         if camera: C = f"{camera}_"
         else: C = ""
@@ -443,8 +443,9 @@ class LightCurve(object):
         else: N = ""
         
         # Fetch all zip files and sort them using natsort
-        files = natsort.natsorted(glob.glob(f"{path}/{prefix}**_{G}**{C}**{Q}**{N}.{suffix}"))
-
+        string = f"{path}/{prefix}**_{G}**{C}**{Q}**{N}.{suffix}"
+        files = natsort.natsorted(glob.glob(string))
+        
         # Check if any file was found
         if error and len(files) == 0:
             errorcode('error', f'No files found with suffix {suffix}!')
@@ -2421,11 +2422,10 @@ class LightCurve(object):
                 flux_med = median_filter(flux, flux_median)
                 ax.plot(time, flux_med, '-', c='gray', lw=0.5, zorder=2)
 
-            
         # Plot quarter marks
         ymax = np.max(flux_max)
         ypos = ymax + ymax * ax.margins()[1]/3
-        for q in np.unique(Q):
+        for q in np.unique(Q)[:-1]:
             time_Q = q*ut.quarter()
             xpos = time_Q - 50
             if q > 9: xpos -= 10
@@ -2603,7 +2603,10 @@ class LightCurve(object):
             else: sigma = 4
             lc  = LightCurve(df0, mode="multi", path=self.path)
             df0 = lc.clip(model='wotan', replace=True, sigma_lower=sigma, sigma_upper=sigma)
-            
+
+        # Remove NaNs from sigma clipping
+        df0 = df0.dropna()
+                    
         # Copy light curve object
         if binsize:
             # Save number of data points in each time bin
@@ -2618,7 +2621,7 @@ class LightCurve(object):
         else:
             binsize = 6.5/3600
             
-        # Remove NaNs
+        # Remove potential NaNs from binning
         df0 = df0.dropna()
 
         # Flux offset correction
@@ -2626,10 +2629,6 @@ class LightCurve(object):
             if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')
             flux_offset = df0.flux.median() - 1
             df0.flux   -= flux_offset        
-
-        # Convert units
-        #df0.time /= 86400.
-        #df0.flux  = (df0.flux-1) * 1e3
             
         # Add flux errors
         if flux_err:
@@ -3016,7 +3015,7 @@ class LightCurve(object):
         for f in tqdm(folders, bar_format=ut.tqdmBar()):
 
             # Fetch all files
-            files    = self.files(path=f, suffix=suffix, quarter=quarter)
+            files    = self.files(path=f, suffix=suffix, quarter=quarter, error=False)
             numFiles = len(files)
             
             # Fetch light curve object
@@ -3156,7 +3155,7 @@ class LightCurve(object):
         for f in tqdm(folders, bar_format=ut.tqdmBar()):
 
             # Fetch all files
-            files    = self.files(path=f, suffix=suffix, quarter=quarter)
+            files    = self.files(path=f, suffix=suffix, quarter=quarter, error=False)
             numFiles = len(files)
 
             # Check that any light curve exist for a given quarter
@@ -3200,7 +3199,7 @@ class LightCurve(object):
                 ncam = numFiles
                 
                 # Merge all observations for the same quarter [ppm]
-                lc = lcs.merge(quarter=quarter, flux_group_mean=True,
+                lc = lcs.merge(quarter=quarter, flux_group_mean=True, flux_offset=True,
                                suffix=suffix, files=files, verbose=False)
                 
                 # Estimate NSR

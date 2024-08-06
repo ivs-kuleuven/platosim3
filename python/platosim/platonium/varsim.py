@@ -49,8 +49,8 @@ Usage example:
 Parsing the argument "--planet" or "--planet_params" will generate a
 template of a transiting planet. In combined set of models are:
   - Transits                (BATMAN: Kriedberg+2015)
-  - Occultations            (SPIDERMAN: )
-  - Limb Darkening          (LDTk: )
+  - Occultations            (SPIDERMAN: Louden & Kriedberg 2018)
+  - Limb Darkening          (LDTk: Parviainen & Aigrain 2015)
   - Doppler boosting        (VarSim: PyAstronomy)
   - Ellipsoidal variations  (VarSim: PyAstronomy)
 
@@ -91,9 +91,10 @@ Usage example:
 Besides producing variable templates for solar-like stars, it is
 also possible to create a template for pulsating stars that are
 more massive and more evolved than the Sun:
+  - beta Cephei    (bCep)  [ToyModel, HeyAerts2024, mocka]
   - Slowly puls B  (SPB)   [ToyModel, Pedersen2021, mocka]
-  - delta-Scuti    (dSct)  [ToyModel, Bowman2018,   mocka]
-  - gamma-Doradus  (gDor)  [ToyModel, Gang2020,     mocka]
+  - delta Scuti    (dSct)  [ToyModel, Bowman2018,   mocka]
+  - gamma Doradus  (gDor)  [ToyModel, Gang2020,     mocka]
   - roAp star      (roAp)  [ToyModel]
   - RR Lyrae       (RRLyr) [Bodi2023]
   - Cepheid        (Ceph)  [Bodi2023]
@@ -104,14 +105,13 @@ Names within the square brackets are the mode model ("--puls <Model>"):
   - "Reference" : Draw a random star from a the stellar benchmark sample
   - mocka       : Analytic model built from the benchmark sample 
 
-Usages examples:
+Usage examples:
   $ varsim --star gDor --puls Gang2020 --quarter 1-8 -o </path/to/file> -p
 """
 
 # TODO models to implement
-  # - beta Cephei    (bCep)  [ToyModel, Aerts2024,  mocka]
-  # - LPV            (LPV)
-  # - DAV/DBV        (WD)
+# - LPV            (LPV)
+# - DAV/DBV        (WD)
 
 
 # Built-in
@@ -416,6 +416,13 @@ class VarSim(object):
 
         #----------------------------------
 
+        if source == 'bCep':
+            M = 8.0 * u.M_sun
+            R = 10.0 * u.R_sun
+            Teff = 26000 * u.K
+            logg = 3.8
+            Z    = -0.5
+        
         if source == 'SPB':
             M = 2.5 * u.M_sun
             R = 5.0 * u.R_sun
@@ -1141,7 +1148,7 @@ class VarSim(object):
     #--------------------------------------------------------------#
     
 
-    def star_bcep(self): # TODO
+    def star_bcep(self):
 
         """Generate light curves for beta Cephei stars.
         """
@@ -1149,22 +1156,38 @@ class VarSim(object):
         # Start script
         if self.verbose > 1:
             errorcode('module', '\nbeta Cephei pulsator\n')
-            
+
         # Initialize and prepare model input
         time  = self.time.to('d').value
-        model = GravityOscillator(time, power=1.0, seed=self.seed)
-        
-        # Check if a file with pulsations are parsed
-        model.initToyModel([1/12, 1/3], [10, 30])
+        model = Pulsator(time, power=1.0, scale=self.scale_tess, seed=self.seed)
+
+        if args.puls == 'Hey&Aerts2024':
+            if self.verbose > 1:
+                print('Selecting a mock object from TESS/Gaia sample (Hey&Aerts2024)')
+            params = model.initFromFile(self.idir, args.puls, starID=self.starID)
+            self.df['starname'] = params[0]
+
+        elif args.puls == 'mocka':
+            if self.verbose > 1:
+                print('Generating mock object using TESS/Gaia sample (Hey&Aerts2024)')
+            self.dm = model.initMockaHeyAerts2024(self.idir)            
+            if self.verbose > 1:
+                print(f'Number of pulsation modes : {self.dm.shape[0]}')
+                print(f'Maximum mode amplitude    : {self.dm.ampl.max()*1e3:.1f} mmag')
+
+        else:
+            if self.verbose > 1:
+                print('Generating mock object from toy model')
+            model.initToyModel([3, 15], [0.01, 0.03])
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag) * self.corr_tess
+        self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
 
 
-
+        
     def star_spb(self):
 
         """Generate light curve for a SPB star.
@@ -2276,8 +2299,11 @@ class VarSim(object):
         self.stellar_spectrum()
         
         # Include stellar variability
-           
-        if args.star == 'SPB':
+
+        if args.star == 'bCep':
+            v.star_bcep()
+        
+        elif args.star == 'SPB':
             v.star_spb()
 
         elif args.star == 'dSct':
