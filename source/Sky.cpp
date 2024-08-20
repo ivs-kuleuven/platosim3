@@ -522,6 +522,8 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
         v = (time0 + startTime - t0) * (v1 - v0) / (t1 - t0) + v0;
     }
 
+    v = v / sqrt((v * v).sum());
+
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
     valarray<double> rot0 = {1., 0., 0.};
@@ -687,8 +689,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
         }
     }
 
-
-
+    v = v / sqrt((v * v).sum());
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
