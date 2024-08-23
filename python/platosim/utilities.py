@@ -27,7 +27,10 @@ from pylab import MaxNLocator
 from prettytable import PrettyTable
 import scipy
 from scipy.ndimage import median_filter
-from scipy.integrate import cumtrapz
+if (scipy.__version__ > "1.6"):
+    from scipy.integrate import cumulative_trapezoid as cum_trapz
+else:
+    from scipy.integrate import cumtrapz as cum_trapz
 from scipy.stats import gaussian_kde
 
 # PlatoSim functions
@@ -1398,7 +1401,7 @@ def rebin3(x, xp, fp):
 
         # Binning
         x_cum = xp[1:]
-        c =  cumtrapz(fp,xp)
+        c =  cum_trapz(fp,xp)
         x_diff =  np.diff(x)
         b = x[:-1] + x_diff/2.
 
