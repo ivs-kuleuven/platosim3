@@ -522,7 +522,11 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
         v = (time0 + startTime - t0) * (v1 - v0) / (t1 - t0) + v0;
     }
 
-    v = v / sqrt((v * v).sum());
+    // We need to renormalize the direction vector since the interpolation does not preserve normalization.
+    double norm = sqrt((v * v).sum());
+    if (norm != 0) {
+	v /= norm;
+    }
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
@@ -689,7 +693,11 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
         }
     }
 
-    v = v / sqrt((v * v).sum());
+    // We need to renormalize the direction vector since the interpolation does not preserve normalization.
+    double norm = sqrt((v * v).sum());
+    if (norm != 0) {
+	v /= norm;
+    }
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
