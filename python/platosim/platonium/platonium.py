@@ -754,8 +754,7 @@ class PLATOnium(object):
         decTargetRad   = np.deg2rad(self.df['dec'])
         
         self.isOnCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
-                                                           numColSubfield, numRowSubfield,
-                                                           normal=normal)
+                                                           numColSubfield, numRowSubfield)
         if not self.isOnCCD:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
