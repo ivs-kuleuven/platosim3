@@ -171,7 +171,7 @@ Notes on PIC catalogue creation:
       - Magnitude completeness of contaminants    : Pmag < 17 mag
       - Maximum radial contaminat-target distance : Rmax < 45 arcsec
       - Calibration methods: The Gaia DR3 colour information (BP-RP)
-        and extinction maps are sued to derive the PLATO magnitudes.
+        and extinction maps are used to derive the PLATO magnitudes.
     PIC110:
       - Magnitude completeness of contaminants    : Vmag < 17 mag
       - Maximum radial contaminat-target distance : Rmax < 60 arcsec
