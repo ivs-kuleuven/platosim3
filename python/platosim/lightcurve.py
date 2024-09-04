@@ -1377,7 +1377,7 @@ class LightCurve(object):
 
     
     
-    def plot_detrend(self, df, column='flux', figsize=(9,10)):
+    def plot_detrend(self, df, column='flux', figsize=(9,7)):
 
         """Plot a detrended light curve and make a O-C plot.
         """
