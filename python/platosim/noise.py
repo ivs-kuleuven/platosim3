@@ -1019,13 +1019,15 @@ def getAPE(alpha, delta, kappa, sigma=3,
 
 
 
-def getTED(quarter, model="poly", wheel_offloading=True, ampl=2,
+def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
            ofile=False, seed=None, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
     This function generates a complete TED model returned in euler angles.
-    
+
+    TODO Wheel offloading events needs more investigations before usage.
+
     Paramters
     ---------
     quarter : range
@@ -1124,9 +1126,9 @@ def getTED(quarter, model="poly", wheel_offloading=True, ampl=2,
                 ampl += ampl * rng.uniform(-0.1, 0.1)
                 # Directional (yaw, picth)
                 if col in ['yaw', 'pitch']:
-                    a = df_dir[f'ncam{dex}'] * ampl / 100
+                    a = df_dir[f'ncam{dex}'] * ampl / 1000
                 else:
-                    a = df_rot[f'ncam{dex}'] * ampl / 100
+                    a = df_rot[f'ncam{dex}'] * ampl / 1000
                 spline = make_interp_spline(t, a, k=2)
                 wheel  = spline(time0)            
                 df1[col] += wheel

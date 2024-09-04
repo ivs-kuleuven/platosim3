@@ -334,6 +334,7 @@ class Payload(object):
         if self.verbose > 1:
             errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
         ns.getTED(self.Q, ofile=self.fileNameTED, ampl=self.ted_ampl,
+                  wheel_offloading=False,
                   seed=self.seed, table=self.table, plot=self.plot)
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNameTED}")
@@ -381,6 +382,7 @@ obs_group.add_argument('--group',    metavar='INT', type=str, help='Group   numb
 obs_group.add_argument('--camera',   metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
 obs_group.add_argument('--quarter',  metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
 obs_group.add_argument('--ted_ampl', metavar='FLOAT', type=float, help='Approx max amplitude of TED model (Default: 5 arcsec)')
+#obs_group.add_argument('--wheel_', metavar='FLOAT', type=float, help='Approx max amplitude of TED model (Default: 5 arcsec)')
 obs_group.add_argument('--seed',     metavar='INT',   type=int,   help='Seed to reproduce results (Default: None)')
 obs_group.add_argument('--aocs',     action='store_true', help='Flag to generate a red noise AOCS jitter file')
 
