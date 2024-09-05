@@ -1269,7 +1269,7 @@ class SurfaceModulations(object):
     
         # Apply passband correction
         if self.scale:
-            amplitude_range *= self.scale
+            amplitude_range = np.array(amplitude_range) * self.scale
 
         # Scale amplitude within the range
         scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
@@ -1371,7 +1371,7 @@ class Pulsator(object):
 
     def initFromFile(self, odir, sample, starID=None, variable=None):
 
-        """Draw frequencies from Kepler legacies.
+        """Draw pulsation modes from Kepler/TESS legacies.
         """
 
         # Select sample
@@ -1459,7 +1459,7 @@ class Pulsator(object):
 
     def initMockaGang2020(self, odir):
 
-        """Draw frequencies from Kepler GDor legacy.
+        """Draw pulsation modes from Kepler GDOR legacy.
         """
 
         # Download analysis file
@@ -1546,7 +1546,7 @@ class Pulsator(object):
     
     def initMockaPedersen2021(self, odir):
 
-        """Draw frequencies from Kepler SPB star legacy.
+        """Draw pulsation modes from Kepler SPB star legacy.
         """
 
         # Download analysis file
@@ -1634,7 +1634,7 @@ class Pulsator(object):
 
     def initMockaBowman2018(self, odir):
 
-        """Draw frequencies from Kepler DSct legacy.
+        """Draw pulsations modes from Kepler DSCT legacy.
         """
 
         # Download file containing all modes of stars
@@ -1700,7 +1700,7 @@ class Pulsator(object):
 
     def initMockaHeyAerts2024(self, odir):
 
-        """Draw frequencies from Kepler DSct legacy.
+        """Draw pulsation modes from TESS/Gaia BCEP legacy.
         """
 
         # Download file containing all modes of stars
@@ -1767,7 +1767,7 @@ class Pulsator(object):
 
     def initMockaBodi2023(self, odir, variable):
 
-        """Draw frequencies from TESS RR Lyr star legacy.
+        """Draw pulsation modes from TESS RRLYR star legacy.
         """
 
         suffix   = 'fou'
@@ -1817,15 +1817,16 @@ class Pulsator(object):
 
 
     
-    def initMockaMiscellaneous(self, odir, startype=None):
+    def initMockaLPV(self, odir, startype=None):
 
-        """Draw frequencies from Kepler DSct legacy.
+        """Draw pulsation modes from OGLE survey legacy.
         """
 
-        if startype in [None, 'mocka', 'Misc']:
+        # Random draw of variable type
+        if startype in [None, 'mocka', 'LPV']:
             types = ['Mira', 'SVR', 'OSARG']
-            startype = random.choices(types, k=1)[0]
-            
+            startype = self.rng.choice(types)
+
         # Select star type
         if startype == 'Mira':
             filename = 'varsim_OGLE_Mira.txt'
@@ -1846,10 +1847,10 @@ class Pulsator(object):
                                 'phase':self.rng.uniform(0, 2*np.pi, len(dn[i][::2]))})
 
         # Create new data frame
-        self.starname = f'MOCKA: LPV - {startype} (OGLE survey)'
+        self.starname = f'MOCKA: LPV of type {startype} (OGLE survey)'
 
         # Return parameters
-        return self.df
+        return startype, i, self.df
 
 
     
