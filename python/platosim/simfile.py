@@ -21,7 +21,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
-import ipywidgets as widgets
+#import ipywidgets as widgets
 from astropy.io import fits
 
 # PlatoSim functions
@@ -94,7 +94,20 @@ class SimFile (object):
 
 
 
-            
+    def getVersion(self):
+
+        """Check that photometry has been saved.
+        """
+
+        application = self.hdf5file['Version'].attrs['Application']
+        gitVersion  = self.hdf5file['Version'].attrs['GitVersion']
+
+        return application, gitVersion
+
+
+
+
+    
     #--------------------------------------------------------------#
     #                       INPUT PARAMETERS                       #
     #--------------------------------------------------------------#
@@ -1089,7 +1102,7 @@ class SimFile (object):
         # Extract information depending of HDF5 structure
         
         groupByExposure = self.getInputParameter("ControlHDF5Content", "GroupByExposure") 
-        
+
         if groupByExposure:
 
             # Construct the exposure name that was used to store the image
@@ -1137,6 +1150,12 @@ class SimFile (object):
                 flux   = flux[sorted]
 
                 # Add radius column for extended ghosts
+                
+                if groupName == "StarPositions":
+                    # print(starID, row, col, Xmm, Ymm, flux)
+                    isNotValid = np.all([row != row, col != col, Xmm != Xmm, Ymm != Ymm])
+                    if isNotValid:
+                        return None, None, None, None, None, None
 
                 if groupName == "ExtendedGhostPositions":
                     

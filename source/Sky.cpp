@@ -74,8 +74,8 @@ Sky::Sky(ConfigurationParameters &configParams)
     // The path of the file  should have been set in configure().
     if (includeAberrationCorrection)
     {
-        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
-        double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
+	time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
+	double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
 
         ifstream orbitFile(orbitPlatoFile);
         if (orbitFile.is_open())
@@ -98,10 +98,10 @@ Sky::Sky(ConfigurationParameters &configParams)
 
                 istringstream buffer(line);
                 vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-                if (time0 <= numbers[1])
+		if (time0 <= numbers[1])
                 {
                     valarray<double> v = {numbers[5], numbers[6], numbers[7]};
-                    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
+		    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
                     if (numbers[1] > endTime){break;}
                 }
             }
@@ -466,11 +466,11 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 
     for (unsigned int i=0; i < orbitDB.size(); i++)
     {
-      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-      {
-        speed = std::get<2>(orbitDB.at(i));
-        v     = std::get<1>(orbitDB.at(i));
-      }
+	if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+	{
+            speed = std::get<2>(orbitDB.at(i));
+            v     = std::get<1>(orbitDB.at(i));
+	}
     }
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
@@ -598,7 +598,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
 
     valarray<double> v = std::get<1>(orbitDB.at(0));
     double speed = std::get<2>(orbitDB.at(0));
-
+ 
     for (unsigned int i=0; i < orbitDB.size(); i++)
     {
       if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
@@ -607,6 +607,7 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
         v     = std::get<1>(orbitDB.at(i));
       }
     }
+
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
@@ -788,7 +789,16 @@ tuple<double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
 {
     if (starDB.count(starID) == 0)
     {
-        throw IllegalArgumentException("Sky::GetInfoOfSelectedStarWithID(): starID " + to_string(starID) + " unknown");
+        if (starID == 0)
+        {
+            return {0, 0, 0};
+        }
+        else
+        {
+            throw IllegalArgumentException(
+                "Sky::GetInfoOfSelectedStarWithID(): starID " +
+                to_string(starID) + " unknown");
+        }
     }
     else
     {

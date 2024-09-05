@@ -734,7 +734,9 @@ class StellarFlares(object):
         # Number of flares scales with lenght of time series and activity rate
         n_range = np.linspace(0, 12, N)
         n_func  = 10**(a_rate * n_range + b_rate)
-        n_rate  = pd.Series(n_range).sample(1, weights=n_func).to_numpy()[0]
+        n_rate  = pd.Series(n_range).sample(1,
+                                            weights=n_func,
+                                            random_state=self.rng).to_numpy()[0]
         n_rate_a = n_rate * activity_rate
         n_flares = int(n_rate_a * self.time[-1] / ut.quarter())
         # Secure at least one flare
@@ -747,12 +749,17 @@ class StellarFlares(object):
         time = np.linspace(self.time[0], self.time[-1], len(area))
         spline = make_interp_spline(time, area, k=3)
         self.area = np.abs(spline(self.time))
-        self.tmax = pd.Series(self.time).sample(n_flares, weights=self.area).to_numpy()
+        self.tmax = pd.Series(self.time).sample(n_flares,
+                                                weights=self.area,
+                                                random_state=self.rng).to_numpy()
 
         # Amplitude distibution of flares (< 10 ppt) [norm]
         A_range = np.linspace(0, 10, N)
         A_func  = 10**(a_A * A_range + b_A)
-        self.ampl = pd.Series(A_range).sample(n_flares, weights=A_func).to_numpy() / 1e3
+        self.ampl = pd.Series(A_range).sample(n_flares,
+                                              weights=A_func,
+                                              random_state=self.rng).to_numpy() / 1e3
+        
         # Secure lower amplitudes for less active stars
         if activity_rate < 1:
             self.ampl *= activity_rate
@@ -1040,7 +1047,7 @@ class SolarLikeOscillator(object):
         deltanu_frac = self.deltanu / deltanu_sun
         
         # SELECT SCALING RELATION
-        
+
         if scaling == 'KB1995Brown1991':
             # According to Corsaro et al. (2013) Eq. 6 [ppm]
             A_puls_bol = numax_frac**-1 * self.T**1.5 * A_puls_bol_sun
@@ -1687,7 +1694,74 @@ class Pulsator(object):
 
         # Return parameters
         return self.df
+
+
+
+
+    def initMockaHeyAerts2024(self, odir):
+
+        """Draw frequencies from Kepler DSct legacy.
+        """
+
+        # Download file containing all modes of stars
+        filename = 'varsim_mocka_bcep_heyaerts2024.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        df = pd.read_feather(filepath)
+
+        # Download file containing number statistics
+        filename = 'varsim_mocka_bcep_heyaerts2024_modes.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        dm = pd.read_feather(filepath)
+
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_max = dm.N.max()
+        N_ran = np.arange(N_min, N_max, 1)
+        N_kde = scipy.stats.gaussian_kde(dm.N)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+
+        # Randomly select grid step to
+        n = self.rng.integers(10000, 100000, 1)[0]
         
+        # Select frequcies from KDE [day]
+        f_min = df.freq.min()
+        f_max = df.freq.max()
+        f_ran = np.linspace(f_min, f_max, n)
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        f_i = np.array(random.choices(f_ran, weights=f_kde(f_ran), k=N))
+
+        # Draw amplitude below maximum [mag]
+        A_ran = np.linspace(0, df.ampl.max(), n)
+        param = [1.387736448703769, 4.673526797156983e-05, 0.0008632607679823016]
+        A_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2]) + 1e-5
+        A_i = np.array(random.choices(A_ran, weights=A_fit, k=N))
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+
+        # Swap max peak location if not in [5, 25] c/d
+        # This is based on observations from:
+        # (Rodríguez & López-González 2000; Rodríguez et al. 2000)
+        n_max = np.argmax(A_i)
+        if f_i[n_max] < 5 or f_i[n_max] > 25:
+            f_i[n_max] = self.rng.integers(5, 25, 1)[0]
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = f_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.df = self.df.sort_values('freq').reset_index(drop=True)
+        self.starname = 'MOCKA: beta Cephei (Hey \& Aerts 2024)'
+
+        # Return parameters
+        return self.df
+
+    
         
 
 
@@ -1742,6 +1816,7 @@ class Pulsator(object):
         return starfile.stem, f_corr, A_corr, self.df
 
 
+    
     def initMockaMiscellaneous(self, odir, startype=None):
 
         """Draw frequencies from Kepler DSct legacy.

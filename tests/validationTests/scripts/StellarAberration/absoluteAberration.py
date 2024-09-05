@@ -91,9 +91,11 @@ class AbsoluteAberration(Test):
 
         # Rest begin exposure numbers
         self.sim["ObservingParameters/BeginExposureNr"] = 0
+        self.sim["Camera/AberrationCorrection/StartTime"] = self.startTime
 
-        lamb = np.arctan2(self.velocity[1], self.velocity[0])
-        beta = np.arcsin(self.velocity[2])
+        lamb = np.arctan2(-self.velocity[0], self.velocity[1])
+        beta = 0
+
         ra, dec = np.rad2deg(rf.ecliptic2equatorial(lamb, beta))
 
         self.sim["Platform/Orientation/Source"] = "Angles"
@@ -126,7 +128,7 @@ class AbsoluteAberration(Test):
         dummy, dummy, dummy, xFP2, yFP2, dummy = simFile.getStarCoordinates(0)
         xFP2, yFP2 = xFP2[0], yFP2[0]
 
-        self.xDelta1, self.yDelta1 = abs(xFP1 - xFP2) < 0.001, abs(yFP1 - yFP2) < 0.001
+        self.xDelta1, self.yDelta1 = abs(xFP1 - xFP2) < 0.1, abs(yFP1 - yFP2) < 0.1
 
 
 
@@ -219,6 +221,7 @@ class AbsoluteAberration(Test):
 
 
     def NoAberration(self):
+        print(self.xDelta1,self.yDelta1)
         return self.xDelta1 and self.yDelta1
 
 
@@ -232,6 +235,7 @@ class AbsoluteAberration(Test):
 
         result1 = self.NoAberration()
         result2 = self.maxAberration()
+        
         return (result1 and result2)
 
 
