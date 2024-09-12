@@ -208,7 +208,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     Paramters
     ---------
     time : ndarray, pdframe
-        Time points of which light curve will be generated [s]
+        Time points of which light curve will be generated [d]
     freq : ndarray, pdframe
         Frequencies of sinusoids [c/d]
     ampl : ndarray, pdframe

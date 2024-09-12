@@ -642,7 +642,7 @@ class StellarSpots(object):
         axes[0].set_ylim(-90,90)
         axes[0].set_ylabel(r'Latitude [$^{\circ}$]')
         axes[1].plot(self.time, self.area.sum(0)*1e3, 'k-')
-        axes[1].set_ylabel(r'Coverage [ppt]')        
+        axes[1].set_ylabel(r'Coverage [\%]')        
         axes[2].plot(self.time, self.dF.sum(0)*1e3, 'k-')
         axes[2].set_ylabel('Spot flux [ppt]')
         axes[2].set_xlim(0, self.dur)
