@@ -22,10 +22,45 @@ import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
 
+
 #--------------------------------------------------------------#
 #                         GRAPHICAL TOOLS                      #
 #--------------------------------------------------------------#
 
+
+def create_timeseries(ids, idir, odir, power=2.2):
+    
+    """Function create time series from the pulsation modes.
+    """
+
+    # Time array of 2 years
+    duration = ut.quarter() * 8
+    time_sec = np.arange(0, duration * 86400, 25)
+    time_day = np.arange(0, duration, 25 / 86400)
+
+    for i in tqdm(ids, bar_format=ut.tqdmBar()):
+
+        # Fetch simulation table
+        starID = f'{i}'.zfill(9)
+
+        # Create varsource from pulsations
+        dx = pd.read_feather(f'{idir}/pulsations_{starID}_001.ftr')
+        dv = pd.DataFrame()
+        dv['time'] = time_sec
+        dv['dmag'] = ns.timeSeriesFromFourier(time_day, dx.freq, dx.ampl, dx.phase, power=power)
+
+        # Save light curve
+        output_dir = Path(f'{odir}/{starID}')
+        output_dir.mkdir(parents=True, exist_ok=True)
+        ofile = f'{output_dir}/varsource_001.txt'
+        data = np.transpose([dv.time, dv.dmag])
+        np.savetxt(ofile, data, fmt=['%.1f', '%.8f'])
+        os.system(f'chmod 755 {ofile}')
+
+
+
+
+        
 def fetch_amplitude_correction(path):
     
     """Function to fetch the amplitudes before and after the passband correction
@@ -191,6 +226,7 @@ def fetch_all_modes(path, star='GDOR', batch='finals_affogato', old=False):
                                                 f'{path_modes}/modes_{i}.ftr',
                                                 f'{path_table}/table_{i}.ftr')
         except:
+            print(i)
             pass
         else:
             dx = pd.concat([dx, dx0])

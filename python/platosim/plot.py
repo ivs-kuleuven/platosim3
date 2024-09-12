@@ -3050,7 +3050,6 @@ def plot_final_lc(lc, figsize=(9,8)):
     """
 
     # Fetch component or set to zero
-    
     zeros = np.zeros(len(lc['time']))
     if 'gran'  not in lc: lc.gran  = zeros.tolist()
     if 'puls'  not in lc: lc.puls  = zeros.tolist()
@@ -3059,10 +3058,14 @@ def plot_final_lc(lc, figsize=(9,8)):
     if 'tran'  not in lc: lc.tran  = zeros.tolist()
 
     # Handle time units
-    
-    time    = lc.time / 86400.
-    p_modes = lc.gran + lc.puls
-    
+    time = lc.time / 86400.
+
+    # Make sure p mode plot is valid
+    if ('gran' not in lc) and ('puls' not in lc):
+        p_modes = zeros.tolist()
+    else:
+        p_modes = lc.gran + lc.puls
+
     # Start plotting
     
     fig, ax = plt.subplots(5, 1, figsize=figsize, sharex=True)
