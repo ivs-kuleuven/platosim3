@@ -435,6 +435,7 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
              'quasar.redshift_qsoc_lower',
              'quasar.vari_best_class_name',
              'quasar.qso_variability',
+             'quasar.non_qso_variability',
              'quasar.vari_agn_membership_score',
              'quasar.host_galaxy_detected']
         for i in c: colname.append(i)
@@ -598,7 +599,8 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
                                 'redshift_qsoc_upper': 'z_upper',
                                 'vari_best_class_name': 'class_name',
                                 'qso_variability': 'qso_var',
-                                'vari_agn_membership_score': 'membership',
+                                'non_qso_variability': 'qso_non',
+                                'vari_agn_membership_score': 'agn_score',
                                 'host_galaxy_detected': 'host_galaxy'})
 
     # Remove "Gaia DR" string in designation
