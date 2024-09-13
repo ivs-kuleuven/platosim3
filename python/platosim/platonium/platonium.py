@@ -1360,22 +1360,22 @@ class PLATOnium(object):
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
-        # Compute the residuals
-        df['flux_res'] = df.flux #(df.flux - 1)*1e6
+        # # Compute the residuals
+        # df['flux_res'] = df.flux #(df.flux - 1)*1e6
 
-        # Regression model of residuals
-        import statsmodels.api as sm
-        lc = df.rename(columns={'time':'x', 'flux_res':'y'})
-        lc['x'] = lc['x'].subtract(lc['x'].min())
-        model = 'y ~ x'
-        lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
-        lsFit.summary(alpha=0.05)
+        # # Regression model of residuals
+        # import statsmodels.api as sm
+        # lc = df.rename(columns={'time':'x', 'flux_res':'y'})
+        # lc['x'] = lc['x'].subtract(lc['x'].min())
+        # model = 'y ~ x'
+        # lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
+        # lsFit.summary(alpha=0.05)
 
-        # Plot regression model and residuals
-        st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
-                         xlab='Time [days]', ylab='Residuals [ppt]')
-        st.plot_residuals(lc, lsFit, theme='g')
-        st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
+        # # Plot regression model and residuals
+        # st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
+        #                  xlab='Time [days]', ylab='Residuals [ppt]')
+        # st.plot_residuals(lc, lsFit, theme='g')
+        # st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
         
         
     #--------------------------------------------------------------#
