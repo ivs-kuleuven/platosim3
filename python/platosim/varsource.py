@@ -1329,16 +1329,18 @@ class Pulsator(object):
 
         # Check if a file or a folder is requested
 
-        if not filepath.is_file() and filepath.suffix == '.ftr':
-            print(f'Downloading {filename}')
-            ut.downloadFromFTP(filename=filename, outputDir=odir, server='plato')
+        if not filepath.is_file():
+
+            if filepath.suffix in ['.ftr', '.txt']:
+                print(f'Downloading {filename}')
+                ut.downloadFromFTP(filename=filename, outputDir=odir, server='plato')
         
-        elif not filepath.is_dir() and filepath.suffix != '.ftr':
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
-            os.system(f'rm {odir}/{zipfile}')
+            elif not filepath.is_dir() and filepath.suffix != '.ftr':
+                zipfile = f'{filename}.zip'
+                print(f'Downloading {zipfile} files..')
+                ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+                os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
+                os.system(f'rm {odir}/{zipfile}')
 
             
         
@@ -1785,7 +1787,6 @@ class Pulsator(object):
             filename = 'varsource_ceph_bodi2023'
         else:
             errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
-
         
         # Download files if not done
         self.download(odir, filename)
@@ -1816,6 +1817,8 @@ class Pulsator(object):
         return starfile.stem, f_corr, A_corr, self.df
 
 
+
+
     
     def initMockaLPV(self, odir, startype=None):
 
@@ -1836,8 +1839,10 @@ class Pulsator(object):
             filename = 'varsim_OGLE_OSARG.txt'
             
         # Download file containing all modes of stars
+        self.download(odir, filename)
+
+        # Load file with pulsators
         filepath = Path(f'{odir}/{filename}')
-        #self.download(odir, filename)
         dn = np.loadtxt(filepath, comments='#', usecols=[10, 11, 12, 13, 14, 15])
 
         # Randomly select star 
@@ -1879,14 +1884,14 @@ class EclipsingBinary(object):
     """Models Eclipsing Binaries (EBs).
     """
 
-    def __init__(self, time, seed=None):
+    def __init__(self, time, seed=None, verbose=2):
 
         """Open the HDF5 output file
         """
 
         self.time = time
         self.rng  = ut.rng(seed)
-
+        self.verbose = verbose
 
 
     def read_parameters_hdf5(self, file_name, verbose=False):
