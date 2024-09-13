@@ -1524,12 +1524,12 @@ class VarSim(object):
             
         # Fetch time array
         time  = self.time.to('d').value
-        model = EclipsingBinary(time, seed=self.seed)
+        model = EclipsingBinary(time, seed=self.seed, verbose=self.verbose)
 
         # Fetch model parameters
         if self.verbose > 1:
             print('Selecting mock object from Kepler sample (IJspeert+2021)')
-        params = model.initIJspeert2023(self.idir, starID=10)
+        params = model.initIJspeert2023(self.idir, starID=None)
         self.df['starname'] = params[0]
         self.df['P_day']    = params[1]
         if self.verbose > 1 and params[1] is not None:
