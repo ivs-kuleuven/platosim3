@@ -2386,6 +2386,9 @@ class VarSim(object):
         self.odir = odir / starDir
         self.odir.mkdir(parents=True, exist_ok=True)
 
+        # NOTE hard-coded VSC directory
+        vsc_scratch = f'/scratch/leuven/341/vsc34166/platosim/mocka/{starType}/varsource/{starDir}'
+        
         # Select target star
         df_i = df0.loc[self.starID-1]
         ds_i = ds0[ds0.gaiaDR3 == df_i.gaiaDR3]
@@ -2402,7 +2405,7 @@ class VarSim(object):
         elif starVar == 'con':
             nstar = df.shape[0]
             istar = range(1, nstar)
-            varSourceFiles.append(f'$VSC_MOCKA/varsource_001.txt')
+            varSourceFiles.append(f'{vsc_scratch}/varsource_001.txt')
             starIDs.append(1)
         else:
             nstar = df.shape[0] + 1
@@ -2546,11 +2549,11 @@ class VarSim(object):
                     starType = 'LPV'
 
                 elif self.df.spec in ['A', 'unknown', 'CSTAR', '']:
-                    starType = 'SPV'                    
+                    starType = 'SPV'
                     
                 # Check massive stars if missed
 
-                if starType == None and self.spec in ['O', 'B', 'A']:
+                if starType == None and self.df.spec in ['O', 'B', 'A']:
                     if self.df.spec == 'O':
                         starType = 'bCep'
                     elif self.df.spec == 'B':
@@ -2631,8 +2634,7 @@ class VarSim(object):
                         
             # Just as a sanity check, stop script if none has been selected
             if starType == None:
-                errorcode('warning', f'No variable signal assigned to {self.df.spec}-type star')
-                exit()
+                starType = 'SPV'
 
                 
             # SELECT VARIABLE CLASS
@@ -2704,8 +2706,8 @@ class VarSim(object):
                 self.run_prolog()
 
                 # Use cluster name for PLATOnium
-                # NOTE $VSC_MOCKA directory is defined in job script
-                varSourceFiles.append(f'$VSC_MOCKA/' + sfile)
+                # NOTE Directory is defined in job script
+                varSourceFiles.append(vsc_scratch + '/' + sfile)
                 starIDs.append(i+1)
                 
         # GENERATE VARIABLE CATALOG FILE
