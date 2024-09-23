@@ -791,7 +791,7 @@ tuple<double, double, double> Sky::getInfoOfStarWithID(unsigned int starID)
     {
         if (starID == 0)
         {
-            return {0, 0, 0};
+            return {0.0, 0.0, 0.0};
         }
         else
         {
