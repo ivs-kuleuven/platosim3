@@ -428,23 +428,50 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
         for i in c: colname.append(i)
         
     if flag_quasar:
-        c = ['astro.classprob_dsc_combmod_quasar']
+        c = ['astro.classprob_dsc_combmod_quasar',
+             'astro.classprob_dsc_specmod_quasar',
+             'quasar.redshift_qsoc',
+             'quasar.redshift_qsoc_upper',
+             'quasar.redshift_qsoc_lower',
+             'quasar.vari_best_class_name',
+             'quasar.qso_variability',
+             'quasar.non_qso_variability',
+             'quasar.vari_agn_membership_score',
+             'quasar.host_galaxy_detected']
         for i in c: colname.append(i)
 
     # Construct query cone
+    # Further trim for quasars if requested
+
+    columns = ', '.join(colname)
     
-    columns = ', '.join(colname)    
-    query_base = f"""SELECT
-    {columns}
-    FROM gaiadr3.gaia_source AS gaia
-    JOIN gaiadr3.astrophysical_parameters AS astro
-      ON gaia.source_id = astro.source_id
-    WHERE 1=CONTAINS(
-      POINT(gaia.ra, gaia.dec),
-      CIRCLE({ra}, {dec}, {radius}))
-      AND gaia.phot_g_mean_mag > {maglim_min}
-      AND gaia.phot_g_mean_mag < {maglim_max}        
-    """
+    if flag_quasar:
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        JOIN gaiadr3.qso_candidates AS quasar
+          ON gaia.source_id = quasar.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}
+          AND astro.classprob_dsc_combmod_quasar > 0.5
+        """
+    else:
+        query_base = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+          AND gaia.phot_g_mean_mag > {maglim_min}
+          AND gaia.phot_g_mean_mag < {maglim_max}
+        """
         
     # We use the urllib to keep the connection open because
     # the sky regions are huge which fails with Gaia.lunch_job
@@ -565,7 +592,16 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
                                 'activityindex_espcs_uncertainty': 'S_err'})
         
     if flag_quasar:
-        df = df.rename(columns={'classprob_dsc_combmod_quasar': 'p_quasar'})
+        df = df.rename(columns={'classprob_dsc_combmod_quasar': 'p_comb_quasar',
+                                'classprob_dsc_specmod_quasar': 'p_spec_quasar',
+                                'redshift_qsoc': 'z',
+                                'redshift_qsoc_lower': 'z_lower',
+                                'redshift_qsoc_upper': 'z_upper',
+                                'vari_best_class_name': 'class_name',
+                                'qso_variability': 'qso_var',
+                                'non_qso_variability': 'qso_non',
+                                'vari_agn_membership_score': 'agn_score',
+                                'host_galaxy_detected': 'host_galaxy'})
 
     # Remove "Gaia DR" string in designation
 

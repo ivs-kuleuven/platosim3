@@ -1111,6 +1111,10 @@ class VarSim(object):
             if self.verbose > 1:
                 print('Model generation : Daveport+2014')
                 print('Model parameters : Doorsselaere+2017')
+            if self.spot_coverage.sum() == 0:
+                if self.verbose > 1:
+                    print('Star is inactive (no spots), hence no flares..')
+                return
             params = model.initDoorsselaere2017(self.spec,self.df.AR_ARsun, self.spot_coverage)
             
         elif args.flare == 'ToyModel':
@@ -1131,7 +1135,7 @@ class VarSim(object):
             
         # Return model
         lc, df = model.evaluate()
-            
+
         # Store global variables
         self.lc['flare']   = (lc - 1) * 1e6
         self.df['R_flare'] = params[0]
@@ -1520,12 +1524,12 @@ class VarSim(object):
             
         # Fetch time array
         time  = self.time.to('d').value
-        model = EclipsingBinary(time, seed=self.seed)
+        model = EclipsingBinary(time, seed=self.seed, verbose=self.verbose)
 
         # Fetch model parameters
         if self.verbose > 1:
             print('Selecting mock object from Kepler sample (IJspeert+2021)')
-        params = model.initIJspeert2023(self.idir, starID=10)
+        params = model.initIJspeert2023(self.idir, starID=None)
         self.df['starname'] = params[0]
         self.df['P_day']    = params[1]
         if self.verbose > 1 and params[1] is not None:
@@ -1914,8 +1918,11 @@ class VarSim(object):
 
 
 
-    def planet_occultation(self): # TODO Test again for student project!
+    def planet_occultation(self):
         """
+        TODO Module do not work anymore! Spiderman has now been integrated into
+        the batman package!
+
         In the following the exoplanet transits are being modelled with Batman:
         https://spiderman.readthedocs.io/en/latest/index.html
 
@@ -1929,91 +1936,95 @@ class VarSim(object):
         grid. A value of 20 give an error less than 0.1 ppm.
         """
 
+        # TODO small fix until module is tested again!
+        lc_occu = np.zeros(len(self.time))
+        self.lc['occu'] = lc_occu.tolist()
+        return
+
+        
         # Initialize model and assign parameters
+        import spiderman
+
         # TODO brightness model should be loaded from file by user
+        exo_brightness_model = 'zhang'
 
-        # import spiderman
-        # exo_brightness_model = 'zhang'
+        # TODO The phase curve is now calculated using a blackbody model but it is also
+        # possible to use PHOENIX med-res spectra. This not work now - fix it!
+        spider_params = spiderman.ModelParams(brightness_model=exo_brightness_model,
+                                              stellar_model='PHOENIX')
+                                              #stellar_model= datapath + 'stellar_model.txt')
+        spider_params.t0    = t0.to('d').value
+        spider_params.per   = P.to('d').value
+        spider_params.a     = (a/Rs).value
+        spider_params.a_abs = a.to('AU').value
+        spider_params.ecc   = e
+        spider_params.inc   = i.to('deg').value
+        spider_params.w     = w.to('deg').value
+        spider_params.rp    = (Rp/Rs).value
+        spider_params.p_u1  = ldc[0]
+        spider_params.p_u2  = ldc[1]
+        spider_params.T_s   = Teff.value
+        spider_params.l1    = wvl_tele[0].to('m').value
+        spider_params.l2    = wvl_tele[-1].to('m').value
+        spider_params.n_layer = 100  # The number of layers in the 2D "web"
 
-        # # TODO The phase curve is now calculated using a blackbody model but it is also
-        # # possible to use PHOENIX med-res spectra. This not work now - fix it!
+        # TODO convolve with the acual bandpass!
+        # Use spiderman's weithing scheme with the instrument response
 
-        # spider_params = spiderman.ModelParams(brightness_model=exo_brightness_model, stellar_model='PHOENIX')
-        #                                       #stellar_model= datapath + 'stellar_model.txt')
+        spider_params.filter = os.getcwd() + '/data/Passbands/response_plato_spiderman.txt'
 
-        # spider_params.t0    = t0.to('d').value
-        # spider_params.per   = P.to('d').value
-        # spider_params.a     = (a/Rs).value
-        # spider_params.a_abs = a.to('AU').value
-        # spider_params.ecc   = e
-        # spider_params.inc   = i.to('deg').value
-        # spider_params.w     = w.to('deg').value
-        # spider_params.rp    = (Rp/Rs).value
-        # spider_params.p_u1  = ldc[0]
-        # spider_params.p_u2  = ldc[1]
-        # spider_params.T_s   = Teff.value
-        # spider_params.l1    = wvl_tele[0].to('m').value
-        # spider_params.l2    = wvl_tele[-1].to('m').value
-        # spider_params.n_layer = 100  # The number of layers in the 2D "web"
+        # USE USER DEFINED BRIGHTNESS MODELS
 
-        # # TODO convolve with the acual bandpass!
-        # # Use spiderman's weithing scheme with the instrument response
+        # TODO Verify all the available brigthness models
 
-        # spider_params.filter = os.getcwd() + '/data/Passbands/response_plato_spiderman.txt'
+        # Spherical hamonics: Non-physical model
+        # NOTE there is nothing in the implementation to prevent negative surface fluxes!
 
-        # # USE USER DEFINED BRIGHTNESS MODELS
+        if exo_brightness_model == 'spherical':
+            spider_params.degree = degree
+            spider_params.la0    = la0
+            spider_params.lo0    = lo0
+            spider_params.sph    = sph
 
-        # # TODO Verify all the available brigthness models
+        # Zhang and Showman (2017): http://adsabs.harvard.edu/abs/2017ApJ…836…73Z
+        # A temperature map model based on semi-physical reproducing the main features
+        # of hot Jupiter phase-curves - offset hotspots. Called with “zhang”
 
-        # # Spherical hamonics: Non-physical model
-        # # NOTE there is nothing in the implementation to prevent negative surface fluxes!
+        if exo_brightness_model == 'zhang':
+            spider_params.xi      = xi   # Ratio of radiative to advective timescale
+            spider_params.T_n     = Tn   # Temperature of nightside
+            spider_params.delta_T = dT   # Day-night temperature contrast
 
-        # if exo_brightness_model == 'spherical':
-        #     spider_params.degree = degree
-        #     spider_params.la0    = la0
-        #     spider_params.lo0    = lo0
-        #     spider_params.sph    = sph
+        # Offset hotspot and Two sided planet:
 
-        # # Zhang and Showman (2017): http://adsabs.harvard.edu/abs/2017ApJ…836…73Z
-        # # A temperature map model based on semi-physical reproducing the main features
-        # # of hot Jupiter phase-curves - offset hotspots. Called with “zhang”
+        if (exo_brightness_model == 'hotspot_b' or exo_brightness_model == 'hotspot_t'):
+            spider_params.la0  = la0
+            spider_params.lo0  = lo0
+            spider_params.size = size
+            spider_params.grid_size = grid_size
 
-        # if exo_brightness_model == 'zhang':
-        #     spider_params.xi      = xi   # Ratio of radiative to advective timescale
-        #     spider_params.T_n     = Tn   # Temperature of nightside
-        #     spider_params.delta_T = dT   # Day-night temperature contrast
+            if exo_brightness_model == 'hotspot_b':
 
-        # # Offset hotspot and Two sided planet:
+                if spot_b is not None and p_b is not None:
+                    spider_params.spot_b = spot_b
+                    spider_params.p_b    = p_b
+                if pb_d is not None and pb_n is not None:
+                    spider_params.pb_d = pb_d
+                    spider_params.pb_n = pb_n
 
-        # if (exo_brightness_model == 'hotspot_b' or exo_brightness_model == 'hotspot_t'):
-        #     spider_params.la0  = la0
-        #     spider_params.lo0  = lo0
-        #     spider_params.size = size
-        #     spider_params.grid_size = grid_size
+            if exo_brightness_model == 'hotspot_t':
+                spider_params.spot_T = spot_T
+                spider_params.p_T    = p_T
 
-        #     if exo_brightness_model == 'hotspot_b':
-
-        #         if spot_b is not None and p_b is not None:
-        #             spider_params.spot_b = spot_b
-        #             spider_params.p_b    = p_b
-        #         if pb_d is not None and pb_n is not None:
-        #             spider_params.pb_d = pb_d
-        #             spider_params.pb_n = pb_n
-
-        #     if exo_brightness_model == 'hotspot_t':
-        #         spider_params.spot_T = spot_T
-        #         spider_params.p_T    = p_T
-
-        # # Two sided planet:
-
-        # if exo_brightness_model == 'spherica':
-        #     spider_params.degree = degree
-        #     spider_params.la0    = la0
-        #     spider_params.lo0    = lo0
-        #     spider_params.sph    = sph
+        # Two sided planet:
+        if exo_brightness_model == 'spherica':
+            spider_params.degree = degree
+            spider_params.la0    = la0
+            spider_params.lo0    = lo0
+            spider_params.sph    = sph
 
         # Contruct model light curve [ppm]
-        #lc_occ = (spider_params.lightcurve(time.value) - 1) * 1e6
+        lc_occ = (spider_params.lightcurve(time.value) - 1) * 1e6
         lc_occu = np.zeros(len(self.time))
         self.lc['occu'] = lc_occu.tolist()
 
@@ -2158,10 +2169,10 @@ class VarSim(object):
                 self.lc['flux'] += self.lc.spot
             if 'flare' in self.lc:
                 self.lc['flux'] += self.lc.flare
-
+                
             # Convert to relative flux to multiply with transits
             self.lc['flux'] = self.lc['flux'] / 1e6 + 1 
-                
+            
             # Spots and transits are multiplicative
             if 'tran' in self.lc:
                 self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
@@ -2181,7 +2192,7 @@ class VarSim(object):
             ofile_parameters = self.ofile.parents[0] / f'{self.ofile.stem}_parameters.ftr'
             ofile_components = self.ofile.parents[0] / f'{self.ofile.stem}_components.ftr'
             ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
-            
+
             # Convert to magnitude [mag]
             df = self.lc.flux.to_numpy() 
             dm = - 2.5 * np.log10(df)            
@@ -2375,6 +2386,9 @@ class VarSim(object):
         self.odir = odir / starDir
         self.odir.mkdir(parents=True, exist_ok=True)
 
+        # NOTE hard-coded VSC directory
+        vsc_scratch = f'/scratch/leuven/341/vsc34166/platosim/mocka/{starType}/varsource/{starDir}'
+        
         # Select target star
         df_i = df0.loc[self.starID-1]
         ds_i = ds0[ds0.gaiaDR3 == df_i.gaiaDR3]
@@ -2389,12 +2403,12 @@ class VarSim(object):
             nstar = 1
             istar = range(nstar)
         elif starVar == 'con':
-            nstar = df.shape[0] - 1
+            nstar = df.shape[0]
             istar = range(1, nstar)
-            varSourceFiles.append(f'$VSC_MOCKA/varsource_001.txt')
+            varSourceFiles.append(f'{vsc_scratch}/varsource_001.txt')
             starIDs.append(1)
         else:
-            nstar = df.shape[0]
+            nstar = df.shape[0] + 1
             istar = range(nstar)
             
         # Print to bash
@@ -2470,6 +2484,9 @@ class VarSim(object):
                 p_flare = 0.0
                 starType = None
                 vals = np.array([0, 1])
+
+                # Redefine base data frame for signals
+                self.lc = pd.DataFrame(data=self.time.to('s').value, columns=['time'])
                 
                 # Functions
                 def Mg_WD_limit(x): return 4.0*x + 8 
@@ -2495,14 +2512,6 @@ class VarSim(object):
 
                 if self.df.ruwe > 1.2:
                     starType = 'EB'
-
-                # Miscellaneous variables
-                    
-                elif ((self.df.BP_RP > xlim0) & (self.df.Mg < Mg_RG_upper(self.df.BP_RP))):
-                    starType = 'LPV'
-
-                elif self.df.spec in ['unknown', 'CSTAR', '']:
-                    starType = 'SPV'
                     
                 # Stars from MOCKA
                 
@@ -2534,17 +2543,24 @@ class VarSim(object):
                     # elif self.df.Mg < Mg_WD_limit(self.df.BP_RP):
                     #    starType = 'WD'
 
+                # Miscellaneous variables
+                    
+                elif ((self.df.BP_RP > xlim0) & (self.df.Mg < Mg_RG_upper(self.df.BP_RP))):
+                    starType = 'LPV'
+
+                elif self.df.spec in ['A', 'unknown', 'CSTAR', '']:
+                    starType = 'SPV'
+                    
                 # Check massive stars if missed
 
-                elif self.df.spec == 'O':
-                    starType = 'bCep'
-
-                elif self.df.spec == 'B':
-                    starType = 'SPB'
-
-                elif self.df.spec == 'A':
-                    starType = 'dSct'
-                                        
+                if starType == None and self.df.spec in ['O', 'B', 'A']:
+                    if self.df.spec == 'O':
+                        starType = 'bCep'
+                    elif self.df.spec == 'B':
+                        starType = 'SPB'
+                    elif self.df.spec == 'A':
+                        starType = 'dSct'
+                    
                 # Low mass dwarf stars
                 
                 elif self.df.spec in ['F', 'G', 'K', 'M']:
@@ -2576,11 +2592,11 @@ class VarSim(object):
                         elif self.df.spec == 'G': p_flare = 0.8
                         elif self.df.spec == 'K': p_flare = 0.9
                         elif self.df.spec == 'M': p_flare = 1.0
-                        p_flare = ss.rv_discrete(values=(vals, (1-p_flare, p_flare))).rvs()
-
+                        p_flare = ss.rv_discrete(values=(vals, (1-p_flare, p_flare)), seed=self.rng).rvs()
+                        
                     # Probability of active M dwarf
                     if self.df.spec == 'M' and self.df.BP_RP > 1.7 and self.df.Mg > 6:
-                        p_puls, p_spot, p_flare = 0, 1, 1
+                        p_puls, p_spot, p_flare = 0, 1, 1                        
                         
                     # Select combined variability
                     if p_puls == 1 and p_spot == 0 and p_flare == 0:
@@ -2591,30 +2607,45 @@ class VarSim(object):
                         starType = 'solar_flare'
                     elif p_puls == 0 and p_spot == 1 and p_flare == 1:
                         starType = 'dwarf_red'
-                        
-                    # Check for F-type stars    
-                    if self.df.spec == 'F':
-                        p_gdor = 0.5
-                        p_gdor = ss.rv_discrete(values=(vals, (1-p_gdor, p_gdor))).rvs()
-                        if p_gdor == 1:
+
+                    #---- Back-up checks ----#
+                    
+                    # Check for F-type stars
+                    if self.df.spec == 'F' and starType in [None, 'solar_flare', 'dwarf_red']:
+                        if self.df.M > 1.3:
                             starType = 'gDor'
                         else:
                             starType = 'solar_puls'
+
+                    # Check for GK-type stars
+                    if self.df.spec in ['G', 'K'] and starType in [None, 'dwarf_red']:
+                        if self.df.spec == 'G':
+                            starType = 'solar_spot'
+                        else:
+                            starType = 'solar_flare'
+
+                    # Check for K-type stars
+                    if self.df.spec == 'K' and self.df.M < 0.85:
+                        starType = 'dwarf_red'
+                            
+                    # Check for M-type stars
+                    if self.df.spec == 'M' and starType in [None, 'solar_puls', 'solar_spot', 'solar_flare']:
+                        starType = 'dwarf_red'
                         
-            # Everything else is a SPV
+            # Just as a sanity check, stop script if none has been selected
             if starType == None:
                 starType = 'SPV'
 
-
+                
             # SELECT VARIABLE CLASS
 
-            if starType in ['solar_puls', 'solar_spot', 'solar_flare']:
+            if starType in ['solar_puls', 'solar_spot', 'solar_flare', 'dwarf_red']:
                 args.puls = 'Corsaro2013'
                 self.mocka_solar = True
             else:
                 args.puls = 'mocka'
                 self.mocka_solar = False
-
+            
             # Eclipsing binary
             
             if starType == 'EB':
@@ -2675,8 +2706,8 @@ class VarSim(object):
                 self.run_prolog()
 
                 # Use cluster name for PLATOnium
-                # NOTE $VSC_MOCKA directory is defined in job script
-                varSourceFiles.append(f'$VSC_MOCKA/' + sfile)
+                # NOTE Directory is defined in job script
+                varSourceFiles.append(vsc_scratch + '/' + sfile)
                 starIDs.append(i+1)
                 
         # GENERATE VARIABLE CATALOG FILE
@@ -2741,7 +2772,7 @@ mode_group.add_argument('--mocka', action='append', type=str, nargs=5, metavar=(
                         help='Option designed for MOCKA')
 
 args = parser.parse_args()
-#exit()
+
 #--------------------------------------------------------------#
 #                            WORKFLOW                          #
 #--------------------------------------------------------------#
