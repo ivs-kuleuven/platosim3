@@ -1410,7 +1410,7 @@ class Pulsator(object):
             sep      = '  '
             comment  = None
             freq_unit = 'c/d'
-            ampl_unit = 'mag'
+            ampl_unit = 'norm'
             names    = ['freq', 'ampl', 'phase']
             if variable == 'RRLyr':
                 filename = 'varsource_rrly_bodi2023'
@@ -1776,7 +1776,7 @@ class Pulsator(object):
         sep      = '  '
         comment  = None
         freq_unit = 'c/d'
-        ampl_unit = 'mag'
+        ampl_unit = 'norm'
         names    = ['freq', 'ampl', 'phase']
         filename = 'varsource_rrly_bodi2023'
 
@@ -1806,10 +1806,11 @@ class Pulsator(object):
         
         # Apply passband correction
         if self.scale:
-            A_i = (1 - ut.fromMagToFlux(self.df.ampl)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
-            self.df.ampl = A_i
-        
+            self.df.ampl *= self.scale
+
+        # Convert units
+        self.df.ampl = 2.5 * np.log10(1 + self.df.ampl)
+            
         # Create new data frame
         self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
 

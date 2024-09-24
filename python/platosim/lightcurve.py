@@ -1377,7 +1377,7 @@ class LightCurve(object):
 
     
     
-    def plot_detrend(self, df, column='flux', figsize=(9,7)):
+    def plot_detrend(self, df, column='flux', plot_oc=True, figsize=(9,7)):
 
         """Plot a detrended light curve and make a O-C plot.
         """
@@ -1385,7 +1385,7 @@ class LightCurve(object):
         # Get varsource light curve
         rows = 2
         lc_var = self.varsource()
-        if lc_var is not None:
+        if lc_var is not None and plot_oc:
             rows = 4
             varsource = True
             time_var = lc_var["time"] / c.day
@@ -1434,7 +1434,7 @@ class LightCurve(object):
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
         
         # Compare to model
-        if lc_var is not None:
+        if plot_oc and lc_var is not None:
             
             # Plot detrend-median vs input
             flux_var -= np.median(flux_var)
@@ -1463,7 +1463,7 @@ class LightCurve(object):
         for i in dex[1:-1]:
             ax[0].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             ax[1].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
-            if lc_var is not None:
+            if lc_var is not None and plot_oc:
                 ax[2].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
                 ax[3].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             
@@ -1754,7 +1754,7 @@ class LightCurve(object):
             
 
     
-    def plot_clip(self, df, column='flux', flux_unit='e/s', figsize=(9,10)):
+    def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,10)):
 
         """Plot a clipped light curve for outliers.
         """
@@ -1762,7 +1762,7 @@ class LightCurve(object):
         # Get varsource light curve        
         rows = 2
         dv = self.varsource()
-        if dv is not None:
+        if plot_oc and dv is not None:
             rows = 3
             dv.time /= 86400.
             # Compatability
@@ -1826,7 +1826,7 @@ class LightCurve(object):
         ax[1].legend(ncols=2, loc='upper right')
 
         # Plot detrend-median vs. input
-        if dv is not None:
+        if plot_oc and dv is not None:
             ax[2].plot(time_new, flux_med, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(dv.time,  dv.flux,  '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
@@ -2425,7 +2425,7 @@ class LightCurve(object):
         # Plot quarter marks
         ymax = np.max(flux_max)
         ypos = ymax + ymax * ax.margins()[1]/3
-        for q in np.unique(Q)[:-1]:
+        for q in np.unique(Q)[:]:
             time_Q = q*ut.quarter()
             xpos = time_Q - 50
             if q > 9: xpos -= 10

@@ -775,23 +775,45 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
     
 
 
-    def massLuminosityRelation(R, Teff):
+def massLuminosityRelation(R, Teff):
 
-        """Calculate mass using M-L relation.
+    """Calculate mass using M-L relation.
 
-        Using the Teff in the mass-luminosity relation, one can find
-        the stellar mass for a main sequence dwarf star. Method valid
-        for (0.43 < M/Msun < 2)
+    Using the Teff in the mass-luminosity relation, one can find
+    the stellar mass for a main sequence dwarf star. Method valid
+    for (0.43 < M/Msun < 2)
 
-        Notes
-        -----
-        Reference from:
-        https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
-        """
-        return R**(1/2) * Teff[i]/5777.
+    Notes
+    -----
+    Reference from:
+    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+    """
+    return R**(1/2) * Teff/5777.
 
 
 
+def mm2pixels(distanceMm, focalLength, plateScale):
+
+    """Conversion from millimeters to pixels.
+
+    Parameters
+    ----------
+    distanceMm : float
+    Distance [mm]
+    focalLength : float
+    Focal lenght of telescope [mm]
+    plateScale : float
+    The plate scale of the telescope [mm/pixel]
+    
+    Returns
+    -------
+    distancePixels : float
+    Distance [pixels]
+    """
+    
+    distancePixels = (np.degrees( np.arctan(distanceMm / focalLength)) /
+                      plateScale * c.degree / c.arcsec)
+    return distancePixels
 
     
 #--------------------------------------------------------------#

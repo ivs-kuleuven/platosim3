@@ -34,15 +34,20 @@ def create_timeseries(ids, idir, odir, power=2.2):
     """
 
     # Time array of 2 years
-    duration = ut.quarter() * 8
-    time_sec = np.arange(0, duration * 86400, 25)
-    time_day = np.arange(0, duration, 25 / 86400)
+    duration = ut.year() * 2
+    time_sec = np.arange(0, duration, 25)
+    time_day = np.arange(0, duration/86400, 25/86400)
 
     for i in tqdm(ids, bar_format=ut.tqdmBar()):
 
         # Fetch simulation table
         starID = f'{i}'.zfill(9)
 
+        # Check if file exist
+        output_dir = Path(f'{odir}/{starID}')
+        ofile = output_dir / 'varsource_001.txt'
+        #if not ofile.is_file():
+        
         # Create varsource from pulsations
         dx = pd.read_feather(f'{idir}/pulsations_{starID}_001.ftr')
         dv = pd.DataFrame()
@@ -50,12 +55,9 @@ def create_timeseries(ids, idir, odir, power=2.2):
         dv['dmag'] = ns.timeSeriesFromFourier(time_day, dx.freq, dx.ampl, dx.phase, power=power)
 
         # Save light curve
-        output_dir = Path(f'{odir}/{starID}')
         output_dir.mkdir(parents=True, exist_ok=True)
-        ofile = f'{output_dir}/varsource_001.txt'
         data = np.transpose([dv.time, dv.dmag])
-        np.savetxt(ofile, data, fmt=['%.1f', '%.8f'])
-        os.system(f'chmod 755 {ofile}')
+        np.savetxt(str(ofile), data, fmt=['%.1f', '%.8f'])
 
 
 
@@ -98,7 +100,7 @@ def fetch_amplitude_correction(path):
 
 
 
-def match_modes(file_parameters, file_pulsations, file_modes, file_table):
+def match_modes(ID, file_parameters, file_pulsations, file_modes, file_table):
 
     """Function to match input with output modes detected above BIC/SNR threshold.
     """
@@ -168,7 +170,8 @@ def match_modes(file_parameters, file_pulsations, file_modes, file_table):
                               'freq_oc':f_oc_snr, 'ampl_oc':A_oc_snr})
     
     # Store in data frame
-    dx = pd.DataFrame({'Pmag': dp.Pmag,
+    dx = pd.DataFrame({'ID': ID,
+                       'Pmag': dp.Pmag,
                        'ncam': int(dt.shape[0]/8),
                        'rOA': dt.rOA.mean(),
                        'SPR': dt.SPR.mean(),
@@ -219,26 +222,18 @@ def fetch_all_modes(path, star='GDOR', batch='finals_affogato', old=False):
         else:
             file_parameters = f'{path_parameters}/parameters_{i}_001.ftr'
             file_pulsations = f'{path_pulsations}/pulsations_{i}_001.ftr'
-            
-        try:
-            dx0, df0_bic, df0_snr = match_modes(file_parameters,
-                                                file_pulsations,
-                                                f'{path_modes}/modes_{i}.ftr',
-                                                f'{path_table}/table_{i}.ftr')
-        except:
-            print(i)
-            pass
-        else:
-            dx = pd.concat([dx, dx0])
-            df_bic = pd.concat([df_bic, df0_bic])
-            df_snr = pd.concat([df_snr, df0_snr])
-    
-    # Sort rows
-    try:
-        dx = dx.sort_values(by=['ncam', 'Pmag'])
-    except: pass
 
-    return dx, df_bic, df_snr
+        dx0, df0_bic, df0_snr = match_modes(int(i),
+                                            file_parameters,
+                                            file_pulsations,
+                                            f'{path_modes}/modes_{i}.ftr',
+                                            f'{path_table}/table_{i}.ftr')
+        dx = pd.concat([dx, dx0])
+        df_bic = pd.concat([df_bic, df0_bic])
+        df_snr = pd.concat([df_snr, df0_snr])        
+
+    # Sort data and return
+    return dx.sort_values(by=['ncam', 'Pmag'])
 
 
 

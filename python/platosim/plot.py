@@ -677,16 +677,6 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
     fovMm      = focalLength * np.tan(np.radians(fovDegrees))
 
-    def mm2pixels(distanceMm):
-        """
-        Conversion from millimeters to pixels.
-        :param distanceMm: Distance [mm].
-        :return distancePixels: Distance [pixels].
-        """
-        distancePixels = (np.degrees( np.arctan(distanceMm / focalLength)) /
-                          plateScale * c.degree / c.arcsec)
-        return distancePixels
-
     sign = lambda x: (1, -1)[x < 0]
 
     xFP = np.array([])
@@ -754,14 +744,15 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     yPixels = np.copy(yFP)
 
     for group in range(numGroups):
-        xPixels[group] = mm2pixels(xPixels[group])  # [mm] -> [pixels]
-        yPixels[group] = mm2pixels(yPixels[group])  # [mm] -> [pixels]
+        # [mm] -> [pixels]
+        xPixels[group] = ut.mm2pixels(xPixels[group], focalLength, plateScale)  
+        yPixels[group] = ut.mm2pixels(yPixels[group], focalLength, plateScale)
 
     index = 0
 
     cornersX, cornersY = rf.computeCCDcornersInFocalPlane(refCcdCode, pixelSize)
-    offsetX = mm2pixels(cornersX[index]) + xPixels[refGroup - 1]
-    offsetY = mm2pixels(cornersY[index]) + yPixels[refGroup - 1]
+    offsetX = ut.mm2pixels(cornersX[index], focalLength, plateScale) + xPixels[refGroup - 1]
+    offsetY = ut.mm2pixels(cornersY[index], focalLength, plateScale) + yPixels[refGroup - 1]
 
     # Correct input pixel coordinates to match orientation of CCD origin
     
@@ -799,8 +790,8 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     for ccdCode in ccdCodes:
         cornersX, cornersY = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
         for corner in range(numCorners):
-            cornersX[corner] = mm2pixels(cornersX[corner])
-            cornersY[corner] = mm2pixels(cornersY[corner])
+            cornersX[corner] = ut.mm2pixels(cornersX[corner], focalLength, plateScale)
+            cornersY[corner] = ut.mm2pixels(cornersY[corner], focalLength, plateScale)
         cornersX = np.append(cornersX, cornersX[0])  # [mm]
         cornersY = np.append(cornersY, cornersY[0])  # [mm]
         for group in range(numGroups):
@@ -2254,7 +2245,8 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
 def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
                        yscale="log", cmap="coolwarm", show_targets=False,
                        show_ncam_noise_limits=False, show_saturation_limits=False,
-                       grid=True, legend=False, figsize=(10,6)):
+                       grid=True, legend=False, cbar_extend='both',
+                       figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
 
@@ -2346,7 +2338,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         column_label = column
     
     if norm is None:
-        cb = plt.colorbar(im, extend="both", pad=0.01)
+        cb = plt.colorbar(im, extend=cbar_extend, pad=0.01)
         cb.set_label(column_label)
     else:
 
@@ -2357,7 +2349,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
             column_label = r'$n_{\rm contaminants}$'
             
         # Plot the colorbar
-        cb = plt.colorbar(im, extend="max", pad=0.01, spacing='proportional',
+        cb = plt.colorbar(im, extend=cbar_extend, pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
         cb.set_label(column_label)
         cb.minorticks_off()
