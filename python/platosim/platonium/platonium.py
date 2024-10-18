@@ -1550,14 +1550,14 @@ class PLATOnium(object):
         #    self.failed('pproc.py failed due to the above error!')
 
         if self.verbose > 1:
-            errorcode('message', '\n[psim2datastruc.py]: Pre-processing imagettes')
+            errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
-        comm = f'psim2datastruc.py . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
         if cmd != 0:
-            self.failed('psim2datastruc.py failed due to the above error!')
+            self.failed('psim2datastruc failed due to the above error!')
 
         # EXTRACT CONTAMINANTS
 
@@ -1604,21 +1604,21 @@ class PLATOnium(object):
         #    self.failed('invert_parabolic_multi failed due to the above error!')
 
         if self.verbose > 1:
-            errorcode('message', '\n[gen_psfinv.py]: Run the PSF inversion')
-        comm = f"gen_psfinv.py {self.starID} {self.starID} {self.starID} --bsres {self.bsres}"
+            errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
+        comm = f"gen_psfinv {self.starID} {self.starID} {self.starID} --bsres {self.bsres}"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
-            self.failed('gen_psfinv.py failed due to the above error!')
+            self.failed('gen_psfinv failed due to the above error!')
 
         # check the performance of the inversion!
         if self.verbose > 1:
-            errorcode('message', '\n[psfinv_quality.py]: Check the PSF inversion quality')
-        comm = f"psfinv_quality.py {self.starID}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
+            errorcode('message', '\n[psfinv_quality]: Check the PSF inversion quality')
+        comm = f"psfinv_quality {self.starID}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
-            self.failed('psfinv_quality.py failed due to the above error!')
+            self.failed('psfinv_quality failed due to the above error!')
 
         # Execution time of module
         if self.verbose > 1:
@@ -1651,14 +1651,14 @@ class PLATOnium(object):
         #    self.failed('pproc.py failed due to the above error!')
 
         if self.verbose > 1:
-            errorcode('message', '\n[psim2datastruc.py]: Pre-processing imagettes')
+            errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
-        comm = f'psim2datastruc.py . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
         if cmd != 0:
-            self.failed('psim2datastruc.py failed due to the above error!')
+            self.failed('psim2datastruc failed due to the above error!')
 
         # PSF FIITING
 
@@ -1678,11 +1678,11 @@ class PLATOnium(object):
         #    self.failed('psffit.py failed due to the above error!')
 
         if self.verbose > 1:
-            errorcode('message', '\n[gen_pflux_ts.py]: PSF fitting for light curve generation')
+            errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
         psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-        comm = f"gen_pflux_ts.py {self.starID} {self.starID} {self.starID} --psf {psf_path}"
+        comm = f"gen_pflux_ts {self.starID} {self.starID} {self.starID} --psf {psf_path}"
         if cmd != 0:
-            self.failed('gen_pflux_ts.py failed due to the above error!')
+            self.failed('gen_pflux_ts failed due to the above error!')
 
         # PROLOGUE
 
@@ -1716,14 +1716,14 @@ class PLATOnium(object):
         #    self.failed('pproc.py failed due to the above error!')
 
         if self.verbose > 1:
-            errorcode('message', '\n[psim2datastruc.py]: Pre-processing imagettes')
+            errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
-        comm = f'psim2datastruc.py . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
         if cmd != 0:
-            self.failed('psim2datastruc.py failed due to the above error!')
+            self.failed('psim2datastruc failed due to the above error!')
 
         # APERTURE PHOTOMETRY
 
@@ -1753,11 +1753,11 @@ class PLATOnium(object):
         #    self.failed('lightcurve.py failed due to the above error!')
 
         if self.verbose > 1:
-            errorcode('message', '\n[gen_aflux_ts.py]: Aperture photometry ala Marchiori+2019')
+            errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
         psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-        comm = f"gen_aflux_ts.py {self.starID} {self.starID} {self.starID} --psf {psf_path}"
+        comm = f"gen_aflux_ts {self.starID} {self.starID} {self.starID} --psf {psf_path}"
         if cmd != 0:
-            self.failed('gen_aflux_ts.py failed due to the above error!')
+            self.failed('gen_aflux_ts failed due to the above error!')
 
         # JITTER AND DRIFT CORRECTION
 
@@ -1774,11 +1774,11 @@ class PLATOnium(object):
             #    self.failed('psffit.py failed due to the above error!')
 
             if self.verbose > 1:
-                errorcode('message', '\n[apply_ltdjit_corr.py]: Jitter & Drift Correction')
+                errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
             psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-            comm = f"apply_ltdjit_corr.py {self.starID} {self.starID} {self.starID} --psf {psf_path} --cadence {self.cadence}"
+            comm = f"apply_ltdjit_corr {self.starID} {self.starID} {self.starID} --psf {psf_path} --cadence {self.cadence}"
             if cmd != 0:
-                self.failed('apply_ltdjit_corr.py failed due to the above error!')
+                self.failed('apply_ltdjit_corr failed due to the above error!')
 
         # PROLOGUE
 
