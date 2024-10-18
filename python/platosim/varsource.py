@@ -1670,7 +1670,7 @@ class Pulsator(object):
 
         # Draw amplitude below maximum [mag]
         A_ran = np.linspace(0, df.ampl.max(), n)
-        param = [1.2910723301235554, 6.507515501624616e-06, 0.00038071385548886245]
+        param = [1.2918151399120281, 6.509817422443962e-06, 0.000379812324281023]
         A_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2]) + 1e-5
         A_i = np.array(random.choices(A_ran, weights=A_fit, k=N))
 
