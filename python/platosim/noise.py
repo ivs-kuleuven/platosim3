@@ -365,12 +365,16 @@ def apodization_correction(nu, dt):
     for apodization (c.f. Hekker & Christensen-Dalsgaard, 2017) for a
     amplitude spectrum (hence now a power spectrum as in the paper).
 
+    NOTE: NumPy defined the normalized sinc() function, but apodization
+          is defined by the unnormalized sinc() function. Hence, we have
+          removed the normalization factor of pi in the original Equation.
+  
     Parameters
     ----------
     nu : float, ndarray
         Frequency of pulsations amplitudes [c/d]
     dt : float
-        Sampling rate of instruement [s]
+        Sampling rate (or cadence) of instruement [s]
 
     Returns
     -------
@@ -378,10 +382,10 @@ def apodization_correction(nu, dt):
     c.f. Bowman & Kurtz (2018).
     """
 
-    # Sampling frequency of instrument
-    nu_samp = 86400 / dt
+    # Nyquist frequency of instrument [c/d]
+    nu_Nyquist = 86400 / (2 * dt)
 
-    return np.abs(np.sinc(np.pi * nu/nu_samp)**(-1))
+    return np.sqrt(np.sinc(nu/nu_Nyquist)**(-2))
 
 
 #--------------------------------------------------------------#
