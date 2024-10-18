@@ -1534,7 +1534,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
+        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
@@ -1635,7 +1635,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
+        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
@@ -1700,7 +1700,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*({self.conFluxError}/100.)/np.log(10.)
+        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
