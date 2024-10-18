@@ -1670,7 +1670,7 @@ class Pulsator(object):
 
         # Draw amplitude below maximum [mag]
         A_ran = np.linspace(0, df.ampl.max(), n)
-        param = [1.292324285308427, 6.511326257095987e-06, 0.00037920024297689924]
+        param = [1.2910723301235554, 6.507515501624616e-06, 0.00038071385548886245]
         A_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2]) + 1e-5
         A_i = np.array(random.choices(A_ran, weights=A_fit, k=N))
 
@@ -2250,6 +2250,182 @@ class SMBHB(object):
         return self.flux, self.flux_beam, self.flux_lens
 
 
+
+    def calculate_eccentric_anomaly(self, M_A, e):
+        """
+        We use Kepler's equation (M = E – e sin E) to determine the Eccentric anomaly E.
+        Newton Raphson method is used to obtain the eccentric anomaly
+
+        Parameters
+        ----------
+        M = mean anomaly
+        e = eccentricity
+        """
+
+        # Initialize E with M
+        E = M_A
+        tol = 1e-12 * u.rad
+        max_iterations = 1000  
+
+        for _ in range(max_iterations):
+            E_next = E - (E - e * np.sin(E) * u.rad - M_A) / (1 - e * np.cos(E))
+            if np.allclose(E_next, E, atol=tol):
+                return E_next
+            E = E_next
+
+        raise Exception("Eccentric anomaly solver did not converge.") 
+
+
+
+    
+    def init_doppler_boosting(self, t0, P, M1, M2, e, i, w):
+
+        """Signal from Doppler boosting effect.
+
+        This function initialise the Doppler boosting model of a
+        two-body gravitationally bound system.
+
+        Parameters
+        ----------
+        t0 : float 
+            Arbitrary reference time [s]
+        P : float
+            Orbital period [s]
+        M1 : float
+            Mass of primary Black hole [kg]
+        M2 : float 
+            Mass of secondary Black hole [kg]
+        e : float
+            Eccentricity [0, 1]
+        i : float 
+            inclination [deg]
+        w : float
+            Argument of periapse [deg]
+        alpha: spectral index
+
+        -->Starts by Calculating mean anomaly
+        -->Then calls the eccentric anomaly used to calculate true anomaly 'f' 
+        -->Radial velocity RV2 of secondary Black Hole is used to calculate flux    
+        """
+
+        # Convert units
+        t0 = t0.to('s')
+        P  = P.to('s')
+        M1 = M1.to('kg')
+        M2 = M2.to('kg')
+        i  = i.to('rad')
+        w  = w.to('rad')
+        
+        # Correction factor (alpha) between true bolmetric flux and finite flux:
+        # We use Sphorer+2017 Eq.5 analytical expression obtained approximating
+        # a blackbody spectrum. In bolometric light, alpha=1, but otherwise
+        # deviating due to finite bandpass measurement.
+        #xx = c.h * c.c / (wvl_c * c.k_B * Teff)
+        #alpha = 1/4 * xx*np.exp(xx) / (np.exp(xx) - 1)
+        alpha = 1/3
+        
+
+        # Semi-major axis from K3 [m]
+        M = c.G * (M1 + M2)
+        a = M**(1/3) * (P / (2*np.pi))**(2/3)
+        
+        # The RV semi-amplitude of secondary
+        K2 = (2 * np.pi / P) * (M1 / (M1 + M2)) * a * np.sin(i) / np.sqrt(1 - e**2)
+
+        # Find the true anomaly using mean anomaly [rad]
+        f_mean = 2 * np.pi * (self.time - t0) / P * u.rad
+        E = self.calculate_eccentric_anomaly(f_mean, e)
+        f = 2 * np.arctan(np.sqrt((1 + e) / (1 - e)) * np.tan(E/2))
+        
+        # Projection of the velocity vector on to the line of sight
+        # From (Murray & Correria, 2010)
+        RV2 = K2 * (np.cos(w + f) + e * np.cos(w))    
+
+        # (Charisi et al. 2018)
+        return (3 - alpha) * RV2/c.c + 1
+
+
+
+    def gravitational_lensing(self, t0, P, M1, M2, i):
+
+        """Initialise model for gravitational lensing.
+
+        
+        """
+
+        # Convert units
+        t0 = t0.to('s')
+        P  = P.to('s')
+        M1 = M1.to('kg')
+        M2 = M2.to('kg')
+        i  = i.to('rad')
+        from astropy import units as u
+
+        # Phase from timings 
+        phi2 = 2 * np.pi * (self.time.value - t0.value) / P.value
+        #phi2 = np.linspace(0, 2*np.pi, 1000)
+        phi1 = phi2 - np.pi*np.ones(len(phi2))
+
+        # plt.figure()
+        # plt.plot(phi2, np.ones(len(phi2)), 'r-')
+        # plt.plot(phi1, np.ones(len(phi1)), 'b-')
+        # plt.show()
+        # exit()
+        
+        # Constants
+        M = M1 + M2
+        
+        # Semi-major axis from K3 [m]
+        a = (c.G * M * P**2 / (4 * np.pi))**(1/3)
+
+        # Schwarzchild radius
+        # RS1 = 2 * c.G * M1 / c.c**2
+        # RS2 = 2 * c.G * M2 / c.c**2
+        
+        # # Einstein radius
+        # RE1 = (2 * a * RS1 * np.cos(i) * np.sin(phi1))
+        # RE2 = (2 * a * RS2 * np.cos(i) * np.sin(phi2)) 
+
+        # # Angular seperation
+        # u1 = a / RE1 * (np.cos(phi1)**2 + np.sin(i)**2 * np.sin(phi2)**2)**(1/2)
+        # u2 = a / RE2 * (np.cos(phi2)**2 + np.sin(i)**2 * np.sin(phi1)**2)**(1/2)
+
+        # Constant factor
+        x = (a * c.c**2 / (4 * c.G))**(1/2)
+        
+        u1_upp = np.cos(phi2)**2 + np.sin(i)**2 * np.cos(phi2)**2
+        u1_low = (M - M1) * np.cos(i) * np.sin(phi1)
+        u1 = x * (u1_upp / u1_low)**(1/2)
+
+        u2_upp = np.cos(phi1)**2 + np.sin(i)**2 * np.cos(phi1)**2
+        u2_low = (M - M2) * np.cos(i) * np.sin(phi2)
+        u2 = x * (u2_upp / u2_low)**(1/2)
+
+        #---------
+        
+        u1 = np.nan_to_num(u1.value, neginf=1)
+        u2 = np.nan_to_num(u2.value, neginf=1)
+
+        # Lensing magnitude in the point-source and weak-field limit
+        # From (D'Orazio & Di Stefano, 2018)
+        u = np.real(u1 + u2)
+
+        # Return magnification factor
+        return (u**2 + 2) / (u*(u**2 + 4)**(1/2))
+
+
+
+    
+    def evalPhysicalModel():
+
+        """Evaluate physical SMBH binary model.
+        """
+
+        
+        # Model combined signal flux
+        flux = (1 + flux_boost) * (1 + flux_lens) * (1 + flux_red) 
+    
+    
 
     def plot(self):
 
