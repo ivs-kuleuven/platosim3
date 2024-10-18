@@ -72,7 +72,7 @@ def getAxesMinMax(x=None, y=None, percentage=2):
         x = np.sort(x)
         axmin = x[0]  - (x[-1]-x[0])*pt
         axmax = x[-1] + (x[-1]-x[0])*pt
-        
+
     if y is not None:
         y = np.sort(y)
         axmin = np.min(y) - (np.max(y)-np.min(y))*pt
@@ -1247,7 +1247,7 @@ def compass(ax, x, y, size):
             
 def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1,
-                 c=None, clabel=None, cmap='Spectral', s=40,
+                 c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
                  showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
                  title=None, fs=20, figsize=(9,9)):
 
@@ -1379,11 +1379,11 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
         if c is None:
             scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
                                  transform=ax.get_transform('world'), 
-                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
+                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=lw, zorder=5)
         else:
             scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
                                  transform=ax.get_transform('world'), 
-                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=0.1, zorder=5)
+                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=lw, zorder=5)
             cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
             cbar.set_label(clabel)
 
@@ -2243,9 +2243,11 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
 
 
 def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
-                       yscale="log", cmap="coolwarm", show_targets=False,
-                       show_ncam_noise_limits=False, show_saturation_limits=False,
-                       grid=True, legend=False, cbar_extend='both',
+                       yscale="log", cmap="rainbow",
+                       show_targets=False,
+                       show_ncam_noise_limits=False,
+                       show_saturation_limits=False,
+                       grid=False, legend=False, cbar_extend=None,
                        figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
@@ -2394,25 +2396,31 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     if show_ncam_noise_limits:
         
         # Magnitude range
-        mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
+        #mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
+        mag = np.linspace(0, 20, 100)
 
-        # Jitter noise
-        rms = 0.037
+        # 
         if show_ncam_noise_limits == 1:
+            ncam  = 1
             level = 'camera'
         else:
+            ncam  = 24
             level = 'instrument'
+        
+        # Jitter noise
+        rms = 0.04
         noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
-        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
+        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
+                   label='Jitter noise')
 
         # Photon noise
         ncams = show_ncam_noise_limits
         noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
-        ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
-                zorder=2, label='Photon noise')
+        ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2,
+                label='Photon noise')
         
         # Background and readout noise
-        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband)
+        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband, ncam=ncam)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
@@ -3392,13 +3400,13 @@ def plotHistogramSED(df, title=False, figsize=(8,15)):
     ax[4].hist(df12.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[1], lw=lw)
     ax[4].hist(df18.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[2], lw=lw)
     ax[4].hist(df24.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[3], lw=lw)
-    ax[4].set_xlabel(r'Surface gravity, log $g$ [dex]')
+    ax[4].set_xlabel(r'Surface gravity, log $g$')
 
     ax[5].hist(df06.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='6',  ec=c[0], lw=lw)
     ax[5].hist(df12.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='12', ec=c[1], lw=lw)
     ax[5].hist(df18.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='18', ec=c[2], lw=lw)
     ax[5].hist(df24.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='24', ec=c[3], lw=lw)
-    ax[5].set_xlabel(r'Metallicity, $Z$ [dex]')
+    ax[5].set_xlabel(r'Metallicity, [Fe/H]')
     ax[5].legend(loc='upper left')
 
     for i in range(6):
