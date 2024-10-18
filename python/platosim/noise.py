@@ -154,6 +154,7 @@ def DFTpower2(time, signal, freqs):
 
 
 
+
 def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
 
     import astropy.timeseries as apy
@@ -353,6 +354,34 @@ def timeSeriesFromMeanPSD(freq, psd):
 
 
 
+
+
+
+def apodization_correction(nu, dt):
+
+    """Amplitude correction due to apodization.
+
+    This function calculates the amplitude correction needed to account
+    for apodization (c.f. Hekker & Christensen-Dalsgaard, 2017) for a
+    amplitude spectrum (hence now a power spectrum as in the paper).
+
+    Parameters
+    ----------
+    nu : float, ndarray
+        Frequency of pulsations amplitudes [c/d]
+    dt : float
+        Sampling rate of instruement [s]
+
+    Returns
+    -------
+    Apodization factor to be multiplied with observed amplitudes 
+    c.f. Bowman & Kurtz (2018).
+    """
+
+    # Sampling frequency of instrument
+    nu_samp = 86400 / dt
+
+    return np.abs(np.sinc(np.pi * nu/nu_samp)**(-1))
 
 
 #--------------------------------------------------------------#
@@ -624,7 +653,7 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
     ax.axvline(x=snr_fap1, c=c[1], ls="--", lw=1.5, zorder=2)
     ax.axvline(x=snr_fap2, c=c[2], ls="--", lw=1.5, zorder=2)
     # Labels
-    ax.set_xlabel(r'SNR amplitude')
+    ax.set_xlabel(r'SNR')
     ax.set_ylabel('Number of stars')
     # Settings
     ax.legend(loc='upper right')
