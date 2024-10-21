@@ -1507,7 +1507,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteTelescopeACS"]           = True
         sim["ControlHDF5Content/WriteCTI"]                    = True
         # NOTE: jmcc psim2datastruc was complaining about WriteDiffusePSF being disabled. Enabling to see if that helps.
-        sim["ControlHDF5Content/WriteDiffusePSF"]             = True
+        sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
         # If mapped PSF is used the diffused PSFs need to be saved
         if sim["PSF/Model"] == 'MappedFromFile':
