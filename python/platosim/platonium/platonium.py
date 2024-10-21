@@ -1535,7 +1535,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1588,7 +1588,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
-        comm = f"gen_psfinv {self.starID} {self.starID} {self.starID} --bsres {self.bsres}"
+        comm = f"gen_psfinv --bsres {self.bsres} {self.starID} {self.starID} {self.starID}"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1636,7 +1636,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1663,7 +1663,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
         psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-        comm = f"gen_pflux_ts {self.starID} {self.starID} {self.starID} --psf {psf_path}"
+        comm = f"gen_pflux_ts --psf {psf_path} {self.starID} {self.starID} {self.starID}"
         if cmd != 0:
             self.failed('gen_pflux_ts failed due to the above error!')
 
@@ -1701,7 +1701,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc . {self.starID} {self.starID} 6 --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03'
+        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1738,7 +1738,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
         psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-        comm = f"gen_aflux_ts {self.starID} {self.starID} {self.starID} --psf {psf_path}"
+        comm = f"gen_aflux_ts --psf {psf_path} {self.starID} {self.starID} {self.starID}"
         if cmd != 0:
             self.failed('gen_aflux_ts failed due to the above error!')
 
@@ -1759,7 +1759,7 @@ class PLATOnium(object):
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
             psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
-            comm = f"apply_ltdjit_corr {self.starID} {self.starID} {self.starID} --psf {psf_path} --cadence {self.cadence}"
+            comm = f"apply_ltdjit_corr --psf {psf_path} --cadence {self.cadence} {self.starID} {self.starID} {self.starID}"
             if cmd != 0:
                 self.failed('apply_ltdjit_corr failed due to the above error!')
 
