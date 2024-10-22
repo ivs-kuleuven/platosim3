@@ -1393,7 +1393,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteThroughputMaps"]         = True
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
         sim["ControlHDF5Content/WriteBackgroundMap"]          = False
-        sim["ControlHDF5Content/WriteCTI"]                    = False        
+        sim["ControlHDF5Content/WriteCTI"]                    = False
         sim["ControlHDF5Content/WriteSubPixelImages"]         = False
         sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
         sim["ControlHDF5Content/WriteACS"]                    = True
@@ -1403,11 +1403,13 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteGhostPositions"]         = False
         sim["ControlHDF5Content/WriteCosmics"]                = True
         
+        # TODO: JMCC address this, psim2datastruc wants this enabled, so forcing it for now
         # Check for high res mapped PSF
-        if sim["PSF/Model"] == 'MappedFromFile':
-            sim["ControlHDF5Content/WriteDiffusedPSF"] = True
-        else:
-            sim["ControlHDF5Content/WriteDiffusedPSF"] = False
+        #if sim["PSF/Model"] == 'MappedFromFile':
+        #    sim["ControlHDF5Content/WriteDiffusedPSF"] = True
+        #else:
+        #    sim["ControlHDF5Content/WriteDiffusedPSF"] = False
+        sim["ControlHDF5Content/WriteDiffusedPSF"] = True
 
 
 
@@ -1641,6 +1643,7 @@ class PLATOnium(object):
         comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
+        print(sim["ControlHDF5Content/WriteDiffusedPSF"])
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('psim2datastruc failed due to the above error!')
