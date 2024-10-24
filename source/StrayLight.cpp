@@ -63,7 +63,6 @@ void StrayLight::configure(ConfigurationParameters &configParam)
     // Read in the PST file and save it into vectors.
 
     std::string pstPath = configParam.getAbsoluteFilename("StrayLight/PstPath");
-
     getPST(pstPath);
 
 
@@ -100,7 +99,7 @@ double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos
     std::vector<arma::vec> celestialObjectSpectralRadiance =
         getCelestialObjectGridSpectralRadiance(sun_pos, object_pos,
                                                object.reflectivity, grid);    
-    std::cout << "oom: " << celestialObjectSpectralRadiance[0].min() << " - " << celestialObjectSpectralRadiance[0].max() << " [W/m^2 m sr]\n" << std::endl;
+    std::cout << "oom: " << celestialObjectSpectralRadiance[32].min() << " - " << celestialObjectSpectralRadiance[32].max() << " [W/m^2 m sr]\n" << std::endl;
     std::vector<double> irradiance_alpha;
     std::vector<double> grid_alpha;
     std::vector<arma::vec> irradiance_E;
