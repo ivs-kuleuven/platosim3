@@ -11,6 +11,7 @@
 
 #include "Faddeeva.hh"
 
+#include "StrayLight.h"
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Mathematics.h"
@@ -27,7 +28,10 @@
 #include "Units.h"
 #include "Parameter.h"
 
+
 using namespace std;
+
+class StrayLight;
 
 class Camera;      // forward declaration
 
@@ -126,6 +130,7 @@ class Detector: public HDF5Writer
         virtual void applyDigitalSaturation();
         virtual void applyOverAndUnderShoot();
 
+        StrayLight *straylight;
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
         void makeSubGroupForCosmics(string field, int exposureNr);

@@ -542,6 +542,13 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     {
         addBackgroundMapToPixelMap(camera, startTime);
     }
+
+
+    // TO BE REMOVED:
+
+    addStraylightToPixelMap();
+
+
     // Apply throughput efficiency on the pixel map.
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
     // PixelMap units change from [photons] to [electrons]
@@ -1317,3 +1324,24 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
         }
     } // end loop over all targets for which we want light curves
 } // end applyPhotometry()
+
+
+
+
+
+
+
+
+
+
+void DetectorWithAnalyticNonGaussianPSF::addStraylightToPixelMap()
+{
+    for (unsigned int row = 0; row < 1; row++)
+    {
+        for (unsigned int column = 0; column < 1; column++)
+        {
+            std::cout <<  (*straylight).getStrayLightMoon(row, column) << std::endl;
+        }
+    }
+};
+

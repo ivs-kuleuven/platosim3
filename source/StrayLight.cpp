@@ -1,6 +1,7 @@
 #include "StrayLight.h"
 #include "ConfigurationParameters.h"
 #include "Constants.h"
+#include "armadillo"
 #include <iostream>
 #include <numeric>
 #include <sstream>
@@ -69,19 +70,13 @@ void StrayLight::configure(ConfigurationParameters &configParam)
     // Create the two celestial objects
     moon.radius = radiusMoon;
     moon.reflectivity = moon_reflectivity;
-
-
-
-
-
-    getStrayLightMoon(0, 0);
 }
 
 
 
 
 
-void StrayLight::getStrayLightMoon(double row, double column)
+double StrayLight::getStrayLightMoon(double row, double column)
 {
 
     // We should give the positions of the sc, moon and sun
@@ -89,34 +84,81 @@ void StrayLight::getStrayLightMoon(double row, double column)
     arma::vec moon_pos = moon_positions[0];
     arma::vec sc_pos = sc_positions[0];
 
-    getStrayLightObject(moon, sun_pos, moon_pos, sc_pos, row, column, 100);
+    return getStrayLightObject(moon, sun_pos, moon_pos, sc_pos, row, column, 20);
 }
 
 
-void StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int gridPoints)
+double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int gridPoints)
 {
     // Esteblish a grid around the celestial object
 
     std::vector<GridPoint> grid;
     grid = getGrid(object.radius, gridPoints);
 
+    // Get spectral radiance on every gridpoint around the object
+    std::cout << "#1 ->\tFlux of the sun that falls on the object" << std::endl;
     std::vector<arma::vec> celestialObjectSpectralRadiance =
         getCelestialObjectGridSpectralRadiance(sun_pos, object_pos,
                                                object.reflectivity, grid);    
-
+    std::cout << "oom: " << celestialObjectSpectralRadiance[0].min() << " - " << celestialObjectSpectralRadiance[0].max() << " [W/m^2 m sr]\n" << std::endl;
     std::vector<double> irradiance_alpha;
     std::vector<double> grid_alpha;
-    std::vector<arma::vec> x;
+    std::vector<arma::vec> irradiance_E;
     std::vector<arma::vec> y;
-    std::tie(irradiance_alpha, grid_alpha, x, y) = getIrradianceAtCamera(
+    std::tie(irradiance_alpha, grid_alpha, irradiance_E, y) = getIrradianceAtCamera(
         camera, row, column, grid, celestialObjectSpectralRadiance, object_pos,
         sc_pos);
+    
+    std::cout << "#2: Irradiance_E" << std::endl;
+    std::cout << "oom: " << irradiance_E[32].min() << " - " <<
+    irradiance_E[32].max() << "[W / m^2 m]\n" << std::endl;
+
+    
+
+    std::array<std::vector<arma::vec>, 5> PST_interpolated =
+        interpolatePSToverRho(rho, PST, irradiance_alpha);
 
 
-    std::array<std::vector<std::array<double, 29>>, 5> PST_interpolated = getStrayLightAtDetector(rho, PST, irradiance_alpha);
-    std::array<std::vector<double>, 5> strayLightPhotoelectronsAtDetector =
-        getNumberOfStraylightPhotoelectronsAtDetector(PST_interpolated);
-    std::array<double,5> staylightAtDetector = integrateOverGrid(strayLightPhotoelectronsAtDetector);
+    std::array<std::vector<arma::vec>, 5> strayLightAtDetector;
+    for (int az = 0; az < 5; az++)
+    {
+        for (int idx = 0; idx < irradiance_E.size(); idx++)
+        {
+            strayLightAtDetector[az].push_back(irradiance_E[idx] %
+                                               (PST_interpolated[az])[idx]);
+            
+        }
+    } 
+
+
+    // std::array<arma::vec, 5> strayLightPhotoelectronsAtDetector =
+    //     getNumberOfStraylightPhotoelectronsAtDetector(strayLightAtDetector);
+    getNumberOfStraylightPhotoelectronsAtDetector(strayLightAtDetector);
+
+
+
+
+    
+    // std::array<double, 5> straylightAtDetector =
+    //     integrateOverGrid(strayLightPhotoelectronsAtDetector);
+
+
+    // return integrateOverWavelength(straylightAtDetector);
+    return 4.;
+}
+
+
+
+double StrayLight::integrateOverWavelength(std::array<double, 5> &strayLight)
+{
+    // return std::accumulate(std::begin(strayLight), std::begin(strayLight)+4,
+    // 0);
+    double sum = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        sum += strayLight[i];
+    }
+    return sum;
 }
 
 
@@ -133,8 +175,6 @@ std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double
             std::accumulate(strayLight[i].begin(), strayLight[i].end(), 0);
     }
 
-    for (int i=0; i<5; i++) {
-	std::cout << totalElectrons[i] << std::endl;}
     return totalElectrons;
 }
 
@@ -150,7 +190,17 @@ std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double
  * \param: reflectivity  Reflectivity of the celestial object.
  * \param: grid          The grid around the celstial object.
  *
+ * /note: This method changes the grid variable, so that after the method has
+run,
+ *        it no longer contains gridpoints that don't receive light from the
+sun.
+ *
+ * /output: objectIrradiance     Irradiance of the celestial object on every
+ *                               gridpoint that sees light. [W/m^2*m],
+ *                               dim [#lighted_grid_points x #wavelengths]
+ *
  */
+
 std::vector<arma::vec> StrayLight::getCelestialObjectGridSpectralRadiance(
     arma::vec sun, arma::vec object, double reflectivity,
     std::vector<GridPoint> &grid)
@@ -163,7 +213,7 @@ std::vector<arma::vec> StrayLight::getCelestialObjectGridSpectralRadiance(
 
     // Solar irradiance at the object for different wavelengths
     std::array<double, 29> solarIrradiance =
-        SolarSpectralIrradiance(distanceSunObject);
+        solarSpectralIrradiance(distanceSunObject);
     std::vector<arma::vec> objectIrradiance;
     std::vector<GridPoint> new_grid;
 
@@ -381,10 +431,10 @@ void StrayLight::readInFile(std::string orbitPath, std::vector<arma::vec> &sc_po
  *
  * \param:    distance  distance from object to the sun.
  *
- * \output:   Array containing the irradiance for different wavelengths
+ * \output:   Array containing the irradiance for different wavelengths [W/(m^2*m)]
  *
  */
-std::array<double, 29> StrayLight::SolarSpectralIrradiance(double distance)
+std::array<double, 29> StrayLight::solarSpectralIrradiance(double distance)
 {
 
     // Wavelength range (400nm -> 1125nm)
@@ -392,7 +442,8 @@ std::array<double, 29> StrayLight::SolarSpectralIrradiance(double distance)
 
     for (unsigned int i = 0; i < 29; i++)
     {
-        double wavelength = 400 + i * 25;
+        double wavelength = (400 + i * 25)*1e-9; // [m]
+        // Spectral Solar Radiance
         double radiance =
             (2 * Constants::HPLANCK * Constants::CLIGHT * Constants::CLIGHT) /
             (std::pow(wavelength, 5) *
@@ -402,7 +453,9 @@ std::array<double, 29> StrayLight::SolarSpectralIrradiance(double distance)
               1));
         irradiance[i] = Constants::PI * radiance *
                         std::pow((Constants::SOLARRADIUS / distance), 2);
+
     }
+
     return irradiance;
 }
 
@@ -478,7 +531,6 @@ void StrayLight::getPST(std::string pstPath)
             {
                 std::istringstream buffer(line);
                 std::vector<std::string> value_of_line = splitLine(line);
-
                 std::array<double, 4> lineX;
                 lineX[0] = std::stod(value_of_line[0]);
                 lineX[1] = std::stod(value_of_line[1]);
@@ -494,13 +546,16 @@ void StrayLight::getPST(std::string pstPath)
     std::array<std::vector<std::array<double, 29>>, 5> PST_interpolated;
     std::array<std::vector<int>, 5> rho_a;
 
-    for (std::array<double, 4> pst : PSTs[1])
+    for (int az = 0; az < 5; az++)
     {
-        double pstx[3] = {pst[1], pst[2], pst[3]};
-        double wl[3] = {500, 750, 1000};
+	for (std::array<double, 4> pst : PSTs[az])
+	    {
+		double pstx[3] = {pst[1], pst[2], pst[3]};
+		double wl[3] = {500, 750, 1000};
 
-        PST_interpolated[0].push_back(interpolatePST(wl, pstx));
-        rho_a[0].push_back(int(pst[0]));
+		PST_interpolated[az].push_back(interpolatePST(wl, pstx));
+                rho_a[az].push_back(int(pst[0]));
+	    }
     }
 
     rho = rho_a;
@@ -519,17 +574,28 @@ std::array<double, 29> StrayLight::interpolatePST(double wl[3], double pst[3])
     double a = (wl[0] - wl[2]) * (pst[0] - pst[1]) -
                (wl[0] - wl[1]) * (pst[0] - pst[2]);
     a = a / N;
+
     double b = (std::pow(wl[0], 2) - std::pow(wl[1], 2)) * (pst[0] - pst[2]) +
                (std::pow(wl[2], 2) - std::pow(wl[0], 2)) * (pst[0] - pst[1]);
     b = b / N;
+
     double c = pst[0] - a * std::pow(wl[0], 2) - b * wl[0];
+
 
     // Wavelength range (400nm -> 1125nm)
     std::array<double, 29> pst_interpolated;
     for (int i = 0; i < 29; i++)
     {
         double wl = 400 + i * 25;
-        pst_interpolated[i] = a * std::pow(wl, 2) + b * wl + c;
+        double predicted_value = a * std::pow(wl, 2) + b * wl + c;
+        if (predicted_value > 0)
+        {
+            pst_interpolated[i] = a * std::pow(wl, 2) + b * wl + c;
+        }
+        else
+        {
+            pst_interpolated[i] = 0;
+        }
     }
     return pst_interpolated;
 }
@@ -538,23 +604,21 @@ std::array<double, 29> StrayLight::interpolatePST(double wl[3], double pst[3])
 
 
 
-std::array<std::vector<std::array<double, 29>>, 5>
-StrayLight::getStrayLightAtDetector(
+std::array<std::vector<arma::vec>, 5>
+StrayLight::interpolatePSToverRho(
     std::array<std::vector<int>, 5> &rho_a,
     std::array<std::vector<std::array<double, 29>>, 5> &PST,
     std::vector<double> irradiance_alpha)
 {
+    std::array<std::vector<arma::vec>, 5> PST_interpolated;
 
-    std::array<std::vector<std::array<double, 29>>, 5> PST_interpolated;
-
-    for (int AZ = 0; AZ < 5; AZ++)
+    for (int az = 0; az < 5; az++)
     {
-        // AZ = 0
-        std::vector<std::array<double, 29>> PST_AZ = PST[0];
-        std::vector<int> rho_AZ = rho_a[0];
+        std::vector<std::array<double, 29>> PST_AZ = PST[az];
+        std::vector<int> rho_AZ = rho_a[az];
 
-        std::vector<std::array<double, 29>> PST_interpolated_AZ;
-        PST_interpolated_AZ.reserve(PST_AZ.size());
+        std::vector<arma::vec> PST_interpolated_AZ;
+        // PST_interpolated_AZ.reserve(PST_AZ.size());
 
         std::array<std::vector<double>, 29> transposed_PST_interpolated_AZ;
 
@@ -607,14 +671,16 @@ StrayLight::getStrayLightAtDetector(
             // Extrapolate the PST for every angle in irradiance_alpha
             std::vector<double> extrapolated =
                 extrapolate(irradiance_alpha, rho_AZ, cubicParameters);
+
+
             transposed_PST_interpolated_AZ[wavelength] = extrapolated;
         }
 
         // Transpose the transposed_PST_interpolated_AZ
 
-        for (int i = 0; i < transposed_PST_interpolated_AZ[0].size(); i++)
+        for (int i = 0; i < irradiance_alpha.size(); i++)
         {
-            std::array<double, 29> x;
+            arma::vec x(29);
             for (int j = 0; j < 29; j++)
             {
                 x[j] = transposed_PST_interpolated_AZ[j][i];
@@ -622,7 +688,7 @@ StrayLight::getStrayLightAtDetector(
             PST_interpolated_AZ.push_back(x);
         }
 
-        PST_interpolated[AZ] = PST_interpolated_AZ;
+        PST_interpolated[az] = PST_interpolated_AZ;
     }
 
     return PST_interpolated;
@@ -634,6 +700,7 @@ StrayLight::getStrayLightAtDetector(
 
 std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho, std::vector<std::array<double, 4>> &parameters)
 {
+
     std::vector<double> extrapolated;
     for (double alpha : irradiance_alpha)
     {
@@ -662,37 +729,60 @@ std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alph
 
 
 
-std::array<std::vector<double>, 5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<std::array<double, 29>>, 5> &PST)
+std::array<arma::vec, 5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<arma::vec>, 5> &straylight)
 {
+    arma::vec energyOfPhoton(29); // [J]
+    std::array<double, 29> wavelengths;    // [nm]
+    std::array<std::vector<arma::vec>, 5>
+    numberOfStraylightPhotoelectronsAtDetector;
+    std::array<arma::vec, 5> numberOfStraylightPhotoelectronsAtDetector2;
 
-    std::array<double, 29> energyOfPhoton;
-    std::array<double, 29> wavelengths;
-    std::array<std::vector<double>, 5> numberOfStraylightPhotoelectronsAtDetector;
-
+    // fill the energyOfPhoton and wavelengths array 
     for (unsigned int wavelength_idx = 0; wavelength_idx < 29; wavelength_idx++)
     {
-        double wavelength = 400 + wavelength_idx * 25;
+        double wavelength = 400 + wavelength_idx * 25; // [nm]
         energyOfPhoton[wavelength_idx] =
-            Constants::CLIGHT * Constants::HPLANCK / (wavelength * 1.e-9);
+            Constants::CLIGHT * Constants::HPLANCK / (wavelength * 1.e-9); // [J]
         wavelengths[wavelength_idx] = wavelength;
-
     }
 
-    for (int i = 0; i < 5; i++)
+    // get the number of photoelectrons at the detectorfor every wavelength
+    for (int az = 0; az < 5; az++)
+    {
+        for (auto light : straylight[az])
+        {
+            numberOfStraylightPhotoelectronsAtDetector[az].push_back(
+                light / energyOfPhoton);
+            // std::cout << light << std::endl;
+            // std::cout << energyOfPhoton << std::endl;
+	    // std::cout << light / energyOfPhoton << std::endl;            
+        }
+    }
+
+
+
+
+
+
+
+
+    
+    for (int az = 0; az < 5; az++)
     {
 	std::vector<double> strayLightElectronsPerPixelPerSecond;
-        std::vector<std::array<double, 29>> PST_AZ = PST[i];
-
+        std::vector<std::array<double, 29>> PST_AZ = PST[az];
+	
 	for (std::array<double, 29> E_PST : PST_AZ)
         {
-            // We integrate out the wavelengths for every gridpoint
+            // We integrate out the wavelengths dependency for every gridpoint
 	    double integral = 0;
 	    for (int wl_idx = 0; wl_idx < 28; wl_idx++)
             {
-                integral = integral + 0.5 *
-		        (wavelengths[wl_idx + 1] - wavelengths[wl_idx]) *
-                        (E_PST[wl_idx] / energyOfPhoton[wl_idx] +
-                         E_PST[wl_idx + 1] / energyOfPhoton[wl_idx + 1]);
+                integral = integral +
+                           0.5 *
+                               (wavelengths[wl_idx + 1] - wavelengths[wl_idx]) *
+                               (E_PST[wl_idx] / energyOfPhoton[wl_idx] +
+                                E_PST[wl_idx + 1] / energyOfPhoton[wl_idx + 1]);
             }
 
             double straylightPhotoelectrons =
@@ -700,9 +790,9 @@ std::array<std::vector<double>, 5> StrayLight::getNumberOfStraylightPhotoelectro
             
 	    strayLightElectronsPerPixelPerSecond.push_back(straylightPhotoelectrons);
         }
-        numberOfStraylightPhotoelectronsAtDetector[i] = strayLightElectronsPerPixelPerSecond;
+        numberOfStraylightPhotoelectronsAtDetector2[az] = strayLightElectronsPerPixelPerSecond;
     }
-    return numberOfStraylightPhotoelectronsAtDetector;
+    return numberOfStraylightPhotoelectronsAtDetector2;
 
 }
 
@@ -746,6 +836,13 @@ std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
 
 
 
+
+
+
+
+
+
+
 std::tuple<std::vector<double>, std::vector<double>, std::vector<arma::vec>,
            std::vector<arma::vec>>
 StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
@@ -762,13 +859,13 @@ StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
     // pointing vectors
     double xFPmm, yFPmm;
     tie(xFPmm, yFPmm) = detector.pixelToFocalPlaneCoordinates(row, column);
+    
 
     double alpha, delta;
     double lambda, beta;
-    tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(xFPmm, yFPmm);
+    // tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(xFPmm, yFPmm);
+    tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(0, 0);
     equatorial2ecliptic(alpha, delta, lambda, beta);
-    std::cout << "lambda: " << lambda * 180 / 3.1415 << "\tbeta: " << beta * 180 / 3.1415 << std::endl;
-    
 
     arma::vec nCamera = {cos(lambda) * cos(beta), sin(lambda) * cos(beta),
                          sin(beta)};
@@ -783,36 +880,52 @@ StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
 
         arma::vec n_Cam_Grid =
             emmitterPosition + grid[idx].point - cameraPosition;
+        double rho_Cam_Grid = sqrt(arma::as_scalar((emmitterPosition + grid[idx].point - cameraPosition).t() * (emmitterPosition + grid[idx].point - cameraPosition)));
         n_Cam_Grid =
-            n_Cam_Grid /
-            sqrt(arma::as_scalar(n_Cam_Grid.t() * n_Cam_Grid));
+            n_Cam_Grid / rho_Cam_Grid;
+
+
+
+        double beta0 = asin(((emmitterPosition - cameraPosition)[2]) /
+                           sqrt(arma::as_scalar(
+                                  (emmitterPosition - cameraPosition).t() *
+                                  (emmitterPosition - cameraPosition))));
+
+        double lambda0 = asin(((emmitterPosition - cameraPosition)[1]) /
+                         (sqrt(arma::as_scalar(
+                              (emmitterPosition - cameraPosition).t() *
+                              (emmitterPosition - cameraPosition))) *
+                          cos(beta0)));
+
+
 
         double cos_alpha1 =
             -1*arma::as_scalar(grid[idx].point.t() * n_Cam_Grid) /
             sqrt(arma::as_scalar(grid[idx].point.t() * grid[idx].point));
         double cos_alpha2 = arma::as_scalar(nCamera.t() * n_Cam_Grid);
 
-        // std::cout << "Grid -> SC pointing: " << n_Cam_Grid << std::endl;
-        // std::cout << "pointing SC: " << nCamera << std::endl;
-        std::cout << "angle: " << 180 * acos(nCamera.t() * n_Cam_Grid) / 3.1415  << std::endl;
         arma::vec E(29);
 
         if (cos_alpha1 < 0)
         {
+            // Emmitter point doesn't fall on camera
             E.zeros();
 
         }
         else if (cos_alpha2 < 0)
         {
+            // Emmitted light doesn't fall on camera
             E.zeros();
         }
         else
         {
-            E = emmitterIrradiance[idx] * grid[idx].size * cos_alpha1;
+            E = emmitterIrradiance[idx] * grid[idx].size * cos_alpha1 /
+                (rho_Cam_Grid * rho_Cam_Grid);
         }
+
 	irradiance_E.push_back(E);
 
-        double objectGridCameraAlpha	= 180*acos(cos_alpha1)/Constants::PI;
+        double gridCameraAlpha	= 180*acos(cos_alpha1)/Constants::PI;
         double gridCameraPointingAlpha	= 180*acos(cos_alpha2)/Constants::PI;
 
         arma::vec Eproj(29);
@@ -826,8 +939,8 @@ StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
         }
 
         irradiance_alpha.push_back(gridCameraPointingAlpha);
-        grid_alpha.push_back(objectGridCameraAlpha);
-
+        grid_alpha.push_back(gridCameraAlpha);
+	
         projected_irradiance_E.push_back(Eproj);
 
     }

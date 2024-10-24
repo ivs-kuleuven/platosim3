@@ -28,8 +28,6 @@
 #include "Units.h"
 #include "Parameter.h"
 
-#include "StrayLight.h"
-
 
 using namespace std;
 

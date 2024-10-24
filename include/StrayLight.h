@@ -44,13 +44,13 @@ class StrayLight : public HDF5Writer
 
     void configure(ConfigurationParameters &configParam);
 
-    void getStrayLightMoon(double row, double column);
+    double getStrayLightMoon(double row, double column);
     // void updateParameters(double time);
 
 protected:
     CelestialObject moon;
     CelestialObject earth;
-    void getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int nGridPoints);
+    double getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int nGridPoints);
 
     std::vector<GridPoint> getGrid(double radius, unsigned int nPoints);
     void readInFile(std::string orbitPath, std::vector<arma::vec> &sc_pos,
@@ -60,25 +60,27 @@ protected:
     getCelestialObjectGridSpectralRadiance(arma::vec sun, arma::vec object,
                                            double reflectivity,
                                            std::vector<GridPoint> &grid);
-    std::array<double, 29> SolarSpectralIrradiance(double distance);
+    std::array<double, 29> solarSpectralIrradiance(double distance);
     std::tuple<std::vector<double>, std::vector<double>, std::vector<arma::vec>,
                std::vector<arma::vec>>
     getIrradianceAtCamera(Camera &camera, double row, double column,
                           std::vector<GridPoint> grid,
                           std::vector<arma::vec> emmitterIrradiance,
                           arma::vec emmitterPosition, arma::vec cameraPosition);
-    std::array<std::vector<std::array<double, 29>>, 5> getStrayLightAtDetector(
+    std::array<std::vector<arma::vec>, 5> interpolatePSToverRho(
         std::array<std::vector<int>, 5> &rho_a,
         std::array<std::vector<std::array<double, 29>>, 5> &PST,
         std::vector<double> irradiance_alpha);
-    std::array<std::vector<double>, 5>
+    std::array<arma::vec, 5>
     getNumberOfStraylightPhotoelectronsAtDetector(
-        std::array<std::vector<std::array<double, 29>>, 5> &PST);
+        std::array<std::vector<arma::vec>, 5> &PST);
     std::array<double, 29> interpolatePST(double wl[3], double pst[3]);
     std::vector<double>
     extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho_AZ,
 						       std::vector<std::array<double, 4>> &parameters);
-    std::array<double,5> integrateOverGrid(std::array<std::vector<double>, 5> &strayLight);
+    std::array<double, 5>
+    integrateOverGrid(std::array<std::vector<double>, 5> &strayLight);
+    double integrateOverWavelength(std::array<double, 5> &strayLight);
     template<std::size_t N>
     double integrate(std::array<double, N> y, std::array<double, N> x);
 
