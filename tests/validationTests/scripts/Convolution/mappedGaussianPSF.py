@@ -7,7 +7,7 @@ import pandas as pd
 from test                import Test
 from math                import degrees, pow, sqrt
 from platosim.validation import fitGaussian2D, gaussian2D
-from scipy.ndimage.interpolation import rotate
+from scipy.ndimage       import rotate
 import matplotlib.pyplot as plt
 
 
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 2. It check that the charge diffusion spreads the image out. This is done by fitting the sub pixel image of a simulation with a large diffusion to a gaussian function. The test passes if the fitted standard deviation is much higher then the one we would expect from a simulation without charge diffusion.
 
-3. It checks that the jitter smearing spreads the image out. This is done by comparing the pixel image with and without jitter smearing. 
+3. It checks that the jitter smearing spreads the image out. This is done by comparing the pixel image with and without jitter smearing.
 """
 
 
@@ -72,7 +72,7 @@ class MappedGaussianPSF(Test):
 
         simFile = self.sim.run(removeOutputFile = True)
         self.image = simFile.getSubPixelImage(0)
-        self.psf   = simFile.getPsf("rotatedPSF")
+        self.psf   = simFile.getPSF("highResPSF")
         self.angle = np.rad2deg(simFile.hdf5file["PSF"].attrs["rotationAngle"])
 
 
@@ -89,7 +89,7 @@ class MappedGaussianPSF(Test):
         self.image3 = simFile.getSubPixelImage(0)
 
 
-        
+
 
 
 
@@ -126,8 +126,8 @@ class MappedGaussianPSF(Test):
             pixelImage = np.zeros(file[number].shape, file[number].dtype)
             file[number].read_direct(pixelImage)
             
-            data = {"length^2" : deltaX**2 + deltaY**2, "psfImage" : pixelImage}
-            df = df.append(data, ignore_index=True)
+            data = pd.DataFrame({"length^2" : [deltaX**2 + deltaY**2], "psfImage" : [pixelImage]})
+            df = pd.concat([df,data])
 
         return df["psfImage"][df["length^2"]==df["length^2"].min()].iat[0]
 
@@ -154,24 +154,21 @@ class MappedGaussianPSF(Test):
     def compareJitterSmooting(self):
         # We checks that the image with jitter smoothing has a higher standard deviation then
         # the image without jitter smoothing.
-        
+
         subPixels  = self.sim["SubField/SubPixels"]
-               
+
         amplitude1 = np.max(self.image) -  np.min(self.image)
         amplitude3 = np.max(self.image3) - np.min(self.image3)
 
-        print(self.image - self.image3)
-
         sigma0     = 0.2 * subPixels
         #sigmaJ     = sqrt( pow(sigmaPSFt, 2) + pow( 0.5 / subPixels, 2)) * subPixels
-        
+
         param  = fitGaussian2D(self.image,  amplitude1, self.pRow, self.pCol, sigma0, sigma0)
         param2 = fitGaussian2D(self.image3, amplitude3, self.pRow, self.pCol, sigma0, sigma0)
 
         param  = np.array(param[-1:-3:-1])
         param2 = np.array(param2[-1:-3:-1])
 
-        print(param2, param)
         difference = (param2 - param)
         return np.all(difference <= 0)
 

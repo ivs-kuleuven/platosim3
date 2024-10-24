@@ -42,14 +42,14 @@ class BrighterFatterEffect(Test):
         self.sim["ObservingParameters/NumExposures"] = 1
         self.sim["CCD/IncludeConvolution"]           = "yes"
 
-        self.dim                        = 9
+        self.dim                        = 20
         self.sim["SubField/NumRows"]    = self.dim
         self.sim["SubField/NumColumns"] = self.dim
 
         self.sim["ControlHDF5Content/WriteSubPixelImages"] = "yes"
         self.numSubPixels = self.sim["SubField/SubPixels"]
 
-        self.sim["PSF/Model"] = "MappedFromFile"
+        #self.sim["PSF/Model"] = "MappedFromFile"
 
 
 
@@ -71,16 +71,11 @@ class BrighterFatterEffect(Test):
         self.sim["CCD/IncludeBFE"]         = "yes"
 
         # No star in the subfield.
-        self.sim["ObservingParameters/DecPointing"] = - self.sim["ObservingParameters/DecPointing"]
+        self.sim["Platform/Orientation/Angles/DecPointing"] = - self.sim["Platform/Orientation/Angles/DecPointing"]
 
-            
-        
-
-        
 
 
     def runSimulation(self):
-
         # Run the first test
         self.runFirstTest()
 
@@ -88,7 +83,6 @@ class BrighterFatterEffect(Test):
         self.setEffectsForSecondTest()
         self.runSecondTest()
 
-        
 
 
 
@@ -130,13 +124,13 @@ class BrighterFatterEffect(Test):
 
         # Run the test for increasing sky backgrounds and store the corresponding mean and standard deviation of the image in
         # self.means and self.stds.
-        backgrounds = np.arange(0, 90000, 9000)
+        backgrounds = np.arange(0, 50000, 9000)                              # [ph/pix/s]
         means       = np.array([])
         stds        = np.array([])
 
         for background in backgrounds:
 
-            self.sim["Sky/SkyBackground"] = background
+            self.sim["Sky/SkyBackground/BackgroundValue"] = background
             simFile = self.sim.run(removeOutputFile = True)
             image = simFile.getImage(0)
             stds  = np.append(stds, np.std(image)**2)

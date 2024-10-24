@@ -73,7 +73,7 @@ void Logger::emit(string message, LogLevel logLevel)
 
 	if (outputStreams.size() != 0)
 	{
-    	for (int n = 0; n < outputStreams.size(); ++n)
+    	for (unsigned int n = 0; n < outputStreams.size(); ++n)
     	{
     		if (outputStreamLogLevel[n] & logLevel & enabledLogLevels)
     		{

@@ -15,8 +15,15 @@ packageName2 = "cppzmq-master"
 # Specify build and install folders
 
 currentWorkingDir = os.getcwd()
-buildDir   = currentWorkingDir + "/dependencies/Downloads/"
+buildDir         = currentWorkingDir + "/dependencies/Downloads/"
+parentInstallDir = currentWorkingDir + "/dependencies/Installs/"
 installDir = currentWorkingDir + "/dependencies/Installs/" + packageName1
+
+
+# Check if /dependencies/Installs directory exists
+
+if not os.path.isdir(parentInstallDir):
+    os.mkdir(parentInstallDir)
 
 
 # If there is an older version of the install dir, make sure to remove it first.

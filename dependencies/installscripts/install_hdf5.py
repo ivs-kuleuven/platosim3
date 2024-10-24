@@ -14,9 +14,16 @@ packageName = "hdf5-1.12.0"
 # Specify build and install folders
 
 currentWorkingDir = os.getcwd()
-buildDir   = currentWorkingDir + "/dependencies/Downloads/"
-installDir = currentWorkingDir + "/dependencies/Installs/" + packageName 
+buildDir         = currentWorkingDir + "/dependencies/Downloads/"
+parentInstallDir = currentWorkingDir + "/dependencies/Installs/"
+installDir       = parentInstallDir + packageName 
 
+
+# Check if /dependencies/Installs directory exists
+
+if not os.path.isdir(parentInstallDir):
+    os.mkdir(parentInstallDir)
+    
 # Remove a possible older version, and create a fresh one
 
 shutil.rmtree(installDir, ignore_errors=True)
@@ -33,8 +40,8 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                     \
-					tar -xzvf {package}.tar.gz;                        \
-					cd {package};                                   \
+                    tar -xzvf {package}.tar.gz;                     \
+                    cd {package};                                   \
                     ./configure --prefix={install} --enable-cxx;    \
                     make;                                           \
                     make install".format(build=buildDir, package=packageName, install=installDir)

@@ -61,7 +61,7 @@ class SkyBackGround(Test):
 
 
         exposureTime = self.sim["ObservingParameters/CycleTime"] - self.sim.getReadoutTime()[0]
-        theoBackground = self.sim["Sky/SkyBackground"] * exposureTime * self.sim["Telescope/TransmissionEfficiency/BOL"]
+        theoBackground = self.sim["Sky/SkyBackground/BackgroundValue"] * exposureTime * self.sim["Telescope/TransmissionEfficiency/BOL"]
 
         difference = image - int(theoBackground)
         RMS = np.sqrt(np.sum(difference*difference) / len(difference))

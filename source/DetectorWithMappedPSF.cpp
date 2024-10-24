@@ -4,32 +4,45 @@
 
 /**
  * \brief Constructor.
- * 
+ *
  * \details
- * 
+ *
  * The constructor initializes the groups in the HDF5 file where the different maps (i.e. pixel map,
- * bias register map, smearing map, etc.) will be saved. 
- * 
+ * bias register map, smearing map, etc.) will be saved.
+ *
  * The following maps are initialized to zero (partly through the base class Detector):
- * 
- * pixelMap 
+ *
+ * pixelMap
  * subPixelMap
  * biasMap
  * smearingMap
  * flatfieldMap
  * throughputMap
  * cteMap
- * 
+ *
  * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
- * 
+ *
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
  * \param camera         Camera to which to attach the detector.
  * \param readoutTimeBeforeNextExposure Duration of the readout that takes place before the next exposure can start.
  */
-
-DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam, HDF5File &hdf5file, Camera &camera, TemperatureGenerator &feeTemperatureGenerator, TemperatureGenerator &detectorTemperatureGenerator, double readoutTimeBeforeNextExposure, double readoutTimeDuringNextExposure)
-  : Detector(configParam, hdf5file, camera, feeTemperatureGenerator, detectorTemperatureGenerator, readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure), includeFlatfield(true), writeSubPixelImagesToHDF5(false)
+DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configParam,
+					     HDF5File &hdf5file,
+					     Camera &camera,
+					     TemperatureGenerator &feeTemperatureGenerator,
+					     TemperatureGenerator &detectorTemperatureGenerator,
+					     double readoutTimeBeforeNextExposure,
+					     double readoutTimeDuringNextExposure)
+  : Detector(configParam,
+	     hdf5file,
+	     camera,
+	     feeTemperatureGenerator,
+	     detectorTemperatureGenerator,
+	     readoutTimeBeforeNextExposure,
+	     readoutTimeDuringNextExposure),    
+    includeFlatfield(true),
+    writeSubPixelImagesToHDF5(false)
 {
     // Parse the parameters from the configuration file.
 
@@ -46,10 +59,22 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
     flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
 
+    // Initialize the subpixel background map
+    
+    if (!constantSkyBackground)
+    { 
+      subPixelBackgroundMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
+    }
+    
+    // Allocate memory for undistorted maps
+    
+    unDistortedX.zeros(numRowsPixelMap, numColumnsPixelMap);
+    unDistortedY.zeros(numRowsPixelMap, numColumnsPixelMap);
+
+    // Generate the flatfield map
+    
     if (includeFlatfield)
     {
-        // Generate the flatfield map
-
         generateFlatfieldMap();
     }
 
@@ -59,6 +84,9 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     psf = new PointSpreadFunction(configParam, hdf5file);
     setPsfForSubfield();
 }
+
+
+
 
 
 
@@ -73,22 +101,25 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 }
 
 
+
+
+
+
 /**
  * \brief Configure the DetectorWithMappedPSF object using the given
  *        configuration parameters.
- * 
+ *
  * \param configParam: Configuration parameters.
  */
 void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 {
-    flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
-    includeFlatfield = configParam.getBoolean("CCD/IncludeFlatfield");
-    includeConvolution = configParam.getBoolean("CCD/IncludeConvolution");
-
-    writeSubPixelImagesToHDF5 = configParam.getBoolean(
-        "ControlHDF5Content/WriteSubPixelImages");
-
-    numSubPixelsPerPixel = configParam.getInteger("SubField/SubPixels");
+    // General configuration parameters
+  
+    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
+    includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
+    includeConvolution        = configParam.getBoolean("CCD/IncludeConvolution");
+    writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
+    numSubPixelsPerPixel      = configParam.getInteger("SubField/SubPixels");
 
     // Configuration parameters for the noise source random seeds
 
@@ -116,13 +147,13 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 
     // Derive the dimensions of the sub-pixel map
 
-    numRowsSubPixelMap = numRowsPixelMap * numSubPixelsPerPixel;       // TODO Add edge pixels
+    numRowsSubPixelMap    = numRowsPixelMap    * numSubPixelsPerPixel; // TODO Add edge pixels
     numColumnsSubPixelMap = numColumnsPixelMap * numSubPixelsPerPixel; // TODO Add edge pixels
 
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
-    writeDiffusedPSF = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
+    writeDiffusedPSF  = configParam.getBoolean("ControlHDF5Content/WriteDiffusedPSF");
 }
 
 
@@ -131,8 +162,8 @@ void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 
 
 /**
- * \brief Set the PSF map for the sub-field and sets  the distortion map
- * 
+ * \brief Set the PSF map for the sub-field and sets the distortion map
+ *
  * \details The PSF that is selected is dependent on the user input.
  */
 void DetectorWithMappedPSF::setPsfForSubfield()
@@ -148,17 +179,18 @@ void DetectorWithMappedPSF::setPsfForSubfield()
 
     if(psf->getNumSubPixelsPerPixel() < numSubPixelsPerPixel)
     {
-        throw IllegalArgumentException(string("DetectorWithMappedPSF.setPsfForSubfield: ") + 
+        throw IllegalArgumentException(string("DetectorWithMappedPSF.setPsfForSubfield: ") +
             "The sub-pixel resolution of the PSF (" + to_string(psf->getNumSubPixelsPerPixel()) +
                     ") must be at least that of the sub-field (" + to_string(numSubPixelsPerPixel) + ")");
     }
 
     // If requestied save the diffused PSF to the output file
+    
     if (writeDiffusedPSF)
     {
       writeDiffusedPSFToHDF5(psf);
     }
-    
+
     //  Compensate for the orientation of the CCD wrt focal plane orientation.
 
     psf->rotate(-rotationAnglePsf);
@@ -199,16 +231,12 @@ void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
 
 
 
-
-
-
 /**
  * \brief: Generate the (random) flatfield variations.  This map is generated
  *         at sub-pixel level but without the edge pixels.
  *
  * https://github.com/python-acoustics/python-acoustics/blob/master/acoustics/generator.py#L108
  */
-
 void DetectorWithMappedPSF::generateFlatfieldMap()
 {
     Log.info("DetectorWithMappedPSF: generating flatfield map.");
@@ -221,8 +249,8 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
     // (this is a bit inconvenient as we are working at sub-pixel level -> to be investigated)
 
-    int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
-    int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
+    unsigned int Nrows = 2 * numRowsPixelMap * numSubPixelsPerPixel;
+    unsigned int Ncolumns = 2 * numColumnsPixelMap * numSubPixelsPerPixel;
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
@@ -332,18 +360,18 @@ void DetectorWithMappedPSF::reset()
 
 /**
  * \brief: Take an exposure with the detector starting at the given time.
- *         The light is integrated during the given exposure time, during which 
- *         the detector experiences the effects of jitter and thermo-elastic telescope 
+ *         The light is integrated during the given exposure time, during which
+ *         the detector experiences the effects of jitter and thermo-elastic telescope
  *         drift. The background is assumed uniform for the whole subfield.
  *         Afterwards, the collected light is read out, convolving the image with the
  *         point spread function and adding various noise effects.
  *
  * \param exposureNr: Sequential number of the exposure.
- * 
+ *
  * \param startTime: Starting time of the exposure [s].
- * 
+ *
  * \param exposureTime: Duration of the exposure [s].
- * 
+ *
  * \return endTime: Time after the exposure (startTime + exposureTime + readoutTime)
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
@@ -357,7 +385,7 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     internalTime = startTime;
 
     // Clear all arrays
-    
+
     Log.debug("Detector: resetting subfield array for new exposure.");
     reset();
 
@@ -367,6 +395,19 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     integrateLight(exposureNr, startTime, exposureTime);
 
+    // If this is the first exposure, we should initialize the number of occupied traps.
+    // This can only be done after the detector
+    // has been exposed to the skybackground.
+    // => Check if CTI is included && We use the Short2013 model
+
+    if (exposureNr == beginExposureNr) {
+      if (includeCTIeffects &&
+          (CTImodel == "Short2013" || CTImodel == "Short2013FromFile"))
+      {
+          setInitialNumberOfOccupiedTraps(numberOfOccupiedTrapsPixelMap);
+      }
+    }
+
     // Include noise effects like readout noise, photon noise, full well saturation, etc.
     // Note: readOut() needs the exposure time to compute the open shutter smearing.
 
@@ -374,9 +415,18 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
 
     readOut(exposureTime);
 
+    // If photometric extraction was asked, apply it now
+
+    // if (includePhotometry)
+    // {
+    //     Log.info("Detector: applying photometric extraction to exposure " + to_string(exposureNr));
+    //     applyPhotometry(exposureNr);
+    // }
+
     // Write the CCD subfield, the bias map, and the smearing map to the HDF5 file
 
     Log.debug("DetectorWithMappedPSF: Writing PixelMap, smearing map, and bias map #" + to_string(exposureNr) + " to HDF5 file.");
+
 
     writePixelMapsToHDF5(exposureNr);
 
@@ -388,10 +438,14 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
         writeSubPixelMapToHDF5(exposureNr);
     }
     // Write the cosmic hits to the HDF5 file
-    
+
         Log.debug("Detector: Writing Cosmics of the PixelMap, smearing map, bias map #" + to_string(exposureNr) + " to HDF5 file.");
 
-    writeCosmicHitsToHDF5(exposureNr);
+    if (writeCosmics)
+    {
+            if (groupByExposure){writeCosmicHitsToHDF5WhenGroupByExposure(exposureNr);}
+            else{writeCosmicHitsToHDF5WithoutGroupByExposure(exposureNr);}
+    }
 
     // Advance the internal clock
 
@@ -400,25 +454,33 @@ double DetectorWithMappedPSF::takeExposure(int exposureNr, double startTime, dou
     return internalTime;
 }
 
+
+
+
+
+
+
+
+
 /**
  * \brief: During an exposure, this method makes the detector integrate the light
  *         in small steps. During each step the slight change of star positions due
- *         to spacecraft jitter is taken into account. 
- *         
- *  \details  Besides jitter, also the sky background, and the flatfield is taken into 
+ *         to spacecraft jitter is taken into account.
+ *
+ *  \details  Besides jitter, also the sky background, and the flatfield is taken into
  *            account. The sub-pixel map is rebinned in a pixel map.  After rebinning,
  *            vignetting and polarisation are applied (if applicable).
  *
  * \param exposureNr: Sequential number of the exposure.
- * 
+ *
  * \param startTime: Starting time of the exposure for which jitter must be applied [s].
- * 
+ *
  * \param exposureTime: Duration of the exposure [s].
  *
  * \pre Sub-pixel, pixel, bias register, and smearing map filled with values from previous exposure.
  *
  * \post Pixel unit of the sub-pixel map: [photons].
- * 
+*
  * \post Pixel, bias register, and smearing map filled with zeroes.
  */
 void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, double exposureTime)
@@ -429,17 +491,29 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     reset();
 
+
+    if (!constantSkyBackground && (exposureNr == beginExposureNr))
+    {
+        fillBackgroundSubpixelMap(camera, startTime, exposureTime);
+    }
+
     // Integration (incl. jitter): point sources
 
     camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
-    
+
     // Convolve with the point spread function
 
     convolveWithPsf();
 
     // Integration: background
-
-    camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    if (constantSkyBackground)
+    {
+        camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    }
+    else
+    {
+        addBackgroundMapToSubpixelMap(camera, startTime);
+    }
 
     // Apply flatfield (at sub-pixel level)
 
@@ -457,7 +531,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Rebin from a subpixel map to a pixel map
 
     Log.debug("DetectorWithMappedPSF: rebinning sub-pixel map into pixel map.");
-
     rebin();
 
     // Apply throughput efficiency on the pixel map
@@ -466,8 +539,8 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
-    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons, 
-    // so the throughput efficiency should already have been applied. In principle, the injected charges do 
+    // Apply the charge injection which will mitigate the CTI. The injection happens in electrons,
+    // so the throughput efficiency should already have been applied. In principle, the injected charges do
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards
     // apply the throughputEfficiency() at pixel level, so there is no possibilty to respect the order
     // (1) throughput (2) charge injection (3) PRNU.
@@ -478,14 +551,11 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
         applyChargeInjection();
     }
 
-
-
     // Apply the effects of readout smearing due to an open shutter. Because there is no shutter,
     // the pixels are still receiving photons from the sky, while they are being transfered towards
     // the readout register.
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
-
 
     if (includeOpenShutterSmearing)
     {
@@ -500,7 +570,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // Apply poisson distributed photon noise
     // Pixel units before: [electrons]
     // Pixel units after: [electrons]
-    
 
     if (includePhotonNoise)
     {
@@ -511,7 +580,6 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     {
         Log.debug("Detector: no photon noise added.");
     }
-
 
     // Add dark current
 
@@ -539,16 +607,16 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
 
 /**
- * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates 
+ * \brief: Add the given flux value to the value of the sub-pixel that corresponds to the given coordinates
  *         in the focal plane. Return the pixel coordinates of the pixel to which the flux was added.
  *
  * \param xFP: X-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
- * 
+ *
  * \param yFP: Y-coordinate of the sub-pixel in the focal plane in the FP reference frame [mm].
- * 
+ *
  * \param flux: Flux to add to the sub-pixel map [photons].
  *
- * \return (isInSubfield, row, col) 
+ * \return (isInSubfield, row, col)
  *         isInSubfield: True if (xFP, yFP) are on the subfield, false otherwise;
  *         row: sub-field (not CCD) row number of the pixel to which the flux was added;
  *         col: sub-field (not CCD) column number of the pixel to which the flux was added.
@@ -556,7 +624,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
 tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yFP, double flux)
 {
-    // Convert from FP coordinates to CCD pixel coordinates
+    // Convert from FP coordinates to real-valued CCD pixel coordinates
 
     double pixRow, pixColumn;
     tie(pixRow, pixColumn) = focalPlaneToPixelCoordinates(xFP, yFP);
@@ -616,14 +684,14 @@ tuple<bool, double, double> DetectorWithMappedPSF::addFlux(double xFP, double yF
 
 /**
  * \brief Insert the extended ghost with the given radius and flux at the given focal-plane position.
- * 
+ *
  * Note that the extended source will be convolved with the PSF in a next step.
- * 
+ *
  * \param x0: Focal-plane x-coordinate of the centre of the extended ghost [mm].
  * \param y0: Focal-plane y-coordinate of the centre of the extended ghost [mm].
  * \param radius: Radius of the extended ghost [mm].
  * \param flux: Flux of the extended ghost [photons].
- * 
+ *
  * \return: Whether or not the extended source falls (at least partially) on the sub-field, and the
  *          (row, column) coordinates of the centre of the extended ghost in the pixel map.
  */
@@ -679,9 +747,9 @@ tuple<bool, double, double> DetectorWithMappedPSF::addExtendedGhost(double x0, d
  * \brief: Applies charge diffusion or jitter smoothing for the given flux at the given position in the sub-pixel map.
  *
  * \param subpixelRow: Row index [sub-pixels]. NOT a coordinate in the CCD frame, but in the subfield frame.
- * 
+ *
  * \param subpixColumn: Column index [sub-pixels].  NOT a coordinate in the CCD frame, but in the subfield frame.
- * 
+ *
  * \param flux: Flux for which to apply charge diffusion or jitter smoothing [photons].
  */
 void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpixColumn, double flux)
@@ -730,35 +798,53 @@ void DetectorWithMappedPSF::applyDiffusionKernel(double subpixRow, double subpix
  * \brief Check whether the given (row, column) indices are within the array range of the subpixel map.
  *
  * \details The input parameters row & column come from a coordinate transformation
- *          in the focal plane, and as a result are not necessarily integers. For this 
- *          function it's not necessary to round them to the nearest integer. 
+ *          in the focal plane, and as a result are not necessarily integers. For this
+ *          function it's not necessary to round them to the nearest integer.
  *
  * \param row: Row index. NOT a coordinate in the CCD frame, but in the subfield frame. [sub-pixel].
- * 
+ *
  * \param column: Column index.NOT a coordinate in the CCD frame, but in the subfield frame.  [sub-pixel].
  *
  * \return  True if the given (row, column) coordinates are in the sub-pixel map; false otherwise.
  */
 bool DetectorWithMappedPSF::isInSubPixelMap(double row, double column)
 {
-    return (column >= 0) && (row >= 0) && (column < numColumnsSubPixelMap) && (row < numRowsSubPixelMap);
+    int coveredSubPixelsLeft   = coveredLeft * numSubPixelsPerPixel;
+    int coveredSubPixelsRight  = coveredRight * numSubPixelsPerPixel;
+    int coveredSubPixelsBottom = coveredBottom * numSubPixelsPerPixel;
+    int coveredSubPixelsTop     = coveredTop * numSubPixelsPerPixel;
+
+    return (column >= coveredSubPixelsLeft) && (row >= coveredSubPixelsBottom) && (column < numColumnsPixelMap*numSubPixelsPerPixel - coveredSubPixelsRight) && (row < numRowsPixelMap*numSubPixelsPerPixel - coveredSubPixelsTop);
+
 }
 
+
+
+
+
 /**
- * \brief: Add the given flux value to (all sub-pixels of) the sub-pixel map.
+ * \brief: Add the given flux value to (all sub-pixels that are not covered by a metallic
+ *         shield of) the sub-pixel map.
  *
  * \param flux: Flux to add to the sub-pixel map [photons/pixel].
  */
 void DetectorWithMappedPSF::addFlux(double flux)
 {
-    // The flux is expressed in [photons/pixel] but we need the quantity expressed
-    // in [photons/subpixel]. There are (numSubPixelsPerPixel)^2 per pixel (the
-    // name is thus a bit of a misnomer.).
+    int coveredSubPixelsLeft   = coveredLeft * numSubPixelsPerPixel;
+    int coveredSubPixelsRight  = coveredRight * numSubPixelsPerPixel;
+    int coveredSubPixelsBottom = coveredBottom * numSubPixelsPerPixel;
+    int coveredSubPixelsTop    = coveredTop * numSubPixelsPerPixel;
 
-    subPixelMap += flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+    bool isBlockedOff = (coveredSubPixelsLeft + coveredSubPixelsRight >= numColumnsSubPixelMap || coveredSubPixelsBottom + coveredSubPixelsTop >= numRowsSubPixelMap);
+
+    if (!isBlockedOff)
+    {
+      subPixelMap.submat(coveredSubPixelsBottom, coveredSubPixelsLeft,
+                         numRowsSubPixelMap - coveredSubPixelsTop - 1,
+                         numColumnsSubPixelMap - coveredSubPixelsRight - 1) +=
+          flux / numSubPixelsPerPixel / numSubPixelsPerPixel;
+    }
 }
-
-
 
 
 
@@ -768,19 +854,19 @@ void DetectorWithMappedPSF::addFlux(double flux)
 
 /**
  * \brief: Multiply the sub-pixel map with the flatfield.
- * 
+ *
  * NOTE: The sub-pixel map contains extra edge pixels, but the flatfield
  *       map does not. These edge pixels are excluded from this flatfield
  *       multiplication.
  *
  * \pre Unit of the sub-pixels: [photons].
- * 
+ *
  * \pre Flatfield map at sub-pixel level, excl. edge pixels.
- * 
+ *
  * \pre Pixel, bias register, and smearing maps filled with zeroes.
  *
  * \post Pixel value in the sub-pixel map: [photons].
- * 
+ *
  * \post Pixel, bias, and smearing maps filled with zeroes.
  */
 void DetectorWithMappedPSF::applyFlatfield()
@@ -806,11 +892,11 @@ void DetectorWithMappedPSF::applyFlatfield()
  * \brief Rebin the sub-pixel map to pixel level and crop the edge pixels.
  *
  * \pre Unit of the pixel value in the sub-pixel map: [photons].
- * 
+ *
  * \pre Pixel, bias register, and smearing map filled with zeroes.
  *
  * \post Unit of pixel values in the sub-pixel map: [photons].
- * 
+ *
  * \post Bias register, and smearing maps filled with zeroes.
  */
 void DetectorWithMappedPSF::rebin()
@@ -868,16 +954,21 @@ void DetectorWithMappedPSF::convolveWithPsf()
 
 /**
  * \brief: Creates the group(s) in the HDF5 file where the detector specific
- *         information will be stored.  These groups have to be created once,
+ *         information will be stored. These groups have to be created once,
  *         at the very beginning.
  */
 void DetectorWithMappedPSF::initHDF5Groups()
 {
-    // Init the groups specific for the MappedPSF detector
-
-    if (writeSubPixelImagesToHDF5)
+  if (writeFlatfieldMap)
     {
-        hdf5File.createGroup("/SubPixelImages");
+      Log.debug("DetectorWithMappedPSF: creating Flatfield entry in HDF5");
+      hdf5File.createGroup("/Flatfield");
+    }
+
+  if (writeSubPixelImagesToHDF5)
+    {
+      Log.debug("DetectorWithMappedPSF: creating SubPixelImages entry in HDF5");
+      hdf5File.createGroup("/SubPixelImages");
     }
 }
 
@@ -895,7 +986,7 @@ void DetectorWithMappedPSF::initHDF5Groups()
 void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 {
     stringstream myStream;
-    myStream << "subPixelImage" << setfill('0') << setw(6) << exposureNr;
+    myStream << "subPixelImage" << setfill('0') << setw(7) << exposureNr;
     string imageName = myStream.str();
 
     // Add the image to the "SubPixelImages" group
@@ -909,8 +1000,8 @@ void DetectorWithMappedPSF::writeSubPixelMapToHDF5(int exposureNr)
 
 
 
-/** 
- * \brief: Write the diffused PSF to the HDF5 file.
+/**
+ * \brief: Write the diffused and rotated PSF to the HDF5 file.
  */
 
 void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
@@ -922,22 +1013,32 @@ void DetectorWithMappedPSF::writeDiffusedPSFToHDF5(PointSpreadFunction *psf)
     int numColumns = size(psfMap)(1);
 
     // set the diffusion kernel image size
+
     int psfSubPixelsPerPixel = psf->getNumSubPixelsPerPixel();
     generateDiffusionKernel(chargeDiffusionStrength*psfSubPixelsPerPixel);
-    
-    
+
     for (int row=0; row < numRows; row++)
     {
       for (int column=0; column < numColumns; column++)
       {
-       	applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
+                applyDiffusionKernelOnPSF(row, column, psfMap(row, column), diffusedPsf, psfSubPixelsPerPixel);
       }
     }
 
     // reset the diffusion kernel
+
     generateDiffusionKernel(chargeDiffusionStrength*numSubPixelsPerPixel);
 
+    // rotate the diffused PSF
+
+    diffusedPsf = ArrayOperations::rotateArray(diffusedPsf, -rotationAnglePsf);
+
+    // normalize the PSF
+
+    diffusedPsf /= arma::accu(diffusedPsf);
+
     // write the diffused psf to the output hdf5 file
+
     hdf5File.writeArray("/PSF", "diffusedPSF", diffusedPsf);
 }
 
@@ -971,7 +1072,8 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
         }
     }
 
-    // Add the flux to the psf 
+    // Add the flux to the psf
+
 
     arma::span rowSpan = arma::span(max(0, sy), min((int)numRows, sy + diffusionKernelImageSize) - 1);
     arma::span columnSpan = arma::span(max(0, sx), min((int)numColumns, sx + diffusionKernelImageSize) - 1);
@@ -985,55 +1087,448 @@ void DetectorWithMappedPSF::applyDiffusionKernelOnPSF(double subpixRow, double s
 
 
 
+
+
+/*
+ * /brief: determins if three points in (given in an array) are colinear
+ * /input: an array with the points of the form {{x1, y1}, {x2, y2}, {x3, y3}}
+ * /note:
+ * Three points are colinear if the determinant of the matrix
+ * | 1  1  1|
+ * |x1 x2 x3| is equal to zero.
+ * |y1 y2 y3|
+ */
+
+bool DetectorWithMappedPSF::areColinear(std::array<std::array<double, 2>, 3> points)
+{
+    double determinant = points[1][0] * points[2][1] - points[2][0] * points[1][1] - points[0][0] * points[2][1] + points[2][0] * points[0][1] + points[0][0] * points[1][1] - points[1][0] * points[0][1];
+    if(abs(determinant) < 0.01)
+    {
+      return true;
+    }
+    else
+    {
+      return false;
+    }
+}
+
+
+
+
+
+
 /*
  * /brief: applies the field distortion on the inputparameters from the distortion map
- * /input: FP coordinates [mm] 
+ * /input: FP coordinates [mm]
  */
+
 void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
-  double xDist, yDist;
-  double minDistanceSquared = std::numeric_limits<double>::max();
 
-  for (auto& coordinates : distortionMap)
-  {
-    double distanceSquared = pow(std::get<0>(coordinates) - x, 2) + pow(std::get<1>(coordinates) - y, 2);
-
-    if(distanceSquared < minDistanceSquared)
+    // If the input coordinates are outside the field of view, we don't apply the
+    // distortion. This is because coordiantes in the table do not reach that far
+    // and linear approximation of that point would fail.
+    if (x*x + y*y > 80*80)
     {
-      minDistanceSquared = distanceSquared;
-      
-      xDist   = std::get<2>(coordinates);
-      yDist   = std::get<3>(coordinates);
+        return;
     }
+    if (x*x + y*y == 0){return;}
+
+    std::array<std::array<double, 2>,4> ClosestUndistortedCoordinates;
+    std::array<std::array<double, 2>,4> ClosestDistortedCoordinates;
+
+    std::array<double,4> minDistance_x;
+    std::array<double,4> minDistance_y;
+
+    minDistance_x[0] = -1*std::numeric_limits<double>::max();
+    minDistance_x[1] = -1*std::numeric_limits<double>::max();
+    minDistance_x[2] = std::numeric_limits<double>::max();
+    minDistance_x[3] = std::numeric_limits<double>::max();
+
+    minDistance_y[0] = -1*std::numeric_limits<double>::max();
+    minDistance_y[1] = std::numeric_limits<double>::max();
+    minDistance_y[2] = -1*std::numeric_limits<double>::max();
+    minDistance_y[3] = std::numeric_limits<double>::max();
+
+
+    // We try to find the four closest points around the input point.
+    for (auto& coordinates : distortionMap)
+   {
+        double distance_x = (coordinates[0] - x);
+        double distance_y = (coordinates[1] - y);
+
+        // the points left from the input point.
+        if (distance_x < 0)
+        {
+            // the points below the input point.
+            if (distance_y < 0)
+            {
+                // We try to have on the 0th index, the closest point left/under the input point.
+                if ((minDistance_x[0] <= distance_x) && (minDistance_y[0] <= distance_y))
+                {
+                    minDistance_x[0] = distance_x;
+                    minDistance_y[0] = distance_y;
+
+                    ClosestUndistortedCoordinates[0] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[0]   = {coordinates[2], coordinates[3]};
+                }
+            }
+            else
+            {
+                // We try to have on the 1th index, the closest point left/above the input point.
+                if ((minDistance_x[1] <= distance_x) && (minDistance_y[1] >= distance_y))
+                {
+                    minDistance_x[1] = distance_x;
+                    minDistance_y[1] = distance_y;
+
+                    ClosestUndistortedCoordinates[1] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[1] = {coordinates[2], coordinates[3]};
+                }
+            }
+        }
+        else
+        {
+            if (distance_y < 0)
+            {
+                // We try to have on the 2th idx, the closest point right/below the input point.
+                if ((minDistance_x[2] >= distance_x) && (minDistance_y[2] <= distance_y))
+                {
+                    minDistance_x[2] = distance_x;
+                    minDistance_y[2] = distance_y;
+
+                    ClosestUndistortedCoordinates[2] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[2] = {coordinates[2], coordinates[3]};
+                }
+            }
+            else
+            {
+                // We try to have on the 3th idx, the closest point right/above the input point.
+                if ((minDistance_x[3] >= distance_x) && (minDistance_y[3] >= distance_y))
+                {
+                    minDistance_x[3] = distance_x;
+                    minDistance_y[3] = distance_y;
+
+                    ClosestUndistortedCoordinates[3] = {coordinates[0], coordinates[1]};
+                    ClosestDistortedCoordinates[3] = {coordinates[2], coordinates[3]};
+                }
+            }
+
+        }
+    }
+
+  // We approximate the distorted coordinates using a linear combination of the 4 distorted coordinates corresponding
+  // with the 4 points around the input point.
+
+  std::array<double, 4> constants;
+  std::array<int, 4> oppositeIdx = {3, 2, 1, 0};
+
+  // We define the constants of the linear combination
+  double area = (ClosestUndistortedCoordinates[0][0] - ClosestUndistortedCoordinates[3][0]) * (ClosestUndistortedCoordinates[0][1] - ClosestUndistortedCoordinates[3][1]);
+  for (int i=0; i<4; i++)
+  {
+      std::array<double, 2> oppositePoint = ClosestUndistortedCoordinates[oppositeIdx[i]];
+      constants[i] = abs( (oppositePoint[0]-x)*(oppositePoint[1]-y) ) / area;
   }
-      
-  x = xDist;
-  y = yDist;
- }
+
+
+  x = constants[0] * ClosestDistortedCoordinates[0][0] + constants[1] * ClosestDistortedCoordinates[1][0] + constants[2] * ClosestDistortedCoordinates[2][0] + constants[3] * ClosestDistortedCoordinates[3][0];
+  y = constants[0] * ClosestDistortedCoordinates[0][1] + constants[1] * ClosestDistortedCoordinates[1][1] + constants[2] * ClosestDistortedCoordinates[2][1] + constants[3] * ClosestDistortedCoordinates[3][1];
+}
+
+
+
+
+
+
 
 
 /*
  * /brief: applies the inverse of the field distortion on the input coordinates
- * /input: FP coordinates [mm] 
+ * /input: FP coordinates [mm]
  */
+
 void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
 {
-  double xUndist, yUndist;
-  double minDistanceSquared = std::numeric_limits<double>::max();
+    // This is a brute force method to find the inverse distortion of the input point.
+    // We estimate this point as the central point of a square of the CCD, and by
+    // distorting this point we can estimate on which quadrant of the square the actual
+    // point would lie. We then improve our guess by taking the central of this quadrant.
+    // This process is repeated until we find a point that is close enough
+    // to the undistorted point of (x, y).
 
-  for (auto& coordinates : distortionMap)
-  {
-    double distanceSquared = pow(std::get<2>(coordinates) - x, 2) + pow(std::get<3>(coordinates) - y, 2);
 
-    if(distanceSquared < minDistanceSquared)
+    // Initialze the values
+    double delta = 100;
+    // length of the square we consider
+    double length = 80;
+
+    // our first guess is the center of the CCD
+    double x0 = 0;
+    double y0 = 0;
+
+    double xDist =x0;
+    double yDist = y0;
+    int i = 0;
+
+    // delta detamines how close the distorted point and the distorted "estimated point"
+    // lie. If they only differ by delta < 0.0001 we have found our point.
+    // If we are not able to reach this, then we finish the loop after 160 itaration to avoid
+    // an infinite loop.
+    while ((delta > 0.0001) && (i < 160))
     {
-      minDistanceSquared = distanceSquared;
-      
-      xUndist   = std::get<0>(coordinates);
-      yUndist   = std::get<1>(coordinates);
+
+        applyDistortion(xDist, yDist);
+
+        // For our next guess we shift our point with a value 3*length / 5. This is more then lenght/2,
+        // so that we are still able to converge to a point that would lie close to the edge of our square.
+        length = 3*length / 5;
+
+        // Dependent on which quadrant of the square the input point falles, we change the middle of our square.
+        switch (x > xDist)
+        {
+        case true:
+            if (x0 + length > 85.) {x0 = 85.;}
+            else {x0 = x0 + length;}
+            break;
+        case false:
+            if (x0 - length < -85.) {x0 = -85.;}
+            else {x0 = x0 - length;}
+            break;
+        }
+
+        switch (y > yDist)
+        {
+        case true:
+            if (y0 + length > 85.) {y0 = 85;}
+            else {y0 = y0 + length;}
+            break;
+        case false:
+            if (y0 - length < -85.) {y0 = -85;}
+            else {y0 = y0 - length;}
+            break;
+        }
+
+        delta = std::abs(x-xDist) + std::abs(y-yDist);
+        xDist = x0;
+        yDist = y0;
+        i = i + 1;
     }
-  }
-      
-  x = xUndist;
-  y = yUndist;
- }
+    x = xDist;
+    y = yDist;
+}
+
+
+
+
+
+
+/**
+ *\brief Generate throughput map, containing for each sub-field pixel the combined throughput efficiency
+ *       of vignetting, polarisation, particulate & molecular contamination, and quantum efficiency.  Each
+ *       array value is a value between 0 and 1.
+ *
+ * \details Because of vignetting, the stars at the edge of the FOV look dimmer than the stars close
+ *          to the optical axis. If the incoming flux before vignetting at pixel (i,j) is F(i,j),
+ *          then the flux after vignetting taken into account is F(i,j) * vignettingMap(i,j).
+ *          Because of contamination (both particulate and molecular) the throughput efficiency
+ *          decreases over the entire FOV by the same factor.
+ *
+ * \note    The throughput map is written to the HDF5 map.
+ */
+
+void DetectorWithMappedPSF::generateThroughputMap()
+{
+    Log.info("DetectorWithMappedPSF: generating throughput map.");
+
+    throughputMap.fill(1.0);
+
+    if(includeRelativeTransmissivity  && includeOpenShutterSmearing)
+        mechanicalVignettingMask.fill(1);
+
+    double xFPmmUndistorted, yFPmmUndistorted;         // Undistorted focal plan coordinates [mm]
+    double angle;                                      // Gnomonic radial distance from the optical axis [rad]
+    double relativeTransmissivityVariation;
+
+
+//    const double refAnglePolarizationRadians = deg2rad(refAnglePolarization);       // Reference angle for the polarisation efficiency [radians]
+//    const double acosPolarizationEfficiency = acos(polarizationEfficiency);
+
+//    const double refAngleQuantumEfficiencyRadians = deg2rad(refAngleQE);     // Reference angle for the quantum efficiency [radians]
+//    const double acosQuantumEfficiency = acos(relativeRefEfficiencyQE);        // Relative efficiency due to the angle dependency of the QE at the reference angle
+
+    if (includeRelativeTransmissivity || includePolarization || includeQuantumEfficiency)
+    {
+        // Loop over all pixels in the pixel map
+
+        for (unsigned int row = 0; row < numRowsPixelMap; row++)
+        {
+            for (unsigned int column = 0; column < numColumnsPixelMap; column++)
+            {
+
+                // Distorted pixel coordinates (in the detector) -> distorted focal-plane coordinates
+
+                xFPmmUndistorted = unDistortedX(row, column);
+                yFPmmUndistorted = unDistortedY(row, column);
+
+                // Angular distance [radians] of the pixel from the optical axis
+
+                angle = camera.getGnomonicRadialDistanceFromOpticalAxis(xFPmmUndistorted, yFPmmUndistorted);  // [radians]
+
+                if (includeRelativeTransmissivity)
+                {
+                    if (angle >= radiusFOV)
+                    {
+                        throughputMap(row, column) = 0.0;
+
+                        if (includeOpenShutterSmearing)
+                            mechanicalVignettingMask(row, column) = 0;
+                    }
+
+                    else
+                    {
+                        angle = rad2deg(angle); // [degrees]
+                        relativeTransmissivityVariation = (  relTransmissivityCoefVector[0] * pow(angle, 2)
+                                                           + relTransmissivityCoefVector[1] * pow(angle, 4)
+                                                           + relTransmissivityCoefVector[2] * pow(angle, 6)) / 100.;
+
+                        throughputMap(row, column) *= (1 - relativeTransmissivityVariation);
+                    }
+                }
+
+                // Polarisation (Eq. 4-11 in PLATO-DLR-PL-RP-001)
+
+                // NOTE: the polarization is angle dependent, but since no info on this dependency is currently available,
+                //       we assume fow now it is fixed over the entire FOV.
+
+                if (includePolarization)
+                    throughputMap(row, column) *= expectedValuePolarization; //cos(angle / refAnglePolarizationRadians * acosPolarizationEfficiency);
+
+                // Quantum efficiency (Eq. 4-12 in PLATO-DLR-PL-RP-001)
+                // Pixel units before: [photons]
+                // Pixel units after: [electrons]
+
+                // NOTE: the QE is angle dependent, but since no info on this dependency is currently available,
+                //       we assume for now it is fixed over the entire FOV.
+
+                if (includeQuantumEfficiency)
+                    throughputMap(row, column) *= meanQE * meanAngleDependencyQE; //(meanQE * cos(angle / refAngleQuantumEfficiencyRadians * acosQuantumEfficiency));
+            }
+        }
+    }
+
+    // Particulate contamination (Sect. 4.2.4.3 in PLATO-DLR-PL-RP-001)
+
+    if (includeParticulateContamination)
+    {
+        throughputMap *= particulateContaminationEfficiency;
+    }
+
+    // Molecular contamination (Sect. 4.2.4.4 in PLATO-DLR-PL-RP-001)
+
+    if (includeMolecularContamination)
+    {
+        throughputMap *= molecularContaminationEfficiency;
+    }
+}
+
+
+
+
+/**
+ * \brief: Fill the background subpixel map.
+ *
+ * \details: In order to save computotational time the background subpixel map is
+ *           generated from the background pixel map (generate at pixel level).
+ *
+ */
+void DetectorWithMappedPSF::fillBackgroundSubpixelMap(Camera &camera, double startTime, double exposureTime)
+{
+    // Fil background map
+    fillBackgroundMap(camera, startTime, exposureTime);
+
+    // convert background map to background subpixel map
+    for (int row=0; row < numRowsPixelMap; row++)
+    {
+        for (int col=0; col < numColumnsPixelMap; col++)
+        {
+            for (int i=0; i<numSubPixelsPerPixel; i++)
+            {
+                for (int j=0; j<numSubPixelsPerPixel; j++)
+                {
+                    int subPixelRow = row*numSubPixelsPerPixel+i;
+                    int subPixelCol = col*numSubPixelsPerPixel+j;
+                    subPixelBackgroundMap(subPixelRow, subPixelCol) = backgroundMap(row, col) / numSubPixelsPerPixel;
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+/**
+ *
+ * \brief: Adds the subpixel background map to the subpixel map. This function is
+ *         only used when we are dealing with a non-constant background map.
+ *
+ * \param camera: camera object
+ * \param startTime: start time of current exposure ]s\
+ *
+ */
+void DetectorWithMappedPSF::addBackgroundMapToSubpixelMap(Camera &camera, double startTime)
+{
+    double transmissionEfficiency = camera.getTransmissionEfficiency(startTime);
+    double meanBackground = arma::mean(arma::mean( backgroundMap*transmissionEfficiency));
+
+    subPixelMap += subPixelBackgroundMap*transmissionEfficiency;
+    camera.addSkybackgroundAndTransmissionEfficiency(meanBackground, transmissionEfficiency);
+}
+
+
+
+
+
+
+
+
+
+
+
+/**
+ *
+ * \brief: Initializes the background map. This is done only once.
+ *
+ * \note:  The flux stored in the array does not take transmission efficiency into account.
+ *         To obtain the flux from the stellar background this map should still be
+ *         multiplied by the transmission efficiency. (this is exposure dependent)
+ *
+ */
+void DetectorWithMappedPSF::fillBackgroundMap(Camera &camera, double startTime, double exposureTime)
+{
+
+    // For each pixel in the background map (same dimensions as as subfield)
+    for (int row=0; row<numRowsPixelMap; row++)
+    {
+        for (int col=0; col<numColumnsPixelMap; col++)
+        {
+            // Convert the pixel coordinates to focal plane coordinates
+            double xFPmm, yFPmm;
+            tie(xFPmm, yFPmm) = pixelToFocalPlaneCoordinates(row+subFieldZeroPointRow, col+subFieldZeroPointColumn);
+
+            // Apply the inverse distortion
+            applyInverseDistortion(xFPmm, yFPmm);
+            unDistortedX(row, col) = xFPmm;
+            unDistortedY(row, col) = yFPmm;
+
+            transmissionEfficiencyBOS = camera.getTransmissionEfficiency(startTime);
+            double flux = camera.getBackgroundFlux(xFPmm, yFPmm, *this, startTime, exposureTime, readoutTimeBeforeNextExposure)/transmissionEfficiencyBOS;
+            backgroundMap(row, col) = flux;
+
+        }
+    }
+
+}

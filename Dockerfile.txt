@@ -1,0 +1,140 @@
+######### Linux setup #########
+
+FROM ubuntu:16.04
+
+# set shell to bash by default
+SHELL [ "/bin/bash", "--login", "-c" ]
+
+# install some linux stuff
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends make build-essential coreutils wget ca-certificates curl git vim zip unzip
+
+# install things that platosim needs
+RUN apt-get install -y libblas-dev liblapack-dev
+RUN apt-get install -y gcc gpp
+RUN apt-get install -y snapd
+RUN apt-get install -y cmake
+
+# install things that L1 pipeline needs
+RUN apt-get install -y libopenmpi-dev
+RUN apt-get install -y libgsl-dev
+RUN apt-get install -y libopenblas-dev
+RUN apt-get install -y xsltproc
+RUN apt-get install -y docbook-xsl
+RUN apt-get install -y lynx
+
+######### User setup #########
+
+# for security, create a non-root user
+ARG username=plato
+ARG uid=1000
+ARG gid=100
+ENV USER $username
+ENV UID $uid
+ENV GID $gid
+ENV HOME /home/$USER
+RUN adduser --disabled-password \
+    --gecos "Non-root user" \
+    --uid $UID \
+    --gid $GID \
+    --home $HOME \
+    $USER
+
+######### Copy data into container #########
+
+# set a top level directory
+WORKDIR /ecosystem
+
+# copy PlatoSim and L1 pipeline into container
+COPY . .
+
+######### Permissions #########
+
+# set permissions on copied files
+RUN chown -R $UID:$GID /ecosystem/PlatoSim3/
+RUN chown -R $UID:$GID /ecosystem/algorithms/
+
+# make a place to install L1 pipeline into
+RUN mkdir /ecosystem/plato
+RUN chown -R $UID:$GID /ecosystem/plato
+
+# this fires up conda environment
+COPY entrypoint.sh /usr/local/bin/
+RUN chown $UID:$GID /usr/local/bin/entrypoint.sh && \
+    chmod u+x /usr/local/bin/entrypoint.sh
+
+######### Miniconda #########
+
+# switch to non-root user
+USER $USER
+# install miniconda
+# select the correct versin from https://repo.anaconda.com/miniconda/
+ENV MINICONDA_VERSION py39_23.1.0-1
+ENV CONDA_DIR $HOME/miniconda3
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-$MINICONDA_VERSION-Linux-x86_64.sh -O ~/miniconda.sh && \
+    chmod +x ~/miniconda.sh && \
+    ~/miniconda.sh -b -p $CONDA_DIR && \
+    rm ~/miniconda.sh
+# make non-activate conda commands available
+ENV PATH=$CONDA_DIR/bin:$PATH
+# make conda activate command available from /bin/bash --login shells
+RUN echo ". $CONDA_DIR/etc/profile.d/conda.sh" >> ~/.profile
+# make conda activate command available from /bin/bash --interative shells
+RUN conda init bash
+
+######### PLATOSIM #########
+
+# setup for platosim, go there first
+WORKDIR PlatoSim3
+# create the conda env for platosim
+#RUN conda create -n platosim python=3.9
+# activate platosim env
+#RUN conda activate platosim
+# then get poetry
+RUN curl -sSL https://install.python-poetry.org | python -
+# then install the python packages using poetry
+RUN poetry config installer.max-workers 10
+RUN poetry config virtualenvs.create false
+RUN poetry install --with pipeline --with platonium
+RUN pip install --no-cache-dir PyMT64
+# set some platosim env vars
+ENV PLATO_PROJECT_HOME /ecosystem/PlatoSim3
+ENV PLATO_WORKDIR /host_dir
+# install platosim3
+RUN ./install.sh
+# copy the executables to our bin folder
+RUN cp $PLATO_PROJECT_HOME/python/platosim/platonium/platonium.py /home/plato/.local/bin/
+RUN cp $PLATO_PROJECT_HOME/python/platosim/platonium/picsim.py /home/plato/.local/bin/
+RUN cp $PLATO_PROJECT_HOME/python/platosim/platonium/varsim.py /home/plato/.local/bin/
+
+######### L1 Pipeline #########
+
+# setup for pipeline
+WORKDIR ../algorithms
+ENV PLATO /ecosystem/plato
+RUN mkdir -p $PLATO/include
+RUN mkdir -p $PLATO/bin
+RUN mkdir -p $PLATO/lib
+RUN mkdir -p $PLATO/man
+RUN mkdir -p $PLATO/man/man1
+ENV MANPATH $PLATO/man
+ENV PATH $PLATO/bin:$PATH
+ENV PLATOPY $PLATO/lib/python
+# set python path
+ENV PYTHONPATH $PLATO_PROJECT_HOME/python:$PLATO_WORKDIR:$PLATO:$PLATOPY
+# run the installation
+RUN make install
+# run a few steps manually (something is broken and this fixes it for now)
+RUN cp WP/321000/microscan/discretize.py /home/plato/miniconda3/bin/discretize
+RUN cp WP/321000/invert/invert_parabolic1 /home/plato/miniconda3/bin/invert_parabolic1
+RUN cp WP/321000/invert/invert_parabolic1_multi /home/plato/miniconda3/bin/invert_parabolic1_multi
+RUN cp WP/326100/misc/extract_contaminant.py /home/plato/miniconda3/bin/extract_contaminant.py
+RUN chmod ugo+rx /home/plato/miniconda3/bin/discretize
+RUN chmod ugo+rx /home/plato/miniconda3/bin/invert_parabolic1
+RUN chmod ugo+rx /home/plato/miniconda3/bin/invert_parabolic1_multi
+RUN chmod ugo+rx /home/plato/miniconda3/bin/extract_contaminant.py
+
+######### ENTRYPOINT #########
+
+# ensure the conda env is set up at runtime
+ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]

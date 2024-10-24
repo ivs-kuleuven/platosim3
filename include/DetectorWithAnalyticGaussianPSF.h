@@ -17,7 +17,7 @@ using namespace std;
 
 
 
-class DetectorWithAnalyticGaussianPSF: public Detector 
+class DetectorWithAnalyticGaussianPSF: public Detector
 {
     public:
 
@@ -46,9 +46,9 @@ class DetectorWithAnalyticGaussianPSF: public Detector
 
         double flatfieldNoiseRMS;     // Peak-to-peak noise amplitude
 
-        bool includeFlatfield;              // Whether or not to include flat fielding        
+        bool includeFlatfield;              // Whether or not to include flat fielding
         long flatfieldSeed;
-        bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file 
+        bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
 
     private:
 

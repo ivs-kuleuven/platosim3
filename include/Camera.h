@@ -48,7 +48,7 @@ class Camera : public HDF5Writer
         virtual void exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
         virtual void exposeDetectorWithSkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
         virtual void updateParameters(double time);
-
+        double getTransmissionEfficiency(double startTime);
         virtual void initHDF5Groups() override;
         virtual void flushOutput() override;
 
@@ -59,7 +59,7 @@ class Camera : public HDF5Writer
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
 
         double getGnomonicRadialDistanceFromOpticalAxis(double xFP, double yFP);
-
+        void addSkybackgroundAndTransmissionEfficiency(double skyBackground, double transmissionEfficiency);
         set<unsigned int> getAllStarIDs();
 
         tuple<double, double, double, double, double, double> getInfoForTheMostRecentExposureForStar(int starID);
@@ -67,7 +67,7 @@ class Camera : public HDF5Writer
 
         double getTotalSkyBackground();
         double getFocalLength();
-
+    double getBackgroundFlux(double xFP, double yFP, Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
 
     protected:
 
@@ -82,10 +82,10 @@ class Camera : public HDF5Writer
 
         Parameter<double> *focalLength;       // [mm]
         Parameter<double> *focalPlaneAngle;   // Orientation of the focal plane, as an angle around the optical axis  [rad]
-        Parameter<double, 3> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
-        Parameter<double, 3> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
+        Parameter<double, 7> *distortionCoef; // distortion coefficients to map undistorted to distorted coordinates.
+        Parameter<double, 7> *inverseDistortionCoef; // inverse distortion coefficient to map distorted to undistorted coordinates.
 
-        string distortionModel;               // The model used to compute the distortion  
+        string distortionModel;               // The model used to compute the distortion
         double plateScale;                    // [arcsec/micron]
         double throughputBandwidth;           // FWHM of the throughput passband [nm]
         double throughputLambdaC;             // Central wavelength of the throughput passband [nm]
@@ -98,6 +98,7 @@ class Camera : public HDF5Writer
         bool isMapped;                    // Whether or not the PSF is mapped from a file or not
         bool includeFieldDistortion;      // Whether or not field distortion should be included
 
+        bool useConstantSkyBackground;
         double userGivenSkyBackground;    // User-set zodiacal + stellar sky background.                          [phot/pix/s]
                                           // If negative, computed by the Sky class
         double fluxOfV0Star;              // Photon flux of a V=0 (G2V) star                                      [phot/s/m^2/nm]
@@ -106,6 +107,7 @@ class Camera : public HDF5Writer
         double decSun;                    // Declination of the direction of the sun shield during the run        [rad]
 
         bool writeStarPositions;          // Whether or not the star positions should be written to the output HDF5 file
+        bool groupByExposure;             // Whether or not we should group the starpositions by exposure or by StarID
         bool writeGhostPositions;         // Whether or not the ghost positions should be written to the output HDF5 file
         bool writeTransmissionEfficiency;
 
@@ -116,9 +118,11 @@ class Camera : public HDF5Writer
         map<double, map<unsigned int, array<double, 6>>> detectedPointLikeGhostInfo;
         vector<double> skyBackgroundValues;
         vector<double> transmissionEfficiencyValues;
+        vector<unsigned int> starIDsInSubfield;
         double totalSkyBackground;          // Total sky background [photons / pixel / exposure]
 
-        bool includeGhosts;                                         // Whether or not to include ghosts
+        bool includePointLikeGhosts;                                // Whether or not to include pointlike ghosts
+        bool includeExtendedGhosts;                                 // Whether or not to include extended ghosts
         double distanceCutOffPointLikeGhosts;                       // Beyond this distance from the optical axis [degrees], sources don't produce point-like ghosts anymore
         double fluxRatioOnAxisPointLikeGhosts;                      // Flux ratio between the point-like ghost and the originating source on-axis [%] -> linear decrease
         double distanceRatioExtendedGhosts;                         // For a star at FP-coordinates (x, y), the centre of the extended ghost will be at (distanceRatio * x, distanceRatio * y)

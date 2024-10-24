@@ -49,7 +49,6 @@ class Simulation
     protected:
 
         virtual void writeInputParametersToHDF5(ConfigurationParameters &configParams);
-        virtual void writeVersionInformationToHDF5();
         virtual void writeStarCatalogToHDF5();
         virtual void setRandomSeeds(ConfigurationParameters &configParams);
 
@@ -69,7 +68,8 @@ class Simulation
         string jitterSource;
         bool includeFieldDistortion;
         bool useDrift;
-        bool useDriftFromFile;
+  // bool useDriftFromFile;
+        string driftSource;
         bool useFeeTemperatureFromFile;
         bool useFeeNominalTemperature;
         bool useDetectorTemperatureFromFile;
