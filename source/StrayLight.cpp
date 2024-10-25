@@ -75,6 +75,12 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
 
 
+/**
+ *
+ * \brief: Returns the straylight of the moon (in #electrons) in the subfield pixel (row, column)
+ *
+ * \param: row and column of the subfieldpixel
+ */
 double StrayLight::getStrayLightMoon(double row, double column)
 {
 
@@ -87,6 +93,24 @@ double StrayLight::getStrayLightMoon(double row, double column)
 }
 
 
+
+
+
+
+/**
+ *
+ * \brief: Returns the straylight of the object (in #electrons) in the subfield pixel
+ *        (row, column).
+ *
+ * \param: object        The object from which we want to get the straylight
+ * \param: sun_pos       Position of the sun
+ * \param: object_pos    Position of the object
+ * \param: sc_pos        Position of the spacecraft
+ * \param: row           Row of the subfield
+ * \param: column        Column of the subfield
+ * \param: gridPoints    Amount of gridpoints used to model the object
+ * 
+ */
 double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int gridPoints)
 {
     // Esteblish a grid around the celestial object
@@ -94,12 +118,17 @@ double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos
     std::vector<GridPoint> grid;
     grid = getGrid(object.radius, gridPoints);
 
-    // Get spectral radiance on every gridpoint around the object
     std::cout << "#1 ->\tFlux of the sun that falls on the object" << std::endl;
+
+    // Get spectral radiance on every gridpoint around the object
+
     std::vector<arma::vec> celestialObjectSpectralRadiance =
         getCelestialObjectGridSpectralRadiance(sun_pos, object_pos,
-                                               object.reflectivity, grid);    
-    std::cout << "oom: " << celestialObjectSpectralRadiance[32].min() << " - " << celestialObjectSpectralRadiance[32].max() << " [W/m^2 m sr]\n" << std::endl;
+                                               object.reflectivity, grid);
+    std::cout << "oom: " << celestialObjectSpectralRadiance[32].min() << " - "
+              << celestialObjectSpectralRadiance[32].max() << " [W/m^2 m sr]\n"
+    << std::endl;
+    
     std::vector<double> irradiance_alpha;
     std::vector<double> grid_alpha;
     std::vector<arma::vec> irradiance_E;
@@ -110,9 +139,8 @@ double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos
     
     std::cout << "#2: Irradiance_E" << std::endl;
     std::cout << "oom: " << irradiance_E[32].min() << " - " <<
-    irradiance_E[32].max() << "[W / m^2 m]\n" << std::endl;
+    irradiance_E[32].max() << " [W / m^2 m]\n" << std::endl;
 
-    
 
     std::array<std::vector<arma::vec>, 5> PST_interpolated =
         interpolatePSToverRho(rho, PST, irradiance_alpha);
@@ -127,22 +155,48 @@ double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos
                                                (PST_interpolated[az])[idx]);
             
         }
-    } 
+    }
+
+    std::cout << "#3: Straylight at detector" << std::endl;
+    std::cout << "oom: " << ((strayLightAtDetector[0])[32]).min() << " - " << ((strayLightAtDetector[0])[32]).max() << " [W / m^2 m]\n" << std::endl;
+
+    // TODO We need to get a correct pupul area. I think this should be pixel size
+    double pupil_area = 18*18*1E-12; // [m^2]
+    std::array<std::vector<arma::vec>, 5> spectralFlux; // [W / m]
+
+    for (int idx = 0; idx < 5; idx++)
+    {
+	std::vector<arma::vec> spectral_flux_az;
+	for (auto light : strayLightAtDetector[idx])
+        {
+	    spectral_flux_az.push_back(light * pupil_area);
+        }
+        spectralFlux[idx] = spectral_flux_az;
+    }
+
+    std::cout << "#4: Spectral flux at detector" << std::endl;
+    std::cout << "oom: " << ((spectralFlux[0])[32]).min() << " - " << ((spectralFlux[0])[32]).max() << " [W / m]\n" << std::endl;
 
 
-    // std::array<arma::vec, 5> strayLightPhotoelectronsAtDetector =
-    //     getNumberOfStraylightPhotoelectronsAtDetector(strayLightAtDetector);
-    getNumberOfStraylightPhotoelectronsAtDetector(strayLightAtDetector);
-
-
-
-
+    std::array<std::vector<double>, 5> electronsAtDetectorPerGridPoint =
+        getNumberOfStraylightPhotoelectronsAtDetector(spectralFlux);
     
-    // std::array<double, 5> straylightAtDetector =
-    //     integrateOverGrid(strayLightPhotoelectronsAtDetector);
+    std::cout << "#5:  electrons at detector at gp 32" << std::endl;
+    std::cout << "oom: " << ((electronsAtDetectorPerGridPoint[0])[32]) << " [#e- / s]\n" << std::endl;
 
+    std::array<double, 5> electronsAtDetector;
+    for (int idx = 0; idx < 5; idx++)
+    {
+        std::vector<double> electrons = electronsAtDetectorPerGridPoint[idx];
+        electronsAtDetector[idx] =
+            std::accumulate(electrons.begin(), electrons.end(), 0.0);
+    }
 
-    // return integrateOverWavelength(straylightAtDetector);
+    std::cout << "#6:  electrons at detector" << std::endl;
+    std::cout << "oom: " << electronsAtDetector[0] << " [#e-/ s]" << std::endl;
+
+    // We should get the RA value, and from this get the #e / s, afterwards we
+    // multiply with the exposuretime to get the #e that fall on the pixel.
     return 4.;
 }
 
@@ -164,18 +218,6 @@ double StrayLight::integrateOverWavelength(std::array<double, 5> &strayLight)
 
 
 
-std::array<double,5> StrayLight::integrateOverGrid(std::array<std::vector<double>, 5> &strayLight)
-{
-    std::array<double, 5> totalElectrons;
-
-    for (int i = 0; i < 5; i++)
-    {
-        totalElectrons[i] =
-            std::accumulate(strayLight[i].begin(), strayLight[i].end(), 0);
-    }
-
-    return totalElectrons;
-}
 
 
 
@@ -728,13 +770,12 @@ std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alph
 
 
 
-std::array<arma::vec, 5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<arma::vec>, 5> &straylight)
+std::array<std::vector<double>,5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<arma::vec>, 5> &straylight)
 {
+
     arma::vec energyOfPhoton(29); // [J]
-    std::array<double, 29> wavelengths;    // [nm]
-    std::array<std::vector<arma::vec>, 5>
-    numberOfStraylightPhotoelectronsAtDetector;
-    std::array<arma::vec, 5> numberOfStraylightPhotoelectronsAtDetector2;
+    std::array<std::vector<arma::vec>, 5> electronsAtDetectorPerWavelengthPerSecond;   // [#e- / ( s * m)]
+
 
     // fill the energyOfPhoton and wavelengths array 
     for (unsigned int wavelength_idx = 0; wavelength_idx < 29; wavelength_idx++)
@@ -742,7 +783,6 @@ std::array<arma::vec, 5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetect
         double wavelength = 400 + wavelength_idx * 25; // [nm]
         energyOfPhoton[wavelength_idx] =
             Constants::CLIGHT * Constants::HPLANCK / (wavelength * 1.e-9); // [J]
-        wavelengths[wavelength_idx] = wavelength;
     }
 
     // get the number of photoelectrons at the detectorfor every wavelength
@@ -750,49 +790,31 @@ std::array<arma::vec, 5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetect
     {
         for (auto light : straylight[az])
         {
-            numberOfStraylightPhotoelectronsAtDetector[az].push_back(
+            electronsAtDetectorPerWavelengthPerSecond[az].push_back(
                 light / energyOfPhoton);
-            // std::cout << light << std::endl;
-            // std::cout << energyOfPhoton << std::endl;
-	    // std::cout << light / energyOfPhoton << std::endl;            
         }
     }
 
-
-
-
-
-
-
-
-    
+    std::array<std::vector<double>,5> electronsAtDetectorPerSecond;
     for (int az = 0; az < 5; az++)
     {
-	std::vector<double> strayLightElectronsPerPixelPerSecond;
-        std::vector<std::array<double, 29>> PST_AZ = PST[az];
-	
-	for (std::array<double, 29> E_PST : PST_AZ)
+
+	std::vector<double> electronsAtGridpoint;
+	for (arma::vec electrons_wl : electronsAtDetectorPerWavelengthPerSecond[az])
         {
-            // We integrate out the wavelengths dependency for every gridpoint
+            // We integrate out the wavelengths dependency for every gridpoint.
+            // We use the composite trapezoidal rule.
 	    double integral = 0;
 	    for (int wl_idx = 0; wl_idx < 28; wl_idx++)
             {
-                integral = integral +
-                           0.5 *
-                               (wavelengths[wl_idx + 1] - wavelengths[wl_idx]) *
-                               (E_PST[wl_idx] / energyOfPhoton[wl_idx] +
-                                E_PST[wl_idx + 1] / energyOfPhoton[wl_idx + 1]);
+                integral = integral + 0.5 * (25E-9) *   
+		           (electrons_wl[wl_idx] + electrons_wl[wl_idx+1]);
             }
-
-            double straylightPhotoelectrons =
-                integral * std::pow(pixelSize, 2);
-            
-	    strayLightElectronsPerPixelPerSecond.push_back(straylightPhotoelectrons);
+            electronsAtGridpoint.push_back(integral);
         }
-        numberOfStraylightPhotoelectronsAtDetector2[az] = strayLightElectronsPerPixelPerSecond;
+        electronsAtDetectorPerSecond[az] = electronsAtGridpoint;
     }
-    return numberOfStraylightPhotoelectronsAtDetector2;
-
+    return electronsAtDetectorPerSecond;
 }
 
 

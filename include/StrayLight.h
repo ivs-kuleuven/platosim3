@@ -71,15 +71,14 @@ protected:
         std::array<std::vector<int>, 5> &rho_a,
         std::array<std::vector<std::array<double, 29>>, 5> &PST,
         std::vector<double> irradiance_alpha);
-    std::array<arma::vec, 5>
+    std::array<std::vector<double>, 5>
     getNumberOfStraylightPhotoelectronsAtDetector(
         std::array<std::vector<arma::vec>, 5> &PST);
     std::array<double, 29> interpolatePST(double wl[3], double pst[3]);
     std::vector<double>
     extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho_AZ,
 						       std::vector<std::array<double, 4>> &parameters);
-    std::array<double, 5>
-    integrateOverGrid(std::array<std::vector<double>, 5> &strayLight);
+
     double integrateOverWavelength(std::array<double, 5> &strayLight);
     template<std::size_t N>
     double integrate(std::array<double, N> y, std::array<double, N> x);
