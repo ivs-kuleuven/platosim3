@@ -1404,7 +1404,7 @@ class PLATOnium(object):
         # Include HDF5 content
         sim["ControlHDF5Content/GroupByExposure"]             = True
         sim["ControlHDF5Content/WritePixelMaps"]              = True
-        sim["ControlHDF5Content/WriteBiasMaps"]               = False
+        sim["ControlHDF5Content/WriteBiasMaps"]               = True
         sim["ControlHDF5Content/WriteSmearingMaps"]           = True
         sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
         sim["ControlHDF5Content/WriteThroughputMaps"]         = True
