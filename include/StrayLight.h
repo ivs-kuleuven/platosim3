@@ -46,11 +46,12 @@ class StrayLight : public HDF5Writer
 
     double getStrayLightMoon(double row, double column);
     // void updateParameters(double time);
-
+    double getStraylightFromAZ(const std::array<double, 5> &electronsAtDetector, double az);
 protected:
     CelestialObject moon;
     CelestialObject earth;
     double getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int nGridPoints);
+
 
     std::vector<GridPoint> getGrid(double radius, unsigned int nPoints);
     void readInFile(std::string orbitPath, std::vector<arma::vec> &sc_pos,
