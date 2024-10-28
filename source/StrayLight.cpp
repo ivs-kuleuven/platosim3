@@ -6,6 +6,7 @@
 #include <numeric>
 #include <sstream>
 #include <vector>
+#include <cmath>
 
 double operator-(Time t1, Time t2);
 double operator-(Time t1, Time t2) { return difftime(t1.t, t2.t); }
@@ -193,12 +194,48 @@ double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos
     }
 
     std::cout << "#6:  electrons at detector" << std::endl;
-    std::cout << "oom: " << electronsAtDetector[0] << " [#e-/ s]" << std::endl;
+    std::cout << "oom: " << electronsAtDetector[0] << " [#e-/ s]\n" << std::endl;
 
-    // We should get the RA value, and from this get the #e / s, afterwards we
+
+
+
+    // pointing vectors
+    double xFPmm, yFPmm;
+    tie(xFPmm, yFPmm) = detector.pixelToFocalPlaneCoordinates(row, column);
+    double az = rad2deg(atan2(yFPmm, xFPmm));
+
+
+    double sl = getStraylightFromAZ(electronsAtDetector, az);
+    // We should get the AZ value, and from this get the #e / s, afterwards we
     // multiply with the exposuretime to get the #e that fall on the pixel.
-    return 4.;
+    return sl;
 }
+
+
+
+
+
+double StrayLight::getStraylightFromAZ(const std::array<double, 5> &electronsAtDetector, double az)
+{
+    arma::mat A(5, 5);
+    for (int idx = 0; idx < 5; idx++)
+    {
+        arma::Row<double> a = { std::pow(AZs[idx], 4), std::pow(AZs[idx], 3), std::pow(AZs[idx], 2), std::pow(AZs[idx], 1), 1};
+        A.row(idx) = a;
+    }
+
+    arma::Col<double> y = {electronsAtDetector[0], electronsAtDetector[1], electronsAtDetector[2], electronsAtDetector[3], electronsAtDetector[4]};
+
+    arma::Col<double> p = arma::inv(A) * y;
+    arma::Row<double> x = {std::pow(az,4), std::pow(az,3), std::pow(az,2), az, 1};
+
+
+    return arma::as_scalar(x*p);
+}
+
+
+
+
 
 
 
