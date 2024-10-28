@@ -1669,6 +1669,8 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
         psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
         comm = f"gen_pflux_ts --psf {psf_path} {self.starID} {self.starID} {self.starID}"
+        print(comm) # DEBUGGING
+        cmd = os.system(comm)
         if cmd != 0:
             self.failed('gen_pflux_ts failed due to the above error!')
 
