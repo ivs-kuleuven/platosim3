@@ -80,9 +80,6 @@ protected:
     extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho_AZ,
 						       std::vector<std::array<double, 4>> &parameters);
 
-    double integrateOverWavelength(std::array<double, 5> &strayLight);
-    template<std::size_t N>
-    double integrate(std::array<double, N> y, std::array<double, N> x);
 
     std::array<double, 4> getCubicParameters(double x_0, double x_1,
                                              double y_0, double y_1,
