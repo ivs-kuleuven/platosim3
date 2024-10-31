@@ -35,13 +35,12 @@ opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print 
 args = parser.parse_args()
 
 # File paths
+if args.verbose: print(f'Processing star {args.starID}')
 star = f'{args.starID}'.zfill(9)
-
 path = Path(args.path).resolve()
 idir = path / 'final'
 odir = path / 'lightcurve'
 odir.mkdir(parents=True, exist_ok=True)
-
 filename_idir = idir / f'lc_{star}.ftr'
 filename_odir = odir / f'lc_{star}.ftr'
 

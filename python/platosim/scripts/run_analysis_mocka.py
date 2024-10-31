@@ -39,7 +39,6 @@ opt_group.add_argument('--bin_size',  metavar='FLOAT', type=float, help='Time bi
 opt_group.add_argument('--snr_thres', metavar='FLOAT', type=float, help='Optimal SNR criterion')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
-opt_group.add_argument('-p', '--prewhit', action='store_true', help='Flag perform prewhitening')
 
 args = parser.parse_args()
 
@@ -53,7 +52,7 @@ star = f'{args.starID}'.zfill(9)
 idir = Path(args.idir).resolve() / star
 odir = Path(args.odir).resolve()
 gdir = Path(args.gdir).resolve()
-odir_final = odir / 'final'
+odir_final = odir / 'lightcurve'
 odir_table = odir / 'table'
 odir_modes = odir / 'modes'
 odir_final.mkdir(parents=True, exist_ok=True)
@@ -86,24 +85,22 @@ ds = lcs.stat_sim_table(filename_tab)
 lc = lcs.merge(suffix='ftr',
                verbose=verbose,
                flux_group_mean=True,
-               clip=ds.mag.iloc[0],
                binsize=bin_size,
+               clip=ds.mag.iloc[0],
                flux_offset=True,
                flux_err=True,
                ofile=filename_ftr)
 
 
-
-# Introducing data gaps
-if args.verbose:
-    print('Introducing data gaps')
-df = lc.gaps(filename_gap, replace=True)
-df = df.dropna()
-
-
 # STAR SHADOW ANALYSIS
 
-if args.prewhit:
+if snr_thres:
+
+    # Introducing data gaps
+    if args.verbose:
+        print('Introducing data gaps')
+    df = lc.gaps(filename_gap, replace=True)
+    df = df.dropna()
     
     # Prepare light curve for starshadow
     df.time /= 86400.
@@ -136,9 +133,11 @@ if args.prewhit:
     df.to_feather(filename_mod)
     os.system(f'chmod 755 {filename_mod}')
 
+    # Remove star shadow light curve
+    filename_dat.unlink()
+    os.system(f'rm -r {folder_hdf5}')
+
     
-# Remove starshadow files
-filename_dat.unlink()
-os.system(f'rm -r {folder_hdf5}')
+# Remove output and starshadow files
 if args.clean:
     os.system(f'rm -r {str(idir)}')
