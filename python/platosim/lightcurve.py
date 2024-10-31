@@ -1769,7 +1769,7 @@ class LightCurve(object):
                 dv['flux'] = dv['sum']
             # Convert to [ppt]
             dv.flux *= 1e3
-        
+
         # Original data frame
         time_old  = df.time / c.day
         flux_old  = df[column]
@@ -1808,14 +1808,14 @@ class LightCurve(object):
         # Plot simulation and trend
         ax[0].plot(time_old,  flux_old,  '.', c='k',      ms=2, alpha=0.1, label='Before')
         ax[0].plot(time_clip, flux_clip, '.', c='tomato', ms=2, alpha=0.8, label='Outliers')
-        ax[0].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
+        ax[0].set_xlim(time_old.iloc[0], time_old.iloc[-1])
         ax[0].set_ylabel(f'Flux [{flux_unit}]')
         ax[0].legend(ncols=2, loc='upper right')
         
         # Plot light curve without outliers
         ax[1].plot(time_new, flux_new, '.', c='k', ms=2, alpha=0.1, label='After')
         ax[1].plot(time_new, flux_med, '-', c='royalblue', lw=0.5,  label='1h median')
-        ax[1].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
+        ax[1].set_xlim(time_old.iloc[0], time_old.iloc[-1])
         ax[1].set_ylabel(f'Flux [{flux_unit}]')
         ax[1].legend(ncols=2, loc='upper right')
 
