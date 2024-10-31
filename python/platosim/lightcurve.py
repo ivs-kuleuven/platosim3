@@ -1218,12 +1218,6 @@ class LightCurve(object):
                     AIC_j = [fit1.aic, fit2.aic, fit3.aic, fit4.aic]
                     BIC_j = [fit1.bic, fit2.bic, fit3.bic, fit4.bic]
                     deg = st.model_selection(AIC_j, BIC_j, show=False)
-                    # Check if a higher degree is needed
-                    #dt = len(time_i)*25/86400
-                    # if dt > 100:
-                    #     if ( (deg == 1 and fit2.bic > fit1.bic) or
-                    #          (deg == 2 and fit3.bic > fit2.bic) ):
-                    #         deg += 1
 
                 # Perform fit
                 if model == 'poly_lowess':
@@ -1732,7 +1726,7 @@ class LightCurve(object):
                                                     sigma_upper=sigma_upper)
             
         elif model == 'wotan':
-            self.df['flux_clip'] = wotan.slide_clip(self.df.time, self.df[column],
+            self.df['flux_clip'] = wotan.slide_clip(self.df.time.to_numpy(), self.df[column].to_numpy(),
                                                     window_length=window*c.day,
                                                     low=sigma_lower,
                                                     high=sigma_upper,
@@ -2593,30 +2587,18 @@ class LightCurve(object):
         if flux_group_mean:
             if verbose: print('Averaging data from same camera group')
             df0 = df0.groupby('time').mean().reset_index()
-            
-        # Perform signma clipping
-        if clip:
-            if verbose: print('Removing outliers')
-            # Perform extra sigma clipping to remove outliers
-            if clip <= 10: sigma = 5
-            elif clip > 10 and clip < 11: sigma = 4.5
-            else: sigma = 4
-            lc  = LightCurve(df0, mode="multi", path=self.path)
-            df0 = lc.clip(model='wotan', replace=True, sigma_lower=sigma, sigma_upper=sigma)
-
-        # Remove NaNs from sigma clipping
-        df0 = df0.dropna()
-                    
-        # Copy light curve object
+                                
+        # Bin data 
         if binsize:
             # Save number of data points in each time bin
             tdur = df0.time.iloc[-1] - df0.time.iloc[0]
             tbin = binsize*3600
             bins = int(tdur/tbin)
             if verbose: print(f'Binning data per {binsize}h')
+
+            # Perform binning
             flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
-            # Specific column for P1 and P5 samples
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
         else:
             binsize = 6.5/3600
@@ -2624,6 +2606,22 @@ class LightCurve(object):
         # Remove potential NaNs from binning
         df0 = df0.dropna()
 
+        # Perform signma clipping
+        if clip:
+            if verbose: print('Removing outliers')
+
+            # Perform extra sigma clipping to remove outliers
+            if clip <= 10: sigma = 5
+            elif clip > 10 and clip < 11: sigma = 4.5
+            else: sigma = 4
+
+            # Perform clipping
+            lc  = LightCurve(df0, mode="multi", path=self.path)
+            df0 = lc.clip(model='wotan', sigma_lower=sigma, sigma_upper=sigma, replace=True)
+            
+            # Remove NaNs from sigma clipping
+            df0 = df0.dropna()
+        
         # Flux offset correction
         if flux_offset:
             if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')
