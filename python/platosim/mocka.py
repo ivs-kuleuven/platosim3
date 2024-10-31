@@ -16,6 +16,7 @@ import pandas as pd
 from tqdm import tqdm
 from pathlib import Path
 import scipy
+import scipy.stats as ss
 
 import matplotlib.pyplot as plt
 from matplotlib import patches, ticker
@@ -676,6 +677,24 @@ def plot_spectype_density(col1, col2, df0):
     return fig
 
 
+#---------------------------------------------------------------
+#  FUNCTIONS FOR NOTEBOOK: 2. Variable Signals
+#---------------------------------------------------------------
+
+def fetch_lognorm_fit(ampl, show=False):
+    grid = 1000
+
+    # Log-norm fit to amplitudes [mag]
+    A_range   = np.linspace(0, ampl.max(), grid)
+    A_param   = ss.lognorm.fit(ampl)
+    A_lognorm = ss.lognorm.pdf(A_range, 
+                               A_param[0], 
+                               loc=A_param[1], 
+                               scale=A_param[2]) + 1e-5
+    if show:
+        print('Log-normal amplitude coefficients for varsim:\n', A_param)
+        
+    return A_range, A_lognorm, A_param
 
 #---------------------------------------------------------------
 #  FUNCTIONS FOR NOTEBOOK: 4. Analysis
