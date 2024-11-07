@@ -82,6 +82,7 @@ class PLATOnium(object):
         
         self.cadence      = args.cadence
         self.simTime      = args.tdur
+        self.simBeginTime = args.bdur
         self.simExposures = args.nexp
         self.simBeginExp  = args.bexp
         self.picID        = args.pic
@@ -519,27 +520,31 @@ class PLATOnium(object):
             sim['ObservingParameters/CycleTime'] = self.cadence
         else:
             self.cadence = sim['ObservingParameters/CycleTime']
-            
-        # Check of begin exposure number is parsed
-        if not self.simBeginExp:
+
+        # Start time of simulation
+        if self.simBeginTime:
+            # Check if begin time is parsed
+            self.simBeginExp = round(self.simBeginTime * 86400 / self.cadence)
+        elif not self.simBeginExp:
+            # Check if begin exposure number is parsed
             self.simBeginExp = 0
-        
+                
         # Apply start time relative mission BOL
         self.beginExposureNr = round(self.timeStart / self.cadence) + self.simBeginExp
         sim['ObservingParameters/BeginExposureNr'] = self.beginExposureNr
 
-        # Duration of time series
+        # Duration of time series [exp]
         if self.simExposures:
             # Setting timeseries by N exposures given by user
             self.numExposures = self.simExposures
         elif self.simTime is not None:
             # Setting timeseries by time given by user
-            self.numExposures = round(self.simTime * 86400. / self.cadence)
+            self.numExposures = round(self.simTime * 86400 / self.cadence)
         else:
             # Setting time series to full quarter
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
-            self.numExposures = round((timeQuarter - 1) * 86400. / self.cadence)
+            self.numExposures = round((timeQuarter - 1) * 86400 / self.cadence)
 
             
         # PHOTOMETRY ALA MARCHIORI
@@ -2003,7 +2008,8 @@ out_group.add_argument('--compress',   action='store_true',      help='Flag to c
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
 sim_group.add_argument('--cadence',  metavar='SEC',  type=float, help='Cadence for each exposure (default: 25 seconds)')
-sim_group.add_argument('--tdur',     metavar='DAY',  type=float, help='Total lenght of shortened quarter time series [days]')
+sim_group.add_argument('--tdur',     metavar='DAY',  type=float, help='Duration of shortened quarter time series [days]')
+sim_group.add_argument('--bdur',     metavar='DAY',  type=float, help='Duration of time to start qurter simulation [days]')
 sim_group.add_argument('--nexp',     metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
 sim_group.add_argument('--bexp',     metavar='NO.',  type=int,   help='Number of exposure to start from beginning of quarter')
 sim_group.add_argument('--pic',      metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')
