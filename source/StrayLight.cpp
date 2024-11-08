@@ -206,17 +206,37 @@ double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos
 
 
     double sl = getStraylightFromAZ(electronsAtDetector, az);
-    // We should get the AZ value, and from this get the #e / s, afterwards we
-    // multiply with the exposuretime to get the #e that fall on the pixel.
-    return sl;
+
+    return sl*cycleTime;
 }
 
 
 
 
 
+/**
+ *
+ * \brief: Extrapolate the straylight [#e-/s]for the value az. The straylight is
+ *         is known for all the values in AZs and given in electronsAtDetector.
+ *
+ * \param: electronsAtDetector   The values in straylight for the values in AZs.
+ * \param: az                    The az value for which we want the straylight.
+ *
+ * \note: The straylight is known at five points (AZs), we can connect these
+ *        points with a fourth order polynomial with coefficients given by
+ *        column p. These coefficients are defined such that for any i in
+ *        {0,1,2,3,4},
+ *        for a[i] = { AZs[i]^4, AZs[i]^3, AZs[i]^2, AZs[i], 1}, we have
+ *        a * p = y[i] = electronsAtDetector[i]. This can be expressed as
+ *        A*p = y, where the matrix A's ith row is a[i]. Thus p can be found by
+ *        p = A^-1 * y. The straylight s at az is then given by:
+ *        s = sum_i=0^4 p[i] az^(4-i).
+ *       
+ */
 double StrayLight::getStraylightFromAZ(const std::array<double, 5> &electronsAtDetector, double az)
 {
+
+    // We define the matrix A
     arma::mat A(5, 5);
     for (int idx = 0; idx < 5; idx++)
     {
@@ -224,36 +244,17 @@ double StrayLight::getStraylightFromAZ(const std::array<double, 5> &electronsAtD
         A.row(idx) = a;
     }
 
+
+    // Define the Col y
     arma::Col<double> y = {electronsAtDetector[0], electronsAtDetector[1], electronsAtDetector[2], electronsAtDetector[3], electronsAtDetector[4]};
 
+    // p is given by p = A^-1 * y
     arma::Col<double> p = arma::inv(A) * y;
+
+
     arma::Row<double> x = {std::pow(az,4), std::pow(az,3), std::pow(az,2), az, 1};
-
-
     return arma::as_scalar(x*p);
 }
-
-
-
-
-
-
-
-double StrayLight::integrateOverWavelength(std::array<double, 5> &strayLight)
-{
-    // return std::accumulate(std::begin(strayLight), std::begin(strayLight)+4,
-    // 0);
-    double sum = 0;
-    for (int i = 0; i < 5; i++)
-    {
-        sum += strayLight[i];
-    }
-    return sum;
-}
-
-
-
-
 
 
 
@@ -644,23 +645,37 @@ void StrayLight::getPST(std::string pstPath)
 
 
 
+/**
+ *
+ * \brief: This function gets the pst function at 3 wavelengths. We use a quadratic
+ *         interpolation to get the pst at wavelengths 400nm -> 1125nm in steps
+ *         of 25nm.
+ *
+ * \param: wl[3]       the 3 wavelengths values where the pst is known
+ * \param: pst[3]      the 3 pst values.
+ *
+ * \note: The qudratic polynoom is given by: a*x^2 + b*x + c = y
+ */
 std::array<double, 29> StrayLight::interpolatePST(double wl[3], double pst[3])
 {
     double N = (std::pow(wl[0], 2) - std::pow(wl[1], 2)) * (wl[0] - wl[2]) -
                (std::pow(wl[0], 2) - std::pow(wl[2], 2)) * (wl[0] - wl[1]);
 
+    // Get a value
     double a = (wl[0] - wl[2]) * (pst[0] - pst[1]) -
                (wl[0] - wl[1]) * (pst[0] - pst[2]);
     a = a / N;
 
+    // Get the b value
     double b = (std::pow(wl[0], 2) - std::pow(wl[1], 2)) * (pst[0] - pst[2]) +
                (std::pow(wl[2], 2) - std::pow(wl[0], 2)) * (pst[0] - pst[1]);
     b = b / N;
 
+    // Get the c value
     double c = pst[0] - a * std::pow(wl[0], 2) - b * wl[0];
 
 
-    // Wavelength range (400nm -> 1125nm)
+    // Extrapolate for value range (400nm -> 1125nm, in steps of 25nm)
     std::array<double, 29> pst_interpolated;
     for (int i = 0; i < 29; i++)
     {
@@ -682,6 +697,21 @@ std::array<double, 29> StrayLight::interpolatePST(double wl[3], double pst[3])
 
 
 
+/**
+ *
+ * \brief: This function extrapolates the pst values for different
+ *         irradiance_alpha values that are given from the pst values
+ *         at the angles rho_a.
+ *
+ * \param: rho_a                 rho angles for which we know the pst values.
+ * \param: PST                   the PSt values for the angles rho_a
+ * \param: irradiance_alpha      the irradiance angles for which we want to
+ *                               interpolate the PST.
+ *
+ * \note: This function uses a PCHIP 1-D monotonic cubic interpolation.
+ *        https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html
+ *
+ */
 std::array<std::vector<arma::vec>, 5>
 StrayLight::interpolatePSToverRho(
     std::array<std::vector<int>, 5> &rho_a,
@@ -696,8 +726,6 @@ StrayLight::interpolatePSToverRho(
         std::vector<int> rho_AZ = rho_a[az];
 
         std::vector<arma::vec> PST_interpolated_AZ;
-        // PST_interpolated_AZ.reserve(PST_AZ.size());
-
         std::array<std::vector<double>, 29> transposed_PST_interpolated_AZ;
 
         // Interpolate for every wavelength
@@ -776,6 +804,19 @@ StrayLight::interpolatePSToverRho(
 
 
 
+
+/**
+ *  /brief: extrapolate the values for irradiance_alpha for the piecewise qubic
+ *          polynomial defined by parameters defined at the angles rho.
+ *
+ * \param: irradiance_alpha:  the angles for which we want the obtain the values
+ * \param: rho:               the angles that define the intervals where the
+ *                            piecwise function is defined.
+ * \param: parameters:        the parameters that define the cubic polynoom
+ *                            in the intervales given by rho.
+ *
+ * \note: This function is only used in StrayLight::interpolatePSToverRho
+ */
 std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho, std::vector<std::array<double, 4>> &parameters)
 {
 
@@ -806,7 +847,9 @@ std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alph
 
 
 
-
+/**
+ * TODO
+ */
 std::array<std::vector<double>,5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<arma::vec>, 5> &straylight)
 {
 
@@ -865,9 +908,9 @@ std::array<std::vector<double>,5> StrayLight::getNumberOfStraylightPhotoelectron
  * \details: See scipy PchipInterpolator (https://t.ly/8cqwu)
  *
  * \return: Array (parameters) with four parameters that define a cubic
-polynomial so that:
+ *          polynomial so that:
  *          f(x) = parameters[0]*x^3 + parameters[1]*x^2 + parameters[2]*x +
-parameters[3], and
+ *          parameters[3], and
  *          f(x_0) = y_0; f(x_1) = y_1; f'(x_0) = d0; f'(x_1) = d1
  *
  * \param: pstPath  Path to the corresponding PST file.
@@ -900,7 +943,9 @@ std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
 
 
 
-
+/**
+ * TODO
+ */
 std::tuple<std::vector<double>, std::vector<double>, std::vector<arma::vec>,
            std::vector<arma::vec>>
 StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
@@ -1009,7 +1054,9 @@ StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
 
 
 
-
+/**
+ * TODO
+ */
 Time::Time(std::string datetime)
 {
 
