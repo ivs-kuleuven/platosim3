@@ -42,8 +42,6 @@ class SkyBackGround(Test):
         # Make sure no star does not fall in the sub field.
         self.sim["CCD/Position"] = "3"
 
-        print("DONE")
-
 
 
 

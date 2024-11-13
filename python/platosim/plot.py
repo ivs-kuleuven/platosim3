@@ -72,7 +72,7 @@ def getAxesMinMax(x=None, y=None, percentage=2):
         x = np.sort(x)
         axmin = x[0]  - (x[-1]-x[0])*pt
         axmax = x[-1] + (x[-1]-x[0])*pt
-        
+
     if y is not None:
         y = np.sort(y)
         axmin = np.min(y) - (np.max(y)-np.min(y))*pt
@@ -677,16 +677,6 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
     fovMm      = focalLength * np.tan(np.radians(fovDegrees))
 
-    def mm2pixels(distanceMm):
-        """
-        Conversion from millimeters to pixels.
-        :param distanceMm: Distance [mm].
-        :return distancePixels: Distance [pixels].
-        """
-        distancePixels = (np.degrees( np.arctan(distanceMm / focalLength)) /
-                          plateScale * c.degree / c.arcsec)
-        return distancePixels
-
     sign = lambda x: (1, -1)[x < 0]
 
     xFP = np.array([])
@@ -754,14 +744,15 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     yPixels = np.copy(yFP)
 
     for group in range(numGroups):
-        xPixels[group] = mm2pixels(xPixels[group])  # [mm] -> [pixels]
-        yPixels[group] = mm2pixels(yPixels[group])  # [mm] -> [pixels]
+        # [mm] -> [pixels]
+        xPixels[group] = ut.mm2pixels(xPixels[group], focalLength, plateScale)  
+        yPixels[group] = ut.mm2pixels(yPixels[group], focalLength, plateScale)
 
     index = 0
 
     cornersX, cornersY = rf.computeCCDcornersInFocalPlane(refCcdCode, pixelSize)
-    offsetX = mm2pixels(cornersX[index]) + xPixels[refGroup - 1]
-    offsetY = mm2pixels(cornersY[index]) + yPixels[refGroup - 1]
+    offsetX = ut.mm2pixels(cornersX[index], focalLength, plateScale) + xPixels[refGroup - 1]
+    offsetY = ut.mm2pixels(cornersY[index], focalLength, plateScale) + yPixels[refGroup - 1]
 
     # Correct input pixel coordinates to match orientation of CCD origin
     
@@ -799,8 +790,8 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     for ccdCode in ccdCodes:
         cornersX, cornersY = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
         for corner in range(numCorners):
-            cornersX[corner] = mm2pixels(cornersX[corner])
-            cornersY[corner] = mm2pixels(cornersY[corner])
+            cornersX[corner] = ut.mm2pixels(cornersX[corner], focalLength, plateScale)
+            cornersY[corner] = ut.mm2pixels(cornersY[corner], focalLength, plateScale)
         cornersX = np.append(cornersX, cornersX[0])  # [mm]
         cornersY = np.append(cornersY, cornersY[0])  # [mm]
         for group in range(numGroups):
@@ -1030,7 +1021,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
-                         cbarOrientation=None, cbarMap='rainbow',
+                         cbarOrientation=None, cbarMap='rainbow', color='r',
                          figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
@@ -1104,10 +1095,14 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
         cbarMap = None
         
     # Plot the targets on the sky (autumn_r, rainbow)
-    
-    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
-                     s=ms, cmap=cbarMap, zorder=3)
 
+    if magStars is not None:
+        im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
+                         s=ms, cmap=cbarMap, zorder=3)
+    else:
+        im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=color,
+                         s=ms, zorder=3)
+        
     # Vertical or horizontal colorbar showing magnitudes
 
     if magStars is not None:
@@ -1252,7 +1247,7 @@ def compass(ax, x, y, size):
             
 def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1,
-                 c=None, clabel=None, cmap='Spectral', s=40,
+                 c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
                  showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
                  title=None, fs=20, figsize=(9,9)):
 
@@ -1384,11 +1379,11 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
         if c is None:
             scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
                                  transform=ax.get_transform('world'), 
-                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
+                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=lw, zorder=5)
         else:
             scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
                                  transform=ax.get_transform('world'), 
-                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=0.1, zorder=5)
+                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=lw, zorder=5)
             cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
             cbar.set_label(clabel)
 
@@ -2248,9 +2243,12 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
 
 
 def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
-                       yscale="log", cmap="coolwarm", show_targets=False,
-                       show_ncam_noise_limits=False, show_saturation_limits=False,
-                       grid=True, legend=False, figsize=(10,6)):
+                       yscale="log", cmap="rainbow",
+                       show_targets=False,
+                       show_ncam_noise_limits=False,
+                       show_saturation_limits=False,
+                       grid=False, legend=False, cbar_extend=None,
+                       figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
 
@@ -2342,7 +2340,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         column_label = column
     
     if norm is None:
-        cb = plt.colorbar(im, extend="both", pad=0.01)
+        cb = plt.colorbar(im, extend=cbar_extend, pad=0.01)
         cb.set_label(column_label)
     else:
 
@@ -2353,7 +2351,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
             column_label = r'$n_{\rm contaminants}$'
             
         # Plot the colorbar
-        cb = plt.colorbar(im, extend="max", pad=0.01, spacing='proportional',
+        cb = plt.colorbar(im, extend=cbar_extend, pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
         cb.set_label(column_label)
         cb.minorticks_off()
@@ -2398,25 +2396,31 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     if show_ncam_noise_limits:
         
         # Magnitude range
-        mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
+        #mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
+        mag = np.linspace(0, 20, 100)
 
-        # Jitter noise
-        rms = 0.037
+        # 
         if show_ncam_noise_limits == 1:
+            ncam  = 1
             level = 'camera'
         else:
+            ncam  = 24
             level = 'instrument'
+        
+        # Jitter noise
+        rms = 0.04
         noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
-        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
+        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
+                   label='Jitter noise')
 
         # Photon noise
         ncams = show_ncam_noise_limits
         noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
-        ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
-                zorder=2, label='Photon noise')
+        ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2,
+                label='Photon noise')
         
         # Background and readout noise
-        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband)
+        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband, ncam=ncam)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
@@ -3046,7 +3050,6 @@ def plot_final_lc(lc, figsize=(9,8)):
     """
 
     # Fetch component or set to zero
-    
     zeros = np.zeros(len(lc['time']))
     if 'gran'  not in lc: lc.gran  = zeros.tolist()
     if 'puls'  not in lc: lc.puls  = zeros.tolist()
@@ -3055,10 +3058,14 @@ def plot_final_lc(lc, figsize=(9,8)):
     if 'tran'  not in lc: lc.tran  = zeros.tolist()
 
     # Handle time units
-    
-    time    = lc.time / 86400.
-    p_modes = lc.gran + lc.puls
-    
+    time = lc.time / 86400.
+
+    # Make sure p mode plot is valid
+    if ('gran' not in lc) and ('puls' not in lc):
+        p_modes = zeros.tolist()
+    else:
+        p_modes = lc.gran + lc.puls
+
     # Start plotting
     
     fig, ax = plt.subplots(5, 1, figsize=figsize, sharex=True)
@@ -3393,13 +3400,13 @@ def plotHistogramSED(df, title=False, figsize=(8,15)):
     ax[4].hist(df12.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[1], lw=lw)
     ax[4].hist(df18.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[2], lw=lw)
     ax[4].hist(df24.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[3], lw=lw)
-    ax[4].set_xlabel(r'Surface gravity, log $g$ [dex]')
+    ax[4].set_xlabel(r'Surface gravity, log $g$')
 
     ax[5].hist(df06.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='6',  ec=c[0], lw=lw)
     ax[5].hist(df12.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='12', ec=c[1], lw=lw)
     ax[5].hist(df18.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='18', ec=c[2], lw=lw)
     ax[5].hist(df24.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='24', ec=c[3], lw=lw)
-    ax[5].set_xlabel(r'Metallicity, $Z$ [dex]')
+    ax[5].set_xlabel(r'Metallicity, [Fe/H]')
     ax[5].legend(loc='upper left')
 
     for i in range(6):
@@ -3624,7 +3631,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
             if len(col) > 1:
                 ims.append([imagePlot, title, coor_tar, coor_con])
             else:
-                ims.append([imagePlot, title, coor_tar, mask])
+                ims.append([imagePlot, title, coor_tar])
         else:
             ims.append([imagePlot, title])
 

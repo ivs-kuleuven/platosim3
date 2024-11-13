@@ -171,7 +171,7 @@ Notes on PIC catalogue creation:
       - Magnitude completeness of contaminants    : Pmag < 17 mag
       - Maximum radial contaminat-target distance : Rmax < 45 arcsec
       - Calibration methods: The Gaia DR3 colour information (BP-RP)
-        and extinction maps are sued to derive the PLATO magnitudes.
+        and extinction maps are used to derive the PLATO magnitudes.
     PIC110:
       - Magnitude completeness of contaminants    : Vmag < 17 mag
       - Maximum radial contaminat-target distance : Rmax < 60 arcsec
@@ -1066,14 +1066,20 @@ Notes on PIC catalogue creation:
         # Remove duplicate stars (from overlapping grid)
         df = df.drop_duplicates(subset=['gaiaDR3'])
 
+        if self.verbose > 1:
+            print(f'Number of objects in stellar catalogue: {df.shape[0]}')
+        
         # Replace missing Gaia colors assuming M0 dwarfs
         if df.BP_RP.isna().sum() > 0:
             df.BP_RP[df.BP_RP.isna()] = 2.0
-            
+
         # Convert Gmag to Pmag
-        df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
-        df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
-        df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
+        if self.quasar:
+            df = df.rename(columns={'Gmag': 'Pmag'})
+        else:
+            df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
+            df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
+            df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
 
         # If requested, add bright stars not available in the Gaia catalogue (G > 2)
         # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}

@@ -1218,12 +1218,6 @@ class LightCurve(object):
                     AIC_j = [fit1.aic, fit2.aic, fit3.aic, fit4.aic]
                     BIC_j = [fit1.bic, fit2.bic, fit3.bic, fit4.bic]
                     deg = st.model_selection(AIC_j, BIC_j, show=False)
-                    # Check if a higher degree is needed
-                    #dt = len(time_i)*25/86400
-                    # if dt > 100:
-                    #     if ( (deg == 1 and fit2.bic > fit1.bic) or
-                    #          (deg == 2 and fit3.bic > fit2.bic) ):
-                    #         deg += 1
 
                 # Perform fit
                 if model == 'poly_lowess':
@@ -1377,7 +1371,7 @@ class LightCurve(object):
 
     
     
-    def plot_detrend(self, df, column='flux', figsize=(9,10)):
+    def plot_detrend(self, df, column='flux', plot_oc=True, figsize=(9,7)):
 
         """Plot a detrended light curve and make a O-C plot.
         """
@@ -1385,7 +1379,7 @@ class LightCurve(object):
         # Get varsource light curve
         rows = 2
         lc_var = self.varsource()
-        if lc_var is not None:
+        if lc_var is not None and plot_oc:
             rows = 4
             varsource = True
             time_var = lc_var["time"] / c.day
@@ -1434,7 +1428,7 @@ class LightCurve(object):
         ax[1].legend(ncol=2, markerscale=5, loc='upper right')
         
         # Compare to model
-        if lc_var is not None:
+        if plot_oc and lc_var is not None:
             
             # Plot detrend-median vs input
             flux_var -= np.median(flux_var)
@@ -1463,7 +1457,7 @@ class LightCurve(object):
         for i in dex[1:-1]:
             ax[0].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             ax[1].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
-            if lc_var is not None:
+            if lc_var is not None and plot_oc:
                 ax[2].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
                 ax[3].axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
             
@@ -1732,7 +1726,7 @@ class LightCurve(object):
                                                     sigma_upper=sigma_upper)
             
         elif model == 'wotan':
-            self.df['flux_clip'] = wotan.slide_clip(self.df.time, self.df[column],
+            self.df['flux_clip'] = wotan.slide_clip(self.df.time.to_numpy(), self.df[column].to_numpy(),
                                                     window_length=window*c.day,
                                                     low=sigma_lower,
                                                     high=sigma_upper,
@@ -1754,7 +1748,7 @@ class LightCurve(object):
             
 
     
-    def plot_clip(self, df, column='flux', flux_unit='e/s', figsize=(9,10)):
+    def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,10)):
 
         """Plot a clipped light curve for outliers.
         """
@@ -1762,7 +1756,7 @@ class LightCurve(object):
         # Get varsource light curve        
         rows = 2
         dv = self.varsource()
-        if dv is not None:
+        if plot_oc and dv is not None:
             rows = 3
             dv.time /= 86400.
             # Compatability
@@ -1775,7 +1769,7 @@ class LightCurve(object):
                 dv['flux'] = dv['sum']
             # Convert to [ppt]
             dv.flux *= 1e3
-        
+
         # Original data frame
         time_old  = df.time / c.day
         flux_old  = df[column]
@@ -1814,19 +1808,19 @@ class LightCurve(object):
         # Plot simulation and trend
         ax[0].plot(time_old,  flux_old,  '.', c='k',      ms=2, alpha=0.1, label='Before')
         ax[0].plot(time_clip, flux_clip, '.', c='tomato', ms=2, alpha=0.8, label='Outliers')
-        ax[0].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
+        ax[0].set_xlim(time_old.iloc[0], time_old.iloc[-1])
         ax[0].set_ylabel(f'Flux [{flux_unit}]')
         ax[0].legend(ncols=2, loc='upper right')
         
         # Plot light curve without outliers
         ax[1].plot(time_new, flux_new, '.', c='k', ms=2, alpha=0.1, label='After')
         ax[1].plot(time_new, flux_med, '-', c='royalblue', lw=0.5,  label='1h median')
-        ax[1].set_xlim(time_clip.iloc[0], time_clip.iloc[-1])
+        ax[1].set_xlim(time_old.iloc[0], time_old.iloc[-1])
         ax[1].set_ylabel(f'Flux [{flux_unit}]')
         ax[1].legend(ncols=2, loc='upper right')
 
         # Plot detrend-median vs. input
-        if dv is not None:
+        if plot_oc and dv is not None:
             ax[2].plot(time_new, flux_med, '-', c='royalblue', lw=0.5, alpha=1.0)
             ax[2].plot(dv.time,  dv.flux,  '-', c='darkblue',  lw=1.0, alpha=1.0,
                        label="Input model")
@@ -2425,7 +2419,7 @@ class LightCurve(object):
         # Plot quarter marks
         ymax = np.max(flux_max)
         ypos = ymax + ymax * ax.margins()[1]/3
-        for q in np.unique(Q)[:-1]:
+        for q in np.unique(Q)[:]:
             time_Q = q*ut.quarter()
             xpos = time_Q - 50
             if q > 9: xpos -= 10
@@ -2593,30 +2587,18 @@ class LightCurve(object):
         if flux_group_mean:
             if verbose: print('Averaging data from same camera group')
             df0 = df0.groupby('time').mean().reset_index()
-            
-        # Perform signma clipping
-        if clip:
-            if verbose: print('Removing outliers')
-            # Perform extra sigma clipping to remove outliers
-            if clip <= 10: sigma = 5
-            elif clip > 10 and clip < 11: sigma = 4.5
-            else: sigma = 4
-            lc  = LightCurve(df0, mode="multi", path=self.path)
-            df0 = lc.clip(model='wotan', replace=True, sigma_lower=sigma, sigma_upper=sigma)
-
-        # Remove NaNs from sigma clipping
-        df0 = df0.dropna()
-                    
-        # Copy light curve object
+                                
+        # Bin data 
         if binsize:
             # Save number of data points in each time bin
             tdur = df0.time.iloc[-1] - df0.time.iloc[0]
             tbin = binsize*3600
             bins = int(tdur/tbin)
             if verbose: print(f'Binning data per {binsize}h')
+
+            # Perform binning
             flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
-            # Specific column for P1 and P5 samples
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
         else:
             binsize = 6.5/3600
@@ -2624,6 +2606,22 @@ class LightCurve(object):
         # Remove potential NaNs from binning
         df0 = df0.dropna()
 
+        # Perform signma clipping
+        if clip:
+            if verbose: print('Removing outliers')
+
+            # Perform extra sigma clipping to remove outliers
+            if clip <= 10: sigma = 5
+            elif clip > 10 and clip < 11: sigma = 4.5
+            else: sigma = 4
+
+            # Perform clipping
+            lc  = LightCurve(df0, mode="multi", path=self.path)
+            df0 = lc.clip(model='wotan', sigma_lower=sigma, sigma_upper=sigma, replace=True)
+            
+            # Remove NaNs from sigma clipping
+            df0 = df0.dropna()
+        
         # Flux offset correction
         if flux_offset:
             if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')

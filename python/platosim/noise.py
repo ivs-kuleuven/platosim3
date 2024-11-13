@@ -154,6 +154,7 @@ def DFTpower2(time, signal, freqs):
 
 
 
+
 def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
 
     import astropy.timeseries as apy
@@ -208,7 +209,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     Paramters
     ---------
     time : ndarray, pdframe
-        Time points of which light curve will be generated [s]
+        Time points of which light curve will be generated [d]
     freq : ndarray, pdframe
         Frequencies of sinusoids [c/d]
     ampl : ndarray, pdframe
@@ -353,6 +354,38 @@ def timeSeriesFromMeanPSD(freq, psd):
 
 
 
+
+
+
+def apodization_correction(nu, dt):
+
+    """Amplitude correction due to apodization.
+
+    This function calculates the amplitude correction needed to account
+    for apodization (c.f. Hekker & Christensen-Dalsgaard, 2017) for a
+    amplitude spectrum (hence now a power spectrum as in the paper).
+
+    NOTE: NumPy defined the normalized sinc() function, but apodization
+          is defined by the unnormalized sinc() function. Hence, we have
+          removed the normalization factor of pi in the original Equation.
+  
+    Parameters
+    ----------
+    nu : float, ndarray
+        Frequency of pulsations amplitudes [c/d]
+    dt : float
+        Sampling rate (or cadence) of instruement [s]
+
+    Returns
+    -------
+    Apodization factor to be multiplied with observed amplitudes 
+    c.f. Bowman & Kurtz (2018).
+    """
+
+    # Nyquist frequency of instrument [c/d]
+    nu_Nyquist = 86400 / (2 * dt)
+
+    return np.sqrt(np.sinc(nu/nu_Nyquist)**(-2))
 
 
 #--------------------------------------------------------------#
@@ -624,7 +657,7 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
     ax.axvline(x=snr_fap1, c=c[1], ls="--", lw=1.5, zorder=2)
     ax.axvline(x=snr_fap2, c=c[2], ls="--", lw=1.5, zorder=2)
     # Labels
-    ax.set_xlabel(r'SNR amplitude')
+    ax.set_xlabel(r'SNR')
     ax.set_ylabel('Number of stars')
     # Settings
     ax.legend(loc='upper right')
@@ -1019,13 +1052,15 @@ def getAPE(alpha, delta, kappa, sigma=3,
 
 
 
-def getTED(quarter, model="poly", wheel_offloading=True, ampl=2,
+def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
            ofile=False, seed=None, table=False, plot=False):
 
     """Generate a Themo-Elastic Drift (TED) file.
    
     This function generates a complete TED model returned in euler angles.
-    
+
+    TODO Wheel offloading events needs more investigations before usage.
+
     Paramters
     ---------
     quarter : range
@@ -1124,9 +1159,9 @@ def getTED(quarter, model="poly", wheel_offloading=True, ampl=2,
                 ampl += ampl * rng.uniform(-0.1, 0.1)
                 # Directional (yaw, picth)
                 if col in ['yaw', 'pitch']:
-                    a = df_dir[f'ncam{dex}'] * ampl / 100
+                    a = df_dir[f'ncam{dex}'] * ampl / 1000
                 else:
-                    a = df_rot[f'ncam{dex}'] * ampl / 100
+                    a = df_rot[f'ncam{dex}'] * ampl / 1000
                 spline = make_interp_spline(t, a, k=2)
                 wheel  = spline(time0)            
                 df1[col] += wheel

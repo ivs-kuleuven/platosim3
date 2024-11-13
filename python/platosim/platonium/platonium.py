@@ -37,6 +37,7 @@ from scipy.interpolate import interp1d, CubicSpline
 # PlatoSim functions
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
+import platosim.statistics      as st
 from platosim.simulation   import Simulation
 from platosim.simfile      import SimFile
 from platosim.utilities    import errorcode, pdAddColumn, getPointingField
@@ -198,7 +199,7 @@ class PLATOnium(object):
         
         # Check if the inputfile.yaml exists
         if not self.inputFile.is_file():
-            errorcode('error', f'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')        
+            errorcode('error', 'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')        
             
         # Pipeline paths
         if self.pipeline:
@@ -753,8 +754,7 @@ class PLATOnium(object):
         decTargetRad   = np.deg2rad(self.df['dec'])
         
         self.isOnCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
-                                                           numColSubfield, numRowSubfield,
-                                                           normal=normal)
+                                                           numColSubfield, numRowSubfield)
         if not self.isOnCCD:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
@@ -1148,7 +1148,6 @@ class PLATOnium(object):
                 
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
-
         
         # FULL-FRAME CCD IMAGE
         
@@ -1158,6 +1157,9 @@ class PLATOnium(object):
             # Fetch simulation and stellar positions
             f = SimFile(outputFile)
             ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
+
+            print(self.dx)
+            print(len(ID))
             
             # Select detected stars
             df = self.dx.iloc[ID]
@@ -1358,9 +1360,23 @@ class PLATOnium(object):
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
-            
+        # # Compute the residuals
+        # df['flux_res'] = df.flux #(df.flux - 1)*1e6
 
+        # # Regression model of residuals
+        # import statsmodels.api as sm
+        # lc = df.rename(columns={'time':'x', 'flux_res':'y'})
+        # lc['x'] = lc['x'].subtract(lc['x'].min())
+        # model = 'y ~ x'
+        # lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
+        # lsFit.summary(alpha=0.05)
 
+        # # Plot regression model and residuals
+        # st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
+        #                  xlab='Time [days]', ylab='Residuals [ppt]')
+        # st.plot_residuals(lc, lsFit, theme='g')
+        # st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
+        
         
     #--------------------------------------------------------------#
     #                    L1 PIPELINE MODULES                       #
@@ -1444,7 +1460,7 @@ class PLATOnium(object):
             # Load file
             data = np.loadtxt(spiralFileBase)
             t, x, y, z = data[:,0], data[:,1], data[:,2], data[:,3]
-            # Generate new time column
+             # Generate new time column
             cadence = np.diff(t)[0]  # [s -> 8 Hz]
             t = np.arange(len(t)) * cadence + self.timeStart
             # Save data to input folder
