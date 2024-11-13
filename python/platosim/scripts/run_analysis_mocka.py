@@ -55,12 +55,17 @@ gdir = Path(args.gdir).resolve()
 odir_final = odir / 'lightcurve'
 odir_table = odir / 'table'
 odir_modes = odir / 'modes'
+
+# Create folders
 odir_final.mkdir(parents=True, exist_ok=True)
 odir_table.mkdir(parents=True, exist_ok=True)
-odir_modes.mkdir(parents=True, exist_ok=True)
 os.system(f'chmod 755 {odir_final}')
 os.system(f'chmod 755 {odir_table}')
-os.system(f'chmod 755 {odir_modes}')
+if snr_thres:
+    odir_modes.mkdir(parents=True, exist_ok=True)
+    os.system(f'chmod 755 {odir_modes}')
+
+# Define filenames
 filename_final = f'lc_{star}'
 filename_table = f'table_{star}'
 filename_modes = f'modes_{star}'
