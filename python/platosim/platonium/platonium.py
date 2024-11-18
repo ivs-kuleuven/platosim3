@@ -1592,7 +1592,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
-        comm = f"gen_psfinv --bsres {self.bsres} {self.starID} {self.starID} {self.starID}"
+        comm = f"gen_psfinv --bsres {self.bsres} {self.starID} {self.starID} {self.microscanDirInvers}"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1601,7 +1601,7 @@ class PLATOnium(object):
         # check the performance of the inversion!
         if self.verbose > 1:
             errorcode('message', '\n[psfinv_quality]: Check the PSF inversion quality')
-        comm = f"psfinv_quality {self.starID}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
+        comm = f"psfinv_quality {self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1917,11 +1917,18 @@ class PLATOnium(object):
         prefixStarIDsim = self.outputDirStarIDsim / self.starID
         prefixStarIDnew = self.outputDirStarIDnew / self.outputFileName
 
+        print(f"prefixInversion {prefixInversion}")
+        print(f"prefixStarIDtar {prefixStarIDtar}")
+        print(f"prefixStarIDsim {prefixStarIDsim}")
+        print(f"prefixStarIDnew {prefixStarIDnew}")
+
         # Create a info table of simulation
+        print(f"create_sim_table({self.outputDirStarIDnew})")
         self.create_sim_table(self.outputDirStarIDnew)
 
         # Fetch P1 light curve
         if args.sample == 'P1':
+            print(f"P1 load {prefixStarIDtar}.dat file")
             cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'cy_err', 'bg_err',
                     'chi2', 'iter', 'lamb']
             try:
@@ -1936,23 +1943,27 @@ class PLATOnium(object):
 
             # If jitter/drift correction is applied or not
             if self.jitterDriftOff:
+                print(f"P5 load {prefixStarIDtar}.dat file")
                 df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
                                  names=cols[:3], usecols=cols[:3])
             else:
+                print(f"P5 load {prefixStarIDtar}-jc.dat file")
                 df = pd.read_csv(f'{prefixStarIDtar}-jc.dat', delimiter=' ', comment='#',
                                  names=cols, usecols=cols)
                 
             # Move the SPR file
+            print(f"Move the spr file {prefixStarIDtar}-sprtot.dat -> {prefixStarIDnew}.spr")
             shutil.move(f'{prefixStarIDtar}-sprtot.dat', f'{prefixStarIDnew}.spr')
             
             # Move mask files number after mask update exposure
             maskfits = glob.glob(f'{prefixStarIDtar}**mask.fits')
             for i in range(len(maskfits)):
+                print(f"{maskfits[i]} -> {prefixStarIDnew}{maskfits[i][-17:]}")
                 shutil.move(maskfits[i], f'{prefixStarIDnew}{maskfits[i][-17:]}')
         
         # Prologue if data frame exist
         if df is not None:
-
+            print(f"df is not None")
             # Add a proper time column
             df = pdAddColumn(df, self.time, 'time')
 
@@ -1964,31 +1975,44 @@ class PLATOnium(object):
             df = df.reset_index()
             
             # Save new data frame
+            print(f"Saving file {prefixStarIDnew}.ftr")
             df.to_feather(f'{prefixStarIDnew}.ftr')
             
             # Move files to new data directory
+            print(f"Move {prefixInversion}_PRLS_invert.log -> {prefixStarIDnew}.invert")
             shutil.move(f'{prefixInversion}_PRLS_invert.log', f'{prefixStarIDnew}.invert')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
+            print(f"Removing {self.microscanDirStarID} {self.microscanDirInvers} {self.outputDirStarIDsim}")
             shutil.rmtree(self.microscanDirStarID)
             shutil.rmtree(self.microscanDirInvers)
             shutil.rmtree(self.outputDirStarIDsim)
 
         # Give full read/write access
+        print(f"chmod 755 {prefixStarIDnew}*")
         os.system(f'chmod 755 {prefixStarIDnew}*')
         
         # Compress files
         if self.compress:
+            print("Compressing...")
             if self.verbose > 1:
                 print('Compressing files')
-            os.system(f'zip -j {prefixStarIDnew}.zip {prefixStarIDnew}* {self.devnull}')
-            os.system(f"find {self.outputDirStarIDnew} -type f -not -name '*.zip' -delete {self.devnull}")
-            os.system(f'chmod 755 {prefixStarIDnew}.zip')
+            comm1 = f'zip -j {prefixStarIDnew}.zip {prefixStarIDnew}* {self.devnull}'
+            comm2 = f"find {self.outputDirStarIDnew} -type f -not -name '*.zip' -delete {self.devnull}"
+            comm3 = f'chmod 755 {prefixStarIDnew}.zip'
+            print(comm1)
+            os.system(comm1)
+            print(comm2)
+            os.system(comm2)
+            print(comm3)
+            os.system(comm3)
 
         # If requested move file to final output directory (for cluster)
         if self.storageDir:
-            os.system(f'mv {prefixStarIDnew}.* {self.storageDir}')
+            comm4 = f'mv {prefixStarIDnew}.* {self.storageDir}'
+            print(comm4)
+            os.system(comm4)
             
         # Execution time of module
         if self.verbose > 1:
