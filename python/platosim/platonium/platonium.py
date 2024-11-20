@@ -2016,7 +2016,7 @@ class PLATOnium(object):
             df = pdAddColumn(df, self.time, 'time')
 
             # Formatting of data frame
-            if args.sample == 'P1': df = df.astype({'time':np.float64, 'iter':int})
+            if args.sample == 'P1': df = df.astype({'time':np.float64})
             if args.sample == 'P5': df = df.astype({'time':np.float64})
             
             # Feather format needs to be indiced!
