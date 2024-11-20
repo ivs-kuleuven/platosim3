@@ -1124,7 +1124,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     right_top_idx = idx_right[rightDistanceFromPointy >= 0]
     if (len(right_top_idx) == 0):
-        return xFpmm, yFPmm
+        return xFPmm, yFPmm
     else:
         idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
         idx_selected[3] = right_top_idx[idx_closest_idx]
