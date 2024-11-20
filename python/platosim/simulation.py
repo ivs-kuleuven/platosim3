@@ -1259,9 +1259,15 @@ class Simulation(object):
             CCDangle        = np.deg2rad(self["CCDPositions/Orientation"][ccdID-1])
 
         pixelSize       = self["CCD/PixelSize"]                                                               # [micron]
-        raPlatform      = np.deg2rad(self["Platform/Orientation/Angles/RAPointing"])                          # [rad]
-        decPlatform     = np.deg2rad(self["Platform/Orientation/Angles/DecPointing"])                         # [rad]
-        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))  # [rad]
+
+        if self["Platform/Orientation/Source"] == "Angles":
+            raPlatform  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+            decPlatform = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
+            solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        else:
+            q_EQ2PLM = self["Platform/Orientation/Quaternion/Components"]
+            raPlatform, decPlatform, solarPanelOrientation = rf.platformAnglesFromQuaternion(q_EQ2PLM)                   # [rad]
+
         focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])                      # [rad]
         focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                                   # [m] -> [mm]
 
