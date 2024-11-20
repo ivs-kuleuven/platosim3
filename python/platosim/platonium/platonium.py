@@ -1930,12 +1930,12 @@ class PLATOnium(object):
         # Select prefix-files
         self.outputFileName = f'{self.starID}_{self.obsPrefix}'
         prefixInversion = self.microscanDirInvers / self.starID
-        prefixStarIDtar = self.outputDirStarIDsim / '000000001'
+        #prefixStarIDtar = self.outputDirStarIDsim / '000000001'
         prefixStarIDsim = self.outputDirStarIDsim / self.starID
         prefixStarIDnew = self.outputDirStarIDnew / self.outputFileName
 
         print(f"prefixInversion {prefixInversion}")
-        print(f"prefixStarIDtar {prefixStarIDtar}")
+        #print(f"prefixStarIDtar {prefixStarIDtar}")
         print(f"prefixStarIDsim {prefixStarIDsim}")
         print(f"prefixStarIDnew {prefixStarIDnew}")
 
@@ -1945,42 +1945,73 @@ class PLATOnium(object):
 
         # Fetch P1 light curve
         if args.sample == 'P1':
-            print(f"P1 load {prefixStarIDtar}.dat file")
-            cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'cy_err', 'bg_err',
-                    'chi2', 'iter', 'lamb']
+            camera_id = (self.group - 1) * 6 + self.camera
+            lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{camera_id}_p000000001.hdf5"
+            cob_file = f"{self.outputDirStarIDsim}/COB_OG_c{camera_id}_p000000001.hdf5"
+            print(f"P1 loading {lc_file}")
+            print(f"P1 loading {cob_file}")
+
+            # make a dataframe like before
             try:
-                df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
-                                 names=cols, usecols=np.arange(0, len(cols), 1))
+                f = h5py.File(lc_file)
+                f2 = h5py.File(cob_file)
+                flux = f['FLUX_TS'].fields(['FLUX'])[:].astype(np.float64)
+                flux_err = f['FLUX_TS'].fields(['FLUX_VARIANCE'])[:].astype(np.float64)
+                bg = f['FLUX_TS'].fields(['BACKGROUND'])[:].astype(np.float64)
+                chi2 = f['FLUX_TS'].fields(['CHI2'])[:].astype(np.float64)
+                cx = f2['COB_TS'].fields(['COB_X'])[:].astype(np.float64)
+                cy = f2['COB_TS'].fields(['COB_Y'])[:].astype(np.float64)
+                cx_err = f2['COB_TS'].fields(['COB_VARIANCE_X'])[:].astype(np.float64)
+                cy_err = f2['COB_TS'].fields(['COB_VARIANCE_Y'])[:].astype(np.float64)
+                df = pd.DataFrame({'flux': flux,
+                                   'cx': cx,
+                                   'cy': cy,
+                                   'bg': bg,
+                                   'flux_err': flux_err,
+                                   'cx_err': cx_err,
+                                   'cy_err': cy_err,
+                                   'chi2': chi2})
             except:
                 self.failed('PSF fitting of target star was not successful!')
 
+            # old code
+            #cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'cy_err', 'bg_err',
+            #        'chi2', 'iter', 'lamb']
+            #try:
+            #    df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
+            #                     names=cols, usecols=np.arange(0, len(cols), 1))
+            #except:
+            #    self.failed('PSF fitting of target star was not successful!')
+
         # Fetch P5 light curve
         if args.sample == 'P5':
-            cols = ['flux', 'xc', 'yc', 'flux_cor']
+            pass
+            ## TODO do P5 later
+            #cols = ['flux', 'xc', 'yc', 'flux_cor']
+            #
+            ## If jitter/drift correction is applied or not
+            #if self.jitterDriftOff:
+            #    print(f"P5 load {prefixStarIDtar}.dat file")
+            #    df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
+            #                     names=cols[:3], usecols=cols[:3])
+            #else:
+            #    print(f"P5 load {prefixStarIDtar}-jc.dat file")
+            #    df = pd.read_csv(f'{prefixStarIDtar}-jc.dat', delimiter=' ', comment='#',
+            #                     names=cols, usecols=cols)
+            #
+            ## Move the SPR file
+            #print(f"Move the spr file {prefixStarIDtar}-sprtot.dat -> {prefixStarIDnew}.spr")
+            #shutil.move(f'{prefixStarIDtar}-sprtot.dat', f'{prefixStarIDnew}.spr')
+            #
+            ## Move mask files number after mask update exposure
+            #maskfits = glob.glob(f'{prefixStarIDtar}**mask.fits')
+            #for i in range(len(maskfits)):
+            #    print(f"{maskfits[i]} -> {prefixStarIDnew}{maskfits[i][-17:]}")
+            #    shutil.move(maskfits[i], f'{prefixStarIDnew}{maskfits[i][-17:]}')
 
-            # If jitter/drift correction is applied or not
-            if self.jitterDriftOff:
-                print(f"P5 load {prefixStarIDtar}.dat file")
-                df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
-                                 names=cols[:3], usecols=cols[:3])
-            else:
-                print(f"P5 load {prefixStarIDtar}-jc.dat file")
-                df = pd.read_csv(f'{prefixStarIDtar}-jc.dat', delimiter=' ', comment='#',
-                                 names=cols, usecols=cols)
-                
-            # Move the SPR file
-            print(f"Move the spr file {prefixStarIDtar}-sprtot.dat -> {prefixStarIDnew}.spr")
-            shutil.move(f'{prefixStarIDtar}-sprtot.dat', f'{prefixStarIDnew}.spr')
-            
-            # Move mask files number after mask update exposure
-            maskfits = glob.glob(f'{prefixStarIDtar}**mask.fits')
-            for i in range(len(maskfits)):
-                print(f"{maskfits[i]} -> {prefixStarIDnew}{maskfits[i][-17:]}")
-                shutil.move(maskfits[i], f'{prefixStarIDnew}{maskfits[i][-17:]}')
-        
         # Prologue if data frame exist
         if df is not None:
-            print(f"df is not None")
+            print("df is not None")
             # Add a proper time column
             df = pdAddColumn(df, self.time, 'time')
 
@@ -1996,8 +2027,14 @@ class PLATOnium(object):
             df.to_feather(f'{prefixStarIDnew}.ftr')
             
             # Move files to new data directory
-            print(f"Move {prefixInversion}_PRLS_invert.log -> {prefixStarIDnew}.invert")
-            shutil.move(f'{prefixInversion}_PRLS_invert.log', f'{prefixStarIDnew}.invert')
+            # TODO remove
+            #print(f"Move {prefixInversion}_PRLS_invert.log -> {prefixStarIDnew}.invert")
+            #shutil.move(f'{prefixInversion}_PRLS_invert.log', f'{prefixStarIDnew}.invert')
+            
+            print(f"Move {prefixInversion}_inverse_psf.hdf5 -> {prefixStarIDnew}_inverse_psf.hdf5")
+            shutil.move(f'{prefixInversion}_inverse_psf.hdf5', f'{prefixStarIDnew}_inverse_psf.hdf5')
+            print(f"Move {prefixInversion}_inverse_psf.vec -> {prefixStarIDnew}_inverse_psf.ve")
+            shutil.move(f'{prefixInversion}_inverse_psf.vec', f'{prefixStarIDnew}_inverse_psf.vec')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
