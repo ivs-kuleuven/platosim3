@@ -21,7 +21,7 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
-#import ipywidgets as widgets
+import ipywidgets as widgets
 from astropy.io import fits
 
 # PlatoSim functions

@@ -12,7 +12,7 @@ ObservingParameters:
     NumExposures:                    10              # Number of exposures
     BeginExposureNr:                 0               # Sequential number of first exposure (useful for slurm parallellisation)
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
+    Fluxm0:                          1.00179e8       # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
     
