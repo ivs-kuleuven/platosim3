@@ -52,7 +52,7 @@ star = f'{args.starID}'.zfill(9)
 idir = Path(args.idir).resolve() / star
 odir = Path(args.odir).resolve()
 gdir = Path(args.gdir).resolve()
-odir_final = odir / 'final'
+odir_final = odir / 'lightcurve'
 odir_table = odir / 'table'
 odir_modes = odir / 'modes'
 odir_final.mkdir(parents=True, exist_ok=True)
@@ -77,58 +77,67 @@ filename_gap = gdir / 'instrumentGAP.tab'
 lcs = LightCurve(idir, 'multi')
 
 # Save simulation table
-if args.verbose: print('Saving simulation table')
+if args.verbose:
+    print('Saving simulation table')
 ds = lcs.stat_sim_table(filename_tab)
 
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
                verbose=verbose,
                flux_group_mean=True,
-               clip=ds.mag.iloc[0],
                binsize=bin_size,
+               clip=ds.mag.iloc[0],
                flux_offset=True,
                flux_err=True,
                ofile=filename_ftr)
 
-# Introducing data gaps
-if args.verbose: print('Introducing data gaps')
-df = lc.gaps(filename_gap, replace=True)
-df = df.dropna()
-
 
 # STAR SHADOW ANALYSIS
 
-# Prepare light curve for starshadow
-df.time /= 86400.
-df.to_csv(filename_dat, sep=' ', index=False, header=False)
+if snr_thres:
 
-# Perform prewhitening using STARSHADOW
-ss.analyse_lc_from_file(str(filename_dat), save_dir=str(odir_final), stage='freq',
-                        overwrite=True, verbose=args.verbose, sn_thr=snr_thres)
+    # Introducing data gaps
+    if args.verbose:
+        print('Introducing data gaps')
+    df = lc.gaps(filename_gap, replace=True)
+    df = df.dropna()
+    
+    # Prepare light curve for starshadow
+    df.time /= 86400.
+    df.to_csv(filename_dat, sep=' ', index=False, header=False)
 
-# Load file containing columns
-folder_hdf5   = odir_final  / f'{filename_final}_analysis'
-filename_hdf5 = folder_hdf5 / f'{filename_final}_analysis_2.hdf5' 
-result = ss.utility.read_parameters_hdf5(filename_hdf5, verbose=args.verbose)
+    # Perform prewhitening using STARSHADOW
+    ss.analyse_lc_from_file(str(filename_dat), save_dir=str(odir_final), stage='freq',
+                            overwrite=True, verbose=args.verbose, sn_thr=snr_thres)
 
-# Save data into feather file
-mean = result['sin_mean']
-err  = result['sin_err']
-snr  = result['sin_select']
-df = pd.DataFrame()
-df['freq']       = mean[2]      # [c/d]
-df['freq_err']   = err[2]       # [c/d]
-df['ampl']       = mean[3]*1e6  # [ppm]
-df['ampl_err']   = err[3]*1e6   # [ppm]
-df['phase']      = mean[4]      # [rad]
-df['phase_err']  = err[4]       # [rad]
-df['passed_snr'] = snr[1]       # [bool]
-df = df.sort_values('freq').reset_index(drop=True)
-df.to_feather(filename_mod)
-os.system(f'chmod 755 {filename_mod}')
+    # Load file containing columns
+    folder_hdf5   = odir_final  / f'{filename_final}_analysis'
+    filename_hdf5 = folder_hdf5 / f'{filename_final}_analysis_2.hdf5' 
+    result = ss.utility.read_parameters_hdf5(filename_hdf5, verbose=args.verbose)
 
-# Remove starshadow files
-filename_dat.unlink()
-os.system(f'rm -r {folder_hdf5}')
+    # Save data into feather file
+    mean = result['sin_mean']
+    err  = result['sin_err']
+    snr  = result['sin_select']
+    df = pd.DataFrame()
+    df['freq']       = mean[2]      # [c/d]
+    df['freq_err']   = err[2]       # [c/d]
+    df['ampl']       = mean[3]*1e6  # [ppm]
+    df['ampl_err']   = err[3]*1e6   # [ppm]
+    df['phase']      = mean[4]      # [rad]
+    df['phase_err']  = err[4]       # [rad]
+    df['passed_snr'] = snr[1]       # [bool]
+    df = df.sort_values('freq').reset_index(drop=True)
+
+    # Save feather with modes
+    df.to_feather(filename_mod)
+    os.system(f'chmod 755 {filename_mod}')
+
+    # Remove star shadow light curve
+    filename_dat.unlink()
+    os.system(f'rm -r {folder_hdf5}')
+
+    
+# Remove output and starshadow files
 if args.clean:
     os.system(f'rm -r {str(idir)}')

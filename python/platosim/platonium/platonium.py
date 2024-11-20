@@ -199,7 +199,7 @@ class PLATOnium(object):
         
         # Check if the inputfile.yaml exists
         if not self.inputFile.is_file():
-            errorcode('error', f'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')        
+            errorcode('error', 'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')        
             
         # Pipeline paths
         if self.pipeline:
