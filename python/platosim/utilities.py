@@ -6,9 +6,9 @@ used by the PlatoSim and PLATOnium.
 """
 
 # Built-in
+
 import os
 import sys
-import glob
 import math
 import ftplib
 import shutil
@@ -17,27 +17,29 @@ import fnmatch
 from pathlib import Path
 
 # PlatoSim standard
-import h5py
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from pylab import MaxNLocator
 from prettytable import PrettyTable
 import scipy
-from scipy.ndimage import median_filter
 from scipy.stats import gaussian_kde
 from scipy import constants as c
 
 # Backward compatability
-if (scipy.__version__ > "1.6"):
-    from scipy.integrate import cumulative_trapezoid as cum_trapz
-else:
-    from scipy.integrate import cumtrapz as cum_trapz
 
-# PlatoSim functions
-import platosim.referenceFrames as rf
+try:
+    from scipy.integrate import cumulative_trapezoid
+except ImportError:
+    # Versions of scipy < 1.6 use a different name
+    from scipy.integrate import cumtrapz as cumulative_trapezoid
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------------#
@@ -1413,7 +1415,7 @@ def rebin3(x, xp, fp):
 
         # Binning
         x_cum = xp[1:]
-        c =  cum_trapz(fp,xp)
+        c =  cumulative_trapezoid(fp,xp)
         x_diff =  np.diff(x)
         b = x[:-1] + x_diff/2.
 
