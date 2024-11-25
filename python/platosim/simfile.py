@@ -1755,7 +1755,7 @@ class SimFile (object):
 
         # Convert unit [e-/exp] -> [e-/s]
         
-        df0 /= self.getReadoutTime()[0]
+        df0 /= self.getExposureTime()
         
         # Finito!
 
