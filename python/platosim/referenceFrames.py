@@ -1554,7 +1554,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
                               includeFieldDistortion, normal, mappedDistortion=False,
                               distortionCoefficients=None, pathToPsfFile=None):
 
-    """Get the CCD and pixel coordinates.
+    """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
     Given the equatorial coordinates of a star, find out on which CCD
     it falls ('1', '2', '3', '4') and compute the pixel coordinates of
@@ -1637,13 +1637,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
-            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                             pathToPsfFile,
-                                                                             focalLength)
+            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength)
         else:
-            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                       distortionCoefficients,
-                                                                       focalLength)
+            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
