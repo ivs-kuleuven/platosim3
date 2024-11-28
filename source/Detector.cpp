@@ -198,7 +198,6 @@ Detector::Detector(ConfigurationParameters &configParam,
         backgroundMap.zeros(numRowsPixelMap, numColumnsPixelMap);
     }
 
-    // StrayLight a = StrayLight(configParam, hdf5file, camera, *this);
     straylight = new StrayLight(configParam, hdf5file, camera, *this);
 
     // If we are going to apply open-shutter smearing, we have to know which pixels are within

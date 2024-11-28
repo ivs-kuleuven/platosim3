@@ -44,13 +44,13 @@ class StrayLight : public HDF5Writer
 
     void configure(ConfigurationParameters &configParam);
 
-    double getStrayLightMoon(double row, double column);
+    double getStrayLightMoon(double time);
     // void updateParameters(double time);
     double getStraylightFromAZ(const std::array<double, 5> &electronsAtDetector, double az);
 protected:
     CelestialObject moon;
     CelestialObject earth;
-    double getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, double row, double column, unsigned int nGridPoints);
+  double getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, arma::Mat<double> telescopeAxis, unsigned int nGridPoints);
 
 
     std::vector<GridPoint> getGrid(double radius, unsigned int nPoints);
@@ -76,28 +76,33 @@ protected:
     getNumberOfStraylightPhotoelectronsAtDetector(
         std::array<std::vector<arma::vec>, 5> &PST);
     std::array<double, 29> interpolatePST(double wl[3], double pst[3]);
-    std::vector<double>
-    extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho_AZ,
-						       std::vector<std::array<double, 4>> &parameters);
+    void extrapolatePST(std::array<std::vector<double>, 5> rho, std::array<std::vector<double>, 5> pst);
+    double getPSTValue(double declination, double azimuth);
+    std::vector<double> extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho, std::vector<std::array<double, 4>> &parameters);
 
-
+    std::array<std::vector<std::array<double, 4>>,5> parameters;
     std::array<double, 4> getCubicParameters(double x_0, double x_1,
                                              double y_0, double y_1,
                                              double d0, double d1);
 
     void getPST(std::string pstPath);
+    std::array<std::vector<double>, 5> rhoValues;
     std::vector<arma::vec> moon_positions;
     std::vector<arma::vec> sc_positions;
     std::vector<arma::vec> sun_positions;
+    std::vector<double> times;
 
-    std::array<std::vector<std::array<double, 29>>, 5> PST;
-    std::array<std::vector<int>, 5> rho;
+
+    std::array<int, 5> azs = {0, 45, 90, 135, 180};
+
+    HDF5File pstFile;
 
     double radiusFOV;
     double pixelSize;
     double numExposure;
     double beginExposures;
     double cycleTime;
+    arma::Mat<double> telescopeAxis{arma::Mat<double>(3,3)};
 
     int AZs[5];
 
