@@ -1336,14 +1336,9 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
 void DetectorWithAnalyticNonGaussianPSF::addStraylightToPixelMap()
 {
-    for (unsigned int row = 0; row < 1; row++)
-    {
-        for (unsigned int column = 0; column < 1; column++)
-        {
-            std::cout << (*straylight).getStrayLightMoon(row, column)
-            << std::endl;
-            std::cout << "===================================================\n\n\n" << std::endl;
-        }
-    }
+    std::cout << (*straylight).getStrayLightMoon(0) << " ph" << std::endl;
+    std::cout << "===================================================\n\n\n" << std::endl;
+
+
 };
 
