@@ -27,6 +27,8 @@ generated/version.h
 !starcatalog.txt
 !starcatalogOld.txt
 !AOCS_spiral_8Hz_airbus_3h.txt
+!Plato_Straylight_PST.txt
+!pst.hdf5
 
 # Compile command json file for neovim LSP
 
