@@ -19,7 +19,6 @@ are the raw imaging output of PLATO).
 import os
 import sys
 import glob
-import math
 import shutil
 import argparse
 import datetime
@@ -28,7 +27,6 @@ import tracemalloc
 from pathlib import Path
 
 # PlatoSim standard
-import h5py
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -1912,9 +1910,6 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
 
-
-
-            
     def sort_output_pipeline(self):
 
         """Sort output files for pipeline setup.
@@ -1922,7 +1917,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('module', '\nPrologue')
-        
+
         if self.verbose > 1:
             errorcode('message', '\nRestructuring data output')
             print(f'L1 light curve is saved to {self.outputDirStarIDnew}')
@@ -1948,29 +1943,32 @@ class PLATOnium(object):
             camera_id = (self.group - 1) * 6 + self.camera
             lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{camera_id}_p000000001.hdf5"
             cob_file = f"{self.outputDirStarIDsim}/COB_OG_c{camera_id}_p000000001.hdf5"
-            print(f"P1 loading {lc_file}")
-            print(f"P1 loading {cob_file}")
+            star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
+            yaml_file = f"{self.outputDirStarIDsim}/000000001.yaml"
+            invpsf_file = f"{prefixInversion}_inverse_psf.hdf5"
+            invpsf_vec_file = f"{prefixInversion}_inverse_psf.vec"
+
+            lc_file_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A_IMAGETTE.hdf5"
+            cob_file_out = f"{prefixStarIDnew}_COB_OG.hdf5"
+            star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
+            yaml_file_out = f"{prefixStarIDnew}.yaml"
+            invpsf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
+            invpsf_vec_file_out = f"{prefixStarIDnew}_inverse_psf.vec"
 
             # make a dataframe like before
             try:
-                f = h5py.File(lc_file)
-                f2 = h5py.File(cob_file)
-                flux = f['FLUX_TS'].fields(['FLUX'])[:].astype(np.float64)
-                flux_err = f['FLUX_TS'].fields(['FLUX_VARIANCE'])[:].astype(np.float64)
-                bg = f['FLUX_TS'].fields(['BACKGROUND'])[:].astype(np.float64)
-                chi2 = f['FLUX_TS'].fields(['CHI2'])[:].astype(np.float64)
-                cx = f2['COB_TS'].fields(['COB_X'])[:].astype(np.float64)
-                cy = f2['COB_TS'].fields(['COB_Y'])[:].astype(np.float64)
-                cx_err = f2['COB_TS'].fields(['COB_VARIANCE_X'])[:].astype(np.float64)
-                cy_err = f2['COB_TS'].fields(['COB_VARIANCE_Y'])[:].astype(np.float64)
-                df = pd.DataFrame({'flux': flux,
-                                   'cx': cx,
-                                   'cy': cy,
-                                   'bg': bg,
-                                   'flux_err': flux_err,
-                                   'cx_err': cx_err,
-                                   'cy_err': cy_err,
-                                   'chi2': chi2})
+                print(f"Move {lc_file} -> {lc_file_out}")
+                shutil.copy(lc_file, lc_file_out)
+                print(f"Move {cob_file} -> {cob_file_out}")
+                shutil.copy(cob_file, cob_file_out)
+                print(f"Move {star_file} -> {star_file_out}")
+                shutil.copy(star_file, star_file_out)
+                print(f"Move {yaml_file} -> {yaml_file_out}")
+                shutil.copy(yaml_file, yaml_file_out)
+                print(f"Move {invpsf_file} -> {invpsf_file_out}")
+                shutil.move(invpsf_file, invpsf_file_out)
+                print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
+                shutil.move(invpsf_vec_file, invpsf_vec_file_out)
             except:
                 self.failed('PSF fitting of target star was not successful!')
 
@@ -2010,31 +2008,26 @@ class PLATOnium(object):
             #    shutil.move(maskfits[i], f'{prefixStarIDnew}{maskfits[i][-17:]}')
 
         # Prologue if data frame exist
-        if df is not None:
-            print("df is not None")
-            # Add a proper time column
-            df = pdAddColumn(df, self.time, 'time')
-
-            # Formatting of data frame
-            if args.sample == 'P1': df = df.astype({'time':np.float64})
-            if args.sample == 'P5': df = df.astype({'time':np.float64})
-            
-            # Feather format needs to be indiced!
-            df = df.reset_index()
-            
-            # Save new data frame
-            print(f"Saving file {prefixStarIDnew}.ftr")
-            df.to_feather(f'{prefixStarIDnew}.ftr')
-            
-            # Move files to new data directory
-            # TODO remove
-            #print(f"Move {prefixInversion}_PRLS_invert.log -> {prefixStarIDnew}.invert")
-            #shutil.move(f'{prefixInversion}_PRLS_invert.log', f'{prefixStarIDnew}.invert')
-            
-            print(f"Move {prefixInversion}_inverse_psf.hdf5 -> {prefixStarIDnew}_inverse_psf.hdf5")
-            shutil.move(f'{prefixInversion}_inverse_psf.hdf5', f'{prefixStarIDnew}_inverse_psf.hdf5')
-            print(f"Move {prefixInversion}_inverse_psf.vec -> {prefixStarIDnew}_inverse_psf.ve")
-            shutil.move(f'{prefixInversion}_inverse_psf.vec', f'{prefixStarIDnew}_inverse_psf.vec')
+        #if df is not None:
+        #    print("df is not None")
+        #    # Add a proper time column
+        #    df = pdAddColumn(df, self.time, 'time')
+        #
+        #    # Formatting of data frame
+        #    if args.sample == 'P1': df = df.astype({'time':np.float64})
+        #    if args.sample == 'P5': df = df.astype({'time':np.float64})
+        #
+        #    # Feather format needs to be indiced!
+        #    df = df.reset_index()
+        #
+        #    # Save new data frame
+        #    print(f"Saving file {prefixStarIDnew}.ftr")
+        #    df.to_feather(f'{prefixStarIDnew}.ftr')
+        #
+        #    # Move files to new data directory
+        #    # TODO remove
+        #    #print(f"Move {prefixInversion}_PRLS_invert.log -> {prefixStarIDnew}.invert")
+        #    #shutil.move(f'{prefixInversion}_PRLS_invert.log', f'{prefixStarIDnew}.invert')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
@@ -2046,7 +2039,7 @@ class PLATOnium(object):
         # Give full read/write access
         print(f"chmod 755 {prefixStarIDnew}*")
         os.system(f'chmod 755 {prefixStarIDnew}*')
-        
+
         # Compress files
         if self.compress:
             print("Compressing...")
@@ -2067,15 +2060,11 @@ class PLATOnium(object):
             comm4 = f'mv {prefixStarIDnew}.* {self.storageDir}'
             print(comm4)
             os.system(comm4)
-            
+
         # Execution time of module
         if self.verbose > 1:
             self.tocPrologue = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
-
-            
-            
-
 
     def resources(self):
 
