@@ -180,7 +180,7 @@ tuple<double, double, double, double, double, double> Camera::getInfoForTheMostR
     // Find the map item with the given starID
 
     auto it = detectedStarInfo[timeStamp].find(starID);
-    if (it == detectedStarInfo[timeStamp].end())
+    if ((it == detectedStarInfo[timeStamp].end()) || (detectedStarInfo[timeStamp][starID][5] == 0))
     {
         // The starID couldn't be found in the map.
 
