@@ -280,6 +280,7 @@ class PLATOnium(object):
             self.ds['mag'] = self.dx.Pmag
             self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
 
+            # Break out of function
             return
 
 
@@ -382,15 +383,14 @@ class PLATOnium(object):
             if self.mag is not None:
                 self.df.mag = self.mag
                 
-            # Limits for contaminants
-            self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
-            self.dc = self.dc[self.dc.dis < self.conDisLimit]
-            self.dc = self.dc.reset_index(drop=True)
-
             # Number of contaminants
             if self.noCon:
                 self.numCon = 0
             else:
+                # Limits for contaminants
+                self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
+                self.dc = self.dc[self.dc.dis < self.conDisLimit]
+                self.dc = self.dc.reset_index(drop=True)
                 self.numCon = self.dc.shape[0]
                 
             # Save star catalogue
@@ -398,12 +398,15 @@ class PLATOnium(object):
             self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
             self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
             self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
-            self.ds['ids'] = np.arange(1, self.numCon+2)
-
+            if not self.noCon:
+                self.ds['ids'] = np.arange(1, self.numCon+2)
+            else:
+                self.ds['ids'] = 1
 
 
             
-            
+
+                
     def configure_output(self):
 
         """Module to create, configure, and select the correct output folders.
@@ -946,7 +949,7 @@ class PLATOnium(object):
         # SAVE STELLAR CATALOGS AND TARGET LISTS
         
         # Save catalog and load it into the inputfile
-        self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'        
+        self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'
         sim.createStarCatalogFile(self.ds.ra, self.ds.dec, self.ds.mag, self.ds.ids,
                                   self.starCatalogFile)
         
@@ -1153,6 +1156,7 @@ class PLATOnium(object):
                 
         # Define output file name
         outputFile = f'{self.outputSimName}.hdf5'
+
         
         # FULL-FRAME CCD IMAGE
         
@@ -1162,33 +1166,36 @@ class PLATOnium(object):
             # Fetch simulation and stellar positions
             f = SimFile(outputFile)
             ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
-
-            print(self.dx)
-            print(len(ID))
             
-            # Select detected stars
-            df = self.dx.iloc[ID]
+            # Make some checks
+            if self.dx.shape[0] == 0:
+                errorcode('warning', 'Stellar catalogue is empty')
+            elif ID is None:
+                errorcode('warning', 'No stars detected on the CCD')
+            else:
+                # Select detected stars
+                df = self.dx.iloc[ID]
 
-            # Indices are the star IDs
-            df = ut.pdAddColumn(df, df.index, 'starID')
-            if 'index' in df: df.drop(columns=['index'], inplace=True)
-            df = df.reset_index(drop=True)
-            
-            # Add stellar positions.
-            df['xCCD'] = col - 0.5
-            df['yCCD'] = row - 0.5
-            df['xFP']  = xFP
-            df['yFP']  = yFP
+                # Indices are the star IDs
+                df = ut.pdAddColumn(df, df.index, 'starID')
+                if 'index' in df: df.drop(columns=['index'], inplace=True)
+                df = df.reset_index(drop=True)
 
-            # Only keep stars within the rOA FOV (value is after distortion)
-            focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
-            rOA = rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP, focalLength)
-            df['rOA'] = np.rad2deg(rOA)
-            df = df[df.rOA <= 19.555]
+                # Add stellar positions.
+                df['xCCD'] = col - 0.5
+                df['yCCD'] = row - 0.5
+                df['xFP']  = xFP
+                df['yFP']  = yFP
 
-            # Save to file
-            df = df.reset_index(drop=True)
-            df.to_feather(f'{self.outputSimName}.ftr')
+                # Only keep stars within the rOA FOV (value is after distortion)
+                focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
+                rOA = rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP, focalLength)
+                df['rOA'] = np.rad2deg(rOA)
+                df = df[df.rOA <= 19.555]
+
+                # Save to file
+                df = df.reset_index(drop=True)
+                df.to_feather(f'{self.outputSimName}.ftr')
 
             
         # SUBFIELD ANIMATION
@@ -1196,7 +1203,7 @@ class PLATOnium(object):
         if self.animation:
             
             # Adjust number of images to skip and frame rate
-            if   self.cadence ==  25.0: fps, nskip = 50, 1000
+            if   self.cadence ==  25.0: fps, nskip = 50, 800
             elif self.cadence ==  50.0: fps, nskip = 25, 500
             elif self.cadence == 600.0: fps, nskip = 25, 50
             plotSubfieldAnimation(outputFile,
@@ -1206,7 +1213,7 @@ class PLATOnium(object):
                                   skipNimages=nskip,
                                   numImages=False,
                                   colorMap="magma",
-                                  clipPercentile=8.0, 
+                                  clipPercentile=5.0, 
                                   showStarPositions='PIC',
                                   showMaskOfStarID='1',
                                   useTitle=True,
@@ -1350,7 +1357,7 @@ class PLATOnium(object):
             # Perform sigma-clipping
             try:
                 lc.clip(model='wotan',
-                        sigma_lower=sigma_lower, sigma_upper=sigma_upper,
+                       sigma_lower=sigma_lower, sigma_upper=sigma_upper,
                         replace=True, plot=self.plotPost, flux_unit=flux_unit)
             except:
                 pass
@@ -1365,23 +1372,29 @@ class PLATOnium(object):
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
-        # # Compute the residuals
-        # df['flux_res'] = df.flux #(df.flux - 1)*1e6
+        # Check reduced data
+        # if self.plotPost:
 
-        # # Regression model of residuals
-        # import statsmodels.api as sm
-        # lc = df.rename(columns={'time':'x', 'flux_res':'y'})
-        # lc['x'] = lc['x'].subtract(lc['x'].min())
-        # model = 'y ~ x'
-        # lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
-        # lsFit.summary(alpha=0.05)
+        #     # Compute the residuals
+        #     df['flux_res'] = df.flux #(df.flux - 1)*1e6
 
-        # # Plot regression model and residuals
-        # st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
-        #                  xlab='Time [days]', ylab='Residuals [ppt]')
-        # st.plot_residuals(lc, lsFit, theme='g')
-        # st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
+        #     # Regression model of residuals
+        #     import statsmodels.api as sm
+        #     lc = df.rename(columns={'time':'x', 'flux_res':'y'})
+        #     lc['x'] = lc['x'].subtract(lc['x'].min())
+        #     model = 'y ~ x'
+        #     lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
+        #     lsFit.summary(alpha=0.05)
+
+        #     # Plot regression model and residuals
+        #     st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
+        #                      xlab='Time [days]', ylab='Residuals [ppt]')
+        #     st.plot_residuals(lc, lsFit, theme='g')
+        #     st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
         
+
+
+
         
     #--------------------------------------------------------------#
     #                    L1 PIPELINE MODULES                       #
