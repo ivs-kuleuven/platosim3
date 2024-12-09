@@ -259,9 +259,6 @@ class PLATOnium(object):
         self.tic0 = datetime.datetime.now()            
 
 
-
-            
-        
     def load_stars(self):
 
         """Module to load the stellar targets and contaminants.
@@ -271,9 +268,9 @@ class PLATOnium(object):
             print('\nLoading stellar catalogue..')
 
         self.magPB = 'mag'
-        
+
         # FULL-FRAME CCD
-            
+
         if self.fullFrame:
 
             # Load stellar catalogue
@@ -287,7 +284,7 @@ class PLATOnium(object):
             self.ds['ra']  = self.dx.ra
             self.ds['dec'] = self.dx.dec
             self.ds['mag'] = self.dx.Pmag
-            self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
+            self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)
 
             return
 
@@ -295,7 +292,6 @@ class PLATOnium(object):
         # SUBFIELD
 
         # Fetch stars from custum catalogue
-        
         if self.starcatFile is not None:
 
             # Read catalogue
@@ -305,9 +301,8 @@ class PLATOnium(object):
             # Define data frames
             self.df = df.loc[0]
             self.dc = df.iloc[1:]
-            
+
         # Fetch stars from the default PIC setup
-            
         else:
 
             # Add sample name if pipeline is activated
@@ -322,7 +317,7 @@ class PLATOnium(object):
                 picConFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**contaminants.ftr')[0]
                 df = pd.read_feather(picTarFile)
                 dc = pd.read_feather(picConFile)
-                
+
             except IndexError:
                 errorcode('error', f'Stellar {self.sample} catalogue do not exist!')
 
@@ -333,13 +328,13 @@ class PLATOnium(object):
                 self.colID = 'gaiaDR3'
             elif 'ID' in df:
                 # PlatoSim version: 3.5.3-19-g18d87597
-                self.colID = 'ID'                
+                self.colID = 'ID'
             else:
                 errorcode('error', "Cannot find ID identifier! Usage in [ID, PIC, gaiaDR3]")
-                
+
             # Merge for full frame
             self.dx = pd.concat([df, dc])
-            
+
             # Correct indicing and allow a specific star to be choosen
             if self.targetNo == 0:
                 errorcode('error', 'Star ID indicing starts from 1 and not 0!')
@@ -353,12 +348,11 @@ class PLATOnium(object):
                               f'\n{picTarFile}')
             else:
                 self.targetNo -= 1
-                
+
             # Select target star
             self.df = df.iloc[self.targetNo]
 
         # Additional info for subfield simulations
-        
         if not self.fullFrame:
 
             # If requested select only the target, else include contaminants
@@ -368,7 +362,7 @@ class PLATOnium(object):
                 else:
                     self.dc = dc[dc[self.colID] == self.df[self.colID]]
                     self.dc = self.dc.sort_values(by=['dis'])
-            
+
             # Secure default "mag" naming
             if not 'mag' in df:
 
@@ -382,15 +376,15 @@ class PLATOnium(object):
                 else:
                     errorcode('error', "No valid passband present in star catalogue! " +
                               "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
-                    
+
                 # Change naming
                 self.df = self.df.to_frame().T.rename(columns={self.magPB:'mag'}).squeeze()
                 self.dc = self.dc.rename(columns={self.magPB:'mag'})
-                
+
             # If requested overwrite magnitude of target star
             if self.mag is not None:
                 self.df.mag = self.mag
-                
+
             # Limits for contaminants
             self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
             self.dc = self.dc[self.dc.dis < self.conDisLimit]
@@ -401,7 +395,7 @@ class PLATOnium(object):
                 self.numCon = 0
             else:
                 self.numCon = self.dc.shape[0]
-                
+
             # Save star catalogue
             self.ds = pd.DataFrame()
             self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
@@ -410,9 +404,6 @@ class PLATOnium(object):
             self.ds['ids'] = np.arange(1, self.numCon+2)
 
 
-
-            
-            
     def configure_output(self):
 
         """Module to create, configure, and select the correct output folders.
@@ -425,22 +416,22 @@ class PLATOnium(object):
             if not self.storageDir.is_dir():
                 self.storageDir.mkdir(parents=True, exist_ok=True)
                 os.system(f'chmod 755 {self.storageDir}')
-            
+
         # Default output path
         if self.outputDir is None:
             self.outputDir = self.simDir.joinpath('output')
         else:
             self.outputDir = Path(self.outputDir).resolve()
-                        
+
         # Custom prefix
         if self.simPrefix is not None:
             self.simPrefix = f'{self.simPrefix}_'
         else:
             self.simPrefix = ''
-        
+
         # Set general output filename
         self.starID = f'{self.targetNo + 1}'.zfill(9)
-            
+
         # Select suffix of observation
         if self.groupID == 'Fast':
             self.obsPrefix = f'Fcam{self.camera}_Q{self.quarter}'
@@ -472,7 +463,7 @@ class PLATOnium(object):
             self.microscanDir = self.outputDir / 'microscan' / relativeDirStar / self.starID
             self.microscanDirStarID = self.microscanDir / self.starID
             self.microscanDirInvers = self.microscanDir / 'inversion'
-            
+
             # Create paths
             self.outputDirStarIDsim.mkdir(parents=True, exist_ok=True)
             self.outputDirStarIDnew.mkdir(parents=True, exist_ok=True)
@@ -492,20 +483,17 @@ class PLATOnium(object):
         if not self.outputDir.is_dir():
             self.outputDir.mkdir(parents=True, exist_ok=True)
             os.system(f'chmod 755 {self.outputDir}')
-        
+
         # Check if output file exists
         if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file():
             errorcode('error', 'HDF5 file already exists! Use "-w" to overwrite it')
-            
 
 
-
-            
     def init_sim(self):
 
         """Module to initialize the the PlatoSim simulation object.
         """
-        
+
         # INITIALIZE SIMULATION
 
         # Print to bash
@@ -521,7 +509,7 @@ class PLATOnium(object):
 
 
         # CONFIGURE TIMING
-        
+
         # Cadence of time series [s]
         # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
         # NOTE This is overwritten for F-CAM by sim.useFastCameras()
@@ -1554,7 +1542,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
+        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1607,7 +1595,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
-        comm = f"gen_psfinv --bsres {self.bsres} {self.starID} {self.starID} {self.microscanDirInvers}"
+        comm = f"gen_psfinv --bsres {self.bsres} 1 {self.starID} {self.microscanDirInvers}"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1616,7 +1604,7 @@ class PLATOnium(object):
         # check the performance of the inversion!
         if self.verbose > 1:
             errorcode('message', '\n[psfinv_quality]: Check the PSF inversion quality')
-        comm = f"psfinv_quality {self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5 {self.starID}/{self.starID}_psf.hdf5"
+        comm = f"psfinv_quality {self.microscanDirInvers}/000000001_inverse_psf.hdf5 {self.starID}/000000001_psf.hdf5"
         print(comm)
         cmd = os.system(comm)
         if cmd != 0:
@@ -1655,7 +1643,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
+        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         print(sim["ControlHDF5Content/WriteDiffusedPSF"])
@@ -1682,7 +1670,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
-        psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+        psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
         comm = f"gen_pflux_ts --psf {psf_path} {self.starID} {self.starID} {self.starID}"
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1723,7 +1711,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 . {self.starID} {self.starID} 6'
+        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1759,7 +1747,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
-        psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+        psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
         comm = f"gen_aflux_ts --psf {psf_path} {self.starID} {self.starID} {self.starID}"
         if cmd != 0:
             self.failed('gen_aflux_ts failed due to the above error!')
@@ -1780,7 +1768,7 @@ class PLATOnium(object):
 
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
-            psf_path = f"{self.microscanDirInvers}/{self.starID}_inverse_psf.hdf5"
+            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
             comm = f"apply_ltdjit_corr --psf {psf_path} --cadence {self.cadence} {self.starID} {self.starID} {self.starID}"
             if cmd != 0:
                 self.failed('apply_ltdjit_corr failed due to the above error!')
@@ -1859,14 +1847,11 @@ class PLATOnium(object):
         errorcode('error', message)
 
 
-
-
-        
     def sort_output_normal(self):
 
         """Sort output files for default setup.
         """
-        
+
         # Create a info table of simulation
         if not self.fullFrame:
             self.create_sim_table(self.outputDir)
@@ -1874,10 +1859,10 @@ class PLATOnium(object):
         # Remove HDF5 file for pipeline mode
         if self.postProcess and self.verbose < 3:
             os.remove(f'{self.outputSimName}.hdf5')
-            
+
         # Give full read and write access to output files
         os.system(f'chmod 755 {self.outputSimName}*')
-            
+
         # Compress files
         if (self.compress and os.path.isfile(f'{self.outputSimName}.ftr') or
             self.compress and os.path.isfile(f'{self.outputSimName}.hdf5')):
@@ -1885,21 +1870,21 @@ class PLATOnium(object):
             if self.verbose > 1:
                 errorcode('module', '\nRestructuring data output\n')
                 print('Compressing files')
-                
+
             os.system(f'zip -j {self.outputSimName}.zip {self.outputSimName}* ' +
                       f'{self.devnull}')
-            
+
             # Give read and write access to file
             os.system(f'chmod 755 {self.outputSimName}.zip')
-            
+
             # Remove non-compressed files
             if not self.postProcess:
                 os.remove(f'{self.outputSimName}.hdf5')
             if not self.fullFrame:
-                os.remove(f'{self.outputSimName}.table')                
+                os.remove(f'{self.outputSimName}.table')
             if self.postProcess or self.fullFrame:
                 os.remove(f'{self.outputSimName}.ftr')
-                
+
         # If requested move file to final output directory (for cluster)
         if self.storageDir:
             os.system(f'mv {self.outputSimName}.* {self.storageDir}')
@@ -1924,7 +1909,7 @@ class PLATOnium(object):
 
         # Select prefix-files
         self.outputFileName = f'{self.starID}_{self.obsPrefix}'
-        prefixInversion = self.microscanDirInvers / self.starID
+        prefixInversion = self.microscanDirInvers / '000000001'
         #prefixStarIDtar = self.outputDirStarIDsim / '000000001'
         prefixStarIDsim = self.outputDirStarIDsim / self.starID
         prefixStarIDnew = self.outputDirStarIDnew / self.outputFileName
@@ -1944,7 +1929,7 @@ class PLATOnium(object):
             lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{camera_id}_p000000001.hdf5"
             cob_file = f"{self.outputDirStarIDsim}/COB_OG_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
-            yaml_file = f"{self.outputDirStarIDsim}/000000001.yaml"
+            yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
             invpsf_file = f"{prefixInversion}_inverse_psf.hdf5"
             invpsf_vec_file = f"{prefixInversion}_inverse_psf.vec"
 
@@ -1955,19 +1940,19 @@ class PLATOnium(object):
             invpsf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
             invpsf_vec_file_out = f"{prefixStarIDnew}_inverse_psf.vec"
 
-            # make a dataframe like before
+            # copy the main files to a long term area with the correct filenames
+            print(f"Move {lc_file} -> {lc_file_out}")
+            print(f"Move {cob_file} -> {cob_file_out}")
+            print(f"Move {star_file} -> {star_file_out}")
+            print(f"Move {yaml_file} -> {yaml_file_out}")
+            print(f"Move {invpsf_file} -> {invpsf_file_out}")
+            print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
             try:
-                print(f"Move {lc_file} -> {lc_file_out}")
                 shutil.copy(lc_file, lc_file_out)
-                print(f"Move {cob_file} -> {cob_file_out}")
                 shutil.copy(cob_file, cob_file_out)
-                print(f"Move {star_file} -> {star_file_out}")
                 shutil.copy(star_file, star_file_out)
-                print(f"Move {yaml_file} -> {yaml_file_out}")
                 shutil.copy(yaml_file, yaml_file_out)
-                print(f"Move {invpsf_file} -> {invpsf_file_out}")
                 shutil.move(invpsf_file, invpsf_file_out)
-                print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
                 shutil.move(invpsf_vec_file, invpsf_vec_file_out)
             except:
                 self.failed('PSF fitting of target star was not successful!')
