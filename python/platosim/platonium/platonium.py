@@ -293,7 +293,8 @@ class PLATOnium(object):
             # Read catalogue
             df = pd.read_feather(self.starcatFile)
             self.colID = 'gaiaDR3'
-
+            self.targetNo = 0
+            
             # Define data frames
             self.df = df.loc[0]
             self.dc = df.iloc[1:]
@@ -345,10 +346,10 @@ class PLATOnium(object):
                               f'\n{picTarFile}')
             else:
                 self.targetNo -= 1
-                
+            
             # Select target star
             self.df = df.iloc[self.targetNo]
-
+        
         # Additional info for subfield simulations
         
         if not self.fullFrame:
@@ -404,7 +405,7 @@ class PLATOnium(object):
                 self.ds['ids'] = 1
 
 
-            
+
 
                 
     def configure_output(self):
@@ -431,7 +432,7 @@ class PLATOnium(object):
             self.simPrefix = f'{self.simPrefix}_'
         else:
             self.simPrefix = ''
-        
+
         # Set general output filename
         self.starID = f'{self.targetNo + 1}'.zfill(9)
             
