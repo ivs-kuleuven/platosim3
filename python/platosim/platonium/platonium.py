@@ -1415,9 +1415,6 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteDiffusedPSF"] = True
 
 
-
-
-            
     def run_microscan(self, sim):
         """
         Module to run a microscan sequence with PlatoSim.
@@ -1502,17 +1499,10 @@ class PLATOnium(object):
             sim["ControlHDF5Content/WriteDiffusedPSF"] = 'yes'
 
         # Save catalog and load it into the inputfile
-        # NOTE we need to replace the target name for correct handling by the LESIA pipeline
         numStar = self.numCon + 1
         self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
 
-        # NOTE: jmcc - Reza said .coo file not needed any more
-        #starCatalogFile = f'{self.microscanSimName}.coo'
-        #np.savetxt(starCatalogFile, self.ds, fmt=['%11.6f', '%11.6f', '%8.4f', '%i'])
-        #sim["ObservingParameters/StarCatalogFile"] = starCatalogFile
-
         # MICROSCANNING SIMULATION
-
         if self.verbose > 1:
             errorcode('message', f'\n[PlatoSim]: Simulating {nimages} imagettes' +
                       ' along Archimedean spiral')
@@ -1524,20 +1514,8 @@ class PLATOnium(object):
             self.tocMicroscan = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-        # PRE-PROCESSING
-
         # Change directory needed to execute scripts
         os.chdir(self.microscanDir)
-
-        # Run pre-processing
-        # NOTE: jmcc - moving pproc.py --> psim2datastruc.py
-
-        #if self.verbose > 1:
-        #    errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        #cmd = os.system(f'{self.platoLib}/pproc.py ' +
-        #                f'--platosim --auto-bg -f {self.starID} {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('pproc.py failed due to the above error!')
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
@@ -1549,50 +1527,7 @@ class PLATOnium(object):
         if cmd != 0:
             self.failed('psim2datastruc failed due to the above error!')
 
-        # EXTRACT CONTAMINANTS
-
-        # Run contaminant extraction
-        # NOTE: jmcc - Reza said call to extract_contaminants no longer needed
-        #if self.verbose > 1:
-        #    errorcode('message', f'\n[extract_contaminants]: Model contaminant stars')
-        #    print(f'Include contaminats with dmag < {self.conDeltaMag} from target')
-        #cmd = os.system(f'{self.platoLib}/extract_contaminant.py ' +
-        #                f'-D {self.conDeltaMag} -e {self.conFluxError} ' + 
-        #                f'-s {self.seedTarget} {self.starID} {self.starID} {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('extract_contaminant.py failed due to the above error!')
-        #
-        #if self.verbose > 1:
-        #    print('Modelling of contaminants done')
-
-        # PSF INVERSION
-        # NOTE: jmcc - moving invert_parabolic_multi --> gen_psvinv.py
-        # NOTE: jmcc - Reza said no longer need regularisation parameter
-        # Find Regularization parameter for each star
-        #PV   = -0.34  # P-V magnitude offset
-        #Vmag = self.df['mag'] - PV
-        #regs = np.format_float_scientific(10.**(0.51 * Vmag - 14.61))
-
-        # Run the inversion module
-        # NOTE Input parameters:
-        # -t : Type of microscanning
-        # -p : Sub-pixel resolution of invertion
-        # -l : Sub-pixel resolution of inverted PSF
-        # -r : Sub-pixel resolution of original PSF
-        # -u : Regularisation parameter for the wPRLS method
-        # -N : Number of elementary steps over which to calculate averaged positions
-
-
-        #if self.verbose > 1:
-        #    errorcode('message', '\n[invert_parabolic_multi]: Run the PSF inversion')
-        #cmd = os.system(f'{self.platoLib}/invert_parabolic1_multi ' +
-        #                f'-Q -t continuous -m PRLS ' +
-        #                f'-N 1 -r 128 -l 128 -p {self.bsres} -u {regs} ' +
-        #                f'-d . -i {self.starID} -q {self.starID}/{self.starID}_offsets.txt ' + 
-        #                f'-o inversion {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('invert_parabolic_multi failed due to the above error!')
-
+        # get the inverted psf
         if self.verbose > 1:
             errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
         comm = f"gen_psfinv --bsres {self.bsres} 1 {self.starID} {self.microscanDirInvers}"
@@ -1631,15 +1566,6 @@ class PLATOnium(object):
         os.chdir(self.pipelineDir)
 
         # PRE-PROCESSING
-        # NOTE: jmcc - moving pproc.py --> psim2datastruc.py
-
-        #if self.verbose > 1:
-        #     errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        #cmd = os.system(f'{self.platoLib}/pproc.py ' +
-        #                f'--platosim --auto-bg -f {self.starID} {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('pproc.py failed due to the above error!')
-
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
@@ -1652,22 +1578,6 @@ class PLATOnium(object):
             self.failed('psim2datastruc failed due to the above error!')
 
         # PSF FIITING
-
-        # Print to bash
-        #if self.verbose > 1:
-        #    errorcode('message', '\n[psffit]: PSF fitting for light curve generation')
-        # NOTE using Dierckx's knot distribution (-K 1)
-        # NOTE using Levenberg-Marquardt minimization method (default: -M 0)
-        # NOTE using B-spline resolution of 10 (-b) matching the PSF resolution!
-        # NOTE PRNU knowledge error in % (-p)
-        #cmd = os.system(f'{self.platoLib}/psffit.py ' +
-        #                f'-K 1 -b {self.bsres} --seed {self.seedTarget} ' +
-        #                f'-F {self.tarFluxError} -s {self.tarAbsCenError} -p {self.prnuError} ' + 
-        #                f'-f {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-        #                f'-o {self.starID} {self.starID} {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('psffit.py failed due to the above error!')
-
         if self.verbose > 1:
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
@@ -1678,13 +1588,12 @@ class PLATOnium(object):
             self.failed('gen_pflux_ts failed due to the above error!')
 
         # PROLOGUE
-
         # Execution time of module
         if self.verbose > 1:
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-
+    # TODO: clean this up after testing P5
     def run_L1_onboard(self):
         """
         Module to for the on-board L1 pipeline processing chain.
@@ -1785,10 +1694,10 @@ class PLATOnium(object):
     #--------------------------------------------------------------#
 
     def create_sim_table(self, odir):
-
-        """Module to create a overview table of the simulation.
         """
-                
+        Module to create a overview table of the simulation.
+        """
+
         # Write PlatoSim info to a table
         filename = f'{odir}/{self.outputFileName}.table'
         data = {"ID":       self.targetNo+1,
@@ -1802,7 +1711,7 @@ class PLATOnium(object):
                 "ccd":      self.ccdCode,
                 "xCCD":     self.xCCD,
                 "yCCD":     self.yCCD,
-                "rOA":      self.rOA,                
+                "rOA":      self.rOA,
                 "xFP":      self.xFP,
                 "yFP":      self.yFP,
                 "ncon":     self.numCon,
@@ -1822,34 +1731,27 @@ class PLATOnium(object):
         # Save simulation table
         df1.to_feather(filename)
 
-            
-            
-    
 
     def failed(self, message):
-
-        """Create table of failed pipeline simulations.
         """
-    
+        Create table of failed pipeline simulations.
+        """
+
         # Open the file in append & read mode ('a+')
         with open(self.inputDir / 'failed.txt', 'a+') as f:
-
             # Move read cursor to the start of file.
             f.seek(0)
-
             # If file is not empty then append '\n'
             if len(f.read(100)) > 0: f.write("\n")
-
             # Append text at the end of file
             f.write(f'{int(self.starID)} {self.group} {self.camera} {self.quarter}')
-
         # Stop script with errorcode
         errorcode('error', message)
 
 
     def sort_output_normal(self):
-
-        """Sort output files for default setup.
+        """
+        Sort output files for default setup.
         """
 
         # Create a info table of simulation
@@ -1896,8 +1798,8 @@ class PLATOnium(object):
 
 
     def sort_output_pipeline(self):
-
-        """Sort output files for pipeline setup.
+        """
+        Sort output files for pipeline setup.
         """
 
         if self.verbose > 1:
@@ -1910,12 +1812,9 @@ class PLATOnium(object):
         # Select prefix-files
         self.outputFileName = f'{self.starID}_{self.obsPrefix}'
         prefixInversion = self.microscanDirInvers / '000000001'
-        #prefixStarIDtar = self.outputDirStarIDsim / '000000001'
         prefixStarIDsim = self.outputDirStarIDsim / self.starID
         prefixStarIDnew = self.outputDirStarIDnew / self.outputFileName
-
         print(f"prefixInversion {prefixInversion}")
-        #print(f"prefixStarIDtar {prefixStarIDtar}")
         print(f"prefixStarIDsim {prefixStarIDsim}")
         print(f"prefixStarIDnew {prefixStarIDnew}")
 
@@ -1957,15 +1856,6 @@ class PLATOnium(object):
             except:
                 self.failed('PSF fitting of target star was not successful!')
 
-            # old code
-            #cols = ['flux', 'cx', 'cy', 'bg', 'flux_err', 'cx_err', 'cy_err', 'bg_err',
-            #        'chi2', 'iter', 'lamb']
-            #try:
-            #    df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
-            #                     names=cols, usecols=np.arange(0, len(cols), 1))
-            #except:
-            #    self.failed('PSF fitting of target star was not successful!')
-
         # Fetch P5 light curve
         if args.sample == 'P5':
             pass
@@ -1991,28 +1881,6 @@ class PLATOnium(object):
             #for i in range(len(maskfits)):
             #    print(f"{maskfits[i]} -> {prefixStarIDnew}{maskfits[i][-17:]}")
             #    shutil.move(maskfits[i], f'{prefixStarIDnew}{maskfits[i][-17:]}')
-
-        # Prologue if data frame exist
-        #if df is not None:
-        #    print("df is not None")
-        #    # Add a proper time column
-        #    df = pdAddColumn(df, self.time, 'time')
-        #
-        #    # Formatting of data frame
-        #    if args.sample == 'P1': df = df.astype({'time':np.float64})
-        #    if args.sample == 'P5': df = df.astype({'time':np.float64})
-        #
-        #    # Feather format needs to be indiced!
-        #    df = df.reset_index()
-        #
-        #    # Save new data frame
-        #    print(f"Saving file {prefixStarIDnew}.ftr")
-        #    df.to_feather(f'{prefixStarIDnew}.ftr')
-        #
-        #    # Move files to new data directory
-        #    # TODO remove
-        #    #print(f"Move {prefixInversion}_PRLS_invert.log -> {prefixStarIDnew}.invert")
-        #    #shutil.move(f'{prefixInversion}_PRLS_invert.log', f'{prefixStarIDnew}.invert')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
@@ -2052,8 +1920,8 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
     def resources(self):
-
-        """Module to print resources used by PLATOnium.
+        """
+        Module to print resources used by PLATOnium.
         """
 
         if self.verbose > 1:
@@ -2080,9 +1948,6 @@ class PLATOnium(object):
             print(f'Total execution time             : {datetime.datetime.now() - self.tic0} [hh:mm:ss]\n')
 
 
-
-
-        
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
@@ -2160,7 +2025,7 @@ p.create_inputfiles(sim)
 if args.plot:
     # Only show imagette
     p.show_subfield(sim)
-    
+
 elif args.pipeline and args.sample == 'P1':
     # Run on-ground L0-L1 pipeline chain
     p.control_hdf5()
@@ -2168,7 +2033,7 @@ elif args.pipeline and args.sample == 'P1':
     p.run_microscan(sim)
     p.run_L1_onground()
     p.sort_output_pipeline()
-    
+
 elif args.pipeline and args.sample == 'P5':
     # Run on-board L0-L1 pipeline chain
     p.control_hdf5()
@@ -2176,7 +2041,7 @@ elif args.pipeline and args.sample == 'P5':
     p.run_microscan(sim)
     p.run_L1_onboard()
     p.sort_output_pipeline()
-    
+
 else:
     # Only run PlatoSim time series
     p.run_sim_normal(sim)
@@ -2185,7 +2050,7 @@ else:
         p.run_reduction(sim)
     # Prologue
     p.sort_output_normal()
-        
+
 # Finito!
 if not args.plot:
     p.resources()
