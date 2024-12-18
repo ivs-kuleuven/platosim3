@@ -1402,7 +1402,6 @@ class PLATOnium(object):
         """
         Module to run a microscan sequence with PlatoSim.
         """
-        # NOTE: jmcc - moved to top of function
         # Make sure to only use one thread since we will use the HPC
         os.system('export OMP_NUM_THREADS=1')
 
@@ -2014,8 +2013,8 @@ elif args.pipeline and args.sample == 'P1':
     p.control_hdf5()
     p.run_sim_normal(sim)
     p.run_microscan(sim)
-    p.run_L1_onground()
-    p.sort_output_pipeline()
+    #p.run_L1_onground()
+    #p.sort_output_pipeline()
 
 elif args.pipeline and args.sample == 'P5':
     # Run on-board L0-L1 pipeline chain
