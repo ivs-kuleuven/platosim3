@@ -519,7 +519,7 @@ class PLATOnium(object):
         
         # Cadence of time series [s]
         # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
-        # NOTE This is overwritten for F-CAM by sim.useFastCameras()
+        # NOTE sim.useNormalCameras() and sim.useFastCameras() overwrites cadenc!
         if self.cadence:
             sim['ObservingParameters/CycleTime'] = self.cadence
         else:
@@ -602,6 +602,10 @@ class PLATOnium(object):
             normal = True
             sim.useNormalCamera(self.performance, self.timeStart)
 
+        # Secure that user-defined cadence is used!
+        if self.cadence:
+            sim['ObservingParameters/CycleTime'] = self.cadence
+            
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
         if self.magPB == 'Pmag':
@@ -611,9 +615,9 @@ class PLATOnium(object):
         elif self.magPB == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
 
-
+            
         # POINTING ERRORS
-        
+
         # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
         # NOTE: Included if the file "instrumentPRE.txt" is available in the input folder
         inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
@@ -750,7 +754,7 @@ class PLATOnium(object):
         
         
         # SUBFIELD SIMULATION
-        
+
         # Try to set a subfield around the coordinates on one of the 4 CCDs of the camera.
         # This will fail (return = False) if visible by any of the 4 CCDs, i.e.:
         # 1) If the subfield is outside camera FOV; 
