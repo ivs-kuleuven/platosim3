@@ -1042,98 +1042,106 @@ Notes on PIC catalogue creation:
         Authors: Juan Cabrera & Nicholas Jannsen
         https://www.cosmos.esa.int/web/gaia-users/archive/programmatic-access
         """
-
-        if self.verbose > 1:
-            print(f'Adding stellar  columns : {self.stellar}')
-            print(f'Adding variable columns : {self.variable}')
-            print(f'Adding quasar   columns : {self.quasar}')
-            print(f'\nStart Gaia DR3 query for magnitudes : {self.magmin} - {self.magmax}')
-
-        # Query stars within the FOV of each grid
-        for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
-            
-            df0 = sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
-                                     maglim_min=self.magmin, maglim_max=self.magmax,
-                                     flag_stellar=self.stellar,
-                                     flag_variable=self.variable,
-                                     flag_quasar=self.quasar,
-                                     ofile=f'{self.filename}.vot')
-
-            # Contatenate catalogue
-            if i == 0: df = df0
-            else:      df = pd.concat([df, df0])
         
-        # Remove duplicate stars (from overlapping grid)
-        df = df.drop_duplicates(subset=['gaiaDR3'])
-
-        if self.verbose > 1:
-            print(f'Number of objects in stellar catalogue: {df.shape[0]}')
-        
-        # Replace missing Gaia colors assuming M0 dwarfs
-        if df.BP_RP.isna().sum() > 0:
-            df.BP_RP[df.BP_RP.isna()] = 2.0
-
-        # Convert Gmag to Pmag
-        if self.quasar:
-            df = df.rename(columns={'Gmag': 'Pmag'})
-        else:
-            df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
-            df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
-            df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
-
-        # If requested, add bright stars not available in the Gaia catalogue (G > 2)
-        # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}
-        if self.bright:
-            Sirius  = {'gaiaDR3':'1', 'ra':101.2871667, 'dec':-16.7161167,
-                       'Pmag':  ut.passbandConversionV2P(-1.46, 9940),
-                       'PBmag': ut.passbandConversionV2P(-1.46, 9940),
-                       'PRmag': ut.passbandConversionV2P(-1.46, 9940)}
-            Canopus = {'gaiaDR3':'2', 'ra': 95.9879167, 'dec':-52.6956611,
-                       'Pmag':  ut.passbandConversionV2P(-0.72, 7400),
-                       'PBmag': ut.passbandConversionV2P(-0.59, 7400),
-                       'PRmag': ut.passbandConversionV2P(-0.96, 7400)}
-            epsCMa  = {'gaiaDR3':'3', 'ra':104.6564583, 'dec':-28.9720861,
-                       'Pmag':  ut.passbandConversionV2P(1.50, 22900),
-                       'PBmag': ut.passbandConversionV2P(1.29, 22900),
-                       'PRmag': ut.passbandConversionV2P(1.59, 22900)}
-            gamVel  = {'gaiaDR3':'4', 'ra':122.383126, 'dec':-47.336586,
-                       'Pmag':  ut.passbandConversionV2P(1.78, 21500),
-                       'PBmag': ut.passbandConversionV2P(1.58, 21500),
-                       'PRmag': ut.passbandConversionV2P(1.85, 21500)}
-            df_Sirius  = pd.DataFrame([Sirius])
-            df_Canopus = pd.DataFrame([Canopus])
-            df_epsCMa  = pd.DataFrame([epsCMa])
-            df_gamVel  = pd.DataFrame([gamVel])
-            df = pd.concat([df, df_Sirius, df_Canopus, df_epsCMa, df_gamVel])
-
-        # Keep only stars within the camera group FOV
-        if self.verbose > 1:
-            print(f'\nCreating catalogue for each camera group')
-
-        for i in range(5):
-
-            # Calculate angular distance [deg]
-            dOA = ut.radialDistance(self.raGroups[i], self.decGroups[i],
-                                    df.ra.to_numpy(), df.dec.to_numpy())
-            df0 = df[dOA < 19]
-            
-            # Select output filename
-            ofile = f'{self.filename}_group{i+1}.ftr'
-
-            # Save new catalogue
-            df0.reset_index(drop=True, inplace=True)
-            df0.to_feather(ofile)
-
-        # Run PLATOnium simulations to create final catalogue
         self.flag_combine = True
-        if self.flag_combine:
 
+        # QUERY CATALOGUE
+        
+        # Check if catalogue already exist
+        starcat = Path(self.outputDir) / f'starcat_GaiaDR3_{self.field}_group1.ftr'
+        if not starcat.is_file():
+            if self.verbose > 1:
+                print(f'Adding stellar  columns : {self.stellar}')
+                print(f'Adding variable columns : {self.variable}')
+                print(f'Adding quasar   columns : {self.quasar}')
+                print(f'\nStart Gaia DR3 query for magnitudes : {self.magmin} - {self.magmax}')
+
+            # Query stars within the FOV of each grid
+            for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
+
+                df0 = sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
+                                         maglim_min=self.magmin, maglim_max=self.magmax,
+                                         flag_stellar=self.stellar,
+                                         flag_variable=self.variable,
+                                         flag_quasar=self.quasar,
+                                         ofile=f'{self.filename}.vot')
+
+                # Contatenate catalogue
+                if i == 0: df = df0
+                else:      df = pd.concat([df, df0])
+        
+            # Remove duplicate stars (from overlapping grid)
+            df = df.drop_duplicates(subset=['gaiaDR3'])
+
+            if self.verbose > 1:
+                print(f'Number of objects in stellar catalogue: {df.shape[0]}')
+
+            # Replace missing Gaia colors assuming M0 dwarfs
+            if df.BP_RP.isna().sum() > 0:
+                df.BP_RP[df.BP_RP.isna()] = 2.0
+
+            # Convert Gmag to Pmag
+            if self.quasar:
+                df = df.rename(columns={'Gmag': 'Pmag'})
+            else:
+                df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
+                df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
+                df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
+
+            # If requested, add bright stars not available in the Gaia catalogue (G > 2)
+            # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}
+            if self.bright:
+                Sirius  = {'gaiaDR3':'1', 'ra':101.2871667, 'dec':-16.7161167,
+                           'Pmag':  ut.passbandConversionV2P(-1.46, 9940),
+                           'PBmag': ut.passbandConversionV2P(-1.46, 9940),
+                           'PRmag': ut.passbandConversionV2P(-1.46, 9940)}
+                Canopus = {'gaiaDR3':'2', 'ra': 95.9879167, 'dec':-52.6956611,
+                           'Pmag':  ut.passbandConversionV2P(-0.72, 7400),
+                           'PBmag': ut.passbandConversionV2P(-0.59, 7400),
+                           'PRmag': ut.passbandConversionV2P(-0.96, 7400)}
+                epsCMa  = {'gaiaDR3':'3', 'ra':104.6564583, 'dec':-28.9720861,
+                           'Pmag':  ut.passbandConversionV2P(1.50, 22900),
+                           'PBmag': ut.passbandConversionV2P(1.29, 22900),
+                           'PRmag': ut.passbandConversionV2P(1.59, 22900)}
+                gamVel  = {'gaiaDR3':'4', 'ra':122.383126, 'dec':-47.336586,
+                           'Pmag':  ut.passbandConversionV2P(1.78, 21500),
+                           'PBmag': ut.passbandConversionV2P(1.58, 21500),
+                           'PRmag': ut.passbandConversionV2P(1.85, 21500)}
+                df_Sirius  = pd.DataFrame([Sirius])
+                df_Canopus = pd.DataFrame([Canopus])
+                df_epsCMa  = pd.DataFrame([epsCMa])
+                df_gamVel  = pd.DataFrame([gamVel])
+                df = pd.concat([df, df_Sirius, df_Canopus, df_epsCMa, df_gamVel])
+
+            # Keep only stars within the camera group FOV
+            if self.verbose > 1:
+                print(f'\nCreating catalogue for each camera group')
+
+            for i in range(5):
+
+                # Calculate angular distance [deg]
+                dOA = ut.radialDistance(self.raGroups[i], self.decGroups[i],
+                                        df.ra.to_numpy(), df.dec.to_numpy())
+                df0 = df[dOA < 19]
+
+                # Select output filename
+                ofile = f'{self.filename}_group{i+1}.ftr'
+
+                # Save new catalogue
+                df0.reset_index(drop=True, inplace=True)
+                df0.to_feather(ofile)
+
+                
+        # CREATE FINAL CATALOGUE
+                
+        # Run PLATOnium simulations to create final catalogue
+        if self.flag_combine:
             if self.verbose > 1:
                 print(f'\nRunning PLATOnium find stars within the focal plane')
                 
             # Copy YAML to output
             ut.copyVizierInputYAML(self.field, self.outputDir)
-            platonium=os.getenv('PLATO_PROJECT_HOME')+'/python/platosim/platonium/platonium.py'
+            platonium = os.getenv('PLATO_PROJECT_HOME')+'/python/platosim/platonium/platonium.py'
 
             # Query stars within the FOV of each grid
             for ccd in tqdm(range(1,5), bar_format=ut.tqdmBar()):
@@ -1146,35 +1154,20 @@ Notes on PIC catalogue creation:
                 print(f'\nCombing catalogues into final PLATO {self.field} catalogue')
 
             # Load full-frame stellar catalogues
-            group, cam = 1, 1
-            df11 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
-            df12 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
-            df13 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
-            df14 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
-            group, cam = 2, 1
-            df21 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
-            df22 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
-            df23 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
-            df24 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
-            group, cam = 3, 1
-            df31 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
-            df32 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
-            df33 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
-            df34 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
-            group, cam = 4, 1
-            df41 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd1.ftr")
-            df42 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd2.ftr")
-            df43 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd3.ftr")
-            df44 = pd.read_feather(f"{self.outputDir}/Ncam{group}.{cam}_Q1_ccd4.ftr")
-
+            df = pd.DataFrame()
+            for group in range(1,5):
+                for ccd in range(1,5):
+                    try:
+                        df0 = pd.read_feather(f"{self.outputDir}/Ncam{group}.1_Q1_ccd{ccd}.ftr")
+                    except FileNotFoundError:
+                        errorcode('warning', f'No stars found on CCD {ccd} of N-CAM {group}.1')
+                    else:
+                        df = pd.concat([df, df0])
+            
             # Remove all files again after loaded
             os.system(f'rm {self.outputDir}/Ncam*')
             os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
             
-            # Combine all CCD catalogue into one
-            df = pd.concat([df11, df12, df13, df14, df21, df22, df23, df24,
-                            df31, df32, df33, df34, df41, df42, df43, df44])
-
             # Drop a few columns
             df = df.drop(columns=['xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
 
