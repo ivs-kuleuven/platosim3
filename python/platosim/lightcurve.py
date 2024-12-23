@@ -1378,7 +1378,10 @@ class LightCurve(object):
         
         # Get varsource light curve
         rows = 2
-        lc_var = self.varsource()
+        try:
+            lc_var = self.varsource()
+        except:
+            lc_var = None
         if lc_var is not None and plot_oc:
             rows = 4
             varsource = True
@@ -1501,7 +1504,7 @@ class LightCurve(object):
             dex = self.time_indices()
 
         # Convert unit [days -> number of exposures]
-        segment = int(segment * 86400 / 25)
+        segment = int(segment * 86400 / self.cadence)
             
         # Move the data chunk when a jump
 
@@ -1510,31 +1513,32 @@ class LightCurve(object):
             for i,j in zip(dex[1:-1], dex[1:]):
 
                 # Fetch data segments before and after jump
-                df_b = self.df.loc[i-segment-1:i-1]
-                df_a = self.df.loc[i:i+segment]
+                df_b = self.df.iloc[i-segment-1:i-1]
+                df_a = self.df.iloc[i:i+segment]
                 
                 if method == 'lowess':
 
                     #------------ TODO integrate into bin method
-                    binsize = 0.5
+                    # To be used for 25s cadence
+                    # binsize = 0.5
                     
-                    time = df_b.time
-                    flux = df_b.flux_stitch
-                    tdur = time.iloc[-1] - time.iloc[0]
-                    tbin = binsize*3600
-                    bins = int(tdur/tbin)
-                    flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
-                    time = time[:-1] + np.diff(time)[0]/2.
-                    df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    # time = df_b.time
+                    # flux = df_b.flux_stitch
+                    # tdur = time.iloc[-1] - time.iloc[0]
+                    # tbin = binsize*3600
+                    # bins = int(tdur/tbin)
+                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    # time = time[:-1] + np.diff(time)[0]/2.
+                    # df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
 
-                    time = df_a.time
-                    flux = df_a.flux_stitch
-                    tdur = time.iloc[-1] - time.iloc[0]
-                    tbin = binsize*3600
-                    bins = int(tdur/tbin)
-                    flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
-                    time = time[:-1] + np.diff(time)[0]/2.
-                    df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    # time = df_a.time
+                    # flux = df_a.flux_stitch
+                    # tdur = time.iloc[-1] - time.iloc[0]
+                    # tbin = binsize*3600
+                    # bins = int(tdur/tbin)
+                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    # time = time[:-1] + np.diff(time)[0]/2.
+                    # df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
                     #-------------
                     
                     # Lowess smoothing
@@ -1636,7 +1640,10 @@ class LightCurve(object):
 
         # Get varsource light curve        
         rows = 2
-        lc_var = self.varsource()
+        try:
+            lc_var = self.varsource()
+        except:
+            lc_var = None
         if lc_var is not None:
             rows = 3
             varsource = True
@@ -1980,7 +1987,7 @@ class LightCurve(object):
         group, camera, quarter = self.obs()
 
         # Original data
-        if type(group) is np.int:
+        if type(group) is int:
             flux = self.flux(unit=flux_unit)
             lab = f"N-CAM {group}.{camera} Q{quarter}"
 
