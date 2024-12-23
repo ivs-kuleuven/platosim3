@@ -469,11 +469,11 @@ def plot_IS_OB(path, ax, modes='g', rot_roche=0, c='b', ls='--', log=False, lw=1
         ax.plot(Teff_upp, logL_upp, c=c, ls=ls, lw=lw, zorder=5)
     
 
-def plot_HRD(fig, ax, x, y, c, clab, anchor, width="50%", height="3%",
+def plot_HRD(fig, ax, x, y, c, clab, anchor, cmap='viridis', width="50%", height="3%",
              log=False, vmin=None, vmax=None, ticks=None):
     
     im = ax.scatter(x, y, c=c, s=20, vmin=vmin, vmax=vmax,
-                    cmap="viridis", edgecolors='lightgray')
+                    cmap=cmap, edgecolors='lightgray')
     axins = inset_axes(ax, width=width, height=height, loc="lower left",
                        bbox_to_anchor=anchor, bbox_transform=ax.transAxes)
     cbar = fig.colorbar(im, cax=axins, extend='both', orientation='horizontal',
