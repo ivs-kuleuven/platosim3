@@ -1458,7 +1458,6 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-    # TODO: clean this up after testing P5
     def run_L1_onboard(self):
         """
         Module to for the on-board L1 pipeline processing chain.
@@ -1471,14 +1470,6 @@ class PLATOnium(object):
         os.chdir(self.pipelineDir)
 
         # PRE-PROCESSING
-
-        #if self.verbose > 1:
-        #    errorcode('message', '\n[pproc]: Pre-processing imagettes')
-        #cmd = os.system(f'{self.platoLib}/pproc.py ' +
-        #                f'--platosim --auto-bg -f {self.starID} {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('pproc.py failed due to the above error!')
-
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
@@ -1490,32 +1481,6 @@ class PLATOnium(object):
             self.failed('psim2datastruc failed due to the above error!')
 
         # APERTURE PHOTOMETRY
-
-        # NOTE Input parameters:
-        # - Binary mask is default (-T 1)
-        # - Write mask FITS files (-M)
-        # - Calculating SPR vs. time (--spr_tot) -> only binary masks!
-        # - Using B-spline PSF resolution (--bsres)
-        # - Using Dierckx's knot distribution (-K 1)
-        # - Update mask every 14 days (--update-period 48384)
-        # - Update mask given 0.1 pixel threshold (--update-thres 0.1)
-        # NOTE Conditions for a mask update are:
-        # - the displacement since the last update exceeds the threshold
-        # - the current exposure is = last update time + update period
-        # - the exposure number must be a multiple of 24 such that the mask update
-        #   always occurs at the beginning of a 600s cycle
-        #if self.verbose > 1:
-        #    errorcode('message', '\n[lightcurve.py]: Aperture photometry ala Marchiori+2019')
-        #cmd = os.system(f'{self.platoLib}/lightcurve.py ' +
-        #                f'-M --input-hdf5 --spr_tot --bsres {self.bsres} ' + 
-        #                f'--include-contaminants --add_chromatic_abberation ' +
-        #                f'--update-period {self.maskUpdateRate} ' +
-        #                f'--update-thres {self.maskUpdateThres} ' +
-        #                f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-        #                f'-B {self.starID} -o {self.starID} {self.starID} {self.devnull}')
-        #if cmd != 0:
-        #    self.failed('lightcurve.py failed due to the above error!')
-
         if self.verbose > 1:
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
@@ -1524,19 +1489,7 @@ class PLATOnium(object):
             self.failed('gen_aflux_ts failed due to the above error!')
 
         # JITTER AND DRIFT CORRECTION
-
         if not self.jitterDriftOff:
-            #if self.verbose > 1:
-            #    errorcode('message', '\n[jittercorrection.py]: Jitter & Drift Correction')
-            #cmd = os.system(f'{self.platoLib}/jittercorrection.py ' +
-            #                f'--add_chromatic_abberation -W 128 -r 128 -f {self.prnuError} ' +
-            #                f'--bsres {self.bsres} --seed {self.seedJitter} ' + 
-            #                f'-b {self.tarAbsCenError} -a {self.conDeltaMag} ' +
-            #                f'-I {self.microscanDirInvers}/{self.starID}_PRLS.vec ' +
-            #                f'-o {self.starID} {self.starID} {self.starID} {self.devnull}')
-            #if cmd != 0:
-            #    self.failed('psffit.py failed due to the above error!')
-
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
@@ -1545,7 +1498,6 @@ class PLATOnium(object):
                 self.failed('apply_ltdjit_corr failed due to the above error!')
 
         # PROLOGUE
-
         # Execution time of module
         if self.verbose > 1:
             self.tocOnboard = datetime.datetime.now() - self.tic
@@ -1714,28 +1666,6 @@ class PLATOnium(object):
         # Fetch P5 light curve
         if args.sample == 'P5':
             pass
-            ## TODO do P5 later
-            #cols = ['flux', 'xc', 'yc', 'flux_cor']
-            #
-            ## If jitter/drift correction is applied or not
-            #if self.jitterDriftOff:
-            #    print(f"P5 load {prefixStarIDtar}.dat file")
-            #    df = pd.read_csv(f'{prefixStarIDtar}.dat', delimiter=' ', comment='#',
-            #                     names=cols[:3], usecols=cols[:3])
-            #else:
-            #    print(f"P5 load {prefixStarIDtar}-jc.dat file")
-            #    df = pd.read_csv(f'{prefixStarIDtar}-jc.dat', delimiter=' ', comment='#',
-            #                     names=cols, usecols=cols)
-            #
-            ## Move the SPR file
-            #print(f"Move the spr file {prefixStarIDtar}-sprtot.dat -> {prefixStarIDnew}.spr")
-            #shutil.move(f'{prefixStarIDtar}-sprtot.dat', f'{prefixStarIDnew}.spr')
-            #
-            ## Move mask files number after mask update exposure
-            #maskfits = glob.glob(f'{prefixStarIDtar}**mask.fits')
-            #for i in range(len(maskfits)):
-            #    print(f"{maskfits[i]} -> {prefixStarIDnew}{maskfits[i][-17:]}")
-            #    shutil.move(maskfits[i], f'{prefixStarIDnew}{maskfits[i][-17:]}')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
