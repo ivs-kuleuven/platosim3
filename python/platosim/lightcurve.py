@@ -2020,7 +2020,7 @@ class LightCurve(object):
 
         # Plot a median filter [unit of hours]
         if median_filter:
-            if type(median_filter) is np.float:
+            if type(median_filter) is float:
                 label = f'{median_filter:.3f}h bins'
             else:
                 label = f'{median_filter}h bins'
@@ -2029,7 +2029,7 @@ class LightCurve(object):
 
         # Plot binned mean points [unit of days]
         if binsize:            
-            if type(binsize) is np.float:
+            if type(binsize) is float:
                 label = f'{binsize:.3f}h bins'
             else:
                 label = f'{binsize}h bins'
@@ -2188,7 +2188,7 @@ class LightCurve(object):
 
         # Plot a median filter [unit of hours]
         if mfilter:
-            if type(mfilter) is np.float:
+            if type(mfilter) is float:
                 label = f'{mfilter:.3f}h median'
             else:
                 label = f'{mfilter}h median'
