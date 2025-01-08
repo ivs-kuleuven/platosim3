@@ -1654,9 +1654,10 @@ class PLATOnium(object):
         print(f"create_sim_table({self.outputDirStarIDnew})")
         self.create_sim_table(self.outputDirStarIDnew)
 
+        camera_id = (self.group - 1) * 6 + self.camera
+
         # Fetch P1 light curve
         if args.sample == 'P1':
-            camera_id = (self.group - 1) * 6 + self.camera
             lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{camera_id}_p000000001.hdf5"
             cob_file = f"{self.outputDirStarIDsim}/COB_OG_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
@@ -1689,8 +1690,34 @@ class PLATOnium(object):
                 self.failed('PSF fitting of target star was not successful!')
 
         # Fetch P5 light curve
+        # TODO add support for extended masks etc
         if args.sample == 'P5':
-            pass
+            lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
+            lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
+            cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
+            star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
+            yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
+
+            lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
+            lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
+            cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
+            star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
+            yaml_file_out = f"{prefixStarIDnew}.yaml"
+
+            # copy the main files to a long term area with the correct filenames
+            print(f"Move {lc_file1} -> {lc_file1_out}")
+            print(f"Move {lc_file2} -> {lc_file2_out}")
+            print(f"Move {cob_file} -> {cob_file_out}")
+            print(f"Move {star_file} -> {star_file_out}")
+            print(f"Move {yaml_file} -> {yaml_file_out}")
+            try:
+                shutil.copy(lc_file1, lc_file1_out)
+                shutil.copy(lc_file2, lc_file2_out)
+                shutil.copy(cob_file, cob_file_out)
+                shutil.copy(star_file, star_file_out)
+                shutil.copy(yaml_file, yaml_file_out)
+            except:
+                self.failed('Aperture photometry of target star was not successful!')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
