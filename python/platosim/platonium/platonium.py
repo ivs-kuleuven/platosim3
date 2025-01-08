@@ -1478,6 +1478,7 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+    # TODO: add support for extended masks etc
     def run_L1_onboard(self):
         """
         Module to for the on-board L1 pipeline processing chain.
@@ -1504,7 +1505,7 @@ class PLATOnium(object):
         if self.verbose > 1:
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_aflux_ts --psf {psf_path} {self.starID} {self.starID} {self.starID}"
+        comm = f"gen_aflux_ts --psf {psf_path} 1 {self.starID} {self.starID}"
         print(comm) # DEBUGGING
         cmd = os.system(comm)
         if cmd != 0:
@@ -1515,7 +1516,7 @@ class PLATOnium(object):
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-            comm = f"apply_ltdjit_corr --psf {psf_path} --cadence {self.cadence} {self.starID} {self.starID} {self.starID}"
+            comm = f"apply_ltdjit_corr --psf {psf_path} --cadence {self.cadence} 1 {self.starID} {self.starID}"
             print(comm) # DEBUGGING
             cmd = os.system(comm)
             if cmd != 0:
