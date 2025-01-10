@@ -1033,7 +1033,7 @@ class PLATOnium(object):
                           f'F-CAM {self.cameraID} Q{self.quarter}\n')
             else:
                 errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
-                          f'{self.groupID} {self.group}.{self.camera} Q{self.quarter}\n')
+                          f'N-CAM {self.group}.{self.camera} Q{self.quarter}\n')
 
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()
@@ -1048,7 +1048,6 @@ class PLATOnium(object):
         # Run simulation for first image cadence
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
-
         f = sim.run(removeOutputFile=self.overwrite)
             
         # Plot star in CCD focal plane
