@@ -6,9 +6,9 @@ used by the PlatoSim and PLATOnium.
 """
 
 # Built-in
+
 import os
 import sys
-import glob
 import math
 import ftplib
 import shutil
@@ -17,24 +17,29 @@ import fnmatch
 from pathlib import Path
 
 # PlatoSim standard
-import h5py
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize, LogNorm
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from pylab import MaxNLocator
 from prettytable import PrettyTable
 import scipy
-from scipy.ndimage import median_filter
-if (scipy.__version__ > "1.6"):
-    from scipy.integrate import cumulative_trapezoid as cum_trapz
-else:
-    from scipy.integrate import cumtrapz as cum_trapz
 from scipy.stats import gaussian_kde
+from scipy import constants as c
 
-# PlatoSim functions
-import platosim.referenceFrames as rf
+# Backward compatability
+
+try:
+    from scipy.integrate import cumulative_trapezoid
+except ImportError:
+    # Versions of scipy < 1.6 use a different name
+    from scipy.integrate import cumtrapz as cumulative_trapezoid
+
+
+
+
+
+
+
 
 
 #--------------------------------------------------------------#
@@ -775,23 +780,45 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
     
 
 
-    def massLuminosityRelation(R, Teff):
+def massLuminosityRelation(R, Teff):
 
-        """Calculate mass using M-L relation.
+    """Calculate mass using M-L relation.
 
-        Using the Teff in the mass-luminosity relation, one can find
-        the stellar mass for a main sequence dwarf star. Method valid
-        for (0.43 < M/Msun < 2)
+    Using the Teff in the mass-luminosity relation, one can find
+    the stellar mass for a main sequence dwarf star. Method valid
+    for (0.43 < M/Msun < 2)
 
-        Notes
-        -----
-        Reference from:
-        https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
-        """
-        return R**(1/2) * Teff[i]/5777.
+    Notes
+    -----
+    Reference from:
+    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+    """
+    return R**(1/2) * Teff/5777.
 
 
 
+def mm2pixels(distanceMm, focalLength, plateScale):
+
+    """Conversion from millimeters to pixels.
+
+    Parameters
+    ----------
+    distanceMm : float
+    Distance [mm]
+    focalLength : float
+    Focal lenght of telescope [mm]
+    plateScale : float
+    The plate scale of the telescope [mm/pixel]
+    
+    Returns
+    -------
+    distancePixels : float
+    Distance [pixels]
+    """
+    
+    distancePixels = (np.degrees( np.arctan(distanceMm / focalLength)) /
+                      plateScale * c.degree / c.arcsec)
+    return distancePixels
 
     
 #--------------------------------------------------------------#
@@ -1099,9 +1126,8 @@ def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal')
     # Number of images to average over
 
     nimg = int(tdur/tcyc)
-
+    level = 'camera'
     # Calculate the jitter noise
-
     if level == 'camera':
         jitterNoise = jitterASD * np.sqrt(1 / tcyc)
     elif level == 'instrument':
@@ -1141,6 +1167,8 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
+
+    TODO update gain values for F-CAMs
     """
 
     # Choose cycle and exposure time [s] for either the normal or fast cameras
@@ -1148,11 +1176,11 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     if camType == 'normal':
         texp = 21.
         tcyc = 25.
-        gain = 0.0186 * 2.15   # [ADU/e-]
+        gain = 0.03 # 0.0186 * 2.15   # [ADU/e-]
     else:
         texp = 2.1
         tcyc = 2.5
-        gain = 0.05   # TODO: update gain values for F-CAMs
+        gain = 0.05
 
     # Flux of stars [e-/s]
     
@@ -1170,7 +1198,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
             zp = 19.81
         # Calculate flux
         f = 10**(-0.4 * (mag - zp))
-
+        
         #f0 = 7.324509159344043e7
         #f = 10**(-0.4 * mag) * f0
 
@@ -1187,13 +1215,19 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
     NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
 
+    # Correction needed for PLATO passband
+    
+    if passband == 'P':
+        NSR *= 0.7324478224428527
+    
     return NSR
 
 
 
 
 
-def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600, bg=65, mpix=20):
+def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
+                               tdur=3600, bg=2250, ncam=1):
 
     """NSR estimate in the photon noise limit of bright stars.
 
@@ -1214,8 +1248,6 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600, b
         Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
     bg : float
         Constant background noise level [e-/s/pixel] 
-    mpix : float
-        Sum of pixels within aperture mask
 
     Return
     ------
@@ -1223,42 +1255,24 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal', tdur=3600, b
         NSR only valid for the photon noise limit.
     """
 
-    # Choose cycle and exposure time [s] for either the normal or fast cameras
-
-    if camType == 'normal':
-        gain = 1 / (0.0222 * 2.14)   # [ADU/e-/pixel]
-    else:
-        gain = 0.05   # TODO: update gain values for F-CAMs
-
-    # The P passband zero-point flux
+    # The passband zero-point flux
     
     if passband == "V":
         f0 = 1.00179e8
     elif passband == 'P':
         if camType == 'normal':
             f0 = 7.324509159344043e7
-        if camType == 'fastblue':
+        if camType == 'blue':
             f0 = 3.808715439431968e7
-        if camType == 'fastred':
+        if camType == 'red':
             f0 = 2.7591704260173317e7
     else:
         errorcode('error', f'Wrong {camType} name!')
         
-    # Calculate noise and signal
-    throughput   = 0.8134999994206865
-    transmission = 0.4822896122932434
-    
-    noise  = gain * bg * tdur * mpix * throughput #* transmission
-    signal = np.sqrt(10**(-0.4 * mag) * f0 * tdur)**1.72
-    sigma  = noise / signal
-
-    # Method cf. Matuszewskic+2023
-    k = 2250  # background and readout noise [e-]
+    # Method cf. Matuszewskic+2023 
     f = 10**(-0.4 * mag) * f0
-    sigma = np.sqrt(k**2/f**2 * tdur)
     
-    return sigma
-
+    return np.sqrt(bg**2 / f**2 * tdur) / np.sqrt(ncam)
 
 
 
@@ -1401,7 +1415,7 @@ def rebin3(x, xp, fp):
 
         # Binning
         x_cum = xp[1:]
-        c =  cum_trapz(fp,xp)
+        c =  cumulative_trapezoid(fp,xp)
         x_diff =  np.diff(x)
         b = x[:-1] + x_diff/2.
 

@@ -146,7 +146,7 @@ ENDIF("${isSystemDir}" STREQUAL "-1")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wno-deprecated-register -Wno-unused-variable -Wno-return-type")
 
-# Then those specific for the compiler for using C++11 support.
+# Then those specific for the compiler for using C++14 support.
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++14")

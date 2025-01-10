@@ -1259,9 +1259,15 @@ class Simulation(object):
             CCDangle        = np.deg2rad(self["CCDPositions/Orientation"][ccdID-1])
 
         pixelSize       = self["CCD/PixelSize"]                                                               # [micron]
-        raPlatform      = np.deg2rad(self["Platform/Orientation/Angles/RAPointing"])                          # [rad]
-        decPlatform     = np.deg2rad(self["Platform/Orientation/Angles/DecPointing"])                         # [rad]
-        solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))  # [rad]
+
+        if self["Platform/Orientation/Source"] == "Angles":
+            raPlatform  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+            decPlatform = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
+            solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        else:
+            q_EQ2PLM = self["Platform/Orientation/Quaternion/Components"]
+            raPlatform, decPlatform, solarPanelOrientation = rf.platformAnglesFromQuaternion(q_EQ2PLM)                   # [rad]
+
         focalPlaneAngle = np.deg2rad(self["Camera/FocalPlaneOrientation/ConstantValue"])                      # [rad]
         focalLength     = self["Camera/FocalLength/ConstantValue"] * 1000.0                                   # [m] -> [mm]
 
@@ -1774,30 +1780,40 @@ class Simulation(object):
            Subpixel position of star in x (row)
         yCCD : float32
            Subpixel position of star in y (column)
+
+        Warning:
+        --------
+        This functions computes its own version of the solarPanelOrientation, but it does
+        NOT change the corresponding value in the yaml config.
         """
 
         # Telescope config
 
-        raPlatformDeg  = self["Platform/Orientation/Angles/RAPointing"]  = raPF   # [deg]
-        decPlatformDeg = self["Platform/Orientation/Angles/DecPointing"] = decPF  # [deg]
+        if self["Platform/Orientation/Source"] == "Angles":
+            raPlatform  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+            decPlatform = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
+            solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+        else:
+            q_EQ2PLM = self["Platform/Orientation/Quaternion/Components"]
+            raPlatform, decPlatform, solarPanelOrientation = rf.platformAnglesFromQuaternion(q_EQ2PLM)                   # [rad]
 
-        raPlatformRad  = np.deg2rad(raPlatformDeg)   # [rad]
-        decPlatformRad = np.deg2rad(decPlatformDeg)  # [rad]
 
         focalLength      = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
         focalPlaneAngle  = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
 
-        solarPanelOrientation = self["Platform/Orientation/Angles/SolarPanelOrientation"] = math.fmod(quarter * 90., 360.) -6
-        solarPanelOrientationRad = np.deg2rad(float(solarPanelOrientation))
+        # NOTE: with the following line the value for the solarPanelOrientation is no longer consistent
+        #       with the value in the yaml file.
 
-        raTargetsRad  = np.deg2rad(ra)   # [rad]
-        decTargetsRad = np.deg2rad(dec)  # [rad]
+        solarPanelOrientation = np.deg2rad(math.fmod(quarter * 90., 360.) - 6)
+
+        raTargets  = np.deg2rad(ra)                               # [rad]
+        decTargets = np.deg2rad(dec)                              # [rad]
 
         # Loop over each star for this cam-group
 
         self["Telescope/GroupID"] = camGroup
-        azimuthTelescopeRad = np.deg2rad(self["CameraGroups/AzimuthAngle"][camGroup-1])
-        tiltTelescopeRad    = np.deg2rad(self["CameraGroups/TiltAngle"][camGroup-1])
+        azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][camGroup-1])
+        tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][camGroup-1])
 
         # CCD properties
 
@@ -1809,8 +1825,7 @@ class Simulation(object):
 
         for i in range(len(ra)):
 
-            subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargetsRad[i], decTargetsRad[i],
-                                                                   6, 6)
+            subfieldIsOnCCD = self.setSubfieldAroundSkyCoordinates(raTargets[i], decTargets[i], 6, 6)
             if subfieldIsOnCCD:
 
                 # Fetch CCD code and pixel coordinates (account for field distortion in included)
@@ -1828,13 +1843,13 @@ class Simulation(object):
                     mappedDistortion = False
                     distortionCoefficients = False
 
-                out = rf.getCCDandPixelCoordinates(raTargetsRad[i],
-                                                   decTargetsRad[i],
-                                                   raPlatformRad,
-                                                   decPlatformRad,
-                                                   solarPanelOrientationRad,
-                                                   tiltTelescopeRad,
-                                                   azimuthTelescopeRad,
+                out = rf.getCCDandPixelCoordinates(raTargets[i],
+                                                   decTargets[i],
+                                                   raPlatform,
+                                                   decPlatform,
+                                                   solarPanelOrientation,
+                                                   tiltTelescope,
+                                                   azimuthTelescope,
                                                    focalPlaneAngle,
                                                    focalLength,
                                                    pixelSize,
@@ -1847,3 +1862,4 @@ class Simulation(object):
         # That's it!
         
         return ccdCode, xCCD, yCCD
+

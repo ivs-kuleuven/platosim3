@@ -170,6 +170,7 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
     if (writeFlatfieldMap)
     {
         Log.debug("Detector: writing PRNU to HDF5");
+        hdf5File.createGroup("/Flatfield");
         hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
     }
 }

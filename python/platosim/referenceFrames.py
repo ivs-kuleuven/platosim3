@@ -1124,7 +1124,7 @@ def mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFil
 
     right_top_idx = idx_right[rightDistanceFromPointy >= 0]
     if (len(right_top_idx) == 0):
-        return xFpmm, yFPmm
+        return xFPmm, yFPmm
     else:
         idx_closest_idx = np.argmin(aDistanceFromPoint[right_top_idx])
         idx_selected[3] = right_top_idx[idx_closest_idx]
@@ -1554,7 +1554,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
                               includeFieldDistortion, normal, mappedDistortion=False,
                               distortionCoefficients=None, pathToPsfFile=None):
 
-    """Get the CCD and pixel coordinates.
+    """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
     Given the equatorial coordinates of a star, find out on which CCD
     it falls ('1', '2', '3', '4') and compute the pixel coordinates of
@@ -1637,13 +1637,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
-            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                             pathToPsfFile,
-                                                                             focalLength)
+            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength)
         else:
-            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
-                                                                       distortionCoefficients,
-                                                                       focalLength)
+            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
 
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
@@ -1679,8 +1675,7 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
 
 
-def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation,
-                                           azimuthAngle, tiltAngle):
+def platformToTelescopePointingCoordinates(raPlatform, decPlatform, solarPanelOrientation, azimuthAngle, tiltAngle):
 
     """From platform to camera pointing coordinates.
 
@@ -1988,7 +1983,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
         Y-coordinate (row) of star on the CCD [pix]
         If not on CCD: None
     normal:
-        Is depricated and should no longer be used.
+        Is deprecated and should no longer be used.
     """
 
     # Resolve which distortion model is used (if any)
@@ -2014,9 +2009,15 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
     
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
-    raPlatform            = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
-    decPlatform           = np.deg2rad(float(sim["Platform/Orientation/Angles/DecPointing"]))
-    solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))
+
+    if sim["Platform/Orientation/Source"] == "Angles":
+        raPlatform  = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
+        decPlatform = np.deg2rad(float(sim["Platform/Orientation/Angles/DecPointing"]))
+        solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+    else:
+        q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
+        raPlatform, decPlatform, solarPanelOrientation = platformAnglesFromQuaternion(q_EQ2PLM)                     # [rad]
+
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
     azimuthTelescope      = np.deg2rad(float(sim["Telescope/AzimuthAngle"]))
     tiltTelescope         = np.deg2rad(float(sim["Telescope/TiltAngle"]))
@@ -2111,9 +2112,15 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
     
     pixelSize             = float(sim["CCD/PixelSize"])
     focalLength           = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
-    raPlatform            = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
-    decPlatform           = np.deg2rad(float(sim["Platform/Orientation/Angles/DecPointing"]))
-    solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))
+
+    if sim["Platform/Orientation/Source"] == "Angles":
+        raPlatform  = np.deg2rad(float(sim["Platform/Orientation/Angles/RAPointing"]))
+        decPlatform = np.deg2rad(float(sim["Platform/Orientation/Angles/DecPointing"]))
+        solarPanelOrientation = np.deg2rad(float(sim["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+    else:
+        q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
+        raPlatform, decPlatform, solarPanelOrientation = platformAnglesFromQuaternion(q_EQ2PLM)                     # [rad]
+
     focalPlaneAngle       = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
 
     telescopeGroup       = sim["Telescope/GroupID"]

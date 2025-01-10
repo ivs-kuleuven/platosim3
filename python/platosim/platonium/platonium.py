@@ -1071,6 +1071,9 @@ class PLATOnium(object):
             f = SimFile(outputFile)
             ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
 
+            print(self.dx)
+            print(len(ID))
+
             # Select detected stars
             df = self.dx.iloc[ID]
 
@@ -1252,25 +1255,22 @@ class PLATOnium(object):
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
-        # Run analysis after detrending
-        #if analysis:
+        # # Compute the residuals
+        # df['flux_res'] = df.flux #(df.flux - 1)*1e6
 
-        # Compute the residuals
-        df['flux_res'] = df.flux #(df.flux - 1)*1e6
+        # # Regression model of residuals
+        # import statsmodels.api as sm
+        # lc = df.rename(columns={'time':'x', 'flux_res':'y'})
+        # lc['x'] = lc['x'].subtract(lc['x'].min())
+        # model = 'y ~ x'
+        # lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
+        # lsFit.summary(alpha=0.05)
 
-        # Regression model of residuals
-        import statsmodels.api as sm
-        lc = df.rename(columns={'time':'x', 'flux_res':'y'})
-        lc['x'] = lc['x'].subtract(lc['x'].min())
-        model = 'y ~ x'
-        lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
-        lsFit.summary(alpha=0.05)
-
-        # Plot regression model and residuals
-        st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
-                         xlab='Time [days]', ylab='Residuals [ppt]')
-        st.plot_residuals(lc, lsFit, theme='g')
-        st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
+        # # Plot regression model and residuals
+        # st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
+        #                  xlab='Time [days]', ylab='Residuals [ppt]')
+        # st.plot_residuals(lc, lsFit, theme='g')
+        # st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
 
     #--------------------------------------------------------------#
     #                    L1 PIPELINE MODULES                       #
@@ -1349,7 +1349,7 @@ class PLATOnium(object):
             # Load file
             data = np.loadtxt(spiralFileBase)
             t, x, y, z = data[:,0], data[:,1], data[:,2], data[:,3]
-            # Generate new time column
+             # Generate new time column
             cadence = np.diff(t)[0]  # [s -> 8 Hz]
             t = np.arange(len(t)) * cadence + self.timeStart
             # Save data to input folder
