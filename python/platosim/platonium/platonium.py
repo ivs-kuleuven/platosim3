@@ -1492,7 +1492,7 @@ class PLATOnium(object):
         Module to for the on-board L1 pipeline processing chain.
         """
         # onboard cadences are 50 or 600s, determine --n-average for gen_aflux from the configured cadence
-        n_average = self.cadence // 25
+        n_average = int(self.cadence/25)
         if n_average not in [2, 24]:
             self.failed(f'Onboard photometry is done at 50 or 600s (n_average = 2 | 24)\nCurrent n_average={n_average}')
 
