@@ -1523,7 +1523,7 @@ class PLATOnium(object):
         comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
         if self.pipePlots:
             comm += " -P"
-        comm += " 1 {self.starID} {self.starID}"
+        comm += f" 1 {self.starID} {self.starID}"
         print(comm)
 
         # run the gen_aflux command
@@ -1541,7 +1541,7 @@ class PLATOnium(object):
             comm = f"apply_ltdjit_corr --psf {psf_path}"
             if self.pipePlots:
                 comm += " -P"
-            comm += " 1 {self.starID} {self.starID}"
+            comm += f" 1 {self.starID} {self.starID}"
             print(comm)
 
             # run apply_ltdcorr command
