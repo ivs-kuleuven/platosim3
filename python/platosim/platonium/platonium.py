@@ -106,11 +106,12 @@ class PLATOnium(object):
         self.stitch     = args.stitch
         self.plotPost   = args.check
 
-        self.pipeline       = args.pipeline
-        self.allFluxError   = args.all_ferr
-        self.tarAbsCenError = args.tar_cerr
-        self.prnuError      = args.prnu_err
-        self.jitterDriftOff = args.jit_off
+        self.pipeline         = args.pipeline
+        self.allFluxError     = args.all_ferr
+        self.tarAbsCenError   = args.tar_cerr
+        self.prnuError        = args.prnu_err
+        self.jitterDriftOff   = args.jit_off
+        self.extendedMaskFlux = args.eflux
         #self.pipePlots      = args.pipe_plots
 
         # MANDATORY PARAMETERS
@@ -1519,6 +1520,8 @@ class PLATOnium(object):
         # build the gen_aflux command
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
         comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+        if self.extendedMaskFlux:
+            comm += " --emask"
         # TODO: enable later
         #if self.pipePlots:
         #    comm += " -P"
@@ -1538,6 +1541,8 @@ class PLATOnium(object):
             # build apply_ltdcorr command
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
             comm = f"apply_ltdjit_corr --psf {psf_path}"
+            if self.extendedMaskFlux:
+                comm += " --emask"
             # TODO: enable later
             #if self.pipePlots:
             #    comm += " -P"
@@ -1721,15 +1726,25 @@ class PLATOnium(object):
         # Fetch P5 light curve
         # TODO add support for extended masks etc
         if args.sample == 'P5':
-            lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
-            lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
-            cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
+            if self.extendedMaskFlux:
+                lc_file1 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
+                lc_file2 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
+                cob_file = f"{self.outputDirStarIDsim}/E-COB_L0_c{camera_id}_p000000001.hdf5"
+            else:
+                lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
+                lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
+                cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
 
-            lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
-            lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
-            cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
+            if self.extendedMaskFlux:
+                lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.hdf5"
+                lc_file2_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L1A.hdf5"
+                cob_file_out = f"{prefixStarIDnew}_E-COB_L0.hdf5"
+            else:
+                lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
+                lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
+                cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
 
@@ -1869,7 +1884,8 @@ phot_group.add_argument('--check',    action='store_true',        help='Flag to 
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline',   action='store_true',           help='Flag to activate proto-type pipeline')
-pip_group.add_argument('--jit_off',    action='store_true',           help='Falg to turn-off the jitter/drift correction')
+pip_group.add_argument('--jit_off',    action='store_true',           help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
+pip_group.add_argument('--eflux',      action='store_true',           help='Flag to turn-on the extended flux in gen_aflux_ts')
 pip_group.add_argument('--all_ferr',   metavar='PERCENT', type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
 pip_group.add_argument('--tar_cerr',   metavar='PIXEL',   type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
 pip_group.add_argument('--prnu_err',   metavar='PERCENT', type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
