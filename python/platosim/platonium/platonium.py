@@ -112,7 +112,7 @@ class PLATOnium(object):
         self.tarAbsCenError = args.tar_cerr
         self.prnuError      = args.prnu_err
         self.jitterDriftOff = args.jit_off
-        self.pipePlots      = args.pipe_plots
+        #self.pipePlots      = args.pipe_plots
 
         # MANDATORY PARAMETERS
         # Normal cameras
@@ -1469,8 +1469,9 @@ class PLATOnium(object):
         # build the gen_pflux command
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
         comm = f"gen_pflux_ts --psf {psf_path}"
-        if self.pipePlots:
-            comm += " -P"
+        # TODO: enable later
+        #if self.pipePlots:
+        #    comm += " -P"
         comm += f" 1 {self.starID} {self.starID}"
         print(comm)
 
@@ -1521,8 +1522,9 @@ class PLATOnium(object):
         # build the gen_aflux command
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
         comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
-        if self.pipePlots:
-            comm += " -P"
+        # TODO: enable later
+        #if self.pipePlots:
+        #    comm += " -P"
         comm += f" 1 {self.starID} {self.starID}"
         print(comm)
 
@@ -1539,8 +1541,9 @@ class PLATOnium(object):
             # build apply_ltdcorr command
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
             comm = f"apply_ltdjit_corr --psf {psf_path}"
-            if self.pipePlots:
-                comm += " -P"
+            # TODO: enable later
+            #if self.pipePlots:
+            #    comm += " -P"
             comm += f" 1 {self.starID} {self.starID}"
             print(comm)
 
@@ -1874,7 +1877,8 @@ pip_group.add_argument('--con_ferr',   metavar='PERCENT', type=float, help='Erro
 pip_group.add_argument('--tar_ferr',   metavar='PERCENT', type=float, help='Error assumption of target flux (Default: 1 %%)')
 pip_group.add_argument('--tar_cerr',   metavar='PIXEL',   type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
 pip_group.add_argument('--prnu_err',   metavar='PERCENT', type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
-pip_group.add_argument('--pipe_plots', action='store_true',           help='Enable pipeline output plots')
+# NOTE: this does nothing atm until L! writes the pngs to disc
+#pip_group.add_argument('--pipe_plots', action='store_true',           help='Enable pipeline output plots)
 
 args = parser.parse_args()
 
