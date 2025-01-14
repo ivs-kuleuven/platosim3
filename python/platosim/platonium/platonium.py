@@ -107,8 +107,7 @@ class PLATOnium(object):
         self.plotPost   = args.check
 
         self.pipeline       = args.pipeline
-        self.conFluxError   = args.con_ferr
-        self.tarFluxError   = args.tar_ferr
+        self.allFluxError   = args.all_ferr
         self.tarAbsCenError = args.tar_cerr
         self.prnuError      = args.prnu_err
         self.jitterDriftOff = args.jit_off
@@ -214,15 +213,13 @@ class PLATOnium(object):
 
         # PHOTOMETRY AND PIPELINE PARAMETERS
         # Inclusion thresholds for contaminants
-        if not self.conDeltaMag: self.conDeltaMag = 6    # [delta mag]
-        if not self.conDisLimit: self.conDisLimit = 45   # [arcsec -> 15 arcsec/pixel]
+        if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
+        if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
 
-        # Defualt L1 pipeline parameters
+        # Default L1 pipeline parameters
         self.bsres           = 10   # [subpixel]
-        self.maskUpdateThres = 0.0  # [pixel]
         if not self.prnuError:      self.prnuError      = 0.1   # [%]
-        if not self.conFluxError:   self.conFluxError   = 10    # [%]
-        if not self.tarFluxError:   self.tarFluxError   = 1     # [%]
+        if not self.allFluxError:   self.allFluxError   = 1     # [%]
         if not self.tarAbsCenError: self.tarAbsCenError = 0.03  # [pixel]
 
         # Check parsing of detrending model
@@ -1408,7 +1405,7 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
+        mag_err = 2.5*(self.allFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc --prnu_err {self.prnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.tarAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
@@ -1453,7 +1450,7 @@ class PLATOnium(object):
         # PRE-PROCESSING
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
+        mag_err = 2.5*(self.allFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc --prnu_err {self.prnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.tarAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
@@ -1507,7 +1504,7 @@ class PLATOnium(object):
         # PRE-PROCESSING
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
+        mag_err = 2.5*(self.allFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc --prnu_err {self.prnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.tarAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
@@ -1873,8 +1870,7 @@ phot_group.add_argument('--check',    action='store_true',        help='Flag to 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline',   action='store_true',           help='Flag to activate proto-type pipeline')
 pip_group.add_argument('--jit_off',    action='store_true',           help='Falg to turn-off the jitter/drift correction')
-pip_group.add_argument('--con_ferr',   metavar='PERCENT', type=float, help='Error assumption of contaminant(s) flux (Default: 10 %%)')
-pip_group.add_argument('--tar_ferr',   metavar='PERCENT', type=float, help='Error assumption of target flux (Default: 1 %%)')
+pip_group.add_argument('--all_ferr',   metavar='PERCENT', type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
 pip_group.add_argument('--tar_cerr',   metavar='PIXEL',   type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
 pip_group.add_argument('--prnu_err',   metavar='PERCENT', type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
 # NOTE: this does nothing atm until L! writes the pngs to disc
