@@ -1728,23 +1728,21 @@ class PLATOnium(object):
         if args.sample == 'P5':
             if self.extendedMaskFlux:
                 lc_file1 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
-                lc_file2 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
                 cob_file = f"{self.outputDirStarIDsim}/E-COB_L0_c{camera_id}_p000000001.hdf5"
             else:
                 lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
-                lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
                 cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
+            lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
 
             if self.extendedMaskFlux:
                 lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.hdf5"
-                lc_file2_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L1A.hdf5"
                 cob_file_out = f"{prefixStarIDnew}_E-COB_L0.hdf5"
             else:
                 lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
-                lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
                 cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
+            lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
 
