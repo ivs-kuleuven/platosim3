@@ -1684,8 +1684,6 @@ class PLATOnium(object):
 
         camera_id = (self.group - 1) * 6 + self.camera
 
-        # TODO add storage of nice plots from pipeline
-
         # Fetch P1 light curve
         if args.sample == 'P1':
             lc_file = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_IMAGETTE_c{camera_id}_p000000001.hdf5"
@@ -1694,6 +1692,10 @@ class PLATOnium(object):
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
             invpsf_file = f"{prefixInversion}_inverse_psf.hdf5"
             invpsf_vec_file = f"{prefixInversion}_inverse_psf.vec"
+            pbkg_plot = f"{self.outputDirStarIDsim}/000000001_pBKG.png"
+            pcobx_plot = f"{self.outputDirStarIDsim}/000000001_pCOBx.png"
+            pcoby_plot = f"{self.outputDirStarIDsim}/000000001_pCOBy.png"
+            pflux_plot = f"{self.outputDirStarIDsim}/000000001_pFLUX.png"
 
             lc_file_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A_IMAGETTE.hdf5"
             cob_file_out = f"{prefixStarIDnew}_COB_OG.hdf5"
@@ -1701,6 +1703,10 @@ class PLATOnium(object):
             yaml_file_out = f"{prefixStarIDnew}.yaml"
             invpsf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
             invpsf_vec_file_out = f"{prefixStarIDnew}_inverse_psf.vec"
+            pbkg_plot_out = f"{prefixStarIDnew}_pBKG.png"
+            pcobx_plot_out = f"{prefixStarIDnew}_pCOBx.png"
+            pcoby_plot_out = f"{prefixStarIDnew}_pCOBy.png"
+            pflux_plot_out = f"{prefixStarIDnew}_pFLUX.png"
 
             # copy the main files to a long term area with the correct filenames
             print(f"Move {lc_file} -> {lc_file_out}")
@@ -1709,6 +1715,11 @@ class PLATOnium(object):
             print(f"Move {yaml_file} -> {yaml_file_out}")
             print(f"Move {invpsf_file} -> {invpsf_file_out}")
             print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
+            if self.pipePlots:
+                print(f"Move {pbkg_plot} -> {pbkg_plot_out}")
+                print(f"Move {pcobx_plot} -> {pcobx_plot_out}")
+                print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
+                print(f"Move {pflux_plot} -> {pflux_plot_out}")
             try:
                 shutil.copy(lc_file, lc_file_out)
                 shutil.copy(cob_file, cob_file_out)
@@ -1716,6 +1727,10 @@ class PLATOnium(object):
                 shutil.copy(yaml_file, yaml_file_out)
                 shutil.move(invpsf_file, invpsf_file_out)
                 shutil.move(invpsf_vec_file, invpsf_vec_file_out)
+                shutil.move(pbkg_plot, pbkg_plot_out)
+                shutil.move(pcobx_plot, pcobx_plot_out)
+                shutil.move(pcoby_plot, pcoby_plot_out)
+                shutil.move(pflux_plot, pflux_plot_out)
             except:
                 self.failed('PSF fitting of target star was not successful!')
 
@@ -1731,6 +1746,14 @@ class PLATOnium(object):
                 cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
+            cobx_plot = f"{self.outputDirStarIDsim}/000000001_COBx.png"
+            coby_plot = f"{self.outputDirStarIDsim}/000000001_COBy.png"
+            spr_plot = f"{self.outputDirStarIDsim}/000000001_SPR_TOT-TS.png"
+            valid_plot = f"{self.outputDirStarIDsim}/000000001_Valid_points.png"
+            abkg_plot = f"{self.outputDirStarIDsim}/000000001_aBKG.png"
+            aflux_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX.png"
+            aflux_corr_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX-CORR.png"
+
 
             if self.extendedMaskFlux:
                 lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.hdf5"
@@ -1742,6 +1765,13 @@ class PLATOnium(object):
                 cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
+            cobx_plot_out = f"{prefixStarIDnew}_COBx.png"
+            coby_plot_out = f"{prefixStarIDnew}_COBy.png"
+            spr_plot_out = f"{prefixStarIDnew}_SPR_TOT-TS.png"
+            valid_plot_out = f"{prefixStarIDnew}_Valid_points.png"
+            abkg_plot_out = f"{prefixStarIDnew}_aBKG.png"
+            aflux_plot_out = f"{prefixStarIDnew}_aFLUX.png"
+            aflux_corr_plot_out = f"{prefixStarIDnew}_aFLUX-CORR.png"
 
             # copy the main files to a long term area with the correct filenames
             print(f"Move {lc_file1} -> {lc_file1_out}")
@@ -1749,12 +1779,28 @@ class PLATOnium(object):
             print(f"Move {cob_file} -> {cob_file_out}")
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
+            if self.pipePlots:
+                print(f"Move {cobx_plot} -> {cobx_plot_out}")
+                print(f"Move {coby_plot} -> {coby_plot_out}")
+                print(f"Move {spr_plot} -> {spr_plot_out}")
+                print(f"Move {valid_plot} -> {valid_plot_out}")
+                print(f"Move {abkg_plot} -> {abkg_plot_out}")
+                print(f"Move {aflux_plot} -> {aflux_plot_out}")
+                print(f"Move {aflux_corr_plot} -> {aflux_corr_plot_out}")
             try:
                 shutil.copy(lc_file1, lc_file1_out)
                 shutil.copy(lc_file2, lc_file2_out)
                 shutil.copy(cob_file, cob_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
+                if self.pipePlots:
+                    shutil.copy(cobx_plot, cobx_plot_out)
+                    shutil.copy(coby_plot, coby_plot_out)
+                    shutil.copy(spr_plot, spr_plot_out)
+                    shutil.copy(valid_plot, valid_plot_out)
+                    shutil.copy(abkg_plot, abkg_plot_out)
+                    shutil.copy(aflux_plot, aflux_plot_out)
+                    shutil.copy(aflux_corr_plot, aflux_corr_plot_out)
             except:
                 self.failed('Aperture photometry of target star was not successful!')
 
@@ -1880,7 +1926,7 @@ phot_group.add_argument('--check',    action='store_true',        help='Flag to 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline',   action='store_true',           help='Flag to activate proto-type pipeline')
 pip_group.add_argument('--jit_off',    action='store_true',           help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
-pip_group.add_argument('--eflux',      action='store_true',           help='Flag to turn-on the extended flux in gen_aflux_ts')
+pip_group.add_argument('--emask',      action='store_true',           help='Flag to turn-on the extended flux mask in gen_aflux_ts')
 pip_group.add_argument('--all_ferr',   metavar='PERCENT', type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
 pip_group.add_argument('--tar_cerr',   metavar='PIXEL',   type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
 pip_group.add_argument('--prnu_err',   metavar='PERCENT', type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
