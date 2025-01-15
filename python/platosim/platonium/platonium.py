@@ -107,12 +107,13 @@ class PLATOnium(object):
         self.plotPost   = args.check
 
         self.pipeline         = args.pipeline
-        self.allFluxError     = args.all_ferr
-        self.tarAbsCenError   = args.tar_cerr
-        self.prnuError        = args.prnu_err
-        self.jitterDriftOff   = args.jit_off
-        self.extendedMaskFlux = args.emask
-        self.pipePlots      = args.pipe_plots
+        self.pipeCadence      = args.pipe_cadence
+        self.pipeFluxError    = args.pipe_flux_err
+        self.pipeAbsCenError  = args.pipe_cen_cerr
+        self.pipePrnuError    = args.pipe_prnu_err
+        self.pipeJitDriftOff  = args.pipe_jit_off
+        self.pipeExtendedMask = args.pipe_emask
+        self.pipePlots        = args.pipe_plots
 
         # MANDATORY PARAMETERS
         # Normal cameras
@@ -218,10 +219,19 @@ class PLATOnium(object):
         if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
 
         # Default L1 pipeline parameters
-        self.bsres           = 10   # [subpixel]
-        if not self.prnuError:      self.prnuError      = 0.1   # [%]
-        if not self.allFluxError:   self.allFluxError   = 1     # [%]
-        if not self.tarAbsCenError: self.tarAbsCenError = 0.03  # [pixel]
+        self.bsres = 10   # [subpixel]
+        if not self.pipePrnuError:
+            self.pipePrnuError = 0.1   # [%]
+        if not self.pipeFluxError:
+            self.pipeFluxError = 1     # [%]
+        if not self.pipeAbsCenError:
+            self.pipeAbsCenError = 0.03  # [pixel]
+        if self.sample == "P1" and not self.pipeCadence:
+            self.pipeCadence = 25
+        if self.sample == "P5" and not self.pipeCadence:
+            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
+        elif self.sample == "P5" and self.pipeCadence not in [50, 600]:
+            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
 
         # Check parsing of detrending model
         if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
@@ -1406,8 +1416,8 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.allFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err {self.prnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.tarAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
+        comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1451,8 +1461,8 @@ class PLATOnium(object):
         # PRE-PROCESSING
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.allFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err {self.prnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.tarAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
+        comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
         print(sim["ControlHDF5Content/WriteDiffusedPSF"])
@@ -1489,7 +1499,7 @@ class PLATOnium(object):
         Module to for the on-board L1 pipeline processing chain.
         """
         # onboard cadences are 50 or 600s, determine --n-average for gen_aflux from the configured cadence
-        n_average = int(self.cadence/25)
+        n_average = int(self.pipeCadence/25)
         if n_average not in [2, 24]:
             self.failed(f'Onboard photometry is done at 50 or 600s (n_average = 2 | 24)\nCurrent n_average={n_average}')
 
@@ -1503,8 +1513,8 @@ class PLATOnium(object):
         # PRE-PROCESSING
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.allFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err {self.prnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.tarAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
+        comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
         cmd = os.system(comm)
@@ -1518,7 +1528,7 @@ class PLATOnium(object):
         # build the gen_aflux command
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
         comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
-        if self.extendedMaskFlux:
+        if self.pipeExtendedMask:
             comm += " --emask"
         if self.pipePlots:
             comm += " -P"
@@ -1531,14 +1541,14 @@ class PLATOnium(object):
             self.failed('gen_aflux_ts failed due to the above error!')
 
         # JITTER AND DRIFT CORRECTION
-        if not self.jitterDriftOff:
+        if not self.pipeJitDriftOff:
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
 
             # build apply_ltdcorr command
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
             comm = f"apply_ltdjit_corr --psf {psf_path}"
-            if self.extendedMaskFlux:
+            if self.pipeExtendedMask:
                 comm += " --emask"
             if self.pipePlots:
                 comm += " -P"
@@ -1736,7 +1746,7 @@ class PLATOnium(object):
 
         # Fetch P5 light curve
         if args.sample == 'P5':
-            if self.extendedMaskFlux:
+            if self.pipeExtendedMask:
                 lc_file1 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
                 lc_file2 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
                 cob_file = f"{self.outputDirStarIDsim}/E-COB_L0_c{camera_id}_p000000001.hdf5"
@@ -1754,8 +1764,7 @@ class PLATOnium(object):
             aflux_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX.png"
             aflux_corr_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX-CORR.png"
 
-
-            if self.extendedMaskFlux:
+            if self.pipeExtendedMask:
                 lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.hdf5"
                 lc_file2_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L1A.hdf5"
                 cob_file_out = f"{prefixStarIDnew}_E-COB_L0.hdf5"
@@ -1924,13 +1933,14 @@ phot_group.add_argument('--clip',     action='store_true',        help='Flag to 
 phot_group.add_argument('--check',    action='store_true',        help='Flag to plot the requested post-processing steps')
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
-pip_group.add_argument('--pipeline',   action='store_true',           help='Flag to activate proto-type pipeline')
-pip_group.add_argument('--jit_off',    action='store_true',           help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
-pip_group.add_argument('--emask',      action='store_true',           help='Flag to turn-on the extended flux mask in gen_aflux_ts')
-pip_group.add_argument('--all_ferr',   metavar='PERCENT', type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
-pip_group.add_argument('--tar_cerr',   metavar='PIXEL',   type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
-pip_group.add_argument('--prnu_err',   metavar='PERCENT', type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
-pip_group.add_argument('--pipe_plots', action='store_true',           help='Enable pipeline output plots')
+pip_group.add_argument('--pipeline',      action='store_true',             help='Flag to activate proto-type pipeline')
+pip_group.add_argument('--pipe_cadence',  metavar='INT',       type=int,   help='Cadence for pipeline (P1=25s, P5=50 or 600s)')
+pip_group.add_argument('--pipe_flux_err', metavar='PERCENT',   type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
+pip_group.add_argument('--pipe_cen_err',  metavar='PIXEL',     type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
+pip_group.add_argument('--pipe_prnu_err', metavar='PERCENT',   type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
+pip_group.add_argument('--pipe_jit_off',  action='store_true',             help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
+pip_group.add_argument('--pipe_emask',    action='store_true',             help='Flag to turn-on the extended flux mask in gen_aflux_ts')
+pip_group.add_argument('--pipe_plots',    action='store_true',             help='Enable pipeline output plots')
 
 args = parser.parse_args()
 
