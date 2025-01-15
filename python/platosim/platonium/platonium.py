@@ -109,7 +109,7 @@ class PLATOnium(object):
         self.pipeline         = args.pipeline
         self.pipeCadence      = args.pipe_cadence
         self.pipeFluxError    = args.pipe_flux_err
-        self.pipeAbsCenError  = args.pipe_cen_cerr
+        self.pipeAbsCenError  = args.pipe_cen_err
         self.pipePrnuError    = args.pipe_prnu_err
         self.pipeJitDriftOff  = args.pipe_jit_off
         self.pipeExtendedMask = args.pipe_emask
