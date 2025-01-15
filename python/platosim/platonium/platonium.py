@@ -111,7 +111,7 @@ class PLATOnium(object):
         self.tarAbsCenError   = args.tar_cerr
         self.prnuError        = args.prnu_err
         self.jitterDriftOff   = args.jit_off
-        self.extendedMaskFlux = args.eflux
+        self.extendedMaskFlux = args.emask
         self.pipePlots      = args.pipe_plots
 
         # MANDATORY PARAMETERS
