@@ -228,10 +228,8 @@ class PLATOnium(object):
             self.pipeAbsCenError = 0.03  # [pixel]
         if self.sample == "P1" and not self.pipeCadence:
             self.pipeCadence = 25
-        if self.sample == "P5" and not self.pipeCadence:
-            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
-        elif self.sample == "P5" and self.pipeCadence not in [50, 600]:
-            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
+        if self.sample == "P5" and self.pipeCadence not in [25, 50, 600]:
+            errorcode('error', 'Must set --pipe_cadence = 25 | 50 | 600')
 
         # Check parsing of detrending model
         if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
@@ -1500,8 +1498,8 @@ class PLATOnium(object):
         """
         # onboard cadences are 50 or 600s, determine --n-average for gen_aflux from the configured cadence
         n_average = int(self.pipeCadence/25)
-        if n_average not in [2, 24]:
-            self.failed(f'Onboard photometry is done at 50 or 600s (n_average = 2 | 24)\nCurrent n_average={n_average}')
+        if n_average not in [1, 2, 24]:
+            self.failed(f'Onboard photometry is done at 25, 50 or 600s (n_average = 1 | 2 | 24)\nCurrent n_average={n_average}')
 
         # Print to bash
         if self.verbose > 1:
