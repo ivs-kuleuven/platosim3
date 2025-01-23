@@ -106,12 +106,14 @@ class PLATOnium(object):
         self.stitch     = args.stitch
         self.plotPost   = args.check
 
-        self.pipeline       = args.pipeline
-        self.conFluxError   = args.con_ferr
-        self.tarFluxError   = args.tar_ferr
-        self.tarAbsCenError = args.tar_cerr
-        self.prnuError      = args.prnu_err
-        self.jitterDriftOff = args.jit_off
+        self.pipeline         = args.pipeline
+        self.pipeCadence      = args.pipe_cadence
+        self.pipeFluxError    = args.pipe_flux_err
+        self.pipeAbsCenError  = args.pipe_cen_err
+        self.pipePrnuError    = args.pipe_prnu_err
+        self.pipeJitDriftOff  = args.pipe_jit_off
+        self.pipeExtendedMask = args.pipe_emask
+        self.pipePlots        = args.pipe_plots
 
         # MANDATORY PARAMETERS
         # Normal cameras
@@ -213,16 +215,23 @@ class PLATOnium(object):
 
         # PHOTOMETRY AND PIPELINE PARAMETERS
         # Inclusion thresholds for contaminants
-        if not self.conDeltaMag: self.conDeltaMag = 6    # [delta mag]
-        if not self.conDisLimit: self.conDisLimit = 45   # [arcsec -> 15 arcsec/pixel]
+        if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
+        if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
 
-        # Defualt L1 pipeline parameters
-        self.bsres           = 10   # [subpixel]
-        self.maskUpdateThres = 0.0  # [pixel]
-        if not self.prnuError:      self.prnuError      = 0.1   # [%]
-        if not self.conFluxError:   self.conFluxError   = 10    # [%]
-        if not self.tarFluxError:   self.tarFluxError   = 1     # [%]
-        if not self.tarAbsCenError: self.tarAbsCenError = 0.02  # [pixel]
+        # Default L1 pipeline parameters
+        self.bsres = 10   # [subpixel]
+        if not self.pipePrnuError:
+            self.pipePrnuError = 0.1   # [%]
+        if not self.pipeFluxError:
+            self.pipeFluxError = 1     # [%]
+        if not self.pipeAbsCenError:
+            self.pipeAbsCenError = 0.03  # [pixel]
+        if self.sample == "P1" and not self.pipeCadence:
+            self.pipeCadence = 25
+        if self.sample == "P5" and not self.pipeCadence:
+            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
+        elif self.sample == "P5" and self.pipeCadence not in [50, 600]:
+            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
 
         # Check parsing of detrending model
         if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
@@ -1407,8 +1416,8 @@ class PLATOnium(object):
 
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 --target_id 1 . {self.starID} {self.starID} 6'
+        mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
+        comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd()) # DEBUGGING
         print(comm) # DEBUGGING
         cmd = os.system(comm)
@@ -1438,7 +1447,6 @@ class PLATOnium(object):
             self.tocInversion = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-
     def run_L1_onground(self):
         """
         Module to for the on-ground L1 pipeline processing chain.
@@ -1453,10 +1461,10 @@ class PLATOnium(object):
         # PRE-PROCESSING
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 --target_id 1 . {self.starID} {self.starID} 6'
-        print(os.getcwd()) # DEBUGGING
-        print(comm) # DEBUGGING
+        mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
+        comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        print(os.getcwd())
+        print(comm)
         print(sim["ControlHDF5Content/WriteDiffusedPSF"])
         cmd = os.system(comm)
         if cmd != 0:
@@ -1465,9 +1473,16 @@ class PLATOnium(object):
         # PSF FIITING
         if self.verbose > 1:
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
+
+        # build the gen_pflux command
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_pflux_ts --psf {psf_path} 1 {self.starID} {self.starID}"
-        print(comm) # DEBUGGING
+        comm = f"gen_pflux_ts --psf {psf_path}"
+        if self.pipePlots:
+            comm += " -P"
+        comm += f" 1 {self.starID} {self.starID}"
+        print(comm)
+
+        # run the gen_pflux command
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('gen_pflux_ts failed due to the above error!')
@@ -1478,11 +1493,16 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-    # TODO: add support for extended masks etc
+    # TODO: add support for psf library for interpolation
     def run_L1_onboard(self):
         """
         Module to for the on-board L1 pipeline processing chain.
         """
+        # onboard cadences are 50 or 600s, determine --n-average for gen_aflux from the configured cadence
+        n_average = int(self.pipeCadence/25)
+        if n_average not in [2, 24]:
+            self.failed(f'Onboard photometry is done at 50 or 600s (n_average = 2 | 24)\nCurrent n_average={n_average}')
+
         # Print to bash
         if self.verbose > 1:
             errorcode('module', '\nOn-board L1 pipeline')
@@ -1493,10 +1513,10 @@ class PLATOnium(object):
         # PRE-PROCESSING
         if self.verbose > 1:
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
-        mag_err = 2.5*(self.conFluxError/100.)/np.log(10.)
-        comm = f'psim2datastruc --prnu_err 0.1 --seed {self.seedTarget} --mag-error {mag_err} --centroid-err 0.03 --target_id 1 . {self.starID} {self.starID} 6'
-        print(os.getcwd()) # DEBUGGING
-        print(comm) # DEBUGGING
+        mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
+        comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
+        print(os.getcwd())
+        print(comm)
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('psim2datastruc failed due to the above error!')
@@ -1504,20 +1524,38 @@ class PLATOnium(object):
         # APERTURE PHOTOMETRY
         if self.verbose > 1:
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
+
+        # build the gen_aflux command
         psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_aflux_ts --psf {psf_path} 1 {self.starID} {self.starID}"
-        print(comm) # DEBUGGING
+        comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+        if self.pipeExtendedMask:
+            comm += " --emask"
+        if self.pipePlots:
+            comm += " -P"
+        comm += f" 1 {self.starID} {self.starID}"
+        print(comm)
+
+        # run the gen_aflux command
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('gen_aflux_ts failed due to the above error!')
 
         # JITTER AND DRIFT CORRECTION
-        if not self.jitterDriftOff:
+        if not self.pipeJitDriftOff:
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
+
+            # build apply_ltdcorr command
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-            comm = f"apply_ltdjit_corr --psf {psf_path} --cadence {self.cadence} 1 {self.starID} {self.starID}"
-            print(comm) # DEBUGGING
+            comm = f"apply_ltdjit_corr --psf {psf_path}"
+            if self.pipeExtendedMask:
+                comm += " --emask"
+            if self.pipePlots:
+                comm += " -P"
+            comm += f" 1 {self.starID} {self.starID}"
+            print(comm)
+
+            # run apply_ltdcorr command
             cmd = os.system(comm)
             if cmd != 0:
                 self.failed('apply_ltdjit_corr failed due to the above error!')
@@ -1664,6 +1702,10 @@ class PLATOnium(object):
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
             invpsf_file = f"{prefixInversion}_inverse_psf.hdf5"
             invpsf_vec_file = f"{prefixInversion}_inverse_psf.vec"
+            pbkg_plot = f"{self.outputDirStarIDsim}/000000001_pBKG.png"
+            pcobx_plot = f"{self.outputDirStarIDsim}/000000001_pCOBx.png"
+            pcoby_plot = f"{self.outputDirStarIDsim}/000000001_pCOBy.png"
+            pflux_plot = f"{self.outputDirStarIDsim}/000000001_pFLUX.png"
 
             lc_file_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A_IMAGETTE.hdf5"
             cob_file_out = f"{prefixStarIDnew}_COB_OG.hdf5"
@@ -1671,6 +1713,10 @@ class PLATOnium(object):
             yaml_file_out = f"{prefixStarIDnew}.yaml"
             invpsf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
             invpsf_vec_file_out = f"{prefixStarIDnew}_inverse_psf.vec"
+            pbkg_plot_out = f"{prefixStarIDnew}_pBKG.png"
+            pcobx_plot_out = f"{prefixStarIDnew}_pCOBx.png"
+            pcoby_plot_out = f"{prefixStarIDnew}_pCOBy.png"
+            pflux_plot_out = f"{prefixStarIDnew}_pFLUX.png"
 
             # copy the main files to a long term area with the correct filenames
             print(f"Move {lc_file} -> {lc_file_out}")
@@ -1679,6 +1725,11 @@ class PLATOnium(object):
             print(f"Move {yaml_file} -> {yaml_file_out}")
             print(f"Move {invpsf_file} -> {invpsf_file_out}")
             print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
+            if self.pipePlots:
+                print(f"Move {pbkg_plot} -> {pbkg_plot_out}")
+                print(f"Move {pcobx_plot} -> {pcobx_plot_out}")
+                print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
+                print(f"Move {pflux_plot} -> {pflux_plot_out}")
             try:
                 shutil.copy(lc_file, lc_file_out)
                 shutil.copy(cob_file, cob_file_out)
@@ -1686,23 +1737,50 @@ class PLATOnium(object):
                 shutil.copy(yaml_file, yaml_file_out)
                 shutil.move(invpsf_file, invpsf_file_out)
                 shutil.move(invpsf_vec_file, invpsf_vec_file_out)
+                shutil.move(pbkg_plot, pbkg_plot_out)
+                shutil.move(pcobx_plot, pcobx_plot_out)
+                shutil.move(pcoby_plot, pcoby_plot_out)
+                shutil.move(pflux_plot, pflux_plot_out)
             except:
                 self.failed('PSF fitting of target star was not successful!')
 
         # Fetch P5 light curve
-        # TODO add support for extended masks etc
         if args.sample == 'P5':
-            lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
-            lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
-            cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
+            if self.pipeExtendedMask:
+                lc_file1 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
+                lc_file2 = f"{self.outputDirStarIDsim}/E-LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
+                cob_file = f"{self.outputDirStarIDsim}/E-COB_L0_c{camera_id}_p000000001.hdf5"
+            else:
+                lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
+                lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
+                cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
+            cobx_plot = f"{self.outputDirStarIDsim}/000000001_COBx.png"
+            coby_plot = f"{self.outputDirStarIDsim}/000000001_COBy.png"
+            spr_plot = f"{self.outputDirStarIDsim}/000000001_SPR_TOT-TS.png"
+            valid_plot = f"{self.outputDirStarIDsim}/000000001_Valid_points.png"
+            abkg_plot = f"{self.outputDirStarIDsim}/000000001_aBKG.png"
+            aflux_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX.png"
+            aflux_corr_plot = f"{self.outputDirStarIDsim}/000000001_aFLUX-CORR.png"
 
-            lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
-            lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
-            cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
+            if self.pipeExtendedMask:
+                lc_file1_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L0.hdf5"
+                lc_file2_out = f"{prefixStarIDnew}_E-LIGHTCURVE_L1A.hdf5"
+                cob_file_out = f"{prefixStarIDnew}_E-COB_L0.hdf5"
+            else:
+                lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
+                lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
+                cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
+            cobx_plot_out = f"{prefixStarIDnew}_COBx.png"
+            coby_plot_out = f"{prefixStarIDnew}_COBy.png"
+            spr_plot_out = f"{prefixStarIDnew}_SPR_TOT-TS.png"
+            valid_plot_out = f"{prefixStarIDnew}_Valid_points.png"
+            abkg_plot_out = f"{prefixStarIDnew}_aBKG.png"
+            aflux_plot_out = f"{prefixStarIDnew}_aFLUX.png"
+            aflux_corr_plot_out = f"{prefixStarIDnew}_aFLUX-CORR.png"
 
             # copy the main files to a long term area with the correct filenames
             print(f"Move {lc_file1} -> {lc_file1_out}")
@@ -1710,12 +1788,28 @@ class PLATOnium(object):
             print(f"Move {cob_file} -> {cob_file_out}")
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
+            if self.pipePlots:
+                print(f"Move {cobx_plot} -> {cobx_plot_out}")
+                print(f"Move {coby_plot} -> {coby_plot_out}")
+                print(f"Move {spr_plot} -> {spr_plot_out}")
+                print(f"Move {valid_plot} -> {valid_plot_out}")
+                print(f"Move {abkg_plot} -> {abkg_plot_out}")
+                print(f"Move {aflux_plot} -> {aflux_plot_out}")
+                print(f"Move {aflux_corr_plot} -> {aflux_corr_plot_out}")
             try:
                 shutil.copy(lc_file1, lc_file1_out)
                 shutil.copy(lc_file2, lc_file2_out)
                 shutil.copy(cob_file, cob_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
+                if self.pipePlots:
+                    shutil.copy(cobx_plot, cobx_plot_out)
+                    shutil.copy(coby_plot, coby_plot_out)
+                    shutil.copy(spr_plot, spr_plot_out)
+                    shutil.copy(valid_plot, valid_plot_out)
+                    shutil.copy(abkg_plot, abkg_plot_out)
+                    shutil.copy(aflux_plot, aflux_plot_out)
+                    shutil.copy(aflux_corr_plot, aflux_corr_plot_out)
             except:
                 self.failed('Aperture photometry of target star was not successful!')
 
@@ -1839,12 +1933,14 @@ phot_group.add_argument('--clip',     action='store_true',        help='Flag to 
 phot_group.add_argument('--check',    action='store_true',        help='Flag to plot the requested post-processing steps')
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
-pip_group.add_argument('--pipeline', action='store_true',           help='Flag to activate proto-type pipeline')
-pip_group.add_argument('--jit_off',  action='store_true',           help='Falg to turn-off the jitter/drift correction')
-pip_group.add_argument('--con_ferr', metavar='PERCENT', type=float, help='Error assumption of target flux (Default: 1 %%)')
-pip_group.add_argument('--tar_ferr', metavar='PERCENT', type=float, help='Error assumption of contaminant(s) flux (Default: 10 %%)')
-pip_group.add_argument('--tar_cerr', metavar='PIXEL',   type=float, help='Error assumption of target centroid (Default:0.02 pixel)')
-pip_group.add_argument('--prnu_err', metavar='PERCENT', type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
+pip_group.add_argument('--pipeline',      action='store_true',             help='Flag to activate proto-type pipeline')
+pip_group.add_argument('--pipe_cadence',  metavar='INT',       type=int,   help='Cadence for pipeline (P1=25s, P5=50 or 600s)')
+pip_group.add_argument('--pipe_flux_err', metavar='PERCENT',   type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
+pip_group.add_argument('--pipe_cen_err',  metavar='PIXEL',     type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
+pip_group.add_argument('--pipe_prnu_err', metavar='PERCENT',   type=float, help='Error assumption of PRNU knowledge (Default: 0.1 %%)')
+pip_group.add_argument('--pipe_jit_off',  action='store_true',             help='Flag to turn-off the jitter/drift correction in apply_ltdcorr')
+pip_group.add_argument('--pipe_emask',    action='store_true',             help='Flag to turn-on the extended flux mask in gen_aflux_ts')
+pip_group.add_argument('--pipe_plots',    action='store_true',             help='Enable pipeline output plots')
 
 args = parser.parse_args()
 
