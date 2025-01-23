@@ -430,7 +430,7 @@ class StellarSpots(object):
         self.omega_1 = omega_1
         
         # Regions parameters
-        t0 = reg_arr[0,:]
+        t0  = reg_arr[0,:]
         lat = reg_arr[1,:]
         lon = reg_arr[2,:]
         ang = reg_arr[3,:]
@@ -571,9 +571,9 @@ class StellarSpots(object):
                    threshold=0.1, dur=dur)
         
         # NOTE we decrease the sampling to 30 min for increased performance
-        # NOTE this corresponds to every 72nd time point -> 30 * 60 / 25
+        #      this corresponds to every 72nd time point -> 30 * 60 / 25
         time0 = np.copy(time)
-        time = time[::72]
+        time = time[::72] - time0[0]
         area, ome, beta, dF = self.calc(time)
         
         # Stop here if the RAM memory would have been overflown
@@ -609,7 +609,7 @@ class StellarSpots(object):
         # NOTE Interpolate (piecewise cubic) into higher resolution grid
         #time_int = np.linspace(time0[0], time0[-1], len(time0)
         spline = make_interp_spline(time, dF.sum(0), k=3)
-        flux   = spline(time0)
+        flux   = spline(time0-time0[0])
 
         # Finito!
         self.dF, self.dur, self.area, self.time = dF, dur, area, time
@@ -640,14 +640,14 @@ class StellarSpots(object):
             if self.t0[j] < -10: continue
             if self.t0[j] > self.dur: continue
             axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8, ms=self.amax[j]*(1./3e-4)*5)
-        axes[0].set_ylim(-90,90)
+        axes[0].set_ylim(-90, 90)
         axes[0].set_ylabel(r'Latitude [$^{\circ}$]')
         axes[1].plot(self.time, self.area.sum(0)*1e3, 'k-')
         axes[1].set_ylabel(r'Coverage [\%]')        
+        axes[1].set_xlim(0, self.dur)
         axes[2].plot(self.time, self.dF.sum(0)*1e3, 'k-')
         axes[2].set_ylabel('Spot flux [ppt]')
-        axes[2].set_xlim(0, self.dur)
-        axes[-1].set_xlabel('Time [days]')
+        axes[-1].set_xlabel(r'Time from $t_0$ [days]')
         plt.tight_layout(h_pad=0.1)
         return fig, axes
         
@@ -3084,7 +3084,7 @@ class PlanetMRforecast():
         for i in range(4):
             ind = self.indicate(M, trans, i)
             mu = c[i] + M[ind]*slope[i]
-            sig = sigma[i]
+            sig = sigma[0][i]
             prob[ind] = ss.norm.pdf(radii, mu, sig)
 
         prob = prob / np.sum(prob)
