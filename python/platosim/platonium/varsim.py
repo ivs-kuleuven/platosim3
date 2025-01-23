@@ -1115,7 +1115,8 @@ class VarSim(object):
                 if self.verbose > 1:
                     print('Star is inactive (no spots), hence no flares..')
                 return
-            params = model.initDoorsselaere2017(self.spec,self.df.AR_ARsun, self.spot_coverage)
+            params = model.initDoorsselaere2017(self.spec, self.df.AR_ARsun,
+                                                self.spot_coverage)
             
         elif args.flare == 'ToyModel':
             if self.verbose > 1:
@@ -1691,9 +1692,12 @@ class VarSim(object):
         if self.kul20:
 
             # Select benchmark planets
+            dex = self.rng.integers(low=0, high=2, size=1)[0]
             name_benchmark = ['Earth-like', 'Neptune-like', 'Jupiter-like']
+            args.planet = name_benchmark[dex]
             Rp_benchmark = [1.0, 3.9, 11.2]
-            Rp = np.random.choice(Rp_benchmark) * u.R_earth
+            Rp = Rp_benchmark[dex] * u.R_earth
+
             # Log-normal distribution of planet radii 
             #Rp = np.random.lognormal(5., 1.) * u.R_earth
             #if Rp.to('R_jup').value < 0.05: Rp = 0.05 * u.R_jup
@@ -2297,7 +2301,7 @@ class VarSim(object):
                 v.planet_occultation()
                 v.planet_beaming()
                 v.planet_ellipsoidal()
-                if args.plot:
+                if args.plot and args.kul20 is None:
                     v.plot_phase_curve()
 
         # Combine and save
@@ -2335,31 +2339,38 @@ class VarSim(object):
 
         """Mode designed for KUL20 -> Called by "--kul20 <int>".
 
-        TODO needs to be tested again!
+        Meaning of integer parsed:
+        1 -> Gran, Puls
+        2 -> Gran, Puls, Spots
+        3 -> Gran, Puls, Spots, Transit
+        4 -> Std star (roAp with 2 hamonics)
+        5 -> Std star (Constant)
         """
 
-        # Meaning of integer parsed:
-        # 0 -> Std star (roAp with 2 hamonics)
-        # 1 -> Gran, Puls
-        # 2 -> Gran, puls, Spot
-        # 3 -> Gran, Puls, Spots, Exo
-        # x -> Constant stars is any other number x
-        if args.kul20 == 0:
-            args.star = 'roAp'
         if args.kul20 in [1, 2, 3]:
             args.star   = 'Sun'
             args.planet_params = False
+            
+        if args.kul20 == 1:
+            args.spot   = False
+            args.planet = False
+            
         if args.kul20 == 2:
             args.spot   = True
             args.planet = False
+            
         if args.kul20 == 3:
             args.spot   = True
-            args.planet = 'kul20'
-        if not args.kul20 in [0, 1, 2, 3]:
+            args.planet = True
+
+        if args.kul20 == 4:
+            args.star = 'roAp'            
+
+        if args.kul20 == 5:
             args.kul20 = False
 
-        # Add steps from default mode
-        self.mode_default()
+        # Add steps from single mode
+        self.mode_single()
 
 
 
