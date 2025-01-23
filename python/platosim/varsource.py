@@ -442,7 +442,7 @@ class StellarSpots(object):
             self.dur = dur
         l = (t0 < self.dur) * (ang > threshold)
         self.nspot = l.sum()
-        self.t0 = t0[l]
+        self.t0  = t0[l]
         self.lat = lat[l]
         self.lon = lon[l]
         
@@ -570,9 +570,9 @@ class StellarSpots(object):
                    threshold=0.1, dur=dur)
         
         # NOTE we decrease the sampling to 30 min for increased performance
-        # NOTE this corresponds to every 72nd time point -> 30 * 60 / 25
+        #      This corresponds to every 72nd time point -> 30 * 60 / 25
         time0 = np.copy(time)
-        time = time[::72]
+        time  = time[::72] - time0[0]
         area, ome, beta, dF = self.calc(time)
         
         # Stop here if the RAM memory would have been overflown
@@ -608,7 +608,7 @@ class StellarSpots(object):
         # NOTE Interpolate (piecewise cubic) into higher resolution grid
         #time_int = np.linspace(time0[0], time0[-1], len(time0)
         spline = make_interp_spline(time, dF.sum(0), k=3)
-        flux   = spline(time0)
+        flux   = spline(time0 - time0[0])
 
         # Finito!
         self.dF, self.dur, self.area, self.time = dF, dur, area, time
@@ -646,7 +646,7 @@ class StellarSpots(object):
         axes[2].plot(self.time, self.dF.sum(0)*1e3, 'k-')
         axes[2].set_ylabel('Spot flux [ppt]')
         axes[2].set_xlim(0, self.dur)
-        axes[-1].set_xlabel('Time [days]')
+        axes[-1].set_xlabel(r'Time from $t_0$ [days]')
         plt.tight_layout(h_pad=0.1)
         return fig, axes
         
@@ -2864,7 +2864,7 @@ class PlanetMRforecast():
         for i in range(4):
             ind = self.indicate(M, trans, i)
             mu = c[i] + M[ind]*slope[i]
-            sig = sigma[i]
+            sig = sigma[0][i]
             prob[ind] = ss.norm.pdf(radii, mu, sig)
 
         prob = prob / np.sum(prob)
