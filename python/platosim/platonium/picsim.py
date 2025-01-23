@@ -129,7 +129,7 @@ class PicSim(object):
         elif args.simbad or (args.pic is not None) and (args.dist in [30, 45, 60]):
             self.disConLimit = args.dist
         else:
-            errorcode('warning', 'Not a valid contaminant-to-target distance! ' +
+            errorcode('error', 'Not a valid contaminant-to-target distance! ' +
                       'Use {30, 45, 60} arcsec')
         
 
