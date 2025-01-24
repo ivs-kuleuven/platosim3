@@ -1723,11 +1723,7 @@ class PLATOnium(object):
             print(f"Move {yaml_file} -> {yaml_file_out}")
             print(f"Move {invpsf_file} -> {invpsf_file_out}")
             print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
-            if self.pipePlots:
-                print(f"Move {pbkg_plot} -> {pbkg_plot_out}")
-                print(f"Move {pcobx_plot} -> {pcobx_plot_out}")
-                print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
-                print(f"Move {pflux_plot} -> {pflux_plot_out}")
+            # Move the phot files to sotrage
             try:
                 shutil.copy(lc_file, lc_file_out)
                 shutil.copy(cob_file, cob_file_out)
@@ -1735,12 +1731,21 @@ class PLATOnium(object):
                 shutil.copy(yaml_file, yaml_file_out)
                 shutil.move(invpsf_file, invpsf_file_out)
                 shutil.move(invpsf_vec_file, invpsf_vec_file_out)
-                shutil.move(pbkg_plot, pbkg_plot_out)
-                shutil.move(pcobx_plot, pcobx_plot_out)
-                shutil.move(pcoby_plot, pcoby_plot_out)
-                shutil.move(pflux_plot, pflux_plot_out)
             except:
-                self.failed('PSF fitting of target star was not successful!')
+                self.failed('Moving PSF photometry files failed...')
+
+            if self.pipePlots:
+                print(f"Move {pbkg_plot} -> {pbkg_plot_out}")
+                print(f"Move {pcobx_plot} -> {pcobx_plot_out}")
+                print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
+                print(f"Move {pflux_plot} -> {pflux_plot_out}")
+                try:
+                    shutil.move(pbkg_plot, pbkg_plot_out)
+                    shutil.move(pcobx_plot, pcobx_plot_out)
+                    shutil.move(pcoby_plot, pcoby_plot_out)
+                    shutil.move(pflux_plot, pflux_plot_out)
+                except:
+                    self.failed('Moving PSF photometry plots failed...')
 
         # Fetch P5 light curve
         if args.sample == 'P5':
@@ -1786,6 +1791,15 @@ class PLATOnium(object):
             print(f"Move {cob_file} -> {cob_file_out}")
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
+            try:
+                shutil.copy(lc_file1, lc_file1_out)
+                shutil.copy(lc_file2, lc_file2_out)
+                shutil.copy(cob_file, cob_file_out)
+                shutil.copy(star_file, star_file_out)
+                shutil.copy(yaml_file, yaml_file_out)
+            except:
+                self.failed('Moving aperture photometry files failed...')
+
             if self.pipePlots:
                 print(f"Move {cobx_plot} -> {cobx_plot_out}")
                 print(f"Move {coby_plot} -> {coby_plot_out}")
@@ -1794,13 +1808,7 @@ class PLATOnium(object):
                 print(f"Move {abkg_plot} -> {abkg_plot_out}")
                 print(f"Move {aflux_plot} -> {aflux_plot_out}")
                 print(f"Move {aflux_corr_plot} -> {aflux_corr_plot_out}")
-            try:
-                shutil.copy(lc_file1, lc_file1_out)
-                shutil.copy(lc_file2, lc_file2_out)
-                shutil.copy(cob_file, cob_file_out)
-                shutil.copy(star_file, star_file_out)
-                shutil.copy(yaml_file, yaml_file_out)
-                if self.pipePlots:
+                try:
                     shutil.copy(cobx_plot, cobx_plot_out)
                     shutil.copy(coby_plot, coby_plot_out)
                     shutil.copy(spr_plot, spr_plot_out)
@@ -1808,8 +1816,8 @@ class PLATOnium(object):
                     shutil.copy(abkg_plot, abkg_plot_out)
                     shutil.copy(aflux_plot, aflux_plot_out)
                     shutil.copy(aflux_corr_plot, aflux_corr_plot_out)
-            except:
-                self.failed('Aperture photometry of target star was not successful!')
+                except:
+                    self.failed('Moving aperture photometry plots failed...')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
