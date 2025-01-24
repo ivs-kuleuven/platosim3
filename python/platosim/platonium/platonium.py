@@ -1718,7 +1718,6 @@ class PLATOnium(object):
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
             invpsf_file = f"{prefixInversion}_inverse_psf.hdf5"
-            invpsf_vec_file = f"{prefixInversion}_inverse_psf.vec"
             pbkg_plot = f"{self.outputDirStarIDsim}/000000001_pBKG.png"
             pcobx_plot = f"{self.outputDirStarIDsim}/000000001_pCOBx.png"
             pcoby_plot = f"{self.outputDirStarIDsim}/000000001_pCOBy.png"
@@ -1729,7 +1728,6 @@ class PLATOnium(object):
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
             invpsf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
-            invpsf_vec_file_out = f"{prefixStarIDnew}_inverse_psf.vec"
             pbkg_plot_out = f"{prefixStarIDnew}_pBKG.png"
             pcobx_plot_out = f"{prefixStarIDnew}_pCOBx.png"
             pcoby_plot_out = f"{prefixStarIDnew}_pCOBy.png"
@@ -1741,7 +1739,6 @@ class PLATOnium(object):
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
             print(f"Move {invpsf_file} -> {invpsf_file_out}")
-            print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
             # Move the phot files to sotrage
             try:
                 shutil.copy(lc_file, lc_file_out)
@@ -1749,7 +1746,6 @@ class PLATOnium(object):
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
                 shutil.move(invpsf_file, invpsf_file_out)
-                shutil.move(invpsf_vec_file, invpsf_vec_file_out)
             except:
                 self.failed('Moving PSF photometry files failed...')
 
