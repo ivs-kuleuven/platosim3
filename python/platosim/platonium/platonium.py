@@ -1488,7 +1488,7 @@ class PLATOnium(object):
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
             comm = f"gen_pflux_ts --psf {psf_path}"
         else:
-            psf_lib_path = f"{self.platosimInputDir}/{self.psfLibraryFilename}"
+            psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
             comm = f"gen_pflux_ts --psf-library {psf_lib_path}"
         if self.pipePlots:
             comm += " -P"
@@ -1542,7 +1542,7 @@ class PLATOnium(object):
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
             comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
         else:
-            psf_lib_path = f"{self.platosimInputDir}/{self.psfLibraryFilename}"
+            psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
             comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf-library {psf_lib_path}"
 
         if self.pipeExtendedMask:
