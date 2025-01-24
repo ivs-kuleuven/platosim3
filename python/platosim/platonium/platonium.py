@@ -241,7 +241,7 @@ class PLATOnium(object):
                 self.psfLibraryFilename = 'INVERTED_PSF_LIBRARY_q13_241129.hdf5'
                 if not os.path.exists(f"{self.inputDir}/{self.psfLibraryFilename}"):
                     print(f"Downloading PSF library file {self.psfLibraryFilename} from KUL FTP")
-                    ut.downloadFromFTP(filename=self.psfLibraryFilename, outputDir=self.platosimInputDir, server='plato')
+                    ut.downloadFromFTP(filename=self.psfLibraryFilename, outputDir=self.inputDir, server='plato')
 
         # Check parsing of detrending model
         if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
