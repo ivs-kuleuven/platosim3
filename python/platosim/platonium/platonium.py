@@ -107,6 +107,7 @@ class PLATOnium(object):
         self.plotPost   = args.check
 
         self.pipeline         = args.pipeline
+        self.pipePsfMethod    = args.pipe_psf
         self.pipeCadence      = args.pipe_cadence
         self.pipeFluxError    = args.pipe_flux_err
         self.pipeAbsCenError  = args.pipe_cen_err
@@ -204,8 +205,9 @@ class PLATOnium(object):
         if not self.inputFile.is_file():
             errorcode('error', 'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')
 
-        # Pipeline paths
+        # PHOTOMETRY AND PIPELINE PARAMETERS
         if self.pipeline:
+            # Pipeline paths
             self.platoBin = self.path.joinpath(os.getenv('PLATO'), 'bin')
             self.platoLib = Path(os.path.split(sys.executable)[0]).resolve()
 
@@ -213,23 +215,33 @@ class PLATOnium(object):
             if self.sample is None:
                 errorcode('error', 'The pipeline mode need parsing of --sample argument!')
 
-        # PHOTOMETRY AND PIPELINE PARAMETERS
-        # Inclusion thresholds for contaminants
-        if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
-        if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
+            # Inclusion thresholds for contaminants
+            if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
+            if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
 
-        # Default L1 pipeline parameters
-        self.bsres = 10   # [subpixel]
-        if not self.pipePrnuError:
-            self.pipePrnuError = 0.1   # [%]
-        if not self.pipeFluxError:
-            self.pipeFluxError = 1     # [%]
-        if not self.pipeAbsCenError:
-            self.pipeAbsCenError = 0.03  # [pixel]
-        if self.sample == "P1" and not self.pipeCadence:
-            self.pipeCadence = 25
-        if self.sample == "P5" and self.pipeCadence not in [25, 50, 600]:
-            errorcode('error', 'Must set --pipe_cadence = 25 | 50 | 600')
+            # Default L1 pipeline parameters
+            self.bsres = 10   # [subpixel]
+            if not self.pipePrnuError:
+                self.pipePrnuError = 0.1   # [%]
+            if not self.pipeFluxError:
+                self.pipeFluxError = 1     # [%]
+            if not self.pipeAbsCenError:
+                self.pipeAbsCenError = 0.03  # [pixel]
+            if self.sample == "P1" and not self.pipeCadence:
+                self.pipeCadence = 25
+            if self.sample == "P5" and self.pipeCadence not in [25, 50, 600]:
+                errorcode('error', 'Must set --pipe_cadence = 25 | 50 | 600')
+
+            # pipeline PSF method
+            if self.pipePsfMethod not in ['microscan', 'library']:
+                errorcode('error', 'Must set --pipe_psf = microscan | library.\nNote: P1 typically uses \'microscan\' and P5 uses \'library\' interpolation')
+
+            # download the PSF library if it is needed and doesn't exist
+            if self.pipePsfMethod == "library":
+                self.psfLibraryFilename = 'INVERTED_PSF_LIBRARY_q13_241129.hdf5'
+                if not os.path.exists(f"{self.platosimInputDir}/{self.psfLibraryFilename}"):
+                    print(f"Downloading PSF library file {self.psfLibraryFilename} from KUL FTP")
+                    ut.downloadFromFTP(filename=self.psfLibraryFilename, outputDir=self.platosimInputDir, server='plato')
 
         # Check parsing of detrending model
         if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
@@ -1463,7 +1475,6 @@ class PLATOnium(object):
         comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
-        print(sim["ControlHDF5Content/WriteDiffusedPSF"])
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('psim2datastruc failed due to the above error!')
@@ -1473,8 +1484,12 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
 
         # build the gen_pflux command
-        psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_pflux_ts --psf {psf_path}"
+        if self.pipePsfMethod == 'microscan':
+            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            comm = f"gen_pflux_ts --psf {psf_path}"
+        else:
+            psf_lib_path = f"{self.platosimInputDir}/{self.psfLibraryFilename}"
+            comm = f"gen_pflux_ts --psf-library {psf_lib_path}"
         if self.pipePlots:
             comm += " -P"
         comm += f" 1 {self.starID} {self.starID}"
@@ -1491,7 +1506,6 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-    # TODO: add support for psf library for interpolation
     def run_L1_onboard(self):
         """
         Module to for the on-board L1 pipeline processing chain.
@@ -1524,8 +1538,13 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
 
         # build the gen_aflux command
-        psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+        if self.pipePsfMethod == "microscan":
+            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+        else:
+            psf_lib_path = f"{self.platosimInputDir}/{self.psfLibraryFilename}"
+            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf-library {psf_lib_path}"
+
         if self.pipeExtendedMask:
             comm += " --emask"
         if self.pipePlots:
@@ -1940,6 +1959,7 @@ phot_group.add_argument('--check',    action='store_true',        help='Flag to 
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline',      action='store_true',             help='Flag to activate proto-type pipeline')
+pip_group.add_argument('--pipe_psf',      metavar='NAME',      type=str,   help='Pipeline PSF method [microscan | library]')
 pip_group.add_argument('--pipe_cadence',  metavar='INT',       type=int,   help='Cadence for pipeline (P1=25s, P5=50 or 600s)')
 pip_group.add_argument('--pipe_flux_err', metavar='PERCENT',   type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
 pip_group.add_argument('--pipe_cen_err',  metavar='PIXEL',     type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
@@ -1966,17 +1986,19 @@ elif args.pipeline and args.sample == 'P1':
     # Run on-ground L0-L1 pipeline chain
     p.control_hdf5()
     p.run_sim_normal(sim)
-    p.run_microscan(sim)
+    if p.pipePsfMethod == "microscan":
+        p.run_microscan(sim)
     p.run_L1_onground()
-    p.sort_output_pipeline()
+    #p.sort_output_pipeline()
 
 elif args.pipeline and args.sample == 'P5':
     # Run on-board L0-L1 pipeline chain
     p.control_hdf5()
     p.run_sim_normal(sim)
-    p.run_microscan(sim)
+    if p.pipePsfMethod == "microscan":
+        p.run_microscan(sim)
     p.run_L1_onboard()
-    p.sort_output_pipeline()
+    #p.sort_output_pipeline()
 
 else:
     # Only run PlatoSim time series
