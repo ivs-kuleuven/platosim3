@@ -107,6 +107,7 @@ class PLATOnium(object):
         self.plotPost   = args.check
 
         self.pipeline         = args.pipeline
+        self.pipePsfMethod    = args.pipe_psf
         self.pipeCadence      = args.pipe_cadence
         self.pipeFluxError    = args.pipe_flux_err
         self.pipeAbsCenError  = args.pipe_cen_err
@@ -204,8 +205,9 @@ class PLATOnium(object):
         if not self.inputFile.is_file():
             errorcode('error', 'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')
 
-        # Pipeline paths
+        # PHOTOMETRY AND PIPELINE PARAMETERS
         if self.pipeline:
+            # Pipeline paths
             self.platoBin = self.path.joinpath(os.getenv('PLATO'), 'bin')
             self.platoLib = Path(os.path.split(sys.executable)[0]).resolve()
 
@@ -213,25 +215,33 @@ class PLATOnium(object):
             if self.sample is None:
                 errorcode('error', 'The pipeline mode need parsing of --sample argument!')
 
-        # PHOTOMETRY AND PIPELINE PARAMETERS
-        # Inclusion thresholds for contaminants
-        if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
-        if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
+            # Inclusion thresholds for contaminants
+            if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
+            if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
 
-        # Default L1 pipeline parameters
-        self.bsres = 10   # [subpixel]
-        if not self.pipePrnuError:
-            self.pipePrnuError = 0.1   # [%]
-        if not self.pipeFluxError:
-            self.pipeFluxError = 1     # [%]
-        if not self.pipeAbsCenError:
-            self.pipeAbsCenError = 0.03  # [pixel]
-        if self.sample == "P1" and not self.pipeCadence:
-            self.pipeCadence = 25
-        if self.sample == "P5" and not self.pipeCadence:
-            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
-        elif self.sample == "P5" and self.pipeCadence not in [50, 600]:
-            errorcode('error', 'Must set --pipe_cadence = 50 | 600')
+            # Default L1 pipeline parameters
+            self.bsres = 10   # [subpixel]
+            if not self.pipePrnuError:
+                self.pipePrnuError = 0.1   # [%]
+            if not self.pipeFluxError:
+                self.pipeFluxError = 1     # [%]
+            if not self.pipeAbsCenError:
+                self.pipeAbsCenError = 0.03  # [pixel]
+            if self.sample == "P1" and not self.pipeCadence:
+                self.pipeCadence = 25
+            if self.sample == "P5" and self.pipeCadence not in [25, 50, 600]:
+                errorcode('error', 'Must set --pipe_cadence = 25 | 50 | 600')
+
+            # pipeline PSF method
+            if self.pipePsfMethod not in ['microscan', 'library']:
+                errorcode('error', 'Must set --pipe_psf = microscan | library.\nNote: P1 typically uses \'microscan\' and P5 uses \'library\' interpolation')
+
+            # download the PSF library if it is needed and doesn't exist
+            if self.pipePsfMethod == "library":
+                self.psfLibraryFilename = 'INVERTED_PSF_LIBRARY_q13_241129.hdf5'
+                if not os.path.exists(f"{self.inputDir}/{self.psfLibraryFilename}"):
+                    print(f"Downloading PSF library file {self.psfLibraryFilename} from KUL FTP")
+                    ut.downloadFromFTP(filename=self.psfLibraryFilename, outputDir=self.inputDir, server='plato')
 
         # Check parsing of detrending model
         if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
@@ -1465,7 +1475,6 @@ class PLATOnium(object):
         comm = f'psim2datastruc --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
         print(os.getcwd())
         print(comm)
-        print(sim["ControlHDF5Content/WriteDiffusedPSF"])
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('psim2datastruc failed due to the above error!')
@@ -1475,8 +1484,12 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
 
         # build the gen_pflux command
-        psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_pflux_ts --psf {psf_path}"
+        if self.pipePsfMethod == 'microscan':
+            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            comm = f"gen_pflux_ts --psf {psf_path}"
+        else:
+            psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
+            comm = f"gen_pflux_ts --psf-library {psf_lib_path}"
         if self.pipePlots:
             comm += " -P"
         comm += f" 1 {self.starID} {self.starID}"
@@ -1493,15 +1506,14 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
-    # TODO: add support for psf library for interpolation
     def run_L1_onboard(self):
         """
         Module to for the on-board L1 pipeline processing chain.
         """
         # onboard cadences are 50 or 600s, determine --n-average for gen_aflux from the configured cadence
         n_average = int(self.pipeCadence/25)
-        if n_average not in [2, 24]:
-            self.failed(f'Onboard photometry is done at 50 or 600s (n_average = 2 | 24)\nCurrent n_average={n_average}')
+        if n_average not in [1, 2, 24]:
+            self.failed(f'Onboard photometry is done at 25, 50 or 600s (n_average = 1 | 2 | 24)\nCurrent n_average={n_average}')
 
         # Print to bash
         if self.verbose > 1:
@@ -1526,8 +1538,13 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_aflux_ts]: Aperture photometry ala Marchiori+2019')
 
         # build the gen_aflux command
-        psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-        comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+        if self.pipePsfMethod == "microscan":
+            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf {psf_path}"
+        else:
+            psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
+            comm = f"gen_aflux_ts --onboard-lc --n-average {n_average} --psf-library {psf_lib_path}"
+
         if self.pipeExtendedMask:
             comm += " --emask"
         if self.pipePlots:
@@ -1545,8 +1562,12 @@ class PLATOnium(object):
             if self.verbose > 1:
                 errorcode('message', '\n[apply_ltdjit_corr]: Jitter & Drift Correction')
 
-            # build apply_ltdcorr command
-            psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            # build apply_ltdjit_corr command
+            if self.pipePsfMethod == "microscan":
+                psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
+            else:
+                psf_path = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
+
             comm = f"apply_ltdjit_corr --psf {psf_path}"
             if self.pipeExtendedMask:
                 comm += " --emask"
@@ -1555,7 +1576,7 @@ class PLATOnium(object):
             comm += f" 1 {self.starID} {self.starID}"
             print(comm)
 
-            # run apply_ltdcorr command
+            # run apply_ltdjit_corr command
             cmd = os.system(comm)
             if cmd != 0:
                 self.failed('apply_ltdjit_corr failed due to the above error!')
@@ -1700,8 +1721,10 @@ class PLATOnium(object):
             cob_file = f"{self.outputDirStarIDsim}/COB_OG_c{camera_id}_p000000001.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
-            invpsf_file = f"{prefixInversion}_inverse_psf.hdf5"
-            invpsf_vec_file = f"{prefixInversion}_inverse_psf.vec"
+            if self.pipePsfMethod == "microscan":
+                psf_file = f"{prefixInversion}_inverse_psf.hdf5"
+            else:
+                psf_file = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
             pbkg_plot = f"{self.outputDirStarIDsim}/000000001_pBKG.png"
             pcobx_plot = f"{self.outputDirStarIDsim}/000000001_pCOBx.png"
             pcoby_plot = f"{self.outputDirStarIDsim}/000000001_pCOBy.png"
@@ -1711,8 +1734,10 @@ class PLATOnium(object):
             cob_file_out = f"{prefixStarIDnew}_COB_OG.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
-            invpsf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
-            invpsf_vec_file_out = f"{prefixStarIDnew}_inverse_psf.vec"
+            if self.pipePsfMethod == "microscan":
+                psf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
+            else:
+                psf_file_out = f"{prefixStarIDnew}_interpolated_psf.hdf5"
             pbkg_plot_out = f"{prefixStarIDnew}_pBKG.png"
             pcobx_plot_out = f"{prefixStarIDnew}_pCOBx.png"
             pcoby_plot_out = f"{prefixStarIDnew}_pCOBy.png"
@@ -1723,27 +1748,31 @@ class PLATOnium(object):
             print(f"Move {cob_file} -> {cob_file_out}")
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
-            print(f"Move {invpsf_file} -> {invpsf_file_out}")
-            print(f"Move {invpsf_vec_file} -> {invpsf_vec_file_out}")
-            if self.pipePlots:
-                print(f"Move {pbkg_plot} -> {pbkg_plot_out}")
-                print(f"Move {pcobx_plot} -> {pcobx_plot_out}")
-                print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
-                print(f"Move {pflux_plot} -> {pflux_plot_out}")
+            print(f"Move {psf_file} -> {psf_file_out}")
+            # Move the phot files to sotrage
             try:
                 shutil.copy(lc_file, lc_file_out)
                 shutil.copy(cob_file, cob_file_out)
                 shutil.copy(star_file, star_file_out)
                 shutil.copy(yaml_file, yaml_file_out)
-                shutil.move(invpsf_file, invpsf_file_out)
-                shutil.move(invpsf_vec_file, invpsf_vec_file_out)
-                shutil.move(pbkg_plot, pbkg_plot_out)
-                shutil.move(pcobx_plot, pcobx_plot_out)
-                shutil.move(pcoby_plot, pcoby_plot_out)
-                shutil.move(pflux_plot, pflux_plot_out)
+                shutil.move(psf_file, psf_file_out)
             except:
-                self.failed('PSF fitting of target star was not successful!')
+                self.failed('Moving PSF photometry files failed...')
 
+            if self.pipePlots:
+                print(f"Move {pbkg_plot} -> {pbkg_plot_out}")
+                print(f"Move {pcobx_plot} -> {pcobx_plot_out}")
+                print(f"Move {pcoby_plot} -> {pcoby_plot_out}")
+                print(f"Move {pflux_plot} -> {pflux_plot_out}")
+                try:
+                    shutil.move(pbkg_plot, pbkg_plot_out)
+                    shutil.move(pcobx_plot, pcobx_plot_out)
+                    shutil.move(pcoby_plot, pcoby_plot_out)
+                    shutil.move(pflux_plot, pflux_plot_out)
+                except:
+                    self.failed('Moving PSF photometry plots failed...')
+
+        # TODO KEEP THE PSF FILE
         # Fetch P5 light curve
         if args.sample == 'P5':
             if self.pipeExtendedMask:
@@ -1754,6 +1783,10 @@ class PLATOnium(object):
                 lc_file1 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L0_c{camera_id}_p000000001.hdf5"
                 lc_file2 = f"{self.outputDirStarIDsim}/LIGHTCURVE_L1A_c{camera_id}_p000000001.hdf5"
                 cob_file = f"{self.outputDirStarIDsim}/COB_L0_c{camera_id}_p000000001.hdf5"
+            if self.pipePsfMethod == "microscan":
+                psf_file = f"{prefixInversion}_inverse_psf.hdf5"
+            else:
+                psf_file = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
             cobx_plot = f"{self.outputDirStarIDsim}/000000001_COBx.png"
@@ -1772,6 +1805,10 @@ class PLATOnium(object):
                 lc_file1_out = f"{prefixStarIDnew}_LIGHTCURVE_L0.hdf5"
                 lc_file2_out = f"{prefixStarIDnew}_LIGHTCURVE_L1A.hdf5"
                 cob_file_out = f"{prefixStarIDnew}_COB_L0.hdf5"
+            if self.pipePsfMethod == "microscan":
+                psf_file_out = f"{prefixStarIDnew}_inverse_psf.hdf5"
+            else:
+                psf_file_out = f"{prefixStarIDnew}_interpolated_psf.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
             cobx_plot_out = f"{prefixStarIDnew}_COBx.png"
@@ -1786,8 +1823,19 @@ class PLATOnium(object):
             print(f"Move {lc_file1} -> {lc_file1_out}")
             print(f"Move {lc_file2} -> {lc_file2_out}")
             print(f"Move {cob_file} -> {cob_file_out}")
+            print(f"Move {psf_file} -> {psf_file_out}")
             print(f"Move {star_file} -> {star_file_out}")
             print(f"Move {yaml_file} -> {yaml_file_out}")
+            try:
+                shutil.copy(lc_file1, lc_file1_out)
+                shutil.copy(lc_file2, lc_file2_out)
+                shutil.copy(cob_file, cob_file_out)
+                shutil.copy(psf_file, psf_file_out)
+                shutil.copy(star_file, star_file_out)
+                shutil.copy(yaml_file, yaml_file_out)
+            except:
+                self.failed('Moving aperture photometry files failed...')
+
             if self.pipePlots:
                 print(f"Move {cobx_plot} -> {cobx_plot_out}")
                 print(f"Move {coby_plot} -> {coby_plot_out}")
@@ -1796,13 +1844,7 @@ class PLATOnium(object):
                 print(f"Move {abkg_plot} -> {abkg_plot_out}")
                 print(f"Move {aflux_plot} -> {aflux_plot_out}")
                 print(f"Move {aflux_corr_plot} -> {aflux_corr_plot_out}")
-            try:
-                shutil.copy(lc_file1, lc_file1_out)
-                shutil.copy(lc_file2, lc_file2_out)
-                shutil.copy(cob_file, cob_file_out)
-                shutil.copy(star_file, star_file_out)
-                shutil.copy(yaml_file, yaml_file_out)
-                if self.pipePlots:
+                try:
                     shutil.copy(cobx_plot, cobx_plot_out)
                     shutil.copy(coby_plot, coby_plot_out)
                     shutil.copy(spr_plot, spr_plot_out)
@@ -1810,8 +1852,8 @@ class PLATOnium(object):
                     shutil.copy(abkg_plot, abkg_plot_out)
                     shutil.copy(aflux_plot, aflux_plot_out)
                     shutil.copy(aflux_corr_plot, aflux_corr_plot_out)
-            except:
-                self.failed('Aperture photometry of target star was not successful!')
+                except:
+                    self.failed('Moving aperture photometry plots failed...')
 
         # Remove microscan-starID and simulation folder (and all its content)
         if self.verbose < 3:
@@ -1867,8 +1909,9 @@ class PLATOnium(object):
             if self.clipWotan:
                 print(f'Execution time for Wotan clip    : {self.tocWotanClip} [h:mm:ss]')
             if self.pipeline:
-                print(f'Execution time for Microscanning : {self.tocMicroscan} [h:mm:ss]')
-                print(f'Execution time for PSF inversion : {self.tocInversion} [h:mm:ss]')
+                if self.pipePsfMethod == "microscan":
+                    print(f'Execution time for Microscanning : {self.tocMicroscan} [h:mm:ss]')
+                    print(f'Execution time for PSF inversion : {self.tocInversion} [h:mm:ss]')
                 if self.sample == 'P1':
                     print(f'Execution time for L1 On-ground  : {self.tocOnground} [h:mm:ss]')
                 if self.sample == 'P5':
@@ -1934,6 +1977,7 @@ phot_group.add_argument('--check',    action='store_true',        help='Flag to 
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline',      action='store_true',             help='Flag to activate proto-type pipeline')
+pip_group.add_argument('--pipe_psf',      metavar='NAME',      type=str,   help='Pipeline PSF method [microscan | library]')
 pip_group.add_argument('--pipe_cadence',  metavar='INT',       type=int,   help='Cadence for pipeline (P1=25s, P5=50 or 600s)')
 pip_group.add_argument('--pipe_flux_err', metavar='PERCENT',   type=float, help='Error assumption of target and contaminant(s) flux (Default: 1 %%)')
 pip_group.add_argument('--pipe_cen_err',  metavar='PIXEL',     type=float, help='Error assumption of target centroid (Default: 0.03 pixel)')
@@ -1960,7 +2004,8 @@ elif args.pipeline and args.sample == 'P1':
     # Run on-ground L0-L1 pipeline chain
     p.control_hdf5()
     p.run_sim_normal(sim)
-    p.run_microscan(sim)
+    if p.pipePsfMethod == "microscan":
+        p.run_microscan(sim)
     p.run_L1_onground()
     p.sort_output_pipeline()
 
@@ -1968,7 +2013,8 @@ elif args.pipeline and args.sample == 'P5':
     # Run on-board L0-L1 pipeline chain
     p.control_hdf5()
     p.run_sim_normal(sim)
-    p.run_microscan(sim)
+    if p.pipePsfMethod == "microscan":
+        p.run_microscan(sim)
     p.run_L1_onboard()
     p.sort_output_pipeline()
 
