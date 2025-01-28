@@ -13,11 +13,13 @@ import os
 import glob
 import math
 import random
+import warnings
 import urllib.request
 from pathlib import Path
 
 # PlatoSim standard
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 from matplotlib import pyplot as plt
 import scipy
@@ -82,7 +84,7 @@ class StellarSpots(object):
         
         # Random number generator
         self.rng = ut.rng(seed)
-
+        
         # Constants
         self.BV_SUN    = 0.656
         self.LRHK_SUN  = -5.025 # from Lorenzo-Oliveira et al. (2018, A&A 619, A73)
@@ -109,7 +111,6 @@ class StellarSpots(object):
                       f'Returning B-V for Teff={min(self.t1["Teff"])}')
             if teff < min(self.t1['Teff']): return max(self.t1['BV'])
             if teff > max(self.t1['Teff']): return min(self.t1['BV'])
-
         g = interp1d(self.t1['Teff'], self.t1['BV'])
         return g(teff)
 
@@ -198,13 +199,22 @@ class StellarSpots(object):
         return prot * 10**y
 
     
-    def get_acyc_from_bv_and_lrhk(self, bv, lrhk):
+    def get_acyc_from_bv_and_lrhk(self, bv, lrhk, level='random'):
         if bv < 0.851:
             Acyc_max = 0.727 * bv - 0.292
         else:
             Acyc_max = 0.727 * 0.851 - 0.292
         Acyc_min = max([0.28 * bv - 0.196, 0.342 * lrhk + 1.703, 0.005])
-        return self.rng.random() * (Acyc_max - Acyc_min) + Acyc_min
+        # User defined activity level
+        if level == 'random':
+            tmp = self.rng.random()
+        elif level == 'high':
+            tmp = 0.9 + 0.1*tmp
+        elif level == 'low':
+            tmp = 0.0 + 0.1*tmp
+        else:
+            errorcode('error', f'Invalid activity level "{level}"')
+        return tmp * (Acyc_max - Acyc_min) + Acyc_min
 
     
     def get_arate_from_acyc(self, acyc):
@@ -212,6 +222,16 @@ class StellarSpots(object):
         return acyc/asun
 
 
+    def get_decay_rate(self, nspots):
+        # spot emergence and decay timescales
+        # The settings below are designed approximately match the distributions used in
+        # Borgniet et al. (2015) and Meunier et al. (2019)
+        mea = 15 * 1e-6
+        med = 10 * 1e-6
+        mu = np.log(med)
+        sig = np.sqrt(2*np.log(mea/med))
+        return self.rng.lognormal(mean=mu, sigma=sig, size=nspots)    
+    
 
     def regions(self, activity_rate=1, cycle_period=10, cycle_overlap=0, randspots=False,
                 maxlat=70, minlat=0, tsim=1000, tstart=0, verbose=False):
@@ -264,7 +284,7 @@ class StellarSpots(object):
 
         # Initialize time since last emergence of a large region, as function
         # of longitude, latitude and hemisphere:
-        tau = np.zeros((nlon,nlat,2),'int') + tau2
+        tau = np.zeros((nlon, nlat, 2), 'int') + tau2
         dlon = 360. / nlon
         dlat = maxlat / nlat
 
@@ -405,7 +425,7 @@ class StellarSpots(object):
         reg_arr[3] = np.deg2rad(np.array(reg_angs))
         return reg_arr
     
-
+    #---------------------------------------------------- v3
 
     def spots(self, reg_arr, incl=None, omega_0=None, omega_1=0.0,
               dur=None, threshold=0.1):
@@ -442,7 +462,7 @@ class StellarSpots(object):
         else:
             self.dur = dur
         l = (t0 < self.dur) * (ang > threshold)
-        self.nspot = l.sum()
+        self.nspots = l.sum()
         self.t0 = t0[l]
         self.lat = lat[l]
         self.lon = lon[l]
@@ -456,7 +476,7 @@ class StellarSpots(object):
         med = 10 * 1e-6
         mu = np.log(med)
         sig = np.sqrt(2*np.log(mea/med))
-        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspot)
+        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspots)
 
 
     def calci(self, time, i):
@@ -511,7 +531,7 @@ class StellarSpots(object):
         """
         
         N = len(time)
-        M = self.nspot
+        M = self.nspots
 
         # Don't go beyond 5 Gb RAM memory!
         bytemax = int(5/8*1e9)
@@ -532,10 +552,353 @@ class StellarSpots(object):
                 dF[i,:] = dF_i
             return area, ome, beta, dF
 
+    #---------------------------------------------------- v4
+
+    def compute_spot_area(self,
+                          time: np.ndarray,
+                          spot_params: Table,
+                          min_area: float,
+                          evolution: str = 'exponential'
+                          ) -> np.ndarray:
+        """ Compute the area of a single spot as a function of time.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+        min_area: float
+            The smallest spot area to be considered in units of hemispheres.
+        evolution: str
+            The temporal evolution of the spot area (default: 'exponential').
+
+        Returns
+        -------
+        area: np.ndarray
+            The size of the spot in units of hemispheres.
+
+        """
+
+        # Extract spot parameters.
+        amax = spot_params['A_MAX']*1e-6
+        tmax = spot_params['T_MAX']
+        decay_time = spot_params['TAU']
+        emerge_time = decay_time/10.0
+
+        # Compute the spot area.
+        tmp1 = (time - tmax)/emerge_time
+        tmp2 = (time - tmax)/decay_time
+
+        if evolution == 'exponential':
+            area = np.where(time < tmax, np.exp(-np.abs(tmp1)), np.exp(-np.abs(tmp2)))
+        elif evolution == 'squared-exponential':
+            area = np.where(time < tmax, np.exp(-0.5 * tmp1 ** 2), np.exp(-0.5 * tmp2 ** 2))
+        else:
+            raise ValueError(f"Unknown value for spot evolution profile: {evolution}")
+
+        area = amax*area
+        area = np.where(area < min_area, 0, area)
+
+        return area
 
 
-    def evaluate(self, teff, time, dur, cadence_hours, incl=None, isim=0,
-                 odir=None, verbose=False, save=False):
+    def compute_spot_location(self,
+                              time: np.ndarray,
+                              spot_params: Table
+                              ) -> tuple[np.ndarray, np.ndarray]:
+        """ Compute the location of a single spot as a function of time.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+
+        Returns
+        -------
+        lat: np.ndarray
+            The spot latitude.
+        lon: np.ndarray
+            The spot longitude.
+
+        """
+
+        # Extract spot parameters.
+        lat = spot_params['LAT']
+        lon = spot_params['LON']
+        prot = spot_params['PROT']
+
+        # Compute projected spot position as a function of time.
+        lat = lat * np.ones_like(time)
+        lon = lon + 360 * time / prot
+        lon = np.mod(lon - 180, 360) - 180
+
+        return lat, lon
+
+
+    def compute_spot_parameters(self,
+                                time: np.ndarray,
+                                spot_params: Table,
+                                inc_star: float = 90.,
+                                min_area: float = 0.,
+                                evolution: str = 'exponential'
+                                ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """ Compute the latitude, longitude, angular distance from the center of the
+            stellar disk, and radius in angular units for a given starspot.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+        inc_star: float
+            The stellar inclination in degrees (default: 90 degrees).
+        min_area: float
+            The smallest spot area to be considered in units of hemispheres
+            (default: 0).
+        evolution: str
+            The temporal evolution of the spot area.
+
+        Returns
+        -------
+        alpha: np.ndarray
+            The spot radius in degrees.
+        beta: np.ndarray
+            The spot location in degrees from the center of the stellar disk.
+        lat: np.ndarray
+            The spot latitude.
+        lon: np.ndarray
+            The spot longitude.
+
+        """
+        
+        # Compute the spot position and area.
+        lat, lon = self.compute_spot_location(time, spot_params)
+        area = self.compute_spot_area(time, spot_params, min_area, evolution=evolution)
+
+        # Convert degrees to radians.
+        inc_star = np.deg2rad(inc_star)
+        lat, lon = np.deg2rad(lat), np.deg2rad(lon)
+
+        # Compute the spot angle beta.
+        cos_beta = np.cos(inc_star) * np.sin(lat) + np.sin(inc_star) * np.cos(lat) * np.cos(lon)
+        beta = np.arccos(cos_beta)
+
+        # Convert spot areas to spot radii.
+        sa = 2 * np.pi * area  # Spot area in steradians.
+        alpha = np.arccos(1 - sa / (2 * np.pi))  # Spot radius in radians.
+
+        return alpha, beta, lat, lon, area
+
+    
+    def filter_spots_table(self,
+                           time: np.ndarray,
+                           spots_table: Table,
+                           min_area: float = 1e-8,
+                           evolution: str = 'exponential'
+                           ) -> Table:
+        """ Given an array of times compute which spots can contribute to the
+            lightcurve.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute the lightcurve.
+        spots_table: Table
+            An astropy Table containg the parameters of the spots to be used.
+        min_area: float
+            The smallest spots area to be considered in units of hemispheres
+            (default: 1e-8).
+        evolution: str
+            The temporal evolution of the spot area.
+
+        Returns
+        -------
+        spots_table: Table
+            A version of the input spots_table containing only the relevant spots.
+
+        """
+
+        tmin = np.amin(time)
+        tmax = np.amax(time)
+
+        area = self.compute_spot_area(tmin, spots_table, min_area=min_area, evolution=evolution)
+        mask1 = (spots_table['T_MAX'] < tmin) & (area < min_area)
+
+        area = self.compute_spot_area(tmax, spots_table, min_area=min_area, evolution=evolution)
+        mask2 = (spots_table['T_MAX'] > tmax) & (area < min_area)
+        
+        mask = mask1 | mask2
+
+        return spots_table[~mask]
+
+
+    def parse_limb_darkening(self,
+                             ld_type: str,
+                             ld_pars: ArrayLike
+                             ) -> tuple[np.ndarray, np.ndarray]:
+        """ Parse various limb-darkening laws into the non-linear form.
+        """
+
+        if ld_type not in ['uniform', 'linear', 'quadratic', 'nonlinear']:
+            raise ValueError(f"Unknown limb-darkening law: {ld_type}")
+
+        ld_idx = np.arange(5)
+        ld_pars_ = np.zeros(5)
+
+        if ld_type == 'uniform':
+            pass
+        if ld_type == 'linear':
+            ld_pars_[2] = ld_pars[0]
+        if ld_type == 'quadratic':
+            ld_pars_[2] = ld_pars[0] + 2*ld_pars[1]
+            ld_pars_[4] = -ld_pars[1]
+        if ld_type == 'nonlinear':
+            ld_pars_[1] = ld_pars[0]
+            ld_pars_[2] = ld_pars[1]
+            ld_pars_[3] = ld_pars[2]
+            ld_pars_[4] = ld_pars[3]
+
+        ld_pars_[0] = 1 - np.sum(ld_pars_[1:])
+
+        return ld_idx, ld_pars_
+
+    
+    def zeta_func(self, x: np.ndarray) -> np.ndarray:
+        """ The zeta function defined in Kipping 2012, equation 17.
+        """
+        return np.cos(x)*np.heaviside(x, 0.5)*np.heaviside(np.pi/2 - x, 0.5) + np.heaviside(-x, 0.5)
+
+
+    def kipping_spot_model(self,
+                           time: np.ndarray,
+                           spots_table: Table,
+                           inc_star: float = 90.,
+                           ld_type: str = 'linear',
+                           ld_pars: ArrayLike = (0.6,),
+                           min_area: float = 0.,
+                           evolution: str = 'exponential'
+                           ) -> np.ndarray:
+        """ Computes the flux coming from a star covered in evolving starspots
+            following Kipping 2012.
+
+        Parameters
+        ----------
+        time : np.ndarray
+            The times for which to compute the flux.
+        spots_table : astropy.table.Table
+            The parameters of the star spots.
+        inc_star : float
+            The inclination of the star in degrees (default: 90.).
+        ld_type : str
+            The limd-darkening law used (default: 'linear').
+        ld_pars : tuple
+            The limb-darkening parameters to use (default: (0.6,)).
+        min_area : float
+            The smallest spot areas to consider in hemispheres,
+            when the spot area is below this threshold it will be set to zero (default: 0.).
+        evolution : str
+            Time evolution of the spot-area, either an 'exponential' or
+            'squared-exponential' profile may be used.
+
+        Returns
+        -------
+        flux : np.ndarray
+            The stellar flux values.
+
+        """
+
+        spots_table = self.filter_spots_table(time,
+                                              spots_table,
+                                              min_area=min_area,
+                                              evolution=evolution)
+
+        ld_idx, ld_pars = self.parse_limb_darkening(ld_type, ld_pars)
+        const1 = np.sum(ld_idx * ld_pars / (ld_idx + 4))
+
+        flux = np.ones_like(time) - const1
+        area = []
+        for i in range(len(spots_table)):
+
+            alpha, beta, _, _, A = self.compute_spot_parameters(time,
+                                                                spots_table[i],
+                                                                inc_star=inc_star,
+                                                                min_area=min_area,
+                                                                evolution=evolution)
+            area.append(A)
+            mask = alpha > 0
+            if not np.any(mask):
+                continue
+
+            args, = np.where(mask)
+            imin = np.amin(args)
+            imax = np.amax(args) + 1  # Add 1 because slices are exclusive.
+
+            alpha = alpha[imin:imax]
+            beta = beta[imin:imax]
+
+            # Convert to complex for use with Kipping 2012, equation 14.
+            alpha = alpha.astype('complex256')
+            beta = beta.astype('complex256')
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+                cot_alpha = 1/np.tan(alpha)
+                cot_beta = 1/np.tan(beta)
+                xi = np.sin(alpha)*np.arccos(-cot_alpha*cot_beta)
+                psi = np.sqrt(1 - np.cos(alpha)**2/np.sin(beta)**2)
+                a = np.arccos(np.cos(alpha)/np.sin(beta))
+                b = np.cos(beta)*np.sin(alpha)*xi
+                c = np.cos(alpha)*np.sin(beta)*psi
+
+            alpha = alpha.real
+            beta = beta.real
+            sky_area = (a + b - c).real
+
+            # The above equations seems to contain some singularities at beta=0,pi, this fixes them.
+            sky_area = np.where(beta > np.pi/2 - alpha, sky_area, np.pi * np.sin(alpha)**2 * np.cos(beta))
+            sky_area = np.where(beta < np.pi/2 + alpha, sky_area, 0)
+
+            # Equations C23.
+            zeta_neg = self.zeta_func((beta - alpha).real)
+            zeta_pos = self.zeta_func((beta + alpha).real)
+
+            denom = zeta_neg**2 - zeta_pos**2
+            denom = np.where(denom < 1e-6, 1, denom)
+
+            const2 = 0
+            for j in ld_idx:
+                exp = (j + 4)/2
+                num = zeta_neg**exp - zeta_pos**exp
+                const2 += (4*ld_pars[j])/(j + 4)*num/denom
+
+            flux[imin:imax] = flux[imin:imax] - sky_area/np.pi*const2
+
+        flux = flux/(1 - const1)
+
+        return flux.astype('float64'), np.array(area)
+    
+    #----------------------------------------------------
+    
+    def evaluate(self,
+                 teff,
+                 time,
+                 dur,
+                 cadence_hours,
+                 incl=None,
+                 activity_level: str = 'random',
+                 activity_phase: tuple[float, float] = (0., 1.),
+                 min_area: float = 1e-8,
+                 evolution: str = 'squared-exponential',
+                 ld_type: str = 'linear',
+                 ld_pars: ArrayLike = (0.6,),
+                 odir=None,
+                 verbose=False,
+                 save=False):
 
         """Generate spot modulated light curve.
         """
@@ -553,69 +916,99 @@ class StellarSpots(object):
         pcyc     =  self.get_pcyc_from_prot(prot)
         clen     = pcyc / 365.
         coverlap = self.rng.random() * 0.1 * clen 
-        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk)
+        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk, level=activity_level)
         arate    = self.get_arate_from_acyc(acyc)
         if incl is None:
             incl = np.rad2deg(np.arccos(self.rng.random()))
-
-        # simulate regions
-        reg_arr = self.regions(activity_rate=arate,
-                               cycle_period=clen, cycle_overlap=coverlap, verbose=False,
-                               maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
-
-        # make the simulation start at a random point in the cycle
-        reg_arr[0] -= self.rng.random() * pcyc
-
+        
         # simulate LC
-        self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
-                   threshold=0.1, dur=dur)
-        
-        # NOTE we decrease the sampling to 30 min for increased performance
-        #      this corresponds to every 72nd time point -> 30 * 60 / 25
+        #------------------------------------------------------------------ v3
+        # # simulate regions
+        # reg_arr = self.regions(activity_rate=arate,
+        #                        cycle_period=clen, cycle_overlap=coverlap, verbose=False,
+        #                        maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
+        # # make the simulation start at a random point in the cycle
+        # reg_arr[0] -= self.rng.random() * pcyc
+        # # Calculate spots
+        # self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
+        #            threshold=0.1, dur=dur)
+        # # Decrease the sampling to 30 min for increased performance
+        # time0 = np.copy(time)
+        # time = time[::72] - time0[0]
+        # area, ome, beta, dF = self.calc(time)
+        # # We interpolate back to original time grid of 25s cadence
+        # # Interpolate (piecewise cubic) into higher resolution grid
+        # spline = make_interp_spline(time, dF.sum(0), k=3)
+        # flux   = spline(time0)
+        # # Finito!
+        # self.dur, self.time, self.flux, self.area = dur, time, dF.sum(0), area.sum(0)
+        # self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
+        # return flux, self.params, self.area
+        #------------------------------------------------------------------ v4
+        # Simulate a generous time-span to ensure we have all the spots we need.
+        n = np.ceil(dur/pcyc/2) + 1
+        span = (2*n + 1) * pcyc
+        # simulate regions
+        reg_arr = self.regions(activity_rate=arate, cycle_period=clen, cycle_overlap=coverlap,
+                               maxlat=lmax, minlat=lmin, tsim=span, tstart=0, verbose=verbose)
+        # Pick a time t0 such that the middle of the duration falls within a certain phase range of the activity cycle.
+        phase0 = activity_phase[0] + self.rng.random() * (activity_phase[1] - activity_phase[0])
+        t0 = (n + phase0)*pcyc - dur/2
+        reg_arr[0] -= t0
+        # Unpack the regions
+        tmax  = reg_arr[0,:]
+        lat   = reg_arr[1,:]
+        lon   = reg_arr[2,:]
+        amax  = reg_arr[3,:]**2 * 300 * 1e-6  # Area in hemispheres.
+        self.t0, self.lat, self.amax = tmax, lat, amax
+        # compute omega and decay_rate for each spot
+        omega      = self.get_omega_from_lat_and_omega01(lat, omega_0, omega_1)
+        decay_rate = self.get_decay_rate(len(tmax))
+        prot_diff  = 2 * np.pi / omega / 86400
+        lifetime = amax / decay_rate
+        # Store number of spots for plotting
+        self.nspots = len(omega)
+        # Create the spots table
+        meta_data = dict()
+        meta_data["T_eff"] = teff
+        meta_data["B-V"] = bv
+        meta_data["log R'_HK"] = lrhk
+        meta_data["P_rot"] = prot
+        meta_data["P_min"] = pmin
+        meta_data["P_max"] = pmax
+        meta_data["max. latitude"] = lmax
+        meta_data["P_cycle"] = clen
+        meta_data["Cycle overlap"] = coverlap
+        meta_data["Activity rate"] = arate
+        spots_table = Table([lat, lon, prot_diff, tmax, amax*1e6, lifetime, lifetime/prot_diff],
+                            names=('LAT', 'LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R'),
+                            meta=meta_data)
+        # Remove spots that do not contribute to the simulated lightcurve.        
+        spots_table = self.filter_spots_table(time,
+                                              spots_table,
+                                              min_area=min_area,
+                                              evolution=evolution)
+        # Decrease the sampling to 30 min for increased performance
         time0 = np.copy(time)
-        time = time[::72] - time0[0]
-        area, ome, beta, dF = self.calc(time)
-        
-        # Stop here if the RAM memory would have been overflown
-        if dF is None:
-            return None, None
-
-        # Save data and figure
-        if save:
-
-            # save individual spot properties
-            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('LAT','LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R')
-            flo.write('# {}\n'.format(header))
-            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('deg','deg', 'days', 'days', 'muHem', 'days', 'periods')
-            flo.write('# {}\n'.format(header))
-            
-            for i in range(self.nspot):
-                # spot came too early or too late or was too short lived given cadence
-                if area[i,:].max() == 0:
-                    continue
-                prot = 2*np.pi / ome[i] / 86400
-                lifetime = self.amax[i] / self.decay_rate[i]
-                str_ = '{:6.1f} {:6.2f} {:6.2f} {:6.2f} {:8.2e} {:6.2f} {:6.2f}'.format(self.lat[i], self.lon[i], prot, self.t0[i], self.amax[i] * 1e6, lifetime, lifetime/prot)
-                flo.write('{}\n'.format(str_))
-
-            # save LC
-            X = np.zeros((2,len(time)))
-            X[0,:] = time
-            X[1,:] = dF.sum(0)
-            lfile = os.path.join(odir, 'lightcurve_{:04d}.txt'.format(isim)) # save LC
-            np.savetxt(lfile,X.T)
-
+        time = time[::72] - time0[0]        
+        # Simulate the lightcurve.
+        flux, area = self.kipping_spot_model(time,
+                                             spots_table,
+                                             inc_star=incl,
+                                             ld_type=ld_type,
+                                             ld_pars=ld_pars,
+                                             min_area=min_area,
+                                             evolution=evolution)
         # We interpolate back to original time grid of 25s cadence
         # NOTE Interpolate (piecewise cubic) into higher resolution grid
-        #time_int = np.linspace(time0[0], time0[-1], len(time0)
-        spline = make_interp_spline(time, dF.sum(0), k=3)
-        flux   = spline(time0-time0[0])
-
+        flux -= 1 # Normalised around zero 
+        spline = make_interp_spline(time, flux, k=3)
+        flux0   = spline(time0)        
         # Finito!
-        self.dF, self.dur, self.area, self.time = dF, dur, area, time
+        self.dur, self.time, self.flux, self.area = dur, time, flux, area.sum(0)
         self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
-        return flux, self.params, self.area
-
+        return flux0, self.params, self.area        
+        #------------------------------------------------------------------ end
     
 
     def plot(self, title='params', panels=3, figsize=(11,8)):
@@ -636,16 +1029,16 @@ class StellarSpots(object):
             axes[0].set_title(title, fontsize='18')
         axes[0].set_facecolor('lemonchiffon')
         axes[0].axhline(y=0, color='gray', linestyle='--')
-        for j in range(self.nspot):
+        for j in range(self.nspots):
             if self.t0[j] < -10: continue
             if self.t0[j] > self.dur: continue
             axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8, ms=self.amax[j]*(1./3e-4)*5)
         axes[0].set_ylim(-90, 90)
         axes[0].set_ylabel(r'Latitude [$^{\circ}$]')
-        axes[1].plot(self.time, self.area.sum(0)*1e3, 'k-')
+        axes[1].plot(self.time, self.area*1e3, 'k-')
         axes[1].set_ylabel(r'Coverage [\%]')        
         axes[1].set_xlim(0, self.dur)
-        axes[2].plot(self.time, self.dF.sum(0)*1e3, 'k-')
+        axes[2].plot(self.time, self.flux*1e3, 'k-')
         axes[2].set_ylabel('Spot flux [ppt]')
         axes[-1].set_xlabel(r'Time from $t_0$ [days]')
         plt.tight_layout(h_pad=0.1)
@@ -746,7 +1139,7 @@ class StellarFlares(object):
         
         # Time a peak flux of flare [d]
         # We use spot coverage as weight for drawing the flares
-        area = spot_coverage.sum(0)*100
+        area = spot_coverage * 100
         time = np.linspace(self.time[0], self.time[-1], len(area))
         spline = make_interp_spline(time, area, k=3)
         self.area = np.abs(spline(self.time))
