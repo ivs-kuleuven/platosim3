@@ -1022,7 +1022,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
                          cbarOrientation=None, cbarMap='rainbow', color='r',
-                         figsize=(13, 9)):
+                         title=None, fs=20, figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
 
@@ -1066,11 +1066,16 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     
     gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
     gal = gal.galactic
+
+    # Show title if requested
+
+    if title:
+        # Aitoff projection in Galactic coordinates
+        plt.title(title, fontsize=fs+2, y=1.02)
+
     
     # Plot Aitoff projection in Galactic coordinates
-    
-    fs = 20
-    plt.title('Aitoff projection in Galactic coordinates', fontsize=fs+2, y=1.02)
+
     fig, ax = fig
     if len(raStars) <= 1e2: ms = 3.
     if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1.3
@@ -1392,7 +1397,6 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     if showGroups:
 
         # Show N-CAM groups
-
         raGroups, decGroups = rf.getCameraGroupCoordinates(np.deg2rad(alpha),
                                                            np.deg2rad(delta),
                                                            np.deg2rad(kappa))
@@ -3573,9 +3577,10 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                                           edgecolor='k', linewidth=lw, zorder=4)
 
                 # Add magnitude label above star position
-                
+
+                ax.annotate(f'{mag[0]:.1f}', xy=(col[0]-0.25, row[0]+0.30), color='green')
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.20), color='darkorange', weight='bold')
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.30), color='darkorange')
                     
             # Or hightligth all stars the same
             
@@ -3584,6 +3589,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                            facecolors='royalblue', edgecolors='k',
                            linewidth=lw, zorder=4)
 
+                
             # If requested, add star IDs to plot
             
             # if showStarIDs:

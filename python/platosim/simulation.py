@@ -806,8 +806,8 @@ class Simulation(object):
         http://ptoops02.esac.esa.int/mpdb/home
         """
 
-        self.__setitem__("CCD/NumColumns", "4510")
-        self.__setitem__("CCD/NumRows",    "4510")
+        self.__setitem__("CCD/NumColumns",                "4510")
+        self.__setitem__("CCD/NumRows",                   "4510")
         self.__setitem__("ObservingParameters/CycleTime", "25")
 
         # If requested, select basic input parameters from MPD
@@ -822,9 +822,13 @@ class Simulation(object):
 
 
 
-    def useFastCamera(self, passband=False, performance=False, timeFromBOL=0):
+    def useFastCamera(self, passband, performance=False, timeFromBOL=0):
 
         """Change the input parameters to use the F-CAM.
+
+        Parameters
+        ----------
+        
 
         The parameters are from the Mission Parameter Database:
         http://ptoops02.esac.esa.int/mpdb/home
@@ -842,8 +846,9 @@ class Simulation(object):
         - Quantum efficiency
         """
 
-        self.__setitem__("CCD/NumColumns", "4510")
-        self.__setitem__("CCD/NumRows",    "2255")
+        self.__setitem__("Telescope/GroupID",             "Fast")
+        self.__setitem__("CCD/NumColumns",                "4510")
+        self.__setitem__("CCD/NumRows",                   "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
         
         # If requested, select basic input parameters from MPD

@@ -35,7 +35,7 @@ man_group.add_argument('odir',   type=str, help='Output directory to save analys
 man_group.add_argument('gdir',   type=str, help='Path to file with data gaps: "instrumentGAP.tab"')
 
 opt_group = parser.add_argument_group('OPTIONAL PARAMETERS')
-opt_group.add_argument('--bin_size',  metavar='FLOAT', type=float, help='Time bin size [hours]')
+opt_group.add_argument('--bin_size',  metavar='FLOAT', type=float, help='Time bin size [sec]')
 opt_group.add_argument('--snr_thres', metavar='FLOAT', type=float, help='Optimal SNR criterion')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 # User defined parameters
 verbose   = args.verbose
-bin_size  = args.bin_size  # [hours]
+bin_size  = args.bin_size / 3600  # [hours]
 snr_thres = args.snr_thres
 
 # File paths
@@ -55,12 +55,17 @@ gdir = Path(args.gdir).resolve()
 odir_final = odir / 'lightcurve'
 odir_table = odir / 'table'
 odir_modes = odir / 'modes'
+
+# Create folders
 odir_final.mkdir(parents=True, exist_ok=True)
 odir_table.mkdir(parents=True, exist_ok=True)
-odir_modes.mkdir(parents=True, exist_ok=True)
 os.system(f'chmod 755 {odir_final}')
 os.system(f'chmod 755 {odir_table}')
-os.system(f'chmod 755 {odir_modes}')
+if snr_thres:
+    odir_modes.mkdir(parents=True, exist_ok=True)
+    os.system(f'chmod 755 {odir_modes}')
+
+# Define filenames
 filename_final = f'lc_{star}'
 filename_table = f'table_{star}'
 filename_modes = f'modes_{star}'

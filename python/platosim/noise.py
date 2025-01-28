@@ -26,8 +26,7 @@ from platosim.utilities    import errorcode
 from platosim.matplotlibrc import latex
 latex()
 
-# Global parameters
-day2sec = 86400.
+from numba import njit
 
 
 #--------------------------------------------------------------#
@@ -679,14 +678,11 @@ def plotMultiCadenceNoisePeakSNR(odir, quarters=1, fap=0.1, bins=50,
 #--------------------------------------------------------------#
 
 
-#@njit
+@njit
 def getRedNoise(time, currenttime, kicktimestep, Ntime,
                 timescale, varscale, noise, mu, sigma,
-                seed=None):
+                rng):
         
-    # Initialise random generator
-    rng = np.random.default_rng()
-
     signal = np.zeros(Ntime)
     
     for i in range(Ntime):
@@ -694,16 +690,19 @@ def getRedNoise(time, currenttime, kicktimestep, Ntime,
         # Compute the contribution of each component separately.
         # First advance the time series right *before* the time point i,
 
-        while( (currenttime + kicktimestep) < time[i]):
+        while ((currenttime + kicktimestep) < time[i]):
             noise = noise * (1.0 - kicktimestep/timescale) + rng.normal(mu[0], sigma[0])
             currenttime = currenttime + kicktimestep
 
         # Then advance the time series with a small time step right *on* time[i]
 
         delta  = time[i] - currenttime
+ 
+        # Correction factor to have varscale in RMS arcsec
+
         #sigma1 = np.sqrt(delta/timescale)*varscale
-        sigma1 = varscale * 0.66  # Correction factor to have varscale in RMS arcsec
-        noise  = noise * (1.0 - delta/timescale) + rng.normal(mu[0], sigma1)
+        sigma1 = varscale * 0.66
+        noise  = noise * (1.0 - delta/timescale) + rng.normal(mu[0], sigma1[0])
         currenttime = time[i]
 
         # Add the different components to the signal. 
@@ -716,7 +715,7 @@ def getRedNoise(time, currenttime, kicktimestep, Ntime,
 
 
 
-def modelRedNoise(time, timescale, varscale, seed=None):
+def modelRedNoise(time, timescale, varscale, kickscale=100, n_warmup=2000, seed=None):
 
     """Function to generate a red noise time series.
     
@@ -736,7 +735,7 @@ def modelRedNoise(time, timescale, varscale, seed=None):
     """
     
     # Initialise random generator
-    rng = np.random.default_rng()
+    rng = ut.rng(seed=seed)
 
     Ntime = len(time)
     Ncomp = len(timescale)
@@ -744,7 +743,7 @@ def modelRedNoise(time, timescale, varscale, seed=None):
     # Set the kick (= excitation) timestep to be one 100th of the
     # shortest noise time scale (i.e. kick often enough).
 
-    kicktimestep = min(timescale) / 100.0
+    kicktimestep = min(timescale) / kickscale
     currenttime  = time[0] - kicktimestep
     
     # Predefine some arrays
@@ -752,21 +751,18 @@ def modelRedNoise(time, timescale, varscale, seed=None):
     delta = 0.0
     noise = np.zeros(Ncomp)
     mu    = np.zeros(Ncomp)
-    sigma = np.sqrt(kicktimestep/timescale)*varscale
-    
+    sigma = np.sqrt(kicktimestep / timescale) * varscale
+
     # Warm up the first-order autoregressive process
 
-    for i in range(2000):
-        noise = noise * (1.0 - kicktimestep / timescale) + rng.normal(mu, sigma)
+    for i in range(n_warmup):
+        noise = noise * (1 - kicktimestep / timescale) + rng.normal(mu, sigma)
 
     # Start simulating the granulation time series
+    signal_red = getRedNoise(time, currenttime, kicktimestep, Ntime,
+                             timescale, varscale, noise, mu, sigma, rng)
+    return signal_red
     
-    return getRedNoise(time, currenttime, kicktimestep, Ntime,
-                       timescale, varscale, noise, mu, sigma)
-    
-
-
-
 
 
 
@@ -1188,7 +1184,7 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
         names = ['Quarter', 'A_yaw', 'A_pitch', 'A_roll']
         da = pd.DataFrame(A, columns=names)
         da = da.sort_values(['Quarter'])
-        da = da.astype({'Quarter':np.int})
+        da = da.astype({'Quarter':np.int32})
         da = da.reset_index(drop=True)
         print(da)
         print('\nMaximum TED amplitudes [arcsec]')
@@ -1200,10 +1196,10 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
 
     # Plots
     for i, col in zip(range(3), cols):
-        ax[i].plot(df_1["time"]/day2sec, df_1[col], '-', c='b')
-        ax[i].plot(df_2["time"]/day2sec, df_2[col], '-', c='g')
-        ax[i].plot(df_3["time"]/day2sec, df_3[col], '-', c='orange')
-        ax[i].plot(df_4["time"]/day2sec, df_4[col], '-', c='r')
+        ax[i].plot(df_1["time"]/ut.day(), df_1[col], '-', c='b')
+        ax[i].plot(df_2["time"]/ut.day(), df_2[col], '-', c='g')
+        ax[i].plot(df_3["time"]/ut.day(), df_3[col], '-', c='orange')
+        ax[i].plot(df_4["time"]/ut.day(), df_4[col], '-', c='r')
         ax[i].axhline(y=0, linestyle=':', color='k')
         Qday = ut.year()/86400/4
         for k in range(N-1):
@@ -1215,7 +1211,7 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
     ax[1].set_ylabel("Pitch [arcsec]")
     ax[2].set_ylabel("Roll [arcsec]")
     for i in range(3):
-        ax[i].set_xlim(df_1.time.min()/day2sec, df_1.time.max()/day2sec)
+        ax[i].set_xlim(df_1.time.min()/ut.day(), df_1.time.max()/ut.day())
 
     # Layout
     ax[0].set_xticklabels([])
@@ -1351,8 +1347,8 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
     for i, Q in zip(range(n_roll), roll_events):
         roll_gap = roll_duration + rng.uniform(-roll_anomaly, roll_anomaly)       # [d]
-        roll_event0[i] = (roll_period * Q - roll_gap/2) * day2sec                 # [s]
-        roll_event1[i] = (roll_period * Q + roll_gap/2) * day2sec                 # [s]
+        roll_event0[i] = (roll_period * Q - roll_gap/2) * ut.day()                 # [s]
+        roll_event1[i] = (roll_period * Q + roll_gap/2) * ut.day()                 # [s]
         roll_dex       = np.where((time>=roll_event0[i]) & (time<=roll_event1[i]))[0]
         roll[roll_dex] = True
 
@@ -1370,8 +1366,8 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
     for i, S in zip(range(n_station), station_events):
         station_gap = station_duration + rng.uniform(-station_anomaly, station_anomaly)
-        station_event0[i] = (S - station_gap/2) * day2sec
-        station_event1[i] = (S + station_gap/2) * day2sec
+        station_event0[i] = (S - station_gap/2) * ut.day()
+        station_event1[i] = (S + station_gap/2) * ut.day()
         station_dex       = np.where((time>=station_event0[i]) & (time<=station_event1[i]))[0]
         station[station_dex] = True
 
@@ -1389,8 +1385,8 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
     
     # for i, W in zip(range(n_wheel), wheel_events):
     #     wheel_gap = wheel_duration + rng.uniform(-wheel_anomaly, wheel_anomaly)
-    #     wheel_event0[i] = (W - wheel_gap/2) * day2sec
-    #     wheel_event1[i] = (W + wheel_gap/2) * day2sec
+    #     wheel_event0[i] = (W - wheel_gap/2) * ut.day()
+    #     wheel_event1[i] = (W + wheel_gap/2) * ut.day()
     #     wheel_dex       = np.where((time>=wheel_event0[i]) & (time<=wheel_event1[i]))[0]
     #     wheel[wheel_dex] = True
         
@@ -1416,8 +1412,8 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
     for i, J in zip(range(n_jitter), jitter_events):
         jitter_gap = jitter_duration + rng.uniform(-jitter_anomaly, jitter_anomaly)
-        jitter_event0[i] = (J - jitter_gap/2) * day2sec
-        jitter_event1[i] = (J + jitter_gap/2) * day2sec
+        jitter_event0[i] = (J - jitter_gap/2) * ut.day()
+        jitter_event1[i] = (J + jitter_gap/2) * ut.day()
         jitter_dex       = np.where((time>=jitter_event0[i]) & (time<=jitter_event1[i]))[0]
         jitter[jitter_dex] = True
 
@@ -1451,8 +1447,8 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
     for i, S in zip(range(n_safe), safe_events):
         safe_gap = safe_duration + rng.uniform(-safe_anomaly, safe_anomaly)
-        safe_event0[i] = (S - safe_gap/2) * day2sec
-        safe_event1[i] = (S + safe_gap/2) * day2sec
+        safe_event0[i] = (S - safe_gap/2) * ut.day()
+        safe_event1[i] = (S + safe_gap/2) * ut.day()
         safe_dex       = np.where((time>=safe_event0[i]) & (time<=safe_event1[i]))[0]
         safe[safe_dex] = True
         
@@ -1472,27 +1468,27 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
         ax.axhline(y=0, linestyle=':', color='k')
 
         for i in range(n_roll):
-            ax_roll = ax.axvspan(roll_event0[i]/day2sec, roll_event1[i]/day2sec,
+            ax_roll = ax.axvspan(roll_event0[i]/ut.day(), roll_event1[i]/ut.day(),
                                  color='b', alpha=0.5)
             if i == n_roll-1: ax_roll.set_label('Quarterly rolls')
 
         for i in range(n_station):
-            ax_station = ax.axvspan(station_event0[i]/day2sec, station_event1[i]/day2sec,
+            ax_station = ax.axvspan(station_event0[i]/ut.day(), station_event1[i]/ut.day(),
                                     color='m', alpha=0.5)
             if i == n_station-1: ax_station.set_label('Station keeping')
 
         # for i in range(n_wheel):
-        #     ax_wheel = ax.axvspan(wheel_event0[i]/day2sec, wheel_event1[i]/day2sec,
+        #     ax_wheel = ax.axvspan(wheel_event0[i]/ut.day(), wheel_event1[i]/ut.day(),
         #                           color='g', alpha=0.5)
         #     if i == n_wheel-1: ax_wheel.set_label('Wheel offloadings')
             
         for i in range(n_jitter):
-            ax_jitter = ax.axvspan(jitter_event0[i]/day2sec, jitter_event1[i]/day2sec,
+            ax_jitter = ax.axvspan(jitter_event0[i]/ut.day(), jitter_event1[i]/ut.day(),
                                    color='orange', alpha=0.5)
             if i == n_jitter-1: ax_jitter.set_label('Loss of fine guidance')
 
         for i in range(n_safe):
-            ax_safe = ax.axvspan(safe_event0[i]/day2sec, safe_event1[i]/day2sec,
+            ax_safe = ax.axvspan(safe_event0[i]/ut.day(), safe_event1[i]/ut.day(),
                                  color='r', alpha=0.5)
             if i == n_safe-1: ax_safe.set_label('Safe mode events')
 
@@ -1503,7 +1499,7 @@ def getDataGaps(time, quarter=range(1,9), seed=None, ofile=False, plot=False):
 
         # Layout
         ax.set_yticklabels([])
-        ax.set_xlim(time[0]/day2sec, time[-1]/day2sec+2)
+        ax.set_xlim(time[0]/ut.day(), time[-1]/ut.day()+2)
         ax.set_ylim(-1,1)
         plt.tight_layout()
 
@@ -1661,7 +1657,7 @@ def temperatureTransients(time, t0, td, tempCCD=203.15, tempConst=10, gapSize=0.
 
     # Save data if requested
     if ofile:
-        np.savetxt(ofile, np.transpose([time*day2sec, temp]), fmt=['%.1f', '%.6f'])
+        np.savetxt(ofile, np.transpose([time*ut.day(), temp]), fmt=['%.1f', '%.6f'])
         fig.savefig(f"{ofile[:-4]}.png", bbox_inches='tight', dpi=200)
         
     return temp
