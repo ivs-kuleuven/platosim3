@@ -89,6 +89,7 @@ class PLATOnium(object):
 
         self.cadence      = args.cadence
         self.simTime      = args.tdur
+        self.simBeginTime = args.bdur
         self.simExposures = args.nexp
         self.simBeginExp  = args.bexp
         self.picID        = args.pic
@@ -288,7 +289,9 @@ class PLATOnium(object):
             self.ds['ra']  = self.dx.ra
             self.ds['dec'] = self.dx.dec
             self.ds['mag'] = self.dx.Pmag
-            self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)
+            self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
+
+            # Break out of function
             return
 
         # SUBFIELD
@@ -297,7 +300,8 @@ class PLATOnium(object):
             # Read catalogue
             df = pd.read_feather(self.starcatFile)
             self.colID = 'gaiaDR3'
-
+            self.targetNo = 0
+            
             # Define data frames
             self.df = df.loc[0]
             self.dc = df.iloc[1:]
@@ -349,7 +353,7 @@ class PLATOnium(object):
 
             # Select target star
             self.df = df.iloc[self.targetNo]
-
+        
         # Additional info for subfield simulations
         if not self.fullFrame:
             # If requested select only the target, else include contaminants
@@ -380,16 +384,15 @@ class PLATOnium(object):
             # If requested overwrite magnitude of target star
             if self.mag is not None:
                 self.df.mag = self.mag
-
-            # Limits for contaminants
-            self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
-            self.dc = self.dc[self.dc.dis < self.conDisLimit]
-            self.dc = self.dc.reset_index(drop=True)
-
+                
             # Number of contaminants
             if self.noCon:
                 self.numCon = 0
             else:
+                # Limits for contaminants
+                self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
+                self.dc = self.dc[self.dc.dis < self.conDisLimit]
+                self.dc = self.dc.reset_index(drop=True)
                 self.numCon = self.dc.shape[0]
 
             # Save star catalogue
@@ -397,7 +400,10 @@ class PLATOnium(object):
             self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
             self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
             self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
-            self.ds['ids'] = np.arange(1, self.numCon+2)
+            if not self.noCon:
+                self.ds['ids'] = np.arange(1, self.numCon+2)
+            else:
+                self.ds['ids'] = 1
 
     def configure_output(self):
         """
@@ -500,32 +506,36 @@ class PLATOnium(object):
         # CONFIGURE TIMING
         # Cadence of time series [s]
         # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
-        # NOTE This is overwritten for F-CAM by sim.useFastCameras()
+        # NOTE sim.useNormalCameras() and sim.useFastCameras() overwrites cadenc!
         if self.cadence:
             sim['ObservingParameters/CycleTime'] = self.cadence
         else:
             self.cadence = sim['ObservingParameters/CycleTime']
 
-        # Check of begin exposure number is parsed
-        if not self.simBeginExp:
+        # Start time of simulation
+        if self.simBeginTime:
+            # Check if begin time is parsed
+            self.simBeginExp = round(self.simBeginTime * 86400 / self.cadence)
+        elif not self.simBeginExp:
+            # Check if begin exposure number is parsed
             self.simBeginExp = 0
-
+                
         # Apply start time relative mission BOL
         self.beginExposureNr = round(self.timeStart / self.cadence) + self.simBeginExp
         sim['ObservingParameters/BeginExposureNr'] = self.beginExposureNr
 
-        # Duration of time series
+        # Duration of time series [exp]
         if self.simExposures:
             # Setting timeseries by N exposures given by user
             self.numExposures = self.simExposures
         elif self.simTime is not None:
             # Setting timeseries by time given by user
-            self.numExposures = round(self.simTime * 86400. / self.cadence)
+            self.numExposures = round(self.simTime * 86400 / self.cadence)
         else:
             # Setting time series to full quarter
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
-            self.numExposures = round((timeQuarter - 1) * 86400. / self.cadence)
+            self.numExposures = round((timeQuarter - 1) * 86400 / self.cadence)
 
         # PHOTOMETRY ALA MARCHIORI
         # The mask-update interval [days]
@@ -573,6 +583,10 @@ class PLATOnium(object):
             normal = True
             sim.useNormalCamera(self.performance, self.timeStart)
 
+        # Secure that user-defined cadence is used!
+        if self.cadence:
+            sim['ObservingParameters/CycleTime'] = self.cadence
+            
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
         if self.magPB == 'Pmag':
@@ -960,8 +974,8 @@ class PLATOnium(object):
                 errorcode('message', '\n[PlatoSim]: Visualizing simulation for ' +
                           f'F-CAM {self.cameraID} Q{self.quarter}\n')
             else:
-                errorcode('message', '\n[PlatoSim]: Visualizing simulation for ' +
-                          f'{self.groupID} {self.group}.{self.camera} Q{self.quarter}\n')
+                errorcode('message', f'\n[PlatoSim]: Visualizing simulation for ' +
+                          f'N-CAM {self.group}.{self.camera} Q{self.quarter}\n')
 
         # Control the content of the hdf5 output files
         sim.turnOffAllOutput()
@@ -976,7 +990,6 @@ class PLATOnium(object):
         # Run simulation for first image cadence
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
-
         f = sim.run(removeOutputFile=self.overwrite)
 
         # Plot star in CCD focal plane
@@ -1089,38 +1102,41 @@ class PLATOnium(object):
             # Fetch simulation and stellar positions
             f = SimFile(outputFile)
             ID, row, col, xFP, yFP, flux = f.getStarCoordinates(self.beginExposureNr)
+            
+            # Make some checks
+            if self.dx.shape[0] == 0:
+                errorcode('warning', 'Stellar catalogue is empty')
+            elif ID is None:
+                errorcode('warning', 'No stars detected on the CCD')
+            else:
+                # Select detected stars
+                df = self.dx.iloc[ID]
 
-            print(self.dx)
-            print(len(ID))
+                # Indices are the star IDs
+                df = ut.pdAddColumn(df, df.index, 'starID')
+                if 'index' in df: df.drop(columns=['index'], inplace=True)
+                df = df.reset_index(drop=True)
 
-            # Select detected stars
-            df = self.dx.iloc[ID]
+                # Add stellar positions.
+                df['xCCD'] = col - 0.5
+                df['yCCD'] = row - 0.5
+                df['xFP']  = xFP
+                df['yFP']  = yFP
 
-            # Indices are the star IDs
-            df = ut.pdAddColumn(df, df.index, 'starID')
-            if 'index' in df: df.drop(columns=['index'], inplace=True)
-            df = df.reset_index(drop=True)
+                # Only keep stars within the rOA FOV (value is after distortion)
+                focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
+                rOA = rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP, focalLength)
+                df['rOA'] = np.rad2deg(rOA)
+                df = df[df.rOA <= 19.555]
 
-            # Add stellar positions.
-            df['xCCD'] = col - 0.5
-            df['yCCD'] = row - 0.5
-            df['xFP']  = xFP
-            df['yFP']  = yFP
-
-            # Only keep stars within the rOA FOV (value is after distortion)
-            focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
-            rOA = rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP, focalLength)
-            df['rOA'] = np.rad2deg(rOA)
-            df = df[df.rOA <= 19.555]
-
-            # Save to file
-            df = df.reset_index(drop=True)
-            df.to_feather(f'{self.outputSimName}.ftr')
+                # Save to file
+                df = df.reset_index(drop=True)
+                df.to_feather(f'{self.outputSimName}.ftr')
 
         # SUBFIELD ANIMATION
         if self.animation:
             # Adjust number of images to skip and frame rate
-            if   self.cadence ==  25.0: fps, nskip = 50, 1000
+            if   self.cadence ==  25.0: fps, nskip = 50, 800
             elif self.cadence ==  50.0: fps, nskip = 25, 500
             elif self.cadence == 600.0: fps, nskip = 25, 50
             plotSubfieldAnimation(outputFile,
@@ -1130,7 +1146,7 @@ class PLATOnium(object):
                                   skipNimages=nskip,
                                   numImages=False,
                                   colorMap="magma",
-                                  clipPercentile=8.0, 
+                                  clipPercentile=5.0, 
                                   showStarPositions='PIC',
                                   showMaskOfStarID='1',
                                   useTitle=True,
@@ -1260,7 +1276,7 @@ class PLATOnium(object):
             # Perform sigma-clipping
             try:
                 lc.clip(model='wotan',
-                        sigma_lower=sigma_lower, sigma_upper=sigma_upper,
+                       sigma_lower=sigma_lower, sigma_upper=sigma_upper,
                         replace=True, plot=self.plotPost, flux_unit=flux_unit)
             except:
                 pass
@@ -1274,23 +1290,30 @@ class PLATOnium(object):
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
-        # # Compute the residuals
-        # df['flux_res'] = df.flux #(df.flux - 1)*1e6
+        # Check reduced data
+        # if self.plotPost:
 
-        # # Regression model of residuals
-        # import statsmodels.api as sm
-        # lc = df.rename(columns={'time':'x', 'flux_res':'y'})
-        # lc['x'] = lc['x'].subtract(lc['x'].min())
-        # model = 'y ~ x'
-        # lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
-        # lsFit.summary(alpha=0.05)
+        #     # Compute the residuals
+        #     df['flux_res'] = df.flux #(df.flux - 1)*1e6
 
-        # # Plot regression model and residuals
-        # st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
-        #                  xlab='Time [days]', ylab='Residuals [ppt]')
-        # st.plot_residuals(lc, lsFit, theme='g')
-        # st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
+        #     # Regression model of residuals
+        #     import statsmodels.api as sm
+        #     lc = df.rename(columns={'time':'x', 'flux_res':'y'})
+        #     lc['x'] = lc['x'].subtract(lc['x'].min())
+        #     model = 'y ~ x'
+        #     lsFit = sm.OLS.from_formula(formula=model, data=lc).fit()
+        #     lsFit.summary(alpha=0.05)
 
+        #     # Plot regression model and residuals
+        #     st.plot_modelfit(lc, lsFit, model, lsModel='OLS', theme='g',
+        #                      xlab='Time [days]', ylab='Residuals [ppt]')
+        #     st.plot_residuals(lc, lsFit, theme='g')
+        #     st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
+        
+
+
+
+        
     #--------------------------------------------------------------#
     #                    L1 PIPELINE MODULES                       #
     #--------------------------------------------------------------#
@@ -1956,7 +1979,8 @@ out_group.add_argument('--compress',   action='store_true',      help='Flag to c
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
 sim_group.add_argument('--cadence',  metavar='SEC',  type=float, help='Cadence for each exposure (default: 25 seconds)')
-sim_group.add_argument('--tdur',     metavar='DAY',  type=float, help='Total lenght of shortened quarter time series [days]')
+sim_group.add_argument('--tdur',     metavar='DAY',  type=float, help='Duration of shortened quarter time series [days]')
+sim_group.add_argument('--bdur',     metavar='DAY',  type=float, help='Duration of time to start qurter simulation [days]')
 sim_group.add_argument('--nexp',     metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
 sim_group.add_argument('--bexp',     metavar='NO.',  type=int,   help='Number of exposure to start from beginning of quarter')
 sim_group.add_argument('--pic',      metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')

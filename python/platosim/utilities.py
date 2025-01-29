@@ -47,6 +47,17 @@ except ImportError:
 #--------------------------------------------------------------#
 
 
+def day():
+
+    """Return 1 day in seconds.
+    """
+
+    return 86400
+
+
+
+
+
 def year():
 
     """Return 1 year in seconds.
@@ -63,7 +74,7 @@ def quarter():
     """Return 1 mission quarter in days.
     """
     
-    return year() / (4 * 86400)
+    return year() / (4 * day())
 
 
 

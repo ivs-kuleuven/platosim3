@@ -13,12 +13,13 @@ import os
 import glob
 import math
 import random
+import warnings
 import urllib.request
 from pathlib import Path
 
 # PlatoSim standard
-import h5py
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 from matplotlib import pyplot as plt
 import scipy
@@ -28,6 +29,8 @@ from astropy.io import fits
 from astropy.table import Table
 from astropy import units as u
 from astropy import constants as c
+from tqdm import tqdm
+import h5py
 
 # PLATOnium extra
 from numba import njit
@@ -81,7 +84,7 @@ class StellarSpots(object):
         
         # Random number generator
         self.rng = ut.rng(seed)
-
+        
         # Constants
         self.BV_SUN    = 0.656
         self.LRHK_SUN  = -5.025 # from Lorenzo-Oliveira et al. (2018, A&A 619, A73)
@@ -108,7 +111,6 @@ class StellarSpots(object):
                       f'Returning B-V for Teff={min(self.t1["Teff"])}')
             if teff < min(self.t1['Teff']): return max(self.t1['BV'])
             if teff > max(self.t1['Teff']): return min(self.t1['BV'])
-
         g = interp1d(self.t1['Teff'], self.t1['BV'])
         return g(teff)
 
@@ -197,13 +199,22 @@ class StellarSpots(object):
         return prot * 10**y
 
     
-    def get_acyc_from_bv_and_lrhk(self, bv, lrhk):
+    def get_acyc_from_bv_and_lrhk(self, bv, lrhk, level='random'):
         if bv < 0.851:
             Acyc_max = 0.727 * bv - 0.292
         else:
             Acyc_max = 0.727 * 0.851 - 0.292
         Acyc_min = max([0.28 * bv - 0.196, 0.342 * lrhk + 1.703, 0.005])
-        return self.rng.random() * (Acyc_max - Acyc_min) + Acyc_min
+        # User defined activity level
+        if level == 'random':
+            tmp = self.rng.random()
+        elif level == 'high':
+            tmp = 0.9 + 0.1*tmp
+        elif level == 'low':
+            tmp = 0.0 + 0.1*tmp
+        else:
+            errorcode('error', f'Invalid activity level "{level}"')
+        return tmp * (Acyc_max - Acyc_min) + Acyc_min
 
     
     def get_arate_from_acyc(self, acyc):
@@ -211,6 +222,16 @@ class StellarSpots(object):
         return acyc/asun
 
 
+    def get_decay_rate(self, nspots):
+        # spot emergence and decay timescales
+        # The settings below are designed approximately match the distributions used in
+        # Borgniet et al. (2015) and Meunier et al. (2019)
+        mea = 15 * 1e-6
+        med = 10 * 1e-6
+        mu = np.log(med)
+        sig = np.sqrt(2*np.log(mea/med))
+        return self.rng.lognormal(mean=mu, sigma=sig, size=nspots)    
+    
 
     def regions(self, activity_rate=1, cycle_period=10, cycle_overlap=0, randspots=False,
                 maxlat=70, minlat=0, tsim=1000, tstart=0, verbose=False):
@@ -263,7 +284,7 @@ class StellarSpots(object):
 
         # Initialize time since last emergence of a large region, as function
         # of longitude, latitude and hemisphere:
-        tau = np.zeros((nlon,nlat,2),'int') + tau2
+        tau = np.zeros((nlon, nlat, 2), 'int') + tau2
         dlon = 360. / nlon
         dlat = maxlat / nlat
 
@@ -404,7 +425,7 @@ class StellarSpots(object):
         reg_arr[3] = np.deg2rad(np.array(reg_angs))
         return reg_arr
     
-
+    #---------------------------------------------------- v3
 
     def spots(self, reg_arr, incl=None, omega_0=None, omega_1=0.0,
               dur=None, threshold=0.1):
@@ -429,7 +450,7 @@ class StellarSpots(object):
         self.omega_1 = omega_1
         
         # Regions parameters
-        t0 = reg_arr[0,:]
+        t0  = reg_arr[0,:]
         lat = reg_arr[1,:]
         lon = reg_arr[2,:]
         ang = reg_arr[3,:]
@@ -441,7 +462,7 @@ class StellarSpots(object):
         else:
             self.dur = dur
         l = (t0 < self.dur) * (ang > threshold)
-        self.nspot = l.sum()
+        self.nspots = l.sum()
         self.t0 = t0[l]
         self.lat = lat[l]
         self.lon = lon[l]
@@ -455,7 +476,7 @@ class StellarSpots(object):
         med = 10 * 1e-6
         mu = np.log(med)
         sig = np.sqrt(2*np.log(mea/med))
-        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspot)
+        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspots)
 
 
     def calci(self, time, i):
@@ -510,7 +531,7 @@ class StellarSpots(object):
         """
         
         N = len(time)
-        M = self.nspot
+        M = self.nspots
 
         # Don't go beyond 5 Gb RAM memory!
         bytemax = int(5/8*1e9)
@@ -531,10 +552,353 @@ class StellarSpots(object):
                 dF[i,:] = dF_i
             return area, ome, beta, dF
 
+    #---------------------------------------------------- v4
+
+    def compute_spot_area(self,
+                          time: np.ndarray,
+                          spot_params: Table,
+                          min_area: float,
+                          evolution: str = 'exponential'
+                          ) -> np.ndarray:
+        """ Compute the area of a single spot as a function of time.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+        min_area: float
+            The smallest spot area to be considered in units of hemispheres.
+        evolution: str
+            The temporal evolution of the spot area (default: 'exponential').
+
+        Returns
+        -------
+        area: np.ndarray
+            The size of the spot in units of hemispheres.
+
+        """
+
+        # Extract spot parameters.
+        amax = spot_params['A_MAX']*1e-6
+        tmax = spot_params['T_MAX']
+        decay_time = spot_params['TAU']
+        emerge_time = decay_time/10.0
+
+        # Compute the spot area.
+        tmp1 = (time - tmax)/emerge_time
+        tmp2 = (time - tmax)/decay_time
+
+        if evolution == 'exponential':
+            area = np.where(time < tmax, np.exp(-np.abs(tmp1)), np.exp(-np.abs(tmp2)))
+        elif evolution == 'squared-exponential':
+            area = np.where(time < tmax, np.exp(-0.5 * tmp1 ** 2), np.exp(-0.5 * tmp2 ** 2))
+        else:
+            raise ValueError(f"Unknown value for spot evolution profile: {evolution}")
+
+        area = amax*area
+        area = np.where(area < min_area, 0, area)
+
+        return area
 
 
-    def evaluate(self, teff, time, dur, cadence_hours, incl=None, isim=0,
-                 odir=None, verbose=False, save=False):
+    def compute_spot_location(self,
+                              time: np.ndarray,
+                              spot_params: Table
+                              ) -> tuple[np.ndarray, np.ndarray]:
+        """ Compute the location of a single spot as a function of time.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+
+        Returns
+        -------
+        lat: np.ndarray
+            The spot latitude.
+        lon: np.ndarray
+            The spot longitude.
+
+        """
+
+        # Extract spot parameters.
+        lat = spot_params['LAT']
+        lon = spot_params['LON']
+        prot = spot_params['PROT']
+
+        # Compute projected spot position as a function of time.
+        lat = lat * np.ones_like(time)
+        lon = lon + 360 * time / prot
+        lon = np.mod(lon - 180, 360) - 180
+
+        return lat, lon
+
+
+    def compute_spot_parameters(self,
+                                time: np.ndarray,
+                                spot_params: Table,
+                                inc_star: float = 90.,
+                                min_area: float = 0.,
+                                evolution: str = 'exponential'
+                                ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """ Compute the latitude, longitude, angular distance from the center of the
+            stellar disk, and radius in angular units for a given starspot.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+        inc_star: float
+            The stellar inclination in degrees (default: 90 degrees).
+        min_area: float
+            The smallest spot area to be considered in units of hemispheres
+            (default: 0).
+        evolution: str
+            The temporal evolution of the spot area.
+
+        Returns
+        -------
+        alpha: np.ndarray
+            The spot radius in degrees.
+        beta: np.ndarray
+            The spot location in degrees from the center of the stellar disk.
+        lat: np.ndarray
+            The spot latitude.
+        lon: np.ndarray
+            The spot longitude.
+
+        """
+        
+        # Compute the spot position and area.
+        lat, lon = self.compute_spot_location(time, spot_params)
+        area = self.compute_spot_area(time, spot_params, min_area, evolution=evolution)
+
+        # Convert degrees to radians.
+        inc_star = np.deg2rad(inc_star)
+        lat, lon = np.deg2rad(lat), np.deg2rad(lon)
+
+        # Compute the spot angle beta.
+        cos_beta = np.cos(inc_star) * np.sin(lat) + np.sin(inc_star) * np.cos(lat) * np.cos(lon)
+        beta = np.arccos(cos_beta)
+
+        # Convert spot areas to spot radii.
+        sa = 2 * np.pi * area  # Spot area in steradians.
+        alpha = np.arccos(1 - sa / (2 * np.pi))  # Spot radius in radians.
+
+        return alpha, beta, lat, lon, area
+
+    
+    def filter_spots_table(self,
+                           time: np.ndarray,
+                           spots_table: Table,
+                           min_area: float = 1e-8,
+                           evolution: str = 'exponential'
+                           ) -> Table:
+        """ Given an array of times compute which spots can contribute to the
+            lightcurve.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute the lightcurve.
+        spots_table: Table
+            An astropy Table containg the parameters of the spots to be used.
+        min_area: float
+            The smallest spots area to be considered in units of hemispheres
+            (default: 1e-8).
+        evolution: str
+            The temporal evolution of the spot area.
+
+        Returns
+        -------
+        spots_table: Table
+            A version of the input spots_table containing only the relevant spots.
+
+        """
+
+        tmin = np.amin(time)
+        tmax = np.amax(time)
+
+        area = self.compute_spot_area(tmin, spots_table, min_area=min_area, evolution=evolution)
+        mask1 = (spots_table['T_MAX'] < tmin) & (area < min_area)
+
+        area = self.compute_spot_area(tmax, spots_table, min_area=min_area, evolution=evolution)
+        mask2 = (spots_table['T_MAX'] > tmax) & (area < min_area)
+        
+        mask = mask1 | mask2
+
+        return spots_table[~mask]
+
+
+    def parse_limb_darkening(self,
+                             ld_type: str,
+                             ld_pars: ArrayLike
+                             ) -> tuple[np.ndarray, np.ndarray]:
+        """ Parse various limb-darkening laws into the non-linear form.
+        """
+
+        if ld_type not in ['uniform', 'linear', 'quadratic', 'nonlinear']:
+            raise ValueError(f"Unknown limb-darkening law: {ld_type}")
+
+        ld_idx = np.arange(5)
+        ld_pars_ = np.zeros(5)
+
+        if ld_type == 'uniform':
+            pass
+        if ld_type == 'linear':
+            ld_pars_[2] = ld_pars[0]
+        if ld_type == 'quadratic':
+            ld_pars_[2] = ld_pars[0] + 2*ld_pars[1]
+            ld_pars_[4] = -ld_pars[1]
+        if ld_type == 'nonlinear':
+            ld_pars_[1] = ld_pars[0]
+            ld_pars_[2] = ld_pars[1]
+            ld_pars_[3] = ld_pars[2]
+            ld_pars_[4] = ld_pars[3]
+
+        ld_pars_[0] = 1 - np.sum(ld_pars_[1:])
+
+        return ld_idx, ld_pars_
+
+    
+    def zeta_func(self, x: np.ndarray) -> np.ndarray:
+        """ The zeta function defined in Kipping 2012, equation 17.
+        """
+        return np.cos(x)*np.heaviside(x, 0.5)*np.heaviside(np.pi/2 - x, 0.5) + np.heaviside(-x, 0.5)
+
+
+    def kipping_spot_model(self,
+                           time: np.ndarray,
+                           spots_table: Table,
+                           inc_star: float = 90.,
+                           ld_type: str = 'linear',
+                           ld_pars: ArrayLike = (0.6,),
+                           min_area: float = 0.,
+                           evolution: str = 'exponential'
+                           ) -> np.ndarray:
+        """ Computes the flux coming from a star covered in evolving starspots
+            following Kipping 2012.
+
+        Parameters
+        ----------
+        time : np.ndarray
+            The times for which to compute the flux.
+        spots_table : astropy.table.Table
+            The parameters of the star spots.
+        inc_star : float
+            The inclination of the star in degrees (default: 90.).
+        ld_type : str
+            The limd-darkening law used (default: 'linear').
+        ld_pars : tuple
+            The limb-darkening parameters to use (default: (0.6,)).
+        min_area : float
+            The smallest spot areas to consider in hemispheres,
+            when the spot area is below this threshold it will be set to zero (default: 0.).
+        evolution : str
+            Time evolution of the spot-area, either an 'exponential' or
+            'squared-exponential' profile may be used.
+
+        Returns
+        -------
+        flux : np.ndarray
+            The stellar flux values.
+
+        """
+
+        spots_table = self.filter_spots_table(time,
+                                              spots_table,
+                                              min_area=min_area,
+                                              evolution=evolution)
+
+        ld_idx, ld_pars = self.parse_limb_darkening(ld_type, ld_pars)
+        const1 = np.sum(ld_idx * ld_pars / (ld_idx + 4))
+
+        flux = np.ones_like(time) - const1
+        area = []
+        for i in range(len(spots_table)):
+
+            alpha, beta, _, _, A = self.compute_spot_parameters(time,
+                                                                spots_table[i],
+                                                                inc_star=inc_star,
+                                                                min_area=min_area,
+                                                                evolution=evolution)
+            area.append(A)
+            mask = alpha > 0
+            if not np.any(mask):
+                continue
+
+            args, = np.where(mask)
+            imin = np.amin(args)
+            imax = np.amax(args) + 1  # Add 1 because slices are exclusive.
+
+            alpha = alpha[imin:imax]
+            beta = beta[imin:imax]
+
+            # Convert to complex for use with Kipping 2012, equation 14.
+            alpha = alpha.astype('complex256')
+            beta = beta.astype('complex256')
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+                cot_alpha = 1/np.tan(alpha)
+                cot_beta = 1/np.tan(beta)
+                xi = np.sin(alpha)*np.arccos(-cot_alpha*cot_beta)
+                psi = np.sqrt(1 - np.cos(alpha)**2/np.sin(beta)**2)
+                a = np.arccos(np.cos(alpha)/np.sin(beta))
+                b = np.cos(beta)*np.sin(alpha)*xi
+                c = np.cos(alpha)*np.sin(beta)*psi
+
+            alpha = alpha.real
+            beta = beta.real
+            sky_area = (a + b - c).real
+
+            # The above equations seems to contain some singularities at beta=0,pi, this fixes them.
+            sky_area = np.where(beta > np.pi/2 - alpha, sky_area, np.pi * np.sin(alpha)**2 * np.cos(beta))
+            sky_area = np.where(beta < np.pi/2 + alpha, sky_area, 0)
+
+            # Equations C23.
+            zeta_neg = self.zeta_func((beta - alpha).real)
+            zeta_pos = self.zeta_func((beta + alpha).real)
+
+            denom = zeta_neg**2 - zeta_pos**2
+            denom = np.where(denom < 1e-6, 1, denom)
+
+            const2 = 0
+            for j in ld_idx:
+                exp = (j + 4)/2
+                num = zeta_neg**exp - zeta_pos**exp
+                const2 += (4*ld_pars[j])/(j + 4)*num/denom
+
+            flux[imin:imax] = flux[imin:imax] - sky_area/np.pi*const2
+
+        flux = flux/(1 - const1)
+
+        return flux.astype('float64'), np.array(area)
+    
+    #----------------------------------------------------
+    
+    def evaluate(self,
+                 teff,
+                 time,
+                 dur,
+                 cadence_hours,
+                 incl=None,
+                 activity_level: str = 'random',
+                 activity_phase: tuple[float, float] = (0., 1.),
+                 min_area: float = 1e-8,
+                 evolution: str = 'squared-exponential',
+                 ld_type: str = 'linear',
+                 ld_pars: ArrayLike = (0.6,),
+                 odir=None,
+                 verbose=False,
+                 save=False):
 
         """Generate spot modulated light curve.
         """
@@ -552,69 +916,99 @@ class StellarSpots(object):
         pcyc     =  self.get_pcyc_from_prot(prot)
         clen     = pcyc / 365.
         coverlap = self.rng.random() * 0.1 * clen 
-        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk)
+        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk, level=activity_level)
         arate    = self.get_arate_from_acyc(acyc)
         if incl is None:
             incl = np.rad2deg(np.arccos(self.rng.random()))
-
-        # simulate regions
-        reg_arr = self.regions(activity_rate=arate,
-                               cycle_period=clen, cycle_overlap=coverlap, verbose=False,
-                               maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
-
-        # make the simulation start at a random point in the cycle
-        reg_arr[0] -= self.rng.random() * pcyc
-
+        
         # simulate LC
-        self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
-                   threshold=0.1, dur=dur)
-        
-        # NOTE we decrease the sampling to 30 min for increased performance
-        # NOTE this corresponds to every 72nd time point -> 30 * 60 / 25
+        #------------------------------------------------------------------ v3
+        # # simulate regions
+        # reg_arr = self.regions(activity_rate=arate,
+        #                        cycle_period=clen, cycle_overlap=coverlap, verbose=False,
+        #                        maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
+        # # make the simulation start at a random point in the cycle
+        # reg_arr[0] -= self.rng.random() * pcyc
+        # # Calculate spots
+        # self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
+        #            threshold=0.1, dur=dur)
+        # # Decrease the sampling to 30 min for increased performance
+        # time0 = np.copy(time)
+        # time = time[::72] - time0[0]
+        # area, ome, beta, dF = self.calc(time)
+        # # We interpolate back to original time grid of 25s cadence
+        # # Interpolate (piecewise cubic) into higher resolution grid
+        # spline = make_interp_spline(time, dF.sum(0), k=3)
+        # flux   = spline(time0)
+        # # Finito!
+        # self.dur, self.time, self.flux, self.area = dur, time, dF.sum(0), area.sum(0)
+        # self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
+        # return flux, self.params, self.area
+        #------------------------------------------------------------------ v4
+        # Simulate a generous time-span to ensure we have all the spots we need.
+        n = np.ceil(dur/pcyc/2) + 1
+        span = (2*n + 1) * pcyc
+        # simulate regions
+        reg_arr = self.regions(activity_rate=arate, cycle_period=clen, cycle_overlap=coverlap,
+                               maxlat=lmax, minlat=lmin, tsim=span, tstart=0, verbose=verbose)
+        # Pick a time t0 such that the middle of the duration falls within a certain phase range of the activity cycle.
+        phase0 = activity_phase[0] + self.rng.random() * (activity_phase[1] - activity_phase[0])
+        t0 = (n + phase0)*pcyc - dur/2
+        reg_arr[0] -= t0
+        # Unpack the regions
+        tmax  = reg_arr[0,:]
+        lat   = reg_arr[1,:]
+        lon   = reg_arr[2,:]
+        amax  = reg_arr[3,:]**2 * 300 * 1e-6  # Area in hemispheres.
+        self.t0, self.lat, self.amax = tmax, lat, amax
+        # compute omega and decay_rate for each spot
+        omega      = self.get_omega_from_lat_and_omega01(lat, omega_0, omega_1)
+        decay_rate = self.get_decay_rate(len(tmax))
+        prot_diff  = 2 * np.pi / omega / 86400
+        lifetime = amax / decay_rate
+        # Store number of spots for plotting
+        self.nspots = len(omega)
+        # Create the spots table
+        meta_data = dict()
+        meta_data["T_eff"] = teff
+        meta_data["B-V"] = bv
+        meta_data["log R'_HK"] = lrhk
+        meta_data["P_rot"] = prot
+        meta_data["P_min"] = pmin
+        meta_data["P_max"] = pmax
+        meta_data["max. latitude"] = lmax
+        meta_data["P_cycle"] = clen
+        meta_data["Cycle overlap"] = coverlap
+        meta_data["Activity rate"] = arate
+        spots_table = Table([lat, lon, prot_diff, tmax, amax*1e6, lifetime, lifetime/prot_diff],
+                            names=('LAT', 'LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R'),
+                            meta=meta_data)
+        # Remove spots that do not contribute to the simulated lightcurve.        
+        spots_table = self.filter_spots_table(time,
+                                              spots_table,
+                                              min_area=min_area,
+                                              evolution=evolution)
+        # Decrease the sampling to 30 min for increased performance
         time0 = np.copy(time)
-        time = time[::72]
-        area, ome, beta, dF = self.calc(time)
-        
-        # Stop here if the RAM memory would have been overflown
-        if dF is None:
-            return None, None
-
-        # Save data and figure
-        if save:
-
-            # save individual spot properties
-            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('LAT','LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R')
-            flo.write('# {}\n'.format(header))
-            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('deg','deg', 'days', 'days', 'muHem', 'days', 'periods')
-            flo.write('# {}\n'.format(header))
-            
-            for i in range(self.nspot):
-                # spot came too early or too late or was too short lived given cadence
-                if area[i,:].max() == 0:
-                    continue
-                prot = 2*np.pi / ome[i] / 86400
-                lifetime = self.amax[i] / self.decay_rate[i]
-                str_ = '{:6.1f} {:6.2f} {:6.2f} {:6.2f} {:8.2e} {:6.2f} {:6.2f}'.format(self.lat[i], self.lon[i], prot, self.t0[i], self.amax[i] * 1e6, lifetime, lifetime/prot)
-                flo.write('{}\n'.format(str_))
-
-            # save LC
-            X = np.zeros((2,len(time)))
-            X[0,:] = time
-            X[1,:] = dF.sum(0)
-            lfile = os.path.join(odir, 'lightcurve_{:04d}.txt'.format(isim)) # save LC
-            np.savetxt(lfile,X.T)
-
+        time = time[::72] - time0[0]        
+        # Simulate the lightcurve.
+        flux, area = self.kipping_spot_model(time,
+                                             spots_table,
+                                             inc_star=incl,
+                                             ld_type=ld_type,
+                                             ld_pars=ld_pars,
+                                             min_area=min_area,
+                                             evolution=evolution)
         # We interpolate back to original time grid of 25s cadence
         # NOTE Interpolate (piecewise cubic) into higher resolution grid
-        #time_int = np.linspace(time0[0], time0[-1], len(time0)
-        spline = make_interp_spline(time, dF.sum(0), k=3)
-        flux   = spline(time0)
-
+        flux -= 1 # Normalised around zero 
+        spline = make_interp_spline(time, flux, k=3)
+        flux0   = spline(time0)        
         # Finito!
-        self.dF, self.dur, self.area, self.time = dF, dur, area, time
+        self.dur, self.time, self.flux, self.area = dur, time, flux, area.sum(0)
         self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
-        return flux, self.params, self.area
-
+        return flux0, self.params, self.area        
+        #------------------------------------------------------------------ end
     
 
     def plot(self, title='params', panels=3, figsize=(11,8)):
@@ -635,18 +1029,18 @@ class StellarSpots(object):
             axes[0].set_title(title, fontsize='18')
         axes[0].set_facecolor('lemonchiffon')
         axes[0].axhline(y=0, color='gray', linestyle='--')
-        for j in range(self.nspot):
+        for j in range(self.nspots):
             if self.t0[j] < -10: continue
             if self.t0[j] > self.dur: continue
             axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8, ms=self.amax[j]*(1./3e-4)*5)
-        axes[0].set_ylim(-90,90)
+        axes[0].set_ylim(-90, 90)
         axes[0].set_ylabel(r'Latitude [$^{\circ}$]')
-        axes[1].plot(self.time, self.area.sum(0)*1e3, 'k-')
+        axes[1].plot(self.time, self.area*1e3, 'k-')
         axes[1].set_ylabel(r'Coverage [\%]')        
-        axes[2].plot(self.time, self.dF.sum(0)*1e3, 'k-')
+        axes[1].set_xlim(0, self.dur)
+        axes[2].plot(self.time, self.flux*1e3, 'k-')
         axes[2].set_ylabel('Spot flux [ppt]')
-        axes[2].set_xlim(0, self.dur)
-        axes[-1].set_xlabel('Time [days]')
+        axes[-1].set_xlabel(r'Time from $t_0$ [days]')
         plt.tight_layout(h_pad=0.1)
         return fig, axes
         
@@ -745,7 +1139,7 @@ class StellarFlares(object):
         
         # Time a peak flux of flare [d]
         # We use spot coverage as weight for drawing the flares
-        area = spot_coverage.sum(0)*100
+        area = spot_coverage * 100
         time = np.linspace(self.time[0], self.time[-1], len(area))
         spline = make_interp_spline(time, area, k=3)
         self.area = np.abs(spline(self.time))
@@ -1209,8 +1603,8 @@ def pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
             # Now make the last small step until 'time[j]'
             deltatime = time[j] - last_kicktime[i]
             damp = np.exp(-eta[i] * deltatime)
-            signal[j] = signal[j] + damp * (amplsin[i] * np.sin(2*np.pi*freq[i]*time[j])    \
-                                  + amplcos[i] * np.cos(2*np.pi*freq[i]*time[j]))
+            signal[j] = ( signal[j] + damp * (amplsin[i] * np.sin(2*np.pi*freq[i]*time[j])
+                                    + amplcos[i] * np.cos(2*np.pi*freq[i]*time[j])) )
 
     return(signal)
 
@@ -2094,12 +2488,12 @@ class SMBHB(object):
 
     def __init__(self, time, seed=None):
 
-        """Open the HDF5 output file
+        """Initialize class
         """
-
-        self.time = time
-        self.rng  = ut.rng(seed)
         
+        self.time = time
+        self.seed = seed
+        self.rng  = ut.rng(seed)
 
 
         
@@ -2249,11 +2643,27 @@ class SMBHB(object):
         # Return models
         return self.flux, self.flux_beam, self.flux_lens
 
+    #---------------------------------------------------------------------------
 
+    def period_observed(self):
 
-    def calculate_eccentric_anomaly(self, M_A, e):
+        """Orbital period in observers frame [s]
         """
-        We use Kepler's equation (M = E – e sin E) to determine the Eccentric anomaly E.
+        return self.P * (1 + self.z)
+
+    
+    def semimajor_axis(self):
+
+        """Semi-major axis in binary rest frame [cm].
+        """
+        return (c.G.cgs * self.M * self.P**2 / (4 * np.pi**2))**(1/3)     
+
+
+    #---------------------------------------------------------------------------
+    
+    def calculate_eccentric_anomaly(self, M_A, e):
+
+        """Kepler's equation (M = E – e sin E) to determine the Eccentric anomaly E.
         Newton Raphson method is used to obtain the eccentric anomaly
 
         Parameters
@@ -2276,9 +2686,16 @@ class SMBHB(object):
         raise Exception("Eccentric anomaly solver did not converge.") 
 
 
+    def rv_semiamplitude(self, M_i):
+
+        """The RV semi-amplitude of secondary
+        """
+        
+        return 
 
     
-    def init_doppler_boosting(self, t0, P, M1, M2, e, i, w):
+
+    def doppler_boosting(self, z, t0, P, M1, M2, i, e, w, alpha, v_z=0):
 
         """Signal from Doppler boosting effect.
 
@@ -2301,120 +2718,316 @@ class SMBHB(object):
             inclination [deg]
         w : float
             Argument of periapse [deg]
-        alpha: spectral index
+        alpha : float 
+            Spectral index
 
-        -->Starts by Calculating mean anomaly
-        -->Then calls the eccentric anomaly used to calculate true anomaly 'f' 
-        -->Radial velocity RV2 of secondary Black Hole is used to calculate flux    
+        Return
+        ------
+        Relative flux time series of doppler boosting signal.
+
+        NOTE We assume proper motion v_z is zero by default.
         """
 
         # Convert units
+        self.z  = z
+        self.P  = P.to('s')
         t0 = t0.to('s')
-        P  = P.to('s')
         M1 = M1.to('kg')
         M2 = M2.to('kg')
         i  = i.to('rad')
+        e  = e
         w  = w.to('rad')
         
+        # Constants
+        self.M = M1 + M2
+        self.q = M2 / M1
+        
+        # Orbital period in binary rest frame [s] 
+        T = self.period_observed()
+        
+        # Semi-major axis [m]        
+        a = self.semimajor_axis()
+
         # Correction factor (alpha) between true bolmetric flux and finite flux:
         # We use Sphorer+2017 Eq.5 analytical expression obtained approximating
         # a blackbody spectrum. In bolometric light, alpha=1, but otherwise
         # deviating due to finite bandpass measurement.
-        #xx = c.h * c.c / (wvl_c * c.k_B * Teff)
-        #alpha = 1/4 * xx*np.exp(xx) / (np.exp(xx) - 1)
-        alpha = 1/3
-        
-
-        # Semi-major axis from K3 [m]
-        M = c.G * (M1 + M2)
-        a = M**(1/3) * (P / (2*np.pi))**(2/3)
+        # Teff = 107 * u.K
+        # wvl_c = 550 * u.nm
+        # x = c.h * c.c / (wvl_c * c.k_B * Teff)
+        # alpha = 1/4 * x*np.exp(x) / (np.exp(x) - 1)
         
         # The RV semi-amplitude of secondary
-        K2 = (2 * np.pi / P) * (M1 / (M1 + M2)) * a * np.sin(i) / np.sqrt(1 - e**2)
-
+        K2 = (2 * np.pi / T) * (M1 / self.M) * a * np.sin(i) / np.sqrt(1 - e**2)
+        K1 = self.q * K2
+        
         # Find the true anomaly using mean anomaly [rad]
-        f_mean = 2 * np.pi * (self.time - t0) / P * u.rad
+        f_mean = 2*np.pi * (self.time - t0) / T * u.rad
         E = self.calculate_eccentric_anomaly(f_mean, e)
         f = 2 * np.arctan(np.sqrt((1 + e) / (1 - e)) * np.tan(E/2))
         
-        # Projection of the velocity vector on to the line of sight
-        # From (Murray & Correria, 2010)
-        RV2 = K2 * (np.cos(w + f) + e * np.cos(w))    
+        # (Murray & Correria, 2010)
+        # Projection of the velocity vector on to the line of sight.
+        # NOTE Minus sign is introduced here as the RV is defined to be
+        #      positive when object is moving away from the observed
+        RV1 = v_z + K1 * (np.cos(w + f) + e * np.cos(w))    
+        RV2 = v_z - K2 * (np.cos(w + f) + e * np.cos(w))    
 
         # (Charisi et al. 2018)
-        return (3 - alpha) * RV2/c.c + 1
+        D1 = (3 - alpha) * RV1 / c.c + 1
+        D2 = (3 - alpha) * RV2 / c.c + 1
+        return D1, D2
+
+    #--------------------------------
+
+    def r_ISCO(self, M):
+        return 6 * c.G.cgs * M.cgs / c.c.cgs**2
+
+    def accretion_rate(self, M):
+        radiative_efficiency = 0.1
+        #M_g = M * 1.989e33  # g
+        year_in_sec = 3.1536e7 #s
+        return 2.26e-2 * (radiative_efficiency / 0.1)**-1 * (M.cgs/10**6) / year_in_sec
+
+    def temp(self, r):
+        #M_g = M * 1.989e33  # g.
+        #sigma = 5.67e-5 # erg cm^-2s^-1K^-4
+        # power = 3 * G * M_g * accretion_rate(M) * (1 - np.sqrt(r_ISCO(M) / r)) / (8 * np.pi * r**3)
+        M = self.q * self.M.cgs / (1 + self.q)
+        a_rate = self.accretion_rate(M)
+        r_isco = self.r_ISCO(M)
+        power = 3 * c.G.cgs * M * a_rate * (1 - np.sqrt(r_isco/r)) / (8 * np.pi * r**3)
+        return (power.value / c.sigma_sb.cgs.value)**0.25 * u.K  
 
 
+    def planck_wavelength(self, wvl, T):
+        numerator   = (2 * c.h.cgs * c.c.cgs**2).value
+        exponent    = ((c.h.cgs * c.c.cgs) / (wvl.cgs * c.k_B.cgs * T)).value
+        denominator = (wvl.cgs.value**5) * (np.exp(exponent) - 1)
+        return (numerator / denominator) * u.cm
 
-    def gravitational_lensing(self, t0, P, M1, M2, i):
-
-        """Initialise model for gravitational lensing.
-
+    
+    def flux(self, r, wvl):
         
+        r_isco = self.r_ISCO(self.q * self.M.cgs / (1 + self.q))
+        flux = np.where(
+            (r_isco < r) & (r < 0.27 * self.a * self.q**0.3),
+            np.pi * self.planck_wavelength(wvl, self.temp(r)),
+            0
+        )
+        return flux.value
+
+    #--------------------------------
+
+    
+    def schwarzchild_radius(self):
+
+        """Schwarzchild radius of primary and secondary [cm].
+        """
+        RS1 = 2 * c.G.cgs * self.M / ((1 + self.q) * c.c.cgs**2)
+        RS2 = 2 * c.G.cgs * self.M * self.q / ((1 + self.q) * c.c.cgs**2)
+        return RS1, RS2
+    
+    
+    def einstein_radius(self, phi1, phi2):
+
+        """Einstein radius of primary and secondary [cm].
+        """
+        RE1 = np.sqrt(2 * self.RS[0] * self.a * np.cos(self.I) * np.sin(phi1))
+        RE2 = np.sqrt(2 * self.RS[1] * self.a * np.cos(self.I) * np.sin(phi2))
+        return RE1, RE2
+
+    
+    def position_uv(self, time, phi1, phi2, RE1, RE2):
+
+        """Complex components of u (projected  binary seperation) [RE]
+        """
+        
+        if 0 < (time - self.t0.to('yr')) / self.T.to('yr').value < 0.5:
+            phase = np.sqrt(np.cos(phi1)**2 + np.sin(self.I)**2 * np.sin(phi1)**2)
+            u0 = self.a / RE1 * phase
+        else:
+            phase = np.sqrt(np.cos(phi2)**2 + np.sin(self.I)**2 * np.sin(phi2)**2)
+            u0 = self.a / RE2 * phase
+
+        v0 = np.arctan(np.sin(self.I) * np.tan(phi1))
+        
+        return u0, v0 
+
+    
+    def radius(self, u, v, u0, v0, RE):
+
+        sinv = u * np.sin(v) - u0 * np.sin(v0)
+        cosv = u * np.cos(v) - u0 * np.cos(v0)
+        phiv = np.arcsin(sinv / np.sqrt(sinv**2 + cosv**2))
+
+        rs = RE * np.sqrt(u0**2 + u**2 - 2 * u0 * u * np.cos(v - v0))
+
+        return rs * np.sqrt(np.cos(phiv)**2 + np.sin(phiv)** 2 / (np.cos(np.pi/2 - self.J)**2))
+
+
+    def magnification_point(self, u):
+
+        """Magnification of a point source.
+        """
+        return (u**2 + 2) / (u * np.sqrt(u**2 + 4))
+
+    
+    def magnification_point_u(self, u):
+
+        """Just a dummy function, not point-source magnification
+        """
+        return (u**2 + 2) / (np.sqrt(u**2 + 4))
+
+    #--------------------------------
+
+    def gravitational_lensing(self, z, t0, P, M1, M2, I, J, wvl=None):
+
+        """Initialise model for gravitational lensing.        
         """
 
         # Convert units
-        t0 = t0.to('s')
-        P  = P.to('s')
-        M1 = M1.to('kg')
-        M2 = M2.to('kg')
-        i  = i.to('rad')
-        from astropy import units as u
+        # self.z   = z
+        # self.t0  = t0.cgs
+        # self.T   = T.cgs
+        # self.M1  = M1.cgs
+        # self.M2  = M2.cgs
+        # self.w = w
+        # self.e = e
+                
+        self.z  = z
+        self.t0 = t0.cgs
+        self.P  = P.cgs
+        self.M1 = M1.cgs
+        self.M2 = M2.cgs
+        #self.q  = 0.1
+        #self.M  = (1e6 * u.M_sun).cgs
+        self.J  = np.pi / 4
+        self.I  = 0.005
+        # self.I   = I.to('rad').value
+        # self.J   = J.to('rad').value
 
-        # Phase from timings 
-        phi2 = 2 * np.pi * (self.time.value - t0.value) / P.value
-        #phi2 = np.linspace(0, 2*np.pi, 1000)
-        phi1 = phi2 - np.pi*np.ones(len(phi2))
-
-        # plt.figure()
-        # plt.plot(phi2, np.ones(len(phi2)), 'r-')
-        # plt.plot(phi1, np.ones(len(phi1)), 'b-')
-        # plt.show()
-        # exit()
-        
         # Constants
-        M = M1 + M2
+        self.M = self.M1 + self.M2
+        self.q = self.M2 / self.M1
         
-        # Semi-major axis from K3 [m]
-        a = (c.G * M * P**2 / (4 * np.pi))**(1/3)
-
-        # Schwarzchild radius
-        # RS1 = 2 * c.G * M1 / c.c**2
-        # RS2 = 2 * c.G * M2 / c.c**2
+        # Orbital period in binary rest frame [s] 
+        self.T = self.period_observed()
         
-        # # Einstein radius
-        # RE1 = (2 * a * RS1 * np.cos(i) * np.sin(phi1))
-        # RE2 = (2 * a * RS2 * np.cos(i) * np.sin(phi2)) 
-
-        # # Angular seperation
-        # u1 = a / RE1 * (np.cos(phi1)**2 + np.sin(i)**2 * np.sin(phi2)**2)**(1/2)
-        # u2 = a / RE2 * (np.cos(phi2)**2 + np.sin(i)**2 * np.sin(phi1)**2)**(1/2)
-
-        # Constant factor
-        x = (a * c.c**2 / (4 * c.G))**(1/2)
+        # Semi-major axis [m]        
+        self.a = self.semimajor_axis()
         
-        u1_upp = np.cos(phi2)**2 + np.sin(i)**2 * np.cos(phi2)**2
-        u1_low = (M - M1) * np.cos(i) * np.sin(phi1)
-        u1 = x * (u1_upp / u1_low)**(1/2)
+        # Schwarzchild radii (primary and secondary)
+        self.RS = self.schwarzchild_radius()
 
-        u2_upp = np.cos(phi1)**2 + np.sin(i)**2 * np.cos(phi1)**2
-        u2_low = (M - M2) * np.cos(i) * np.sin(phi2)
-        u2 = x * (u2_upp / u2_low)**(1/2)
+        # Maximum Einstein radius (primary and secondary)
+        RE1 = np.sqrt(2 * self.a * self.RS[0])
+        RE2 = np.sqrt(2 * self.a * self.RS[1])
 
-        #---------
+        # Print values
+        ut.errorcode('message', '\nModel parameters:')
+        print(f'Orbital period in rest frame  : {self.P.to("yr"):.3f}')
+        print(f'Orbital period in obs. frame  : {self.T.to("yr"):.3f}')
+        print(f'Mass total (M1 + M2)          : {self.M.to("M_sun")/1e6:.4f} x 1e6')
+        print(f'Mass ratio (M2 / M1)          : {self.q:.4f}')
+        #print(f'Light ratio (L2 /(L1 + L2))   : {self.:.4f}')
+        print(f'Inclination of orbits         : {I.to("deg"):.2f}')
+        print(f'Inclination of mini-disc      : {J.to("deg"):.2f}')
+        #print(f'Argument of periapse          : {self.w:.2f}')
+        print(f'Semi-major axis of binaries   : {self.a.to("AU"):.2f}')
+        print(f'Schwarchild radius primary    : {self.RS[0].to("R_sun"):.2f}')
+        print(f'Schwarchild radius secondary  : {self.RS[1].to("R_sun"):.2f}')
+        print(f'Max Einstein radius primary   : {RE1.to("AU"):.2f}')
+        print(f'Max Einstein radius secondary : {RE2.to("AU"):.2f}')
         
-        u1 = np.nan_to_num(u1.value, neginf=1)
-        u2 = np.nan_to_num(u2.value, neginf=1)
+        # Time and phases
+        #time = np.linspace(0.8, 1.2, 300)
+        T  = self.T.to('yr').value
+        t0 = self.t0.to('yr').value
+        time = np.linspace(0, T, 1000)
+        phi1 = 2 * np.pi * (time - t0) / T 
+        phi2 = phi1 - np.pi
 
-        # Lensing magnitude in the point-source and weak-field limit
-        # From (D'Orazio & Di Stefano, 2018)
-        u = np.real(u1 + u2)
+        plt.figure()
+        plt.plot(phi1, np.ones_like(phi1))
+        plt.plot(phi2, np.ones_like(phi1))
+        plt.show()
+        
+        # Grid to model mini-disc of secondary
+        u_max, num1, num2 = 30, 1000, 100  
+        u_array = np.linspace(0, u_max, num1)
+        v_array = np.linspace(0, 2 * np.pi, num2)
+        delta_u = u_max / num1
+        delta_v = 2 * np.pi / num2
+        u_grid, v_grid = np.meshgrid(u_array, v_array)
 
-        # Return magnification factor
-        return (u**2 + 2) / (u*(u**2 + 4)**(1/2))
+        # Prepare for iterations
+        N = len(time)
+        self.A = np.zeros(N)
+        
+        for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+
+            # Einstein radius (primary and secondary)
+            RE1, RE2 = self.einstein_radius(phi1[i], phi2[i])
+
+            # 
+            u0, v0 = self.position_uv(time[i], phi1[i], phi2[i], RE1, RE2)
+
+            # Model magnification
+            if wvl is None:
+                # Magnitfication of point source
+                self.A[i] = self.magnification_point(u0)
+            else:
+                # Magnification of finite source
+                radius = self.radius(u_grid, v_grid, u0, v0, RE1)
+                flux   = self.flux(radius, wvl)
+                A_ps_u = self.magnification_point_u(u_grid)
+                numer = np.sum(flux * A_ps_u * delta_u * delta_v)
+                denom = np.sum(flux * u_grid * delta_u * delta_v)
+                self.A[i] = numer / denom
+
+        # Plot example
+        if wvl is None:
+            lab = 'Point source'
+        else:
+            lab = f'Finite source: \n {wvl.to("nm"):.0f}'
+        plt.figure(figsize=(8,6))
+        plt.plot(time, self.A, 'k-', label=lab)
+        plt.xlabel('time [yr]')
+        plt.ylabel(r'$\mathcal{M}$')
+        plt.legend()
+        #plt.xlim(0, P)
+        plt.show()
+
+        return self.A
+    
 
 
+    def quasar_variability(self, tau, sigma):
 
+        """Initialise ANG intrinsic variability.
+
+        This model uses a damped random walk (i.e. red noise) descroption
+        to compute the quasar variability.
+
+        Parameters
+        ----------
+        tau : ndarray
+            Time scale tau of each red noise component [s]
+        sigma : ndarray 
+            Variation scale of each red noise component [ppm]
+            
+        Returns
+        -------
+        Signal containing all red noise components [pp1]
+        """
+
+        tau = tau.to('d').value
+        time = self.time.to('d').value
+        
+        return ns.modelRedNoise(time, tau, sigma, seed=self.seed) * 1e-6 + 1
+
+    
     
     def evalPhysicalModel():
 
@@ -2427,17 +3040,17 @@ class SMBHB(object):
     
     
 
-    def plot(self):
+    # def plot(self):
 
-        fig, ax = plt.subplots(1, 1, figsize=(9,4))
-        ax.plot(self.time, self.flux_beam, '-', c='green')
-        ax.plot(self.time, self.flux_lens, '-', c='orange')
-        ax.plot(self.time, self.flux,      '-', c='royalblue')
-        ax.set_xlabel('Time [d]')
-        ax.set_ylabel(r'Relative flux')
-        ax.set_xlim(self.time.min(), self.time.max())
-        plt.tight_layout()
-        plt.show()
+    #     fig, ax = plt.subplots(1, 1, figsize=(9,4))
+    #     ax.plot(self.time, self.flux_beam, '-', c='green')
+    #     ax.plot(self.time, self.flux_lens, '-', c='orange')
+    #     ax.plot(self.time, self.flux,      '-', c='royalblue')
+    #     ax.set_xlabel('Time [d]')
+    #     ax.set_ylabel(r'Relative flux')
+    #     ax.set_xlim(self.time.min(), self.time.max())
+    #     plt.tight_layout()
+    #     plt.show()
     
 
 
@@ -2864,7 +3477,7 @@ class PlanetMRforecast():
         for i in range(4):
             ind = self.indicate(M, trans, i)
             mu = c[i] + M[ind]*slope[i]
-            sig = sigma[i]
+            sig = sigma[0][i]
             prob[ind] = ss.norm.pdf(radii, mu, sig)
 
         prob = prob / np.sum(prob)
