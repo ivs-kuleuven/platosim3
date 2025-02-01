@@ -1026,7 +1026,7 @@ class PLATOnium(object):
         try:
             f.getStarCoordinates(self.beginExposureNr)
         except:
-            errorcode('warning', 'No stars detected within the subfield!')
+            errorcode('error', 'No stars detected within subfield. Check pointing field!')
             showStarPositions = False
 
         # Plot the subfield

@@ -15,6 +15,7 @@ import shutil
 import inspect
 import fnmatch
 from pathlib import Path
+from zipfile import ZipFile
 
 # PlatoSim standard
 
@@ -286,7 +287,9 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
     # Login to server
     # For plato: Download a single file
     # For platodata: Download all files in a folder
-
+    #ftp = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be'
+    #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
+    
     ftp = ftplib.FTP('ftp.ster.kuleuven.be')
     
     if server == 'plato':
@@ -294,7 +297,7 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
         ftp.login(user=server, passwd='miSotalP')
         ftp.cwd(f'{ftp_subpath}')
         files = [filename]
-        #ftp = 'ftp://plato:miSotalP@ftp.ster.kuleuven.be'
+
     elif server == 'platodata':
         ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
         ftp.cwd(f'PLATOSIM/{ftp_subpath}')
@@ -306,7 +309,6 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
                 files = [filename]          # in the base folder
         else:
             files = ftp.nlst()[2:]          # multiple files
-        #ftp = 'ftp://platodata:i9Pidw1bXIFShGYb0jI8@ftp.ster.kuleuven.be/PLATOSIM'
     else:
         errorcode('error', f'Server name {server} is not valid!')
             
@@ -314,17 +316,28 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
         
     for filename in files:
         
-        # Only try to save file if is doesn't exists
+        # Only try to save file if is do not exist
 
         local_file = Path(outputDir) / filename
 
         if not local_file.is_file():
+
+            # Download file
             ftp_file   = open(local_file, 'wb')
             ftp.retrbinary(f'RETR {filename}', ftp_file.write)
             ftp_file.close()
-            
-            # Give read and write rights to this
-            if permission: local_file.chmod(777)
+
+            # Check if zip file
+            if ftp_filename.suffix == '.zip':
+                # Decompress files
+                with ZipFile(local_file, 'r') as f:
+                    f.extractall(path=outputDir)
+                # Remove zip file
+                local_file.unlink()
+                
+            # Give read and write permission
+            if permission:
+                local_file.chmod(755)
 
         # Close connection
     
@@ -336,7 +349,6 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
             ftp = ftplib.FTP('ftp.ster.kuleuven.be')
             ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
             ftp.cwd(f'PLATOSIM/{ftp_subpath}')
-
 
 
 
