@@ -2390,7 +2390,9 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
         
     elif residuals == "multi" and 'ncam' in df:
-        for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
+        for nsr, ncam, color in zip([100, 70, 58, 50],
+                                    [6, 12, 18, 24],
+                                    [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
         ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
@@ -2400,7 +2402,6 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     if show_ncam_noise_limits:
         
         # Magnitude range
-        #mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
         mag = np.linspace(0, 20, 100)
 
         # 
@@ -2413,7 +2414,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         
         # Jitter noise
         rms = 0.04
-        noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
+        noise_jitter = ut.getJitterNoiseLimitNSR(rms, tdur=3600, camType='normal')
         ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
                    label='Jitter noise')
 
@@ -2429,7 +2430,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
                 label='Sky and read noise')
 
         # Combine and plot
-        noise = noise_jitter + noise_photon + noise_background
+        noise = np.sqrt(noise_jitter**2 + noise_photon**2 + noise_background**2)
         ax.plot(mag, noise, '-', c='orange', lw=2,  zorder=2,
                 label=r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model")
         

@@ -231,7 +231,6 @@ class LightCurve(object):
         # Find file if specific it not requested
         
         if not filename:
-            
             file_ftr = Path(self.filename)
             filename1 = file_ftr.parents[0] / f'{file_ftr.stem}.table'
             filename2 = file_ftr.parents[0] / f'{file_ftr.stem}_table.ftr'
@@ -252,8 +251,34 @@ class LightCurve(object):
             df = pd.read_feather(filename)
             
         return df
+    
+    
+    def star_pipeline(self, filename):
+        
+        """Fetch the target star information.
+        """
 
-            
+        # Find file if specific it not requested
+        names = ['ID', 'ra', 'dec', 'xSub', 'ySub', 'mag',
+                 'CCD', 'xCCD', 'yCCD', 'xFP', 'yFP']
+        df = pd.read_csv(filename, sep=' ', skiprows=1, names=names)
+        
+        # Number of contaminants
+        df['ncon'] = df.shape[0] - 1
+
+        # Distance from optical axis [deg]
+        f = 247.52  # [mm]
+        rOA = rf.gnomonicRadialDistanceFromOpticalAxis(df["xFP"][0], df["yFP"][0], f)
+        df['rOA'] = np.rad2deg(rOA)
+        
+        # Intra-pixel position
+        df['xCen'] = df["xSub"][0] % 1/2
+        df['yCen'] = df["ySub"][0] % 1/2
+        #rCOB= np.sqrt(xcen**2 + ycen**2)        
+        
+        return df
+
+    
     #--------------------------------------------------------------#
     #                        VARSOURCE SOURCES                     #
     #--------------------------------------------------------------#
@@ -353,12 +378,10 @@ class LightCurve(object):
         """
 
         # Fetch all zip files
-        
         if files is None:
             files = glob.glob(f'{self.path}/*.zip')
 
         # Unpack zip files
-        
         for f in files:
             with ZipFile(f, 'r') as unzip:
                 unzip.extractall(self.path)
@@ -550,13 +573,13 @@ class LightCurve(object):
         # Fetch time and flux
         df["time"] = self.time(unit="d")
 
-        # Mean flux
-        signal = df.flux.mean()
-        
         # Fetch flux column and force to be ppm for correct NSR
         if influx == "e/s":
             df[column] = self.flux(column=column, unit="ppm")
-
+        elif influx == 'pp1':
+            df[column] = self.flux(column=column, unit="e/s")
+            df[column] = (df[column] - 1) * 1e6
+            
         # Set the binned time scale [days]
         dt = binhour/24.
 
@@ -577,40 +600,28 @@ class LightCurve(object):
         return np.nanmean(noise) / np.sqrt(nbin)
 
 
-    def get_nsr_new(self, column="flux", tbin=3600, unit="ppm", influx="e/s"):
+    def get_nsr_new(self, column="flux", binsize=1,
+                    time_unit='h', flux_unit="ppm", influx="e/s"):
 
         """Calculates the Noise-to-Signal Ratio (NSR) of binned time series. 
-        TODO Implement faster method
         """
 
-        # Deep copy light curve object
-        df = self.df.copy()
+        # Bin data
+        df = self.bin(binsize=binsize, time_unit=time_unit)
+            
+        # Bin to devide data
+        nbins = df.shape[0]
 
-        # Fetch time and flux
-        df["time"] = self.time(unit="d")
-
-        # Mean flux
-        signal = df.flux.mean()
-        
         # Fetch flux column and force to be ppm for correct NSR
         if influx == "e/s":
-            df[column] = self.flux(column=column, unit="ppm")
-
-        # Set the binned time scale [days]
-        dt = tbin / 86400.
-
-        # Bin to devide data
-        if tbin == 0:
-            sigma = df[column].std()
-            nbin  = 1
+            noise = (df[column] / df[column].median() - 1) *1e6
         else:
-            noise = np.array([data[i][:,flux_dex].std() for i in range(len(data))])
-
+            noise = df[column]#.median()
+        
         # Return NSR
-        return np.nanmean(noise) / np.sqrt(nbin)
-
+        return noise.std() #/ np.sqrt(nbins)
+        #return np.nanmean(noise) / np.sqrt(nbins)
     
-
     
     #--------------------------------------------------------------#
     #                       DATA OPERATIONS                        #
@@ -664,25 +675,77 @@ class LightCurve(object):
         return pd.DataFrame({'time':time_bin, 'flux':flux_bin})
 
     
+    # def bin(self, binsize=1, time_unit="h", flux_unit="e/s"):
+
+    #     """Bin data after w.r.t. to the input time scale and cadence.
+    #     """
+
+    #     # Copy light curve object
+    #     df = self.df.copy()
+        
+    #     # Fetch time and flux
+    #     df["time"] = self.time(unit=time_unit)
+    #     df["flux"] = self.flux(unit=flux_unit)
+        
+    #     # Set the binned time scale
+    #     if   time_unit == "s": dt = binsize * 3600
+    #     elif time_unit == "h": dt = binsize * 1
+    #     elif time_unit == "d": dt = binsize * 1/24.
+    #     else: errorcode("error", "No such time unit! Available unit: [s, h, d]")
+
+    #     # Define bins to devide data
+    #     tbins = np.arange(df["time"].min(), df["time"].max().round(1)+1, binsize)
+
+    #     # Correct number of bins used when last bin is less than binsize
+    #     if (df["time"].max().round() - tbins[-1] < binsize): 
+    #         nbins = len(tbins) - 1
+    #     else:
+    #         nbins = len(tbins)
+
+    #     # Save number of data points in each time bin
+    #     self.nbin = len(df[df["time"].between(tbins[0], tbins[1])])
+        
+    #     # Bin data
+    #     data  = [df[df["time"].between(tbins[i], tbins[i+1])] for i in range(nbins)]
+    #     time  = [data[i]["time"].mean() for i in range(len(data))]
+    #     flux  = [data[i]["flux"].mean() for i in range(len(data))]
+    #     sigma = [data[i]["flux"].std()  for i in range(len(data))]
+
+    #     # Specific column for P1 and P5 samples
+    #     if df.shape[0] == 3:
+    #         cols = ["time", "flux", "sigma"]
+    #     else:
+    #         cols = ["time", "flux"]
+
+    #     if df.columns.str.startswith("flux_err").sum():
+    #         flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
+    #         data     = np.transpose([time, flux, sigma, flux_err])
+    #         cols.append("flux_err")
+            
+    #     elif df.columns.str.startswith("flux_cor").sum():
+    #         flux_err = [data[i]["flux_cor"].mean() for i in range(len(data))]
+    #         data     = np.transpose([time, flux, sigma, flux_err])
+    #         cols.append("flux_cor")
+
+    #     else:
+    #         data = np.transpose([time, flux]) #, sigma])
+
+    #     # Make sure to remove NaNs
+    #     df = pd.DataFrame(data, columns=cols)
+    #     return df.dropna()
+
+
     def bin(self, binsize=1, time_unit="h", flux_unit="e/s"):
 
-        """Bin data after w.r.t. to the input time scale and cadence.
-        
-        TODO Update function to use scipy to speedup module using:
-        binsize = 1
-        tbin = binsize*3600    
-        tdur = time_i.iloc[-1] - time_i.iloc[0]
-        bins = int(tdur/tbin)
-        flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins=bins)
-        time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+        """Bin data wrt to the input time scale and cadence.
         """
 
         # Copy light curve object
         df = self.df.copy()
         
         # Fetch time and flux
-        df["time"] = self.time(unit=time_unit)
-        df["flux"] = self.flux(unit=flux_unit)
+        time = self.time(unit=time_unit)
+        flux = self.flux(unit=flux_unit)
         
         # Set the binned time scale
         if   time_unit == "s": dt = binsize * 3600
@@ -690,46 +753,28 @@ class LightCurve(object):
         elif time_unit == "d": dt = binsize * 1/24.
         else: errorcode("error", "No such time unit! Available unit: [s, h, d]")
 
-        # Define bins to devide data
-        tbins = np.arange(df["time"].min(), df["time"].max().round(1)+1, binsize)
-
-        # Correct number of bins used when last bin is less than binsize
-        if (df["time"].max().round() - tbins[-1] < binsize): 
-            nbins = len(tbins) - 1
-        else:
-            nbins = len(tbins)
-
-        # Save number of data points in each time bin
-        self.nbin = len(df[df["time"].between(tbins[0], tbins[1])])
-        
-        # Bin data
-        data  = [df[df["time"].between(tbins[i], tbins[i+1])] for i in range(nbins)]
-        time  = [data[i]["time"].mean() for i in range(len(data))]
-        flux  = [data[i]["flux"].mean() for i in range(len(data))]
-        sigma = [data[i]["flux"].std()  for i in range(len(data))]
-
-        # Specific column for P1 and P5 samples
-        if df.shape[0] == 3:
-            cols = ["time", "flux", "sigma"]
-        else:
-            cols = ["time", "flux"]
+        tbin = binsize
+        tdur = time.iloc[-1] - time.iloc[0]
+        bins = round(tdur/tbin)
+        flux_bin, time_bin, _ = binned_statistic(time, flux, 'median', bins=bins)
+        time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
 
         if df.columns.str.startswith("flux_err").sum():
-            flux_err = [data[i]["flux_err"].mean() for i in range(len(data))]
-            data     = np.transpose([time, flux, sigma, flux_err])
-            cols.append("flux_err")
+            flux_err, _, _ = binned_statistic(time, flux, 'median', bins=bins)
+            data = np.transpose([time_bin, flux_bin, flux_err])
+            cols = ['time', 'flux', 'flux_err']
             
         elif df.columns.str.startswith("flux_cor").sum():
-            flux_err = [data[i]["flux_cor"].mean() for i in range(len(data))]
-            data     = np.transpose([time, flux, sigma, flux_err])
-            cols.append("flux_cor")
+            flux_cor, _, _ = binned_statistic(time, flux, 'median', bins=bins)
+            data = np.transpose([time_bin, flux_bin, flux_cor])
+            cols = ['time', 'flux', 'flux_cor']
 
         else:
-            data = np.transpose([time, flux]) #, sigma])
-
+            data = np.transpose([time_bin, flux_bin])
+            cols = ["time", "flux"]
+            
         # Make sure to remove NaNs
-        df = pd.DataFrame(data, columns=cols)
-        return df.dropna()
+        return pd.DataFrame(data, columns=cols).dropna()
 
     
     #--------------------------------------------------------------#
@@ -2229,10 +2274,19 @@ class LightCurve(object):
     #                        Post-processing                       #
     #--------------------------------------------------------------#
     
-    def merge(self, quarter=False,
-              flux_group_mean=False, flux_offset=False, flux_err=False,
-              detrend=False, clip=False, binsize=False,
-              ofile=False, verbose=True, files=False, suffix="ftr"):
+    def merge(self,
+              quarter=False,
+              flux_normalise=False,
+              flux_group_mean=False,
+              flux_offset=False,
+              flux_err=False,
+              detrend=False,
+              clip=False,
+              binsize=None,
+              ofile=None,
+              verbose=True,
+              files=False,
+              suffix="ftr"):
 
         """Merge light curves from a single star.
 
@@ -2304,6 +2358,10 @@ class LightCurve(object):
             # Create initial data frame and save to it
             df = lc.data()
 
+            # Normalise if requested
+            if flux_normalise:
+                df.flux /= df.flux.median()
+
             # Apply long-term trend correction
             if detrend:
                 df = lc.detrend(model=detrend, degree=False, replace=True, plot=False)
@@ -2351,8 +2409,6 @@ class LightCurve(object):
             flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
-        else:
-            binsize = 6.5/3600
             
         # Remove potential NaNs from binning
         df0 = df0.dropna()
@@ -2732,7 +2788,7 @@ class LightCurve(object):
         # Report problems if requested
         if ids_no_data:
             message = f'No light curves found for star ID:\n{ids_no_data}'
-            errorcode('warning', messasge)
+            errorcode('warning', message)
                         
         # Save final feather
         df = df0.astype({"mag":np.float32, "NSR":np.float32})
@@ -2805,8 +2861,9 @@ class LightCurve(object):
                                                         
                 # Merge light curves from star/quarter simulation
                 lc = lcs.merge(quarter=quarter,
+                               flux_normalise=True,
                                flux_group_mean=True,
-                               flux_offset=True,
+                               flux_offset=False,
                                suffix=suffix,
                                files=files,
                                verbose=False)
@@ -2818,7 +2875,7 @@ class LightCurve(object):
                         "ncon": dt.ncon.iloc[0],
                         "SPR": dt.SPR.mean(),
                         "ncam": dt.shape[0],
-                        "NSR": lc.get_nsr()}
+                        "NSR": lc.get_nsr(influx='pp1')}
                 df1 = pd.DataFrame(data, index=[0])
 
                 # Add data to data frame
