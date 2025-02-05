@@ -854,7 +854,8 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  *          symmetric point-like ghosts on or near the sub-field (without accounting for the distance cut-off).  The
  *          latter is zero if ghosts are not to be included in the simulation.
  */
-tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, 
+                                                                     double readoutTimeBeforeNextExposure)
 {
     // Focal-plane coordinates of the centre, and the lower left and upper right corner
     // of the sub-field
