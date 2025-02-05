@@ -180,6 +180,7 @@ class PLATOnium(object):
             errorcode('software', '\nPLATOnium')
 
         # I/O PARAMETERS
+        
         # Absolute pwd path
         self.path = Path(__file__).parent.resolve()
 
@@ -206,6 +207,10 @@ class PLATOnium(object):
         if not self.inputFile.is_file():
             errorcode('error', 'File inputfile.yaml do not exist! Alternamtively use {-i, --yaml}')
 
+        # Inclusion thresholds for contaminants
+        if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
+        if not self.conDisLimit: self.conDisLimit = 60   # [arcsec -> 15 arcsec/pixel]
+
         # PHOTOMETRY AND PIPELINE PARAMETERS
         if self.pipeline:
             # Pipeline paths
@@ -215,10 +220,6 @@ class PLATOnium(object):
             # Check that the sample is parsed
             if self.sample is None:
                 errorcode('error', 'The pipeline mode need parsing of --sample argument!')
-
-            # Inclusion thresholds for contaminants
-            if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
-            if not self.conDisLimit: self.conDisLimit = 90   # [arcsec -> 15 arcsec/pixel]
 
             # Default L1 pipeline parameters
             self.bsres = 10   # [subpixel]
@@ -1335,7 +1336,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteSubPixelImages"]         = False
         sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
         sim["ControlHDF5Content/WriteACS"]                    = True
-        sim["ControlHDF5Content/WriteTelescopeACS"]           = False
+        sim["ControlHDF5Content/WriteTelescopeACS"]           = True
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteGhostPositions"]         = False
@@ -1985,8 +1986,8 @@ sim_group.add_argument('--nexp',     metavar='NO.',  type=int,   help='Number of
 sim_group.add_argument('--bexp',     metavar='NO.',  type=int,   help='Number of exposure to start from beginning of quarter')
 sim_group.add_argument('--pic',      metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')
 sim_group.add_argument('--mag',      metavar='PMAG', type=float, help='Option to overwrite target magnitude in inputfile')
-sim_group.add_argument('--con_dmag', metavar='MAG',  type=float, help='Threshold in dmag of contaminant(s) (Default: 5 mag)')
-sim_group.add_argument('--con_dist', metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 45 as)')
+sim_group.add_argument('--con_dmag', metavar='MAG',  type=float, help='Threshold in dmag of contaminant(s) (Default: 10 mag)')
+sim_group.add_argument('--con_dist', metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 60 as)')
 sim_group.add_argument('--nocon',     action='store_true',       help='Flag to ignore all stellar contaminants')
 sim_group.add_argument('--jit_reuse', action='store_true',       help='Flag to reuse an AOCS jitter file across all quarters')
 sim_group.add_argument('--fullframe', action='store_true',       help='Flag to simulate a full-frame CCD -> CCDcode = starID')

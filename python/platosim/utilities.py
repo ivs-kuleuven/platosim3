@@ -36,13 +36,6 @@ except ImportError:
     from scipy.integrate import cumtrapz as cumulative_trapezoid
 
 
-
-
-
-
-
-
-
 #--------------------------------------------------------------#
 #                        UNIT FUNCTIONS                        #
 #--------------------------------------------------------------#
@@ -64,7 +57,7 @@ def year():
     """Return 1 year in seconds.
     """
     
-    return 31556926.
+    return 31556926
 
 
 
@@ -959,29 +952,37 @@ def normFlux(flux, norm=1e3):
 
 def passbandConversionV2P(mag, Teff, inverse=False, method='fialho'):
 
-    """Coversion from Johnson-Cousin V magnitude to the PLATO passband.
+    """Coversion between Johnson-Cousin V magnitude and the PLATO passband P.
     
-    This filtersion is from Marchiori et al. (2019), Eq. 5 and 6, and is
-    extracted using synthetic stellar spectra from the POLLOX database.
-    NOTE valid for Teff = 4000-15000 K (hence not for M-dwarfs).
-
     Parameters
     ----------
-    V : float, narray
+    V : float, ndarray
         Johnson-Cousin magnitude of star(s).
     Teff : float narray
         Effective temperature of star(s).
+    inverse : bool
+        Convert from P to V (assuming that mag = V).
+    method : str
+        Which conversion method to use ['fialho', 'marchiori'].
 
     Return
     ------
-    P : float, narray
-        The PLATO passband magnitude of star(s).
+    mag : float, ndarray
+        P mag (if inverse = False) or V mag (if inverse = True).
+
+    Notes
+    -----
+    - 
+    - Marchiori et al. (2019) conversion (Eq. 5 and 6) is extracted 
+      using synthetic stellar spectra from the POLLOX database. The
+      conversion is valid for Teff = 4000-15000 K (not for M-dwarfs).
+
     """
 
     # Bolometric scaling relation
 
     if method == 'fialho':
-        # Fialho et al. (in prep.)
+        # Fialho et al. (2024)
         c   = [-2.366e-12, 8.126e-8, -9.279e-4, 3.499]
     elif method == 'marchiori':
         # Machiori et al. (2019)
@@ -1114,16 +1115,14 @@ def getSolarPanelOrientation(kappa, quarter):
 
 
 
-def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal'):
+def getJitterNoiseLimitNSR(rms, tdur=3600, camType='normal'):
 
-    """NSR estimate of the jitter noise component.
+    """NSR estimate of the systematic jitter noise component.
 
     Parameters
     ----------
-    jitterASD : float
-        Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)] :
-        If level = 'camera'     : At the cycle frequency of the cameras
-        If level = 'instrument' : Over the duration of all exposures
+    rms : float
+        RMS of jitter signal [ppm]
     tdur : float, narray
         Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
     camType : str
@@ -1132,12 +1131,11 @@ def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal')
     Return
     ------
     NSR : float
-        NSR only valid for the photon noise limit.
     """
 
     # Amplitude Spectral Density of the jitter [ppm/sqrt(muHz)]
     
-    jitterASD = rms / np.sqrt(1e-6)
+    ASD = 2 * rms / np.sqrt(1e-6)
 
     # Choose cycle and exposure time [s] for either the normal (N) or fast (F) cameras
 
@@ -1146,21 +1144,19 @@ def getJitterNoiseLimitNSR(rms, tdur=3600, level='instrument', camType='normal')
     elif camType == 'fast':
         tcyc = 2.5
 
-    # Number of images to average over
+    # Calculate the jitter noise in time domain
 
-    nimg = int(tdur/tcyc)
-    level = 'camera'
-    # Calculate the jitter noise
-    if level == 'camera':
-        jitterNoise = jitterASD * np.sqrt(1 / tcyc)
-    elif level == 'instrument':
-        jitterNoise = jitterASD * np.sqrt(1 / (tcyc*nimg) ) 
-    else:
-        errorcode('error', 'No such "level" entry!')
-        
-    # Return
+    return ASD * np.sqrt(tcyc / tdur) 
 
-    return jitterNoise
+    # PSD domain from Boner+2024:
+    # ASD_jitter = 0.54   # [ppm / sqrt(muHz)]
+    # x1 = 25     # [s]
+    # x2 = 3600   # [s]
+    # y1 = 40000  # [muHz]
+    # y2 = 278    # [muHz]
+    # a = (y2-y1)/(x2-x1)
+    # f = a * (tdur - x1) + y1
+    # nsr = ASD_jitter * np.sqrt(f)
 
 
 
@@ -1175,16 +1171,16 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
     Parameters
     ----------
-    P : float, narray
+    mag : float, ndarray
         The PLATO passband magnitude.
-    Ncam : float, narray
-        Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
-    Ntra : float, narray
-        Number of transits that can be co-added by phase-folding.
-    tdur : float, narray
-        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
     camType : str
         Either the normal (N) or fast (F) cameras. Default is normal.
+    ncam : float, narray
+        Number of telescope visibility. N-Cams (6, 12. 18, 24) or F-Cams (2).
+    ntra : float, ndarray
+        Number of transits that can be co-added by phase-folding.
+    tdur : float, ndarray
+        Time duration over which the NSR is estimated. E.g., 3600s for 1h precision.
 
     Return
     ------
@@ -1208,7 +1204,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     # Flux of stars [e-/s]
     
     if passband == "V":
-        f0 = 1.00179e8
+        f0 = 1.00179e8 *2
         f = 10**(-0.4 * mag) * f0
         
     elif passband == 'P':
@@ -1224,26 +1220,25 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
         
         #f0 = 7.324509159344043e7
         #f = 10**(-0.4 * mag) * f0
-
         
     else:
         errorcode('error', f'Wrong {camType} name!')
 
     # Observed total flux [ADU/exp]
 
-    F = f * tcyc * gain
+    flux = f * tcyc * gain
 
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
 
-    NSR = 1e6 / np.sqrt(F * ncam * ntra * tdur)
+    nsr = 1e6 / np.sqrt(flux * ncam * ntra * tdur)
 
     # Correction needed for PLATO passband
     
     if passband == 'P':
-        NSR *= 0.7324478224428527
+        nsr *= 0.7324478224428527
     
-    return NSR
+    return nsr 
 
 
 

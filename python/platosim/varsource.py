@@ -2843,7 +2843,7 @@ class SMBHB(object):
         """Complex components of u (projected  binary seperation) [RE]
         """
         
-        if 0 < (time - self.t0.to('yr')) / self.T.to('yr').value < 0.5:
+        if 0 < (time - self.t0.to('yr').value) / self.T.to('yr').value < 0.5:
             phase = np.sqrt(np.cos(phi1)**2 + np.sin(self.I)**2 * np.sin(phi1)**2)
             u0 = self.a / RE1 * phase
         else:
@@ -2925,7 +2925,7 @@ class SMBHB(object):
         RE2 = np.sqrt(2 * self.a * self.RS[1])
 
         # Print values
-        ut.errorcode('message', '\nModel parameters:')
+        ut.errorcode('message', 'Model parameters:')
         print(f'Orbital period in rest frame  : {self.P.to("yr"):.3f}')
         print(f'Orbital period in obs. frame  : {self.T.to("yr"):.3f}')
         print(f'Mass total (M1 + M2)          : {self.M.to("M_sun")/1e6:.4f} x 1e6')
@@ -2939,14 +2939,28 @@ class SMBHB(object):
         print(f'Schwarchild radius secondary  : {self.RS[1].to("R_sun"):.2f}')
         print(f'Max Einstein radius primary   : {RE1.to("AU"):.2f}')
         print(f'Max Einstein radius secondary : {RE2.to("AU"):.2f}')
+
+        # TODO under implementation
         
         # Time and phases
-        #time = np.linspace(0.8, 1.2, 300)
+        # T  = self.T.to('yr').value
+        # t0 = self.t0.to('yr').value
+        # time = np.linspace(0, T, 1000)
+        # phi1 = 2 * np.pi * (time - t0) / T 
+        # phi2 = phi1 - np.pi
+
+        # In phase space
         T  = self.T.to('yr').value
         t0 = self.t0.to('yr').value
-        time = np.linspace(0, T, 1000)
-        phi1 = 2 * np.pi * (time - t0) / T 
-        phi2 = phi1 - np.pi
+        time = np.linspace(0, 2.2, 1000)
+        phi1 = np.linspace(1.92, 2.08, 1000)
+        phi2 = np.linspace(0.92, 1.08, 1000)
+
+        t0_yr = self.t0.to('yr').value
+        P_yr = self.P.to('yr').value
+        T_yr = self.T.to('yr').value
+        print( T_yr, t0_yr/T_yr, 2*np.pi*t0_yr/T_yr)
+        print( P_yr, t0_yr/P_yr, 2*np.pi*t0_yr/P_yr)
 
         plt.figure()
         plt.plot(phi1, np.ones_like(phi1))
