@@ -289,7 +289,7 @@ Notes on PIC catalogue creation:
             if self.sample: self.outputPrefix += '_'      + self.sample
             if self.field:  self.outputPrefix += '_'      + self.field
             if self.group:  self.outputPrefix += '_Group' + str(self.group)
-            if self.ncams:  self.outputPrefix += '_Ncam'  + str(self.ncams)
+            if self.ncams:  self.outputPrefix += '_Ncam'  + f'{self.ncams:0=2d}'
             if self.inputFiles is not None: self.outputPrefix += '_NewCat'
             self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
             self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
