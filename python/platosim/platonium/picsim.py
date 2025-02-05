@@ -289,7 +289,7 @@ Notes on PIC catalogue creation:
             if self.sample: self.outputPrefix += '_'      + self.sample
             if self.field:  self.outputPrefix += '_'      + self.field
             if self.group:  self.outputPrefix += '_Group' + str(self.group)
-            if self.ncams:  self.outputPrefix += '_Ncam'  + f'{self.ncams:0=2d}'
+            if self.ncams:  self.outputPrefix += '_Ncam'  + str(self.ncams)
             if self.inputFiles is not None: self.outputPrefix += '_NewCat'
             self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
             self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
@@ -342,6 +342,7 @@ Notes on PIC catalogue creation:
         self.dc0 = pd.read_feather(inputFileCon)
         self.dx = self.df0
 
+
     
 
         
@@ -375,7 +376,6 @@ Notes on PIC catalogue creation:
         
 
         
-
 
                 
     def getStellarClass(self, df):
@@ -716,7 +716,43 @@ Notes on PIC catalogue creation:
                 
 
 
-        
+
+    def prologueSimbad(self):
+
+        if self.verbose > 1:
+            errorcode('module', '\nPrologue')
+
+        if self.outputDir is not None:
+
+            # Copy the YAML file to the project if it doesn't exist and a field is parsed
+            if self.field is not None:
+                if self.verbose > 1:
+                    print(f"Copying YAML configuration file")
+                ut.copyInputYAML(self.field, self.outputDir)
+
+            # Save ascii catalog (PlatoSim) or feathers (PLATOnium)
+            if self.saveAscii:
+                if self.verbose > 1:
+                    print(f'Saving file {self.outputFileCat}')
+                df0 = pd.concat([self.df.ra, self.dc.ra])
+                df0['dec'] = pd.concat([self.df.dec, self.dc.dec])
+                df0['Pmag'] = pd.concat([self.df.Pmag, self.dc.Pmag])
+                df0.to_csv(self.outputFileCat, sep=' ', header=False, float_format='%.6f')
+
+            else:
+                # We reset the index in order to save to feather
+                df = self.df.reset_index(drop=True)
+                dc = self.dc.reset_index(drop=True)
+                if self.verbose > 1:
+                    print(f'Saving file {self.outputFileTar}')
+                df.to_feather(self.outputFileTar)
+                if self.verbose > 1:
+                    print(f'Saving file {self.outputFileCon}')
+                dc.to_feather(self.outputFileCon)
+
+
+
+
     def cameraObservability(self):
         
         # CAMERA OBSERVABILITY
@@ -839,9 +875,43 @@ Notes on PIC catalogue creation:
 
         if self.verbose > 1:
             errorcode('software', '\nSimbad target query')
-        
+
         # Arguments for GaiaDR3 star query
         self.simbad = args.simbad
+        self.field = args.pipe_field
+
+        self.saveAscii = args.save
+        self.inputFiles = args.incat
+
+        self.outputPrefix = f'starcat_'
+
+        # we need to set a sample because it is needed by platonium for the pipeline (P1 treated differently from P5)
+        if args.pipe_sample in ['P1', 'P2', 'P4', 'P5', None]:
+            self.pipeSample = args.pipe_sample
+            if self.pipeSample is not None:
+                self.outputPrefix += f"{self.pipeSample}_"
+        else:
+            errorcode('error', 'Not a valid PIC sample! Use --pipe_sample {P1, P2, P4, P5}')
+
+        # we need to set a field because it is needed by platonium for the pipeline (to dictate the pointing)
+        if self.field in ['SPF', 'NPF', 'LOPS2', 'LOPN1', None]:
+            self.field = args.pipe_field
+            if self.field is not None:
+                self.outputPrefix += f'{self.field}_'
+        else:
+            errorcode('error', 'Not a valid field! Use --pipe_field {SPF, NPF, LOPS2, LOPN1}')
+
+        self.outputPrefix += f'{self.simbad}'
+
+        self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
+        self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
+
+        # Save either a PlatoSim (ascii) or a PLATOnium (feather) catalogue
+        if self.saveAscii:
+            self.outputFileCat = self.outputDir / f'{self.outputPrefix}.txt'
+        else:
+            self.outputFileTar = self.outputDir / self.outputPrefixTar
+            self.outputFileCon = self.outputDir / self.outputPrefixCon
 
 
 
@@ -853,19 +923,32 @@ Notes on PIC catalogue creation:
         """
 
         # Query Gaia DR3 star
-        df = sq.simbadQuery(self.simbad, radius=self.disConLimit)
+        self.df_all = sq.simbadQuery(self.simbad, radius=self.disConLimit)
+        print(self.df_all)
+        # set df to just the first row
+        self.df = self.df_all.iloc[:1]
+
+        # if there are contaminants, set dc to the rest of the rows
+        if len(self.df_all) > 1:
+            self.dc = self.df_all.iloc[1:]
+
+            # apply contamination limits
+            self.dc = self.dc[self.dc['Pmag'] < (self.df.iloc[0]["Pmag"] + self.dmagConLimit)]
+
+            # platonium needs the gaiaDR3 ID to be set to that of the target (to identify contaminants)
+            self.dc["gaiaDR3"] = self.df["gaiaDR3"].iloc[0]
+
+        else:
+            # set self.dc to a panda df with same columns as self.df
+            self.dc = pd.DataFrame(columns=self.df.columns)
         if self.verbose > 1:
             print(f'\nCatalogue for {self.simbad}:')
-            print(df)
-            
-        # Save output catalogue
-        if self.outputDir is not None:
-            da = df.loc[:, ['ra', 'dec', 'Pmag']]
-            da.to_csv(self.outputDir / f"starcat_{self.simbad}.txt", sep=' ', header=False)
-            df.to_feather(self.outputDir / f"starcat_{self.simbad}.ftr")
+            print(self.df)
+            print(f'\nCatalogue for {self.simbad} contaminants:')
+            print(self.dc)
 
 
-    
+
     #--------------------------------------------------------------#
     #                       PLATO CAMERA FOV                       #
     #--------------------------------------------------------------#            
@@ -1066,7 +1149,7 @@ Notes on PIC catalogue creation:
                                          flag_quasar=self.quasar,
                                          ofile=f'{self.filename}.vot')
 
-                # Contatenate catalogue
+                # Concatenate catalogue
                 if i == 0: df = df0
                 else:      df = pd.concat([df, df0])
         
@@ -1233,7 +1316,9 @@ pic_group.add_argument('--save',   action='store_true',       help='Flag to save
 pic_group.add_argument('--notes',  action='store_true',       help='Flag to show the notes of the available PIC catalogues')
 
 bad_group = parser.add_argument_group('SIMBAD QUERY (SKY REGION)')
-bad_group.add_argument('--simbad', type=str, metavar='NAME',  help='Simbad target name')
+bad_group.add_argument('--simbad',      type=str, metavar='NAME',                     help='Simbad target name')
+bad_group.add_argument('--pipe_sample', type=str, metavar='[P1, P2, P4, P5]',         help='PLATO sample for platonium pipeline processing')
+bad_group.add_argument('--pipe_field',  type=str, metavar='[SPF, NPF, LOPS2, LOPN1]', help='PLATO field for platonium pipeline processing')
 
 viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
@@ -1270,6 +1355,7 @@ if args.notes:
 if args.simbad:
     p.initSimbad()
     p.querySimbad()
+    p.prologueSimbad()
 
 # Query a PLATO pointing field
 elif args.vizier:
