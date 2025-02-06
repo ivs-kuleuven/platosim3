@@ -901,7 +901,7 @@ Notes on PIC catalogue creation:
         else:
             errorcode('error', 'Not a valid field! Use --pipe_field {SPF, NPF, LOPS2, LOPN1}')
 
-        self.outputPrefix += f'{self.simbad}'
+        self.outputPrefix += self.simbad.replace(' ', '_')
 
         self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
         self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
@@ -924,7 +924,9 @@ Notes on PIC catalogue creation:
 
         # Query Gaia DR3 star
         self.df_all = sq.simbadQuery(self.simbad, radius=self.disConLimit)
-        print(self.df_all)
+        if self.verbose > 1:
+            print(f'\nGaia sources in the vicinity of {self.simbad}:')
+            print(self.df_all)
         # set df to just the first row
         self.df = self.df_all.iloc[:1]
 
