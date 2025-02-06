@@ -21,6 +21,7 @@ generated/version.h
 
 !inputfiles/inputfile.yaml
 !inputfiles/inputfile_FCAM_required.yaml
+!inputfiles/Plato_straylight_example_index_2574.csv
 !aps_N6000K_v2.txt
 !orbit.txt
 !inputfiles/cl2bCcds.txt
