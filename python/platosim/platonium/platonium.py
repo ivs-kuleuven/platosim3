@@ -1810,8 +1810,8 @@ class PLATOnium(object):
                 psf_file = f"{self.outputDirStarIDsim}/000000001_interpolated_psf.hdf5"
             star_file = f"{self.outputDirStarIDsim}/000000001_target_star.hdf5"
             yaml_file = f"{self.outputDirStarIDsim}/{self.starID}.yaml"
-            cobx_plot = f"{self.outputDirStarIDsim}/000000001_COBx.png"
-            coby_plot = f"{self.outputDirStarIDsim}/000000001_COBy.png"
+            acobx_plot = f"{self.outputDirStarIDsim}/000000001_aCOBx.png"
+            acoby_plot = f"{self.outputDirStarIDsim}/000000001_aCOBy.png"
             spr_plot = f"{self.outputDirStarIDsim}/000000001_SPR_TOT-TS.png"
             valid_plot = f"{self.outputDirStarIDsim}/000000001_Valid_points.png"
             abkg_plot = f"{self.outputDirStarIDsim}/000000001_aBKG.png"
@@ -1834,8 +1834,8 @@ class PLATOnium(object):
                 psf_file_out = f"{prefixStarIDnew}_interpolated_psf.hdf5"
             star_file_out = f"{prefixStarIDnew}_target_star.hdf5"
             yaml_file_out = f"{prefixStarIDnew}.yaml"
-            cobx_plot_out = f"{prefixStarIDnew}_COBx.png"
-            coby_plot_out = f"{prefixStarIDnew}_COBy.png"
+            acobx_plot_out = f"{prefixStarIDnew}_aCOBx.png"
+            acoby_plot_out = f"{prefixStarIDnew}_aCOBy.png"
             spr_plot_out = f"{prefixStarIDnew}_SPR_TOT-TS.png"
             valid_plot_out = f"{prefixStarIDnew}_Valid_points.png"
             abkg_plot_out = f"{prefixStarIDnew}_aBKG.png"
@@ -1862,16 +1862,16 @@ class PLATOnium(object):
                 self.failed('Moving aperture photometry files failed...')
 
             if self.pipePlots:
-                print(f"Move {cobx_plot} -> {cobx_plot_out}")
-                print(f"Move {coby_plot} -> {coby_plot_out}")
+                print(f"Move {acobx_plot} -> {acobx_plot_out}")
+                print(f"Move {acoby_plot} -> {acoby_plot_out}")
                 print(f"Move {spr_plot} -> {spr_plot_out}")
                 print(f"Move {valid_plot} -> {valid_plot_out}")
                 print(f"Move {abkg_plot} -> {abkg_plot_out}")
                 print(f"Move {aflux_plot} -> {aflux_plot_out}")
                 print(f"Move {aflux_corr_plot} -> {aflux_corr_plot_out}")
                 try:
-                    shutil.copy(cobx_plot, cobx_plot_out)
-                    shutil.copy(coby_plot, coby_plot_out)
+                    shutil.copy(acobx_plot, acobx_plot_out)
+                    shutil.copy(acoby_plot, acoby_plot_out)
                     shutil.copy(spr_plot, spr_plot_out)
                     shutil.copy(valid_plot, valid_plot_out)
                     shutil.copy(abkg_plot, abkg_plot_out)
