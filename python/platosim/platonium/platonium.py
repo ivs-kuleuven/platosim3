@@ -100,6 +100,7 @@ class PLATOnium(object):
         self.conDisLimit  = args.con_dist
         self.reuseJitter  = args.jit_reuse
         self.fullFrame    = args.fullframe
+        self.noAberrCorr  = args.no_aberr_corr
 
         self.maskUpdate = args.mask
         self.clipWotan  = args.clip
@@ -597,6 +598,12 @@ class PLATOnium(object):
             sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
         elif self.magPB == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
+
+        # NOTE: adds option to turn off DKA
+        if self.noAberrCorr:
+            sim['Camera/IncludeAberrationCorrection'] = False
+        else:
+            sim['Camera/IncludeAberrationCorrection'] = True
 
         # POINTING ERRORS
         # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
@@ -1510,6 +1517,8 @@ class PLATOnium(object):
             comm = f"gen_pflux_ts --psf-library {psf_lib_path}"
         if self.pipePlots:
             comm += " -P"
+        if self.noAberrCorr:
+            comm += " --ignore-aberration"
         comm += f" 1 {self.starID} {self.starID}"
         print(comm)
 
@@ -1567,6 +1576,8 @@ class PLATOnium(object):
             comm += " --emask"
         if self.pipePlots:
             comm += " -P"
+        if self.noAberrCorr:
+            comm += " --ignore-aberration"
         comm += f" 1 {self.starID} {self.starID}"
         print(comm)
 
@@ -1980,18 +1991,19 @@ out_group.add_argument('--varlist',    metavar='FILE', type=str, help='Path to v
 out_group.add_argument('--compress',   action='store_true',      help='Flag to compress output files')
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
-sim_group.add_argument('--cadence',  metavar='SEC',  type=float, help='Cadence for each exposure (default: 25 seconds)')
-sim_group.add_argument('--tdur',     metavar='DAY',  type=float, help='Duration of shortened quarter time series [days]')
-sim_group.add_argument('--bdur',     metavar='DAY',  type=float, help='Duration of time to start qurter simulation [days]')
-sim_group.add_argument('--nexp',     metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
-sim_group.add_argument('--bexp',     metavar='NO.',  type=int,   help='Number of exposure to start from beginning of quarter')
-sim_group.add_argument('--pic',      metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')
-sim_group.add_argument('--mag',      metavar='PMAG', type=float, help='Option to overwrite target magnitude in inputfile')
-sim_group.add_argument('--con_dmag', metavar='MAG',  type=float, help='Threshold in dmag of contaminant(s) (Default: 10 mag)')
-sim_group.add_argument('--con_dist', metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 60 as)')
-sim_group.add_argument('--nocon',     action='store_true',       help='Flag to ignore all stellar contaminants')
-sim_group.add_argument('--jit_reuse', action='store_true',       help='Flag to reuse an AOCS jitter file across all quarters')
-sim_group.add_argument('--fullframe', action='store_true',       help='Flag to simulate a full-frame CCD -> CCDcode = starID')
+sim_group.add_argument('--cadence',        metavar='SEC',  type=float, help='Cadence for each exposure (default: 25 seconds)')
+sim_group.add_argument('--tdur',           metavar='DAY',  type=float, help='Duration of shortened quarter time series [days]')
+sim_group.add_argument('--bdur',           metavar='DAY',  type=float, help='Duration of time to start qurter simulation [days]')
+sim_group.add_argument('--nexp',           metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
+sim_group.add_argument('--bexp',           metavar='NO.',  type=int,   help='Number of exposure to start from beginning of quarter')
+sim_group.add_argument('--pic',            metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')
+sim_group.add_argument('--mag',            metavar='PMAG', type=float, help='Option to overwrite target magnitude in inputfile')
+sim_group.add_argument('--con_dmag',       metavar='MAG',  type=float, help='Threshold in dmag of contaminant(s) (Default: 10 mag)')
+sim_group.add_argument('--con_dist',       metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 60 as)')
+sim_group.add_argument('--nocon',          action='store_true',       help='Flag to ignore all stellar contaminants')
+sim_group.add_argument('--no_aberr_corr',  action='store_true',       help='Flag to turn of aberration correction (no DKA)')
+sim_group.add_argument('--jit_reuse',      action='store_true',       help='Flag to reuse an AOCS jitter file across all quarters')
+sim_group.add_argument('--fullframe',      action='store_true',       help='Flag to simulate a full-frame CCD -> CCDcode = starID')
 
 phot_group = parser.add_argument_group('PHOTOMETRY PARAMETERS')
 phot_group.add_argument('--mask',     metavar='DAY',  type=float, help='Option to overwrite the mask-update in inputfile [days]')
