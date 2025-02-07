@@ -18,6 +18,7 @@ import math
 import shutil
 from pathlib import Path
 from zipfile import ZipFile
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -46,6 +47,7 @@ import statsmodels.api as sm
 
 # PlatoSim functions
 import platosim.plot            as pt
+import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.statistics      as st
 import platosim.referenceFrames as rf
@@ -600,28 +602,40 @@ class LightCurve(object):
         return np.nanmean(noise) / np.sqrt(nbin)
 
 
-    def get_nsr_new(self, column="flux", binsize=1,
-                    time_unit='h', flux_unit="ppm", influx="e/s"):
+    def bin_1d(self, data, dt=25., per_hour=3600):
+        """
+        _summary_
 
+        Args:
+            data (_type_): _description_
+            dt (_type_, optional): _description_. Defaults to 25..
+            per_hour (int, optional): _description_. Defaults to 3600.
+
+        Returns:
+            _type_: _description_
+        """
+        time = np.linspace(0, len(data)*dt, len(data))
+        bin_means, bin_edges, _ = binned_statistic(time, data,
+                                                   statistic='mean',
+                                                   bins=int(time[-1] / per_hour))
+        bin_edges /= per_hour
+
+        return bin_means, bin_edges
+
+
+    def get_nsr_new(self):
+        
         """Calculates the Noise-to-Signal Ratio (NSR) of binned time series. 
         """
 
-        # Bin data
-        df = self.bin(binsize=binsize, time_unit=time_unit)
-            
-        # Bin to devide data
-        nbins = df.shape[0]
+        # binned statistics computed per hour
+        lc = self.flux().to_numpy()
+        mean_lc = lc / np.median(lc)
+        bin_means, bin_edges = self.bin_1d(mean_lc)
+        bin_edges /= 24  # scale to days
 
-        # Fetch flux column and force to be ppm for correct NSR
-        if influx == "e/s":
-            noise = (df[column] / df[column].median() - 1) *1e6
-        else:
-            noise = df[column]#.median()
-        
-        # Return NSR
-        return noise.std() #/ np.sqrt(nbins)
-        #return np.nanmean(noise) / np.sqrt(nbins)
-    
+        return bin_means.std() * 1e6
+
     
     #--------------------------------------------------------------#
     #                       DATA OPERATIONS                        #
@@ -1417,6 +1431,101 @@ class LightCurve(object):
 
         return self.df
 
+
+    def plot_frequency_performance(self,
+                                   ASD_binning_factor=10,
+                                   freq_break=20e-6,
+                                   min_freq=3e-6,
+                                   max_freq=40e-3,
+                                   residual_noise_floor=0.68e-6,
+                                   random_noise_level=3.0e-6,
+                                   residual_noise_top=50e-6,
+                                   figsize=(10,7),
+                                   output_file='mission_performance_asd.png'):
+
+        mean_lc = self.flux()
+        freq, psd = ns.compute_double_sided_PSD(mean_lc, time_interval=25)
+
+        def rebin1d(array, n):
+            nr = int(float(array.shape[0]) / float(n))
+            return (np.reshape(array, (n, nr))).sum(1)
+        
+
+        fig = plt.figure(figsize=figsize)
+
+        # plot the ASD
+        plt.plot(freq, psd, 'gray', alpha=0.5)
+
+        # plot binned ASD
+        p = int(freq.size / ASD_binning_factor)
+        num = rebin1d(freq[0:p*ASD_binning_factor], p) / ASD_binning_factor
+        binned = rebin1d(psd[0:p*ASD_binning_factor], p) / ASD_binning_factor
+
+        plt.plot(num[1:], binned[1:], 'black',  lw=2)
+
+        # residual error line
+        plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
+                   colors='red', linestyles='-')
+        # random noise line
+        plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
+                   colors='magenta', linestyles='-')
+        # slope line from residual to random top level
+        x_values = np.linspace(min_freq, freq_break, 2)
+        y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
+        plt.plot(x_values, y_values, color='red', linestyle='-')
+
+        # dashed  guide lines
+        plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
+                   linestyles='dashed', colors='blue')
+        plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
+                   linestyles='dashed', colors='blue')
+        plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
+                   linestyles='dashed', colors='blue')
+        plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
+                   linestyles='dashed', colors='blue')
+        plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
+                   linestyles='dashed', colors='blue')
+
+        # texts
+        freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
+        top_text = f'{int(residual_noise_top*1e6)}' + freq_units
+        plt.text(x=min_freq, y=residual_noise_top*1.25,
+                 s=top_text,
+                 ha='center')
+        random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
+        plt.text(x=5e-4, y=random_noise_level*1.25,
+                 s=random_noise_text,
+                 ha='center')
+        residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + freq_units
+        plt.text(x=5e-4, y=residual_noise_floor*1.25,
+                 s=residual_error_text,
+                 ha='center')
+
+        plt.xscale('log')
+        plt.yscale('log')
+
+        ymin = np.min(psd)
+        ymax = np.max(psd)
+        if ymin < 1e-7: ymin = 1e-7
+        if ymax < 1e-4: ymax = 1e-4
+        plt.xlim(1e-6, 1e-1)
+        plt.ylim(ymin, ymax)
+
+        # modify x tick points
+        ticks = [1e-6, min_freq, 1e-5, freq_break,
+                 1e-4, 1e-3, 1e-2, max_freq, 1e-1]
+        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
+                  str(int(freq_break*1e6)) + '$\mu$Hz',
+                  '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
+                  str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
+        plt.xticks(ticks=ticks, labels=labels)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
+        plt.tight_layout()
+
+        return fig
+
+        #plt.savefig(output_file, dpi=150)
     
     #--------------------------------------------------------------#
     #                         PLOT MODULES                         #   
@@ -1625,6 +1734,7 @@ class LightCurve(object):
             ax.set_ylim(ymin, ymax*pad)
             
         # Settings
+        ax.ticklabel_format(useOffset=False)
         ax.set_xlim(time.iloc[0], time.iloc[-1])
         ax.set_xlabel(f'Time [{time_unit}]')
         ax.set_ylabel(ylab)
@@ -2186,10 +2296,16 @@ class LightCurve(object):
         return natsort.natsorted(glob.glob(f'{self.path}/*'))
 
         
-    def plot_multi(self, time_unit="d", flux_unit="e/s", suffix="ftr",
-                   group=False, camera=False, quarter=False,
-                   flux_median=False, alpha=0.1, figsize=(9,5)):
-
+    def plot_multi(self,
+                   time_unit="d",
+                   flux_unit="e/s",
+                   suffix="ftr",
+                   group=False,
+                   camera=False,
+                   quarter=False,
+                   flux_median=False,
+                   alpha=0.1,
+                   figsize=(8,5)):
         """Function to plot multiple camera/quarters for single star.
         
         Parameters
@@ -2211,7 +2327,7 @@ class LightCurve(object):
         # Find number of quarters set axes limit
         quarters = np.unique([int(Path(filenames[i]).stem[19:])
                               for i in range(nfiles)])
-        
+
         # Create matplotlib object 
 
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -2221,7 +2337,7 @@ class LightCurve(object):
         cnorm     = colors.Normalize(vmin=0, vmax=nfiles-1)
         scalarMap = cm.ScalarMappable(norm=cnorm, cmap=cmap)
         ax.set_prop_cycle(color=[scalarMap.to_rgba(i) for i in range(nfiles)])
-        
+         
         # Loop over each observation
         Q, flux_max = [], []
         for i,f in zip(range(len(filenames)), filenames):
@@ -2251,20 +2367,23 @@ class LightCurve(object):
                 ax.plot(time, flux_med, '-', c='gray', lw=0.5, zorder=2)
 
         # Plot quarter marks
-        ymax = np.max(flux_max)
-        ypos = ymax + ymax * ax.margins()[1]/3
-        for q in np.unique(Q)[:]:
-            time_Q = q*ut.quarter()
-            xpos = time_Q - 50
-            if q > 9: xpos -= 10
-            ax.text(xpos, ypos, f'Q{q}', fontsize=16, zorder=10)
-            ax.axvline(x=time_Q-1/2, c='k', linestyle='--', lw=0.5, zorder=2)
-
+        if len(quarters) > 1:
+            ymax = np.max(flux_max)
+            ypos = ymax + ymax * ax.margins()[1]/3
+            for q in np.unique(Q)[:]:
+                time_Q = q*ut.quarter()
+                xpos = time_Q - 50
+                if q > 9: xpos -= 10
+                ax.text(xpos, ypos, f'Q{q}', fontsize=16, zorder=10)
+                ax.axvline(x=time_Q-1/2, c='k', linestyle='--', lw=0.5, zorder=2)
+            ax.set_xlim(self.time_limit(quarters))
+        else:
+            ax.set_xlim(time.iloc[0], time.iloc[-1])
+            
         # Settings
-        ax.set_xlim(self.time_limit(quarters))
         ax.set_xlabel(f'Time [days]')
         ax.set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
-        ax.set_xlim(self.time_limit(quarters))
+        ax.ticklabel_format(useOffset=False)
         plt.tight_layout()
         
         return fig, ax
@@ -2283,11 +2402,10 @@ class LightCurve(object):
               detrend=False,
               clip=False,
               binsize=None,
-              ofile=None,
               verbose=True,
-              files=False,
+              files=None,
+              ofile=None,
               suffix="ftr"):
-
         """Merge light curves from a single star.
 
         Function to merge multi-cameras and multi-quarter light curves into
@@ -2322,7 +2440,8 @@ class LightCurve(object):
        # Open a pandas data frame and write to it
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
-
+        ll = 55
+        
         # Fetch all zip files
         if not files:
             files = self.files(suffix)
@@ -2334,7 +2453,8 @@ class LightCurve(object):
         # Loop over each group and camera
         if verbose:
             print(f'Processing star ID {star}')
-            print('Merging light curves')
+            print('-'*ll)
+            print(f'Merging {nfiles} light curves')
             bar = tqdm(range(nfiles), bar_format=ut.tqdmBar())
         else:
             bar = range(nfiles)
@@ -2350,10 +2470,6 @@ class LightCurve(object):
             # Select quarter
             if Q == quarter:
                 ncam += 1
-
-            # Flag for negative fluxes (bad behavior of L1 pipeline)
-            if lc.flux(unit="e/s").mean() < 1:
-                flag = 1
 
             # Create initial data frame and save to it
             df = lc.data()
@@ -2388,7 +2504,8 @@ class LightCurve(object):
                 df0 = pd.concat([df0, df1])
 
         # Sort after logic structure and reset indices
-        if verbose: print('Sorting data after timings')
+        if verbose:
+            print('Sorting data after timings')
         df0 = df0.sort_values(by=["time"])
         df0 = df0.reset_index(drop=True)
         
@@ -2403,9 +2520,9 @@ class LightCurve(object):
             tdur = df0.time.iloc[-1] - df0.time.iloc[0]
             tbin = binsize*3600
             bins = int(tdur/tbin)
-            if verbose: print(f'Binning data per {binsize}h')
-
             # Perform binning
+            if verbose:
+                print(f'Binning data per {binsize}h')
             flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
@@ -2467,14 +2584,22 @@ class LightCurve(object):
             
         if verbose:
             print('Done!')
+            print('-'*ll)
             
         return LightCurve(df0, mode="multi", path=self.path)
 
     
-    def reduce_star(self, flux_group_mean=False, ofile=False, suffix="ftr",
-                    model_detrend="poly", degree=2, window=0.5, mask=False,
-                    model_clip="scipy", low=3, high=3):
-               
+    def reduce_star(self,
+                    suffix="ftr",
+                    ofile=False,
+                    flux_group_mean=False,
+                    model_detrend="poly",
+                    degree=2,
+                    window=0.5,
+                    mask=False,
+                    model_clip="scipy",
+                    low=3,
+                    high=3):
         """Detrend and correct light curve of multi-camera observation.
 
         Function to merge multi-cameras and multi-quarter light curves into
@@ -2710,8 +2835,10 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     
     
-    def get_nsr_per_camera(self, outputFile=None, suffix="hdf5", quarter=1):
-        
+    def get_nsr_per_camera(self,
+                           outputFile=None,
+                           suffix="hdf5",
+                           quarter=1):
         """Compute NSR for all stars per camera.
 
         Function calculate the NSR for short baseline light curves for ecah
@@ -2740,7 +2867,7 @@ class LightCurve(object):
 
         # Loop over star simulated
         
-        for f in tqdm(self.folders(), bar_format=ut.tqdmBar()):
+        for f in tqdm(self.folders()[:100], bar_format=ut.tqdmBar()):
 
             # Fetch all files
             files    = self.files(path=f, suffix=suffix, quarter=quarter, error=False)
@@ -2791,7 +2918,7 @@ class LightCurve(object):
             errorcode('warning', message)
                         
         # Save final feather
-        df = df0.astype({"mag":np.float32, "NSR":np.float32})
+        df = df0.astype({"mag":np.float32, "NSR":n.pfloat32})
         df = df.sort_values(by=["ID", "group", "camera", "quarter"])
         df = df.reset_index()
 
@@ -2802,11 +2929,10 @@ class LightCurve(object):
         return df
 
 
-
-
-
-    def get_nsr_per_star(self, outputFile=None, suffix="hdf5", quarter=1):
-
+    def get_nsr_per_star(self,
+                         outputFile=None,
+                         suffix="hdf5",
+                         quarter=1):
         """Compute NSR for all stars merged across N-CAMs.
 
         Function calculate the NSR for short baseline light curves for ecah
@@ -2845,7 +2971,7 @@ class LightCurve(object):
             
             if numFiles == 0:
                 # Record if a star do no have any data
-                star_id = int(Path(f).stem)
+                star_id = int(str(Path(f).stem))
                 ids_non_data.append(star_id)
                 
             else:
@@ -2862,7 +2988,7 @@ class LightCurve(object):
                 # Merge light curves from star/quarter simulation
                 lc = lcs.merge(quarter=quarter,
                                flux_normalise=True,
-                               flux_group_mean=True,
+                               flux_group_mean=False,
                                flux_offset=False,
                                suffix=suffix,
                                files=files,
@@ -2875,9 +3001,9 @@ class LightCurve(object):
                         "ncon": dt.ncon.iloc[0],
                         "SPR": dt.SPR.mean(),
                         "ncam": dt.shape[0],
-                        "NSR": lc.get_nsr(influx='pp1')}
+                        "NSR": lc.get_nsr()}
                 df1 = pd.DataFrame(data, index=[0])
-
+                
                 # Add data to data frame
                 df0 = pd.concat([df0, df1])
                 

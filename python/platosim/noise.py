@@ -196,6 +196,43 @@ def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
 
 
 
+def compute_double_sided_PSD(time_series, time_interval=25):
+    """Compute Double Sided Power Spectral Density (PSD).
+
+    PSD is simply a PS (Power Spectrum) divided by ENBW (Effective Noise Bandwidth).
+    This function computes a double sided PSD, so the negative frequencies are not
+    removed. Because of this the PS is not multiplied by a factor of 2 when scaling
+    it. The scaling only takes into account the sampling frequency and the the loss
+    of energy because of applying a window function. As the window is a boxcar,
+    we can simply use the length of the time series instead.
+
+    Args:
+        time_series ([np.ndarray]): time series data
+        time_interval (int, optional): Time interval of the time series in seconds. Defaults to 25.
+        detrend (bool or str or int, optional): Whether to apply de-trending or not.
+        scipy (bool, optional): Whether to use SciPy periodogram or NumPy FFT. Defaults to True.
+
+    Returns:
+        [tuple]: tuple containing frequency array, PSD array, and time series tuple
+    """
+    time = np.linspace(start=0,
+                       stop=len(time_series),
+                       num=len(time_series)) * time_interval
+
+    freq, psd = periodogram(time_series,
+                            fs=1 / time_interval,
+                            window='boxcar',
+                            nfft=None,
+                            return_onesided=False,
+                            scaling='density',
+                            axis=-1)
+    idx = np.argsort(freq)
+    psd = psd[idx]
+    freq = freq[idx]
+
+    return freq, psd
+
+
 #--------------------------------------------------------------#
 #                          TIME DOMAIN                         #
 #--------------------------------------------------------------#
