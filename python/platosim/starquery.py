@@ -261,8 +261,8 @@ def simbadQuery(star, radius=45, maglim=21):
     df = results.to_pandas()
 
     # Rename columns
-    
-    df = df.rename(columns={'source_id': 'gaiaDR3',
+
+    df = df.rename(columns={'SOURCE_ID': 'gaiaDR3',
                             'phot_g_mean_mag': 'Gmag',
                             'bp_rp': 'BP_RP',
                             'parallax': 'plx',
@@ -406,8 +406,8 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
                'gaia.bp_rp',
                'gaia.ag_gspphot',
                'gaia.parallax', 'gaia.parallax_error',
-               'gaia.pmra',
-               'gaia.pmdec',
+               'gaia.pm',
+               'gaia.pmra', 'gaia.pmdec',
                'gaia.ruwe']
 
     if flag_stellar:
@@ -458,7 +458,7 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
           CIRCLE({ra}, {dec}, {radius}))
           AND gaia.phot_g_mean_mag > {maglim_min}
           AND gaia.phot_g_mean_mag < {maglim_max}
-          AND astro.classprob_dsc_combmod_quasar > 0.5
+          AND astro.classprob_dsc_combmod_quasar > 0.99
         """
     else:
         query_base = f"""SELECT
