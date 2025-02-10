@@ -46,12 +46,12 @@ class Sky
         virtual void updateParameters(double time);
 
         unsigned long selectStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
-        void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
+        void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime);
         tuple<unsigned int, double, double, double> getSelectedStar(unsigned int n);
         tuple<double, double, double> getInfoOfStarWithID(unsigned int starID);
 
         unsigned long selectGhostOrigsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
-        void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
+        void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime);
         tuple<unsigned int, double, double, double> getSelectedGhostOrig(unsigned int n);
 
         double time0;
