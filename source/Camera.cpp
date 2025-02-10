@@ -531,7 +531,7 @@ void Camera::updateParameters(double time)
  * \param exposureTime: Duration of one exposure [s].
  * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
  */
-void Camera::exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+void Camera::exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime)
 {
     // Make a rough selection of:
     //  - stars that are on or near the sub-field (or will produce an extended ghost on or near the sub-field)
@@ -539,7 +539,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     //    accounting for the distance cut-off)
 
     unsigned long numStars, numPointLikeGhosts;
-    tie(numStars, numPointLikeGhosts) = makeStarCatalogSelection(detector, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    tie(numStars, numPointLikeGhosts) = makeStarCatalogSelection(detector, startTime, exposureTime);
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
     // the exposure time is split up in many small intervals, to track the effect of these variations
@@ -847,14 +847,13 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  *
  * \param detector: Detector for which to make a rough selection of stars.
  * \param startTime: Start time of the exposure [s].
- * \param exposureTime: Duration of one exposure [s].
- * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
+ * \param exposureTime: Duration of one exposure [s].(exposure number 0 is at startTime = 0)
  *
  * \return: Number of selected stars that are on or near the sub-field, and number of selected stars that produces
  *          symmetric point-like ghosts on or near the sub-field (without accounting for the distance cut-off).  The
  *          latter is zero if ghosts are not to be included in the simulation.
  */
-tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime)
 {
     // Focal-plane coordinates of the centre, and the lower left and upper right corner
     // of the sub-field

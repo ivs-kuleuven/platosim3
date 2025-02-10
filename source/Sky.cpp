@@ -466,6 +466,7 @@ database.
  * \param aberrationCorrectionType   Type of the aberattion that we are
  *                     moddeling. This can be either differential or absolute.
  * \param startTime    Start time of the exposure [s]
+ *                     (exposure number 0 is at startTime = 0)
  * 
  * \return Star catalogue with all the aberration corrected stars.
  */
@@ -608,11 +609,13 @@ database.
  * contains the time, velocity direction and speed of the spacecraft for every
  * timepoint needed in this simulation.
  *
- * \param platform     Current platform from which the position of the Sun and the
+ * \param platform     Current platform from which the position of the Sun and
+the
  *                     pointing coordinates are requested,
  * \param aberrationCorrectionType   Type of the aberattion that we are
  *                     moddeling. This can be either differential or absolute.
- * \param startTime    Start time of the exposure [s]
+ * \param startTime    Start time of the exposure [s],
+ *                     (exposure number 0 is at startTime = 0)
  *
  * \return Star catalogue with all the aberration corrected stars.
  */
