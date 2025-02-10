@@ -970,21 +970,18 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
 
     if (includeAberrationCorrection)
     {
-        // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
-
-        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // the positions of the selected stars and originators of symmetrical point-like ghosts
         // We do this calcuation only once per exposure as the effect is negligible within the exposure time
 
         Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected stars.");
-        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime);
 
         if(includePointLikeGhosts)
         {
             Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected originators of symmetrical point-like ghosts.");
-            sky.aberrateSelectedGhostOrigPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+            sky.aberrateSelectedGhostOrigPositions(platform, aberrationCorrectionType, startTime);
         }
     }
 

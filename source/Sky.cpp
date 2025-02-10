@@ -443,34 +443,46 @@ unsigned long Sky::selectGhostOrigsWithinRadiusFrom(double RA0, double dec0, dou
 
 
 /**
- * \brief Calculate the apparent positions of the previously selected stars based on the current platform
- *        pointing coordinates.
+ * \brief Calculate the apparent positions of the previously selected stars
+ * based on the current platform pointing coordinates.
  *
- * \detail Important: First call selectStarsWithinRadiusFrom() to get a selection of stars, so that the
- *                    aberration does not need to be done on the entire database.
+ * \detail Important: First call selectStarsWithinRadiusFrom() to get a
+selection of stars, so that the
+ *                    aberration does not need to be done on the entire
+database.
  *
- * This calculation is an approximation based on a circular earth orbit around the Sun and is *not* taking
- * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
- * however which takes into account the aberration correction done for the spacecraft pointing.
+ * This calculation is an approximation based on the position around the sun as
+ * given by the input  orbit file. We also do calculate the differential
+ * aberration which takes into account the aberration correction done for the
+ * spacecraft pointing.
+ * The position of the spacecraft is obtained from an orbit file and these
+ * positions are stored in the orbitDB variable. This is a vector that
+ * contains the time, velocity direction and speed of the spacecraft for every
+ * timepoint needed in this simulation.
  *
- * \param platform Current platform from which the position of the Sun and the pointing coordinates are requested,
  *
+ * \param platform     Current platform from which the position of the Sun
+ *                     and the pointing coordinates are requested,
+ * \param aberrationCorrectionType   Type of the aberattion that we are
+ *                     moddeling. This can be either differential or absolute.
+ * \param startTime    Start time of the exposure [s]
+ * 
  * \return Star catalogue with all the aberration corrected stars.
  */
-void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
+void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime)
 {
     using StringUtilities::dtos;
 
     valarray<double> v = std::get<1>(orbitDB.at(0));
     double speed = std::get<2>(orbitDB.at(0));
 
-    for (unsigned int i=0; i < orbitDB.size(); i++)
+    for (unsigned int i = 0; i < orbitDB.size(); i++)
     {
-	if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-	{
+        if (std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+        {
             speed = std::get<2>(orbitDB.at(i));
-            v     = std::get<1>(orbitDB.at(i));
-	}
+            v = std::get<1>(orbitDB.at(i));
+        }
     }
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
@@ -578,34 +590,46 @@ void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCor
 
 
 /**
- * \brief Calculate the apparent positions of the previously selected ghost originators based on the current platform
+ * \brief Calculate the apparent positions of the previously selected ghost
+originators based on the current platform
  *        pointing coordinates.
  *
- * \detail Important: First call selectGhostOrigsWithinRadiusFrom() to get a selection of stars, so that the
- *                    aberration does not need to be done on the entire database.
+ * \detail Important: First call selectGhostOrigsWithinRadiusFrom() to get a
+selection of stars, so that the
+ *                    aberration does not need to be done on the entire
+database.
  *
- * This calculation is an approximation based on a circular earth orbit around the Sun and is *not* taking
- * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
- * however which takes into account the aberration correction done for the spacecraft pointing.
+ * This calculation is an approximation based on the position around the sun as
+ * given by the input  orbit file. We also do calculate the differential
+ * aberration which takes into account the aberration correction done for the
+ * spacecraft pointing.
+ * The position of the spacecraft is obtained from an orbit file and these
+ * positions are stored in the orbitDB variable. This is a vector that
+ * contains the time, velocity direction and speed of the spacecraft for every
+ * timepoint needed in this simulation.
  *
- * \param platform Current platform from which the position of the Sun and the pointing coordinates are requested,
+ * \param platform     Current platform from which the position of the Sun and the
+ *                     pointing coordinates are requested,
+ * \param aberrationCorrectionType   Type of the aberattion that we are
+ *                     moddeling. This can be either differential or absolute.
+ * \param startTime    Start time of the exposure [s]
  *
  * \return Star catalogue with all the aberration corrected stars.
  */
-void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
+void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime)
 {
     using StringUtilities::dtos;
 
     valarray<double> v = std::get<1>(orbitDB.at(0));
     double speed = std::get<2>(orbitDB.at(0));
- 
-    for (unsigned int i=0; i < orbitDB.size(); i++)
+
+    for (unsigned int i = 0; i < orbitDB.size(); i++)
     {
-      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-      {
-        speed = std::get<2>(orbitDB.at(i));
-        v     = std::get<1>(orbitDB.at(i));
-      }
+        if (std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+        {
+            speed = std::get<2>(orbitDB.at(i));
+            v = std::get<1>(orbitDB.at(i));
+        }
     }
 
 
