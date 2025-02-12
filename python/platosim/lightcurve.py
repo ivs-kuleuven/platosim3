@@ -2871,7 +2871,7 @@ class LightCurve(object):
         # Prepare for star loop
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
-        ids_no_data = []
+        star_ids = []
             
         # Loop over star simulated
         
@@ -2886,7 +2886,7 @@ class LightCurve(object):
             if len(files) == 0:
                 # Record if a star do no have any data
                 try:
-                    ids_non_data.append(str(Path(f).stem))
+                    star_ids.append(int(Path(f).stem))
                 except ValueError:
                     pass
                 
@@ -2923,8 +2923,8 @@ class LightCurve(object):
                         df0 = pd.concat([df0, df1])
                         
         # Report problems if requested
-        if ids_no_data:
-            message = f'No light curves found for star ID:\n{ids_no_data}'
+        if star_ids:
+            message = f'No light curves found for star ID:\n{star_ids}'
             errorcode('warning', message)
                         
         # Save final feather
@@ -2967,7 +2967,7 @@ class LightCurve(object):
         # Prepare for star loop
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
-        ids_no_data = []
+        star_ids = []
         
         # Loop over star simulated
 
@@ -2981,7 +2981,7 @@ class LightCurve(object):
             if len(files) == 0:
                 # Record if a star do no have any data
                 try:
-                    ids_non_data.append(str(Path(f).stem))
+                    star_ids.append(int(Path(f).stem))
                 except ValueError:
                     pass
 
@@ -3019,8 +3019,8 @@ class LightCurve(object):
                 df0 = pd.concat([df0, df1])
                 
         # Report problems if requested
-        if ids_no_data:
-            message = f'No light curves found for star ID:\n{ids_no_data}'
+        if star_ids:
+            message = f'No light curves found for star ID:\n{star_ids}'
             errorcode('warning', message)
                 
         # Sort data frame, set new index, and save
