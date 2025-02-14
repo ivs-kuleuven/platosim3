@@ -2105,7 +2105,7 @@ class VarSim(object):
                 plt.show()
                                             
         # SAVE DATA
-        print(self.lc.time.iloc[0]/86400, self.lc.time.iloc[-1]/86400)
+
         if self.ofile:
 
             # Filenames
