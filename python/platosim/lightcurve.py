@@ -2293,7 +2293,13 @@ class LightCurve(object):
 
         """Fetch list of folders.
         """
-        return natsort.natsorted(glob.glob(f'{self.path}/*'))
+        folders = natsort.natsorted(glob.glob(f'{self.path}/*'))
+        if len(folders) == 0:
+            folders = []
+        elif Path(folders[0]).is_file():
+            folders = [self.path]
+        
+        return folders
 
         
     def plot_multi(self,
@@ -2848,11 +2854,13 @@ class LightCurve(object):
         Parameters
         ----------
         outpurFile : bool, str
-             Path to save output file containing NSR estimates.
+            Path to save output file containing NSR estimates.
         suffix : str
-           Filename suffix of simulations: ['hdf5', 'ftr', 'zip'].
+            Filename suffix of simulations: ['hdf5', 'ftr', 'zip'].
         quarter : int
-           Mission quarter to seperate NSR estimates.
+            Mission quarter to seperate NSR estimates.
+        star_range : list
+            List with a range of [min, max] star IDs to compute.
 
         Return
         ------
@@ -2863,22 +2871,24 @@ class LightCurve(object):
         # Prepare for star loop
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
-        ids_no_data = []
-
+        star_ids = []
+            
         # Loop over star simulated
         
-        for f in tqdm(self.folders()[:100], bar_format=ut.tqdmBar()):
+        for f in tqdm(self.folders(), bar_format=ut.tqdmBar()):
 
             # Fetch all files
             files    = self.files(path=f, suffix=suffix, quarter=quarter, error=False)
             numFiles = len(files)
 
             # Check if any files are found
-            
-            if numFiles == 0:
+
+            if len(files) == 0:
                 # Record if a star do no have any data
-                star_id = int(Path(f).stem)
-                ids_no_data.append(star_id)
+                try:
+                    star_ids.append(int(Path(f).stem))
+                except ValueError:
+                    pass
                 
             else:
                 # Fetch light curve object
@@ -2913,12 +2923,12 @@ class LightCurve(object):
                         df0 = pd.concat([df0, df1])
                         
         # Report problems if requested
-        if ids_no_data:
-            message = f'No light curves found for star ID:\n{ids_no_data}'
+        if star_ids:
+            message = f'No light curves found for star ID:\n{star_ids}'
             errorcode('warning', message)
                         
         # Save final feather
-        df = df0.astype({"mag":np.float32, "NSR":n.pfloat32})
+        df = df0.astype({"mag":np.float32, "NSR":np.float32})
         df = df.sort_values(by=["ID", "group", "camera", "quarter"])
         df = df.reset_index()
 
@@ -2957,23 +2967,24 @@ class LightCurve(object):
         # Prepare for star loop
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
-        ids_no_data = []
+        star_ids = []
         
         # Loop over star simulated
 
         for f in tqdm(self.folders(), bar_format=ut.tqdmBar()):
 
             # Fetch all files
-            files    = self.files(path=f, suffix=suffix, quarter=quarter, error=False)
-            numFiles = len(files)
+            files = self.files(path=f, suffix=suffix, quarter=quarter, error=False)
 
             # Check if any files are found
             
-            if numFiles == 0:
+            if len(files) == 0:
                 # Record if a star do no have any data
-                star_id = int(str(Path(f).stem))
-                ids_non_data.append(star_id)
-                
+                try:
+                    star_ids.append(int(Path(f).stem))
+                except ValueError:
+                    pass
+
             else:
                 # Fetch light curve object
                 lcs = LightCurve(f, mode="multi")
@@ -3008,8 +3019,8 @@ class LightCurve(object):
                 df0 = pd.concat([df0, df1])
                 
         # Report problems if requested
-        if ids_no_data:
-            message = f'No light curves found for star ID:\n{ids_no_data}'
+        if star_ids:
+            message = f'No light curves found for star ID:\n{star_ids}'
             errorcode('warning', message)
                 
         # Sort data frame, set new index, and save
