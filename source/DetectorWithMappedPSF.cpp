@@ -499,7 +499,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     // Integration (incl. jitter): point sources
 
-    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime);
 
     // Convolve with the point spread function
 
