@@ -983,29 +983,31 @@ class StellarSpots(object):
         spots_table = Table([lat, lon, prot_diff, tmax, amax*1e6, lifetime, lifetime/prot_diff],
                             names=('LAT', 'LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R'),
                             meta=meta_data)
-        # Remove spots that do not contribute to the simulated lightcurve.        
-        spots_table = self.filter_spots_table(time,
+
+        # Remove spots that do not contribute to the simulated lightcurve.
+        time0 = time - time[0]
+        spots_table = self.filter_spots_table(time0,
                                               spots_table,
                                               min_area=min_area,
                                               evolution=evolution)
-        # Decrease the sampling to 30 min for increased performance
-        time0 = np.copy(time)
-        time = time[::72] - time0[0]        
+        # Decrease the sampling to 30 min for increased performance: (30*60)s/25s = 72
+        time1 = time0[::72]        
         # Simulate the lightcurve.
-        flux, area = self.kipping_spot_model(time,
-                                             spots_table,
-                                             inc_star=incl,
-                                             ld_type=ld_type,
-                                             ld_pars=ld_pars,
-                                             min_area=min_area,
-                                             evolution=evolution)
+        flux1, area1 = self.kipping_spot_model(time1,
+                                               spots_table,
+                                               inc_star=incl,
+                                               ld_type=ld_type,
+                                               ld_pars=ld_pars,
+                                               min_area=min_area,
+                                               evolution=evolution)
         # We interpolate back to original time grid of 25s cadence
         # NOTE Interpolate (piecewise cubic) into higher resolution grid
-        flux -= 1 # Normalised around zero 
-        spline = make_interp_spline(time, flux, k=3)
-        flux0   = spline(time0)        
+        flux1 -= 1 # Normalised around zero 
+        spline = make_interp_spline(time1, flux1, k=3)
+        flux0  = spline(time0)
+        
         # Finito!
-        self.dur, self.time, self.flux, self.area = dur, time, flux, area.sum(0)
+        self.dur, self.time, self.flux, self.area = dur, time1, flux1, area1.sum(0)
         self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
         return flux0, self.params, self.area        
         #------------------------------------------------------------------ end
@@ -1142,7 +1144,7 @@ class StellarFlares(object):
         area = spot_coverage * 100
         time = np.linspace(self.time[0], self.time[-1], len(area))
         spline = make_interp_spline(time, area, k=3)
-        self.area = np.abs(spline(self.time))
+        self.area = np.abs(spline(self.time))        
         self.tmax = pd.Series(self.time).sample(n_flares,
                                                 weights=self.area,
                                                 random_state=self.rng).to_numpy()
