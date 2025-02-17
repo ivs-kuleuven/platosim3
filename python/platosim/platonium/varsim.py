@@ -1061,7 +1061,7 @@ class VarSim(object):
             model.plot()
             plt.show()
 
-
+            
     def solar_flares(self):
 
         """Model solar flares.
