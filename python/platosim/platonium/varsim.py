@@ -334,9 +334,6 @@ class VarSim(object):
             print(f'Simulating {self.instrument} bandpass  : ' +
                   f'{self.wvl_tele[0]} - {self.wvl_tele[-1]}')
 
-
-
-
             
     #--------------------------------------------------------------#
     #                     BENCHMARK STARS/PLANETS                  #
@@ -473,11 +470,7 @@ class VarSim(object):
             logg = 4.0
             Z    = 0.0
 
-
-            
         return M, R, Teff, logg, Z
-
-
 
 
     def load_exoplanet(self, source):
@@ -652,9 +645,6 @@ class VarSim(object):
             
         return params
         
-
-
-
     
     #--------------------------------------------------------------#
     #                       STELLAR PARAMETERS                     #
@@ -748,9 +738,6 @@ class VarSim(object):
             print(f"Stellar mass    : {self.df.M_Msun:.2f}")
             print(f"Luminosity      : {self.df.L_Lsun:.2f}")
 
-
-            
-
         
     def binary_source(self):
 
@@ -761,9 +748,6 @@ class VarSim(object):
             errorcode('module', '\nBinary sources\n')
 
         
-
-
-                    
     def stellar_spectrum(self):
 
         """Calculates the bolometric correction from high-res spectra.
@@ -852,9 +836,6 @@ class VarSim(object):
                        self.flux_star, self.flux1_in, self.flux2_in, flux_equi,
                        Teff, Teff_upper, Teff_lower)
 
-        
-
-            
             
     def passband_correction(self, passband_a='plato', passband_b='kepler'):
 
@@ -908,8 +889,6 @@ class VarSim(object):
 
         return F_a / F_b
 
-        
-            
 
     def luminosity_correction(self):
 
@@ -970,9 +949,6 @@ class VarSim(object):
         #     print(f'Absolute magnitude bol : {round(M_bolometric, 4)}')
         #     print(f'Absolute magnitude lam : {round(M_passband,   4)}')            
         
-
-
-
             
     #--------------------------------------------------------------#
     #                   MODELS OF SOLAR-LIKE STARS                 #
@@ -1027,9 +1003,6 @@ class VarSim(object):
             pt.plot_amplitude_spectrum(self.lc, numax=params_puls[0])
 
 
-    
-
-        
     def solar_spots(self):
 
         """Model stellar spot modulations.
@@ -1088,9 +1061,6 @@ class VarSim(object):
             model.plot()
             plt.show()
 
-
-
-
             
     def solar_flares(self):
 
@@ -1145,9 +1115,6 @@ class VarSim(object):
         # Plot model
         if self.plot: model.plot()
 
-
-
-
         
     #--------------------------------------------------------------#
     #                         OTHER PULSATORS                      #
@@ -1191,9 +1158,6 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-
-
-        
     def star_spb(self):
 
         """Generate light curve for a SPB star.
@@ -1256,9 +1220,6 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-
-
-        
     def star_dsct(self):
 
         """Generate light curves for delta-Scuti stars.
@@ -1296,9 +1257,6 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-
-
-        
     def star_gdor(self):
 
         """Generate light curve for a gamma Doradus star.
@@ -1357,9 +1315,6 @@ class VarSim(object):
         mag = model.evaluate(plot=args.plot)
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
-
-
-
         
     def star_roap(self):
 
@@ -1390,9 +1345,6 @@ class VarSim(object):
         self.df['dphi_rad'] = params[1]
         self.df['Arel']     = params[2]
         self.df['scale']    = params[3]
-
-
-
 
         
     #--------------------------------------------------------------#
@@ -1437,9 +1389,6 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
         
 
-
-        
-
     def star_ceph(self):
 
         """Generate ligth curve for Cepheid stars.
@@ -1472,9 +1421,6 @@ class VarSim(object):
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
         self.lc['flux'] = ut.fromMagToFlux(mag)
-
-
-
 
         
     def star_lpv(self):
@@ -1541,9 +1487,6 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-        
-
-        
     def binary_smbh(self):
 
         """Function to generate a SMBH binary light curve.
@@ -1593,8 +1536,6 @@ class VarSim(object):
         self.df['A_lens_mag']    = A_lens
         self.df['tmax_lens_day'] = tmax
         self.df['tdur_lens_day'] = tdur        
-
-
 
         
     #--------------------------------------------------------------#
@@ -1653,8 +1594,6 @@ class VarSim(object):
         # Store parameters
         self.df['u1'] = self.ldc[0]
         self.df['u2'] = self.ldc[1]
-
-            
 
             
     def planet_model(self):
@@ -1867,9 +1806,6 @@ class VarSim(object):
         self.dt_c = dt_c
 
             
-
-
-
     def planet_transit(self):
 
         """Model exoplanet transits.
@@ -1916,10 +1852,6 @@ class VarSim(object):
         # Print to bash
         if self.verbose > 1:
             print(f"Mid-transit depth  : {np.abs(np.min(self.lc.tran)):.1f} ppm")
-
-
-
-
 
 
     def planet_occultation(self):
@@ -2032,9 +1964,6 @@ class VarSim(object):
         lc_occu = np.zeros(len(self.time))
         self.lc['occu'] = lc_occu.tolist()
 
-
-
-
         
     def planet_beaming(self):
 
@@ -2067,9 +1996,6 @@ class VarSim(object):
         self.lc['beam'] = lc_beam.tolist()
 
 
-
-
-
     def planet_ellipsoidal(self):
 
         """Model ellipsoidal distortion.
@@ -2097,9 +2023,6 @@ class VarSim(object):
 
         # Combine models
         self.lc['elli'] = lc_elli.tolist()
-
-
-
 
         
     def plot_phase_curve(self):
@@ -2129,9 +2052,6 @@ class VarSim(object):
                       'No phase plot, time series is shorter than the orbital period!')
 
 
-
-
-
     #--------------------------------------------------------------#
     #                      PROLOGUE AND SAVING                     #
     #--------------------------------------------------------------#
@@ -2144,10 +2064,6 @@ class VarSim(object):
 
         # SORT LIGHT CURVE
 
-        # Convert time unit [d -> s]
-        if args.quarter:
-            self.lc['time'] += self.timeStart * 86400
-        
         # Variability classes
         stars    = ['bCep', 'SPB', 'dSct', 'gDor', 'roAp',
                     'RRLyr', 'Ceph', 'V361Hya', 'ZZCeti', 'LPV']
@@ -2189,7 +2105,7 @@ class VarSim(object):
                 plt.show()
                                             
         # SAVE DATA
-        
+
         if self.ofile:
 
             # Filenames
@@ -2228,7 +2144,6 @@ class VarSim(object):
                     if self.verbose > 1:
                         print(f'Saving file : {ofile_pulsations}')                
                     self.dm.to_feather(ofile_pulsations)
-
 
 
     #--------------------------------------------------------------#
@@ -2307,9 +2222,6 @@ class VarSim(object):
         # Combine and save
         self.run_prolog()
 
-
-
-
         
     def mode_binary(self):
 
@@ -2330,9 +2242,6 @@ class VarSim(object):
 
         # Combine and save
         self.run_prolog()
-
-        
-
 
         
     def mode_kul20(self):
@@ -2371,9 +2280,6 @@ class VarSim(object):
 
         # Add steps from default mode
         self.mode_single()
-
-
-
 
         
     def mode_mocka(self):
@@ -2428,7 +2334,6 @@ class VarSim(object):
             print(f'Target star is a {starType} pulsator')
             print(f'Generating noise-less light curves for {nstar} stars')
 
-            
         # GENERATE LIGHT CURVES
 
         # Loop over each star in subfield
@@ -2477,13 +2382,11 @@ class VarSim(object):
                 self.df.logg = ds.logg
                 self.df.Z    = ds.Z
                 
-            
             # GENERIC STEPS
 
             self.stellar_source()
             self.stellar_spectrum()
 
-            
             # SELECT VARIABLE SIGNAL
 
             if i > 0:
@@ -2520,50 +2423,40 @@ class VarSim(object):
                 L_upp = np.polyval(poly_upp, xx)
                 
                 # Eclipsing binaries
-
                 if self.df.ruwe > 1.2:
                     starType = 'EB'
                     
                 # Stars from MOCKA
-                
                 elif ((self.df.BP_RP < xlim1) and (self.df.Mg < Mg_WD_limit(self.df.BP_RP)) |
                       (self.df.BP_RP > xlim1) and (self.df.BP_RP < xlim0) and
                       (self.df.Mg < IMS_line(self.df.BP_RP))):
                     if self.df.spec == 'O':
                         starType = 'bCep'
                     elif self.df.spec in ['B', 'A']:
-                        starType = 'SPB'
-                                     
+                        starType = 'SPB'                                     
                 elif ((np.log10(self.df.L) > np.polyval(poly_low, self.df.Teff)) and
                       (np.log10(self.df.L) < np.polyval(poly_upp, self.df.Teff)) and
                       (self.df.M > 1.5) and (self.df.M < 2.5) and  
                       (self.df.logg > 3.5) and (self.df.L > 2)):
                     starType = 'dSct'
-                
                 elif ((self.df.M > 1.2) and (self.df.M < 2.0) and
                       (self.df.Teff > 6500) and (self.df.Teff < 9000) and
                       (self.df.logg > 3.5) and (self.df.L > 2.0)):
                     starType = 'gDor'
-
                 elif ((self.df.M > 0.6) and (self.df.M < 0.8)):
                     starType = 'RRLyr'
-
                 elif ((self.df.M > 0.6) and (self.df.M < 0.8)):
-                    starType = 'Ceph'
-                    
+                    starType = 'Ceph'                    
                     # elif self.df.Mg < Mg_WD_limit(self.df.BP_RP):
                     #    starType = 'WD'
 
                 # Miscellaneous variables
-                    
                 elif ((self.df.BP_RP > xlim0) & (self.df.Mg < Mg_RG_upper(self.df.BP_RP))):
                     starType = 'LPV'
-
                 elif self.df.spec in ['A', 'unknown', 'CSTAR', '']:
                     starType = 'SPV'
                     
                 # Check massive stars if missed
-
                 if starType == None and self.df.spec in ['O', 'B', 'A']:
                     if self.df.spec == 'O':
                         starType = 'bCep'
@@ -2573,7 +2466,6 @@ class VarSim(object):
                         starType = 'dSct'
                     
                 # Low mass dwarf stars
-                
                 elif self.df.spec in ['F', 'G', 'K', 'M']:
                     
                     # Probability of dwarf solar-like oscillator
@@ -2647,7 +2539,6 @@ class VarSim(object):
             if starType == None:
                 starType = 'SPV'
 
-                
             # SELECT VARIABLE CLASS
 
             if starType in ['solar_puls', 'solar_spot', 'solar_flare', 'dwarf_red']:
@@ -2658,12 +2549,10 @@ class VarSim(object):
                 self.mocka_solar = False
             
             # Eclipsing binary
-            
             if starType == 'EB':
                 self.binary_eb()
             
             # Massive pulsators
-
             elif starType == 'bCep':
                 self.star_bcep()
             elif starType == 'SPB':
@@ -2674,7 +2563,6 @@ class VarSim(object):
                 self.star_gdor()
 
             # Evolved stars
-
             elif starType == 'RG':
                 self.solar_granosc()            
             elif starType == 'RRLyr':
@@ -2685,7 +2573,6 @@ class VarSim(object):
             #    self.star_zzceti()
                 
             # Solar-like stars
-
             elif starType == 'solar_puls':
                 self.solar_granosc()
             elif starType == 'solar_spot':
@@ -2700,12 +2587,10 @@ class VarSim(object):
                 self.solar_flares()
 
             # Miscellaneous varibales
-            
             elif starType == 'LPV':                
                 self.star_lpv()
             elif starType == 'SPV':
                 self.star_roap()
-
 
             # GENERATE LIGHT CURVE
 
@@ -2733,9 +2618,6 @@ class VarSim(object):
                 for j in range(len(starIDs)):
                     f.write(f'{starIDs[j]} {varSourceFiles[j]}\n')
 
-
-
-            
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
