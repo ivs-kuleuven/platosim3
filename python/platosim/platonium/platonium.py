@@ -1339,7 +1339,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
         sim["ControlHDF5Content/WriteThroughputMaps"]         = True
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
-        sim["ControlHDF5Content/WriteBackgroundMap"]          = False
+        sim["ControlHDF5Content/WriteBackgroundMap"]          = True
         sim["ControlHDF5Content/WriteCTI"]                    = False
         sim["ControlHDF5Content/WriteSubPixelImages"]         = False
         sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
@@ -1348,7 +1348,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteGhostPositions"]         = False
-        sim["ControlHDF5Content/WriteCosmics"]                = True
+        sim["ControlHDF5Content/WriteCosmics"]                = False
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
     def run_microscan(self, sim):
@@ -1419,7 +1419,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteACS"]                    = True
-        sim["ControlHDF5Content/WriteCosmics"]                = True
+        sim["ControlHDF5Content/WriteCosmics"]                = False
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
         sim["ControlHDF5Content/WriteTelescopeACS"]           = True
         sim["ControlHDF5Content/WriteCTI"]                    = True
