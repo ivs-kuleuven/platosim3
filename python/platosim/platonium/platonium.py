@@ -731,7 +731,7 @@ class PLATOnium(object):
                 sim["SubField/NumColumns"] = sim["CCDPositions/NumColumns"][0]
 
             # Control output requirements
-            sim["ControlHDF5Content/GroupByExposure"]    = True
+            sim["ControlHDF5Content/GroupByExposure"]    = False
             sim["ControlHDF5Content/WritePixelMaps"]     = True
             sim["ControlHDF5Content/WriteStarPositions"] = True
 
@@ -1332,7 +1332,7 @@ class PLATOnium(object):
         Module to control HDF5 content for L1 pipeline.
         """
         # Include HDF5 content
-        sim["ControlHDF5Content/GroupByExposure"]             = True
+        sim["ControlHDF5Content/GroupByExposure"]             = False
         sim["ControlHDF5Content/WritePixelMaps"]              = True
         sim["ControlHDF5Content/WriteBiasMaps"]               = True
         sim["ControlHDF5Content/WriteSmearingMaps"]           = True
