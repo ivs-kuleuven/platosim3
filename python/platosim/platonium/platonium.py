@@ -147,8 +147,6 @@ class PLATOnium(object):
                 errorcode('error', 'Fast camera can only be [1, 2] = [blue, red]')
         else:
             errorcode('error', 'Camera-group can only be [1, 2, 3, 4, 5] (Fast = 5)')
-        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file():
-            errorcode('error', 'HDF5 file already exists! Use "-w" to overwrite it')
 
         # Select full-frame CCD
         if self.fullFrame:
