@@ -119,6 +119,16 @@ class PLATOnium(object):
         self.pipeExtendedMask = args.pipe_emask
         self.pipePlots        = args.pipe_plots
 
+        # default to not L1 only. This is to debug L1 without
+        # re-simulating all platosim data
+        self.l1_only = False
+
+        # Overwrite simulation
+        if args.overwrite:
+            self.overwrite = True
+        else:
+            self.overwrite = False
+
         # MANDATORY PARAMETERS
         # Normal cameras
         if self.group in [1, 2, 3, 4]:
@@ -137,6 +147,8 @@ class PLATOnium(object):
                 errorcode('error', 'Fast camera can only be [1, 2] = [blue, red]')
         else:
             errorcode('error', 'Camera-group can only be [1, 2, 3, 4, 5] (Fast = 5)')
+        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file():
+            errorcode('error', 'HDF5 file already exists! Use "-w" to overwrite it')
 
         # Select full-frame CCD
         if self.fullFrame:
@@ -164,12 +176,6 @@ class PLATOnium(object):
             self.verbose = 3
             self.verbose_platosim = 3
             self.devnull = ''
-
-        # Overwrite simulation
-        if args.overwrite:
-            self.overwrite = True
-        else:
-            self.overwrite = False
 
         # Save animation
         if args.animation:
@@ -487,8 +493,13 @@ class PLATOnium(object):
             os.system(f'chmod 755 {self.outputDir}')
 
         # Check if output file exists
-        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file():
-            errorcode('error', 'HDF5 file already exists! Use "-w" to overwrite it')
+        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file() and not self.pipeline:
+            errorcode('error', 'HDF5 file already exists and no pipeline run triggered. Use "-w" to overwrite it')
+        elif not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file() and self.pipeline:
+            errorcode('warning', 'HDF5 file already exists and pipeline triggered. Analysing existing HDF5 file.')
+            self.l1_only = True
+        else:
+            pass
 
     def init_sim(self):
         """
@@ -1446,6 +1457,11 @@ class PLATOnium(object):
             self.tocMicroscan = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+    def run_L1_microscan(self):
+        """
+        Splits L1 processing of microscan into its own function
+        This allows better testing of L1
+        """
         # Change directory needed to execute scripts
         os.chdir(self.microscanDir)
 
@@ -2032,7 +2048,9 @@ p.load_stars()
 p.configure_output()
 sim = p.init_sim()
 p.create_seeds(sim)
-p.create_inputfiles(sim)
+# skip if only doing L1
+if not p.l1_only:
+    p.create_inputfiles(sim)
 
 if args.plot:
     # Only show imagette
@@ -2041,18 +2059,22 @@ if args.plot:
 elif args.pipeline and args.sample == 'P1':
     # Run on-ground L0-L1 pipeline chain
     p.control_hdf5()
-    p.run_sim_normal(sim)
-    if p.pipePsfMethod == "microscan":
-        p.run_microscan(sim)
+    if not p.l1_only:
+        p.run_sim_normal(sim)
+        if p.pipePsfMethod == "microscan":
+            p.run_microscan(sim)
+    p.run_L1_microscan()
     p.run_L1_onground()
     p.sort_output_pipeline()
 
 elif args.pipeline and args.sample == 'P5':
     # Run on-board L0-L1 pipeline chain
     p.control_hdf5()
-    p.run_sim_normal(sim)
-    if p.pipePsfMethod == "microscan":
-        p.run_microscan(sim)
+    if not p.l1_only:
+        p.run_sim_normal(sim)
+        if p.pipePsfMethod == "microscan":
+            p.run_microscan(sim)
+    p.run_L1_microscan()
     p.run_L1_onboard()
     p.sort_output_pipeline()
 
