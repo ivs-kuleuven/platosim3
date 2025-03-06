@@ -1523,12 +1523,14 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
 
         # build the gen_pflux command
+        # NOTE: the psf fittign currently struggles at <0.25 separation with contaminants
+        # Reza suggested setting this limit to 0.5 pixels for safety
         if self.pipePsfMethod == 'microscan':
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-            comm = f"gen_pflux_ts --psf {psf_path}"
+            comm = f"gen_pflux_ts --psf {psf_path} --distance-min 0.5"
         else:
             psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
-            comm = f"gen_pflux_ts --psf-library {psf_lib_path}"
+            comm = f"gen_pflux_ts --psf-library {psf_lib_path} --distance-min 0.5"
         if self.pipePlots:
             comm += " -P"
         if self.noAberrCorr:
