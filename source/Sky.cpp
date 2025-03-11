@@ -449,171 +449,95 @@ unsigned long Sky::selectGhostOrigsWithinRadiusFrom(double RA0, double dec0, dou
 
 
 /**
- * \brief Calculate the apparent positions of the previously selected stars based on the current platform
- *        pointing coordinates.
+ * \brief Calculate the apparent positions of the previously selected stars
+ * based on the current platform pointing coordinates.
  *
- * \detail Important: First call selectStarsWithinRadiusFrom() to get a selection of stars, so that the
- *                    aberration does not need to be done on the entire database.
+ * \detail Important: First call selectStarsWithinRadiusFrom() to get a
+selection of stars, so that the
+ *                    aberration does not need to be done on the entire
+database.
  *
- * This calculation is an approximation based on a circular earth orbit around the Sun and is *not* taking
- * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
- * however which takes into account the aberration correction done for the spacecraft pointing.
+ * This calculation is an approximation based on the position around the sun as
+ * given by the input  orbit file. We also do calculate the differential
+ * aberration which takes into account the aberration correction done for the
+ * spacecraft pointing.
+ * The position of the spacecraft is obtained from an orbit file and these
+ * positions are stored in the orbitDB variable. This is a vector that
+ * contains the time, velocity direction and speed of the spacecraft for every
+ * timepoint needed in this simulation.
  *
- * \param platform Current platform from which the position of the Sun and the pointing coordinates are requested,
  *
+ * \param platform     Current platform from which the position of the Sun
+ *                     and the pointing coordinates are requested,
+ * \param aberrationCorrectionType   Type of the aberattion that we are
+ *                     moddeling. This can be either differential or absolute.
+ * \param startTime    Start time of the exposure [s]
+ *                     (exposure number 0 is at startTime = 0)
+ * 
  * \return Star catalogue with all the aberration corrected stars.
  */
-void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
+void Sky::aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime)
 {
-    using StringUtilities::dtos;
-
-    valarray<double> v = std::get<1>(orbitDB.at(0));
-    double speed = std::get<2>(orbitDB.at(0));
-
-    for (unsigned int i=0; i < orbitDB.size(); i++)
-    {
-	if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-	{
-            speed = std::get<2>(orbitDB.at(i));
-            v     = std::get<1>(orbitDB.at(i));
-	}
-    }
-
-    //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
-
-    valarray<double> rot0 = {1., 0., 0.};
-    valarray<double> rot1 = {0., 1., 0.};
-    valarray<double> rot2 = {0., 0., 1.};
-
-    //ratio of the velocity of PLATO to the speed of light
-
-    double beta = speed / 300000.;
-
-    if (aberrationCorrectionType == "differential")
-    {
-        Log.info("StarCatalog::aberrate: applying differential aberration correction");
-
-        // Request the current platform pointing coordinates (i.e. pointing of the Fast Camera's)
-
-        double raPlatform, decPlatform;
-        tie(raPlatform, decPlatform) = platform.getCurrentPointingCoordinates();
-
-        double lambdaPlatform, betaPlatform;
-        equatorial2ecliptic(raPlatform, decPlatform, lambdaPlatform, betaPlatform);
-
-        //direction of the pointing
-
-        valarray<double> p = {cos(lambdaPlatform) * cos(betaPlatform), sin(lambdaPlatform) * cos(betaPlatform), sin(betaPlatform)};
-
-        //angle between velocity direction and pointing
-
-        double pangle = acos((v * p).sum());
-
-        //relativistically aberrated angle between velocity direction and pointing
-
-        double oangle = atan2(sqrt(1. - beta * beta) * sin(pangle), cos(pangle) + beta);
-
-        //rotation axis between velocity direction and pointing
-
-        valarray<double> r = {p[1] * v[2] - p[2] * v[1], p[2] * v[0] - p[0] * v[2], p[0] * v[1] - p[1] * v[0]};
-        r /= sqrt((r * r).sum());
-
-        //rotation matrix for rotation axis r with angle difference after aberration, this reverses the aberration effect for the pointing direction
-
-        double c = cos(oangle - pangle);
-        double s = sin(oangle - pangle);
-        double x = r[0], y = r[1], z = r[2];
-        rot0 = {c + x * x * (1. - c), x * y * (1. - c) - z * s, x * z * (1. - c) + y * s};
-        rot1 = {y * x * (1. - c) + z * s, c + y * y * (1. - c), y * z * (1. - c) - x * s};
-        rot2 = {z * x * (1. - c) - y * s, z * y * (1. - c) + x * s, c + z * z * (1. - c)};
-
-    }
-    else
-    {
-        Log.info("StarCatalog::aberrate: applying absolute aberration correction");
-    }
-
-    for (unsigned int n = 0; n < selectedStarID.size(); ++n)
-    {
-        double raStar, decStar, Vmag;
-        tie(raStar, decStar, Vmag) = starDB[selectedStarID[n]];       // ra & dec in [rad]
-
-        double lambdaStar, betaStar;
-        equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
-
-        //direction of the star
-
-        valarray<double> s = {cos(lambdaStar) * cos(betaStar), sin(lambdaStar) * cos(betaStar), sin(betaStar)};
-
-        //angle between velocity direction and star direction
-
-        double sangle = acos((v * s).sum());
-
-        //relativistically aberrated angle between velocity direction and star direction
-
-        double oangle = atan2(sqrt(1. - beta * beta) * sin(sangle), cos(sangle) + beta);
-
-        //relativistically aberrated star direction
-
-        valarray<double> a = s - v * cos(sangle);
-        a = v * cos(oangle) + a / sqrt((a * a).sum()) * sin(oangle);
-
-        //rotate aberrated star direction to compensate for aberrated pointing to get the differential aberrated star direction
-
-        a = {(rot0 * a).sum(), (rot1 * a).sum(), (rot2 * a).sum()};
-
-        //calculate ecliptic coordinates of aberrated star direction
-
-        betaStar = atan(a[2] / sqrt(a[0] * a[0] + a[1] * a[1]));
-        lambdaStar = atan2(a[1], a[0]);
-
-        double raStarAberrated, decStarAberrated;
-        ecliptic2equatorial(lambdaStar, betaStar, raStarAberrated, decStarAberrated);
-
-        selectedRA[n] = raStarAberrated;
-        selectedDec[n] = decStarAberrated;
-
-        // Write debugging info on the first star only
-
-        if (n == 0)
-        {
-            Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(raStarAberrated, false, 8) + ", " + dtos(decStarAberrated, false, 8));
-        }
-    }
+    aberrateSelectedPositions(platform, selectedStarID, selectedRA, selectedDec, aberrationCorrectionType, startTime);
 }
 
 
+
+
+
+
+
+
+
+
 /**
- * \brief Calculate the apparent positions of the previously selected ghost originators based on the current platform
+ * \brief Calculate the apparent positions of the selected "items" (stars or
+ghost originators)  based on the current platform
  *        pointing coordinates.
  *
- * \detail Important: First call selectGhostOrigsWithinRadiusFrom() to get a selection of stars, so that the
- *                    aberration does not need to be done on the entire database.
+ * \detail Important: First call selectGhostOrigsWithinRadiusFrom() or
+selectStarsWithinRadiusFrom() to get a
+ * selection of stars, so that the aberration does not need to be done on the
+entire database.
  *
- * This calculation is an approximation based on a circular earth orbit around the Sun and is *not* taking
- * the Lissajous orbit of the satellite around L2 into account. We do calculate the differential aberration
- * however which takes into account the aberration correction done for the spacecraft pointing.
+ * This calculation is an approximation based on the position around the sun as
+ * given by the input  orbit file. We also do calculate the differential
+ * aberration which takes into account the aberration correction done for the
+ * spacecraft pointing.
+ * The position of the spacecraft is obtained from an orbit file and these
+ * positions are stored in the orbitDB variable. This is a vector that
+ * contains the time, velocity direction and speed of the spacecraft for every
+ * timepoint needed in this simulation.
  *
- * \param platform Current platform from which the position of the Sun and the pointing coordinates are requested,
+ * \param platform     Current platform from which the position of the Sun and
+the
+ *                     pointing coordinates are requested,
+ * \param aberrationCorrectionType   Type of the aberattion that we are
+ *                     moddeling. This can be either differential or absolute.
+ * \param startTime    Start time of the exposure [s],
+ *                     (exposure number 0 is at startTime = 0)
+ * \param selectedID   ID of the star/ghosts that we want to aberrate
+ * \param RA           RA of the star/ghosts that we want to aberrate
+ * \param Dec          Dec of the star/ghosts that we want to aberrate
  *
  * \return Star catalogue with all the aberration corrected stars.
  */
-void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle)
+void Sky::aberrateSelectedPositions(Platform &platform, vector<unsigned int> &selectedID, vector<double> &RA, vector<double> &Dec, string aberrationCorrectionType, double startTime)
 {
+
     using StringUtilities::dtos;
 
     valarray<double> v = std::get<1>(orbitDB.at(0));
     double speed = std::get<2>(orbitDB.at(0));
- 
-    for (unsigned int i=0; i < orbitDB.size(); i++)
-    {
-      if ( std::get<0>(orbitDB.at(i)) <= time0 + startTime)
-      {
-        speed = std::get<2>(orbitDB.at(i));
-        v     = std::get<1>(orbitDB.at(i));
-      }
-    }
 
+    for (unsigned int i = 0; i < orbitDB.size(); i++)
+    {
+        if (std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+        {
+            speed = std::get<2>(orbitDB.at(i));
+            v = std::get<1>(orbitDB.at(i));
+        }
+    }
 
     //rotation matrix to compensate the aberration of light for the pointing direction, needed to calculate the differential aberration
 
@@ -667,13 +591,12 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
     else
     {
         Log.info("StarCatalog::aberrate: applying absolute aberration correction");
-
     }
 
-    for (unsigned int n = 0; n < selectedGhostOrigID.size(); ++n)
+    for (unsigned int n = 0; n < selectedID.size(); ++n)
     {
         double raStar, decStar, Vmag;
-        tie(raStar, decStar, Vmag) = starDB[selectedGhostOrigID[n]];       // ra & dec in [rad]
+        tie(raStar, decStar, Vmag) = starDB[selectedID[n]];       // ra & dec in [rad]
 
         double lambdaStar, betaStar;
         equatorial2ecliptic(raStar, decStar, lambdaStar, betaStar);
@@ -707,8 +630,8 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
         double raStarAberrated, decStarAberrated;
         ecliptic2equatorial(lambdaStar, betaStar, raStarAberrated, decStarAberrated);
 
-        selectedGhostOrigRA[n] = raStarAberrated;
-        selectedGhostOrigDec[n] = decStarAberrated;
+        RA[n]  = raStarAberrated;
+        Dec[n] = decStarAberrated;
 
         // Write debugging info on the first star only
 
@@ -717,6 +640,52 @@ void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrati
             Log.debug("StarCatalog::aberrate: ra[0], dec[0] = " + dtos(raStarAberrated, false, 8) + ", " + dtos(decStarAberrated, false, 8));
         }
     }
+  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * \brief Calculate the apparent positions of the previously selected ghost
+originators based on the current platform
+ *        pointing coordinates.
+ *
+ * \detail Important: First call selectGhostOrigsWithinRadiusFrom() to get a
+selection of stars, so that the
+ *                    aberration does not need to be done on the entire
+database.
+ *
+ * This calculation is an approximation based on the position around the sun as
+ * given by the input  orbit file. We also do calculate the differential
+ * aberration which takes into account the aberration correction done for the
+ * spacecraft pointing.
+ * The position of the spacecraft is obtained from an orbit file and these
+ * positions are stored in the orbitDB variable. This is a vector that
+ * contains the time, velocity direction and speed of the spacecraft for every
+ * timepoint needed in this simulation.
+ *
+ * \param platform     Current platform from which the position of the Sun and
+the
+ *                     pointing coordinates are requested,
+ * \param aberrationCorrectionType   Type of the aberattion that we are
+ *                     moddeling. This can be either differential or absolute.
+ * \param startTime    Start time of the exposure [s],
+ *                     (exposure number 0 is at startTime = 0)
+ *
+ * \return Star catalogue with all the aberration corrected stars.
+ */
+void Sky::aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime)
+{
+    aberrateSelectedPositions(platform, selectedGhostOrigID, selectedGhostOrigRA, selectedGhostOrigDec, aberrationCorrectionType, startTime);
 }
 
 

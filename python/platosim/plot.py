@@ -1022,7 +1022,7 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
                          cbarOrientation=None, cbarMap='rainbow', color='r',
-                         figsize=(13, 9)):
+                         title=None, fs=20, figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
 
@@ -1066,11 +1066,16 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     
     gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
     gal = gal.galactic
+
+    # Show title if requested
+
+    if title:
+        # Aitoff projection in Galactic coordinates
+        plt.title(title, fontsize=fs+2, y=1.02)
+
     
     # Plot Aitoff projection in Galactic coordinates
-    
-    fs = 20
-    plt.title('Aitoff projection in Galactic coordinates', fontsize=fs+2, y=1.02)
+
     fig, ax = fig
     if len(raStars) <= 1e2: ms = 3.
     if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1.3
@@ -1392,7 +1397,6 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     if showGroups:
 
         # Show N-CAM groups
-
         raGroups, decGroups = rf.getCameraGroupCoordinates(np.deg2rad(alpha),
                                                            np.deg2rad(delta),
                                                            np.deg2rad(kappa))
@@ -2386,7 +2390,9 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
         
     elif residuals == "multi" and 'ncam' in df:
-        for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
+        for nsr, ncam, color in zip([100, 70, 58, 50],
+                                    [6, 12, 18, 24],
+                                    [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
         ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
@@ -2396,7 +2402,6 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     if show_ncam_noise_limits:
         
         # Magnitude range
-        #mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
         mag = np.linspace(0, 20, 100)
 
         # 
@@ -2409,7 +2414,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         
         # Jitter noise
         rms = 0.04
-        noise_jitter = ut.getJitterNoiseLimitNSR(rms, level=level)
+        noise_jitter = ut.getJitterNoiseLimitNSR(rms, tdur=3600, camType='normal')
         ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
                    label='Jitter noise')
 
@@ -2425,7 +2430,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
                 label='Sky and read noise')
 
         # Combine and plot
-        noise = noise_jitter + noise_photon + noise_background
+        noise = np.sqrt(noise_jitter**2 + noise_photon**2 + noise_background**2)
         ax.plot(mag, noise, '-', c='orange', lw=2,  zorder=2,
                 label=r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model")
         
@@ -3573,9 +3578,10 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                                           edgecolor='k', linewidth=lw, zorder=4)
 
                 # Add magnitude label above star position
-                
+
+                ax.annotate(f'{mag[0]:.1f}', xy=(col[0]-0.25, row[0]+0.30), color='green')
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.20), color='darkorange', weight='bold')
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.30), color='darkorange')
                     
             # Or hightligth all stars the same
             
@@ -3584,6 +3590,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                            facecolors='royalblue', edgecolors='k',
                            linewidth=lw, zorder=4)
 
+                
             # If requested, add star IDs to plot
             
             # if showStarIDs:
