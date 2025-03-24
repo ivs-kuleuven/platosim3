@@ -2170,6 +2170,16 @@ void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuant
 
 
 
+/**
+ * \brief: include the Straylight to the HDF5 file.
+ *
+ */  
+void HDF5File::writeStraylight(vector<double>& straylight)
+{
+  writeArray("/Straylight/", "Moon", straylight.data(), straylight.size());
+
+}
+
 
 
 /**

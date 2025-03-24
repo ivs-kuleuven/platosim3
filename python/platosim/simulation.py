@@ -277,7 +277,8 @@ class Simulation(object):
 
         try:
             value = ast.literal_eval(node)
-        except ValueError:
+        except Exception:
+            
             value = node
 
         # Return the value of the deepest node
@@ -669,6 +670,9 @@ class Simulation(object):
         self["CCD/IncludeDigitalSaturation"]        = switch
         self["CCD/IncludeQuantisation"]             = switch
         self["CCD/IncludeGainNonlinearity"]         = switch
+
+        # Straylight
+        self["StrayLight/IncludeStraylight"]        = switch
 
 
 

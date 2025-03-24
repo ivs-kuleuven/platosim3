@@ -3,17 +3,21 @@
 #include "Constants.h"
 #include "armadillo"
 #include <iostream>
-#include <numeric>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <cmath>
 
 
-#include <chrono>
-
 double operator-(Time t1, Time t2);
 double operator-(Time t1, Time t2) { return difftime(t1.t, t2.t); }
 
+
+std::ostream& operator<<(std::ostream& os, const Time &obj)
+{
+    os << obj.totalSeconds();
+    return os;
+}
 
 
 
@@ -47,13 +51,11 @@ StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
  */
 void StrayLight::configure(ConfigurationParameters &configParam)
 {
-    numExposure = configParam.getInteger("ObservingParameters/NumExposures");
-    beginExposures =
+    numExposure         = configParam.getInteger("ObservingParameters/NumExposures");
+    beginExposures      =
         configParam.getInteger("ObservingParameters/BeginExposureNr");
-    cycleTime = configParam.getInteger("ObservingParameters/CycleTime");
-    radiusFOV = deg2rad(
-        configParam.getDouble("CCD/RelativeTransmissivity/RadiusFOV")); // [deg]
-    pixelSize = configParam.getDouble("CCD/PixelSize") * 1e-6;
+    cycleTime           = configParam.getInteger("ObservingParameters/CycleTime");
+    pixelSize           = configParam.getDouble("CCD/PixelSize") * 1e-6;  // [m]
 
     // Get the coordinates of the telescope reference frame
 
@@ -65,21 +67,25 @@ void StrayLight::configure(ConfigurationParameters &configParam)
     telescopeAxis.col(1) = camera.telescopeToSkyCoordinates(ny);
     telescopeAxis.col(2) = camera.telescopeToSkyCoordinates(nz);
 
+    // Get the time in the orbit file that corresponds to exposure number 0.
 
-    double radiusMoon = 1.7381e6; // [m]
-    double moon_reflectivity = 0.11;
+    time0 = configParam.getString("StrayLight/Time0");
 
-    // Read in the positions of the file and save them into the vectors.
+        // Read in the positions of the file and save them into the vectors.
 
     std::string orbitPath =
         configParam.getAbsoluteFilename("StrayLight/FilePath");
     readInFile(orbitPath, sc_positions, moon_positions, sun_positions);
 
-    // Read in the PST file and save it into vectors.
+    // Read in the PSTRadiance file and save it into vectors.
 
-    std::string pstPath = configParam.getAbsoluteFilename("StrayLight/PstPath");
-    getPST(pstPath);
+    std::string pstRadiancePath = configParam.getAbsoluteFilename("StrayLight/PstRadiancePath");
+    getPSTRadiance(pstRadiancePath);
 
+    // TODO: We should read this in from the input file once we add the option
+    // to get straylight from earth.
+    double radiusMoon = 1.7381e6; // [m]
+    double moon_reflectivity = 0.11;
 
     // Create the two celestial objects
     moon.radius = radiusMoon;
@@ -90,427 +96,90 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
 
 
-/**
+/*
+ * \brief: Read in the orbit path and extract the positions of the celestial
+objects that we will need during the simulation.
  *
- * \brief: Returns the straylight of the moon (in #electrons) in the subfield pixel (row, column)
- *
- * \param: row and column of the subfieldpixel
+ * \param: orbit path: filename of the orbit path that we will read in
+ * \param: sc_position: vector that we will use to store the position of the
+ *                      spacecraft.
+ * \param: moon_position: vector that we will use to store the position of the
+ *                        spacecraft.
+ * \param: sun_position: vector that we will use to store the position of the
+ *                       sun.
  */
-double StrayLight::getStrayLightMoon(double time)
+void StrayLight::readInFile(std::string orbitPath, std::vector<arma::vec> &sc_position,
+                            std::vector<arma::vec> &moon_position,
+                            std::vector<arma::vec> &sun_position)
 {
+    // begin time from which we want to start extracting
+    Time t0 = Time(time0);
 
-    // We should give the positions of the sc, moon and sun
-    arma::vec sun_pos = sun_positions[0];
-    arma::vec moon_pos = moon_positions[0];
-    arma::vec sc_pos = sc_positions[0];
+    // get the lower and upper time between which we want to extract data [starting from t0]
+    double lower_bound = cycleTime * beginExposures;
+    double upper_bound = cycleTime * numExposure + lower_bound;
 
-    
-    // Transform these into a reference frame where moon lies in the origin and
-    // sun lies on the z-axis.
-
-    sun_pos  = sun_pos - moon_pos;
-    sc_pos   = sc_pos- moon_pos;
-    moon_pos = moon_pos - moon_pos;
-
-    double A = std::sqrt(sun_pos[0]*sun_pos[0] + sun_pos[1]*sun_pos[1]);
-    double N = std::sqrt(sun_pos[0]*sun_pos[0] + sun_pos[1]*sun_pos[1] + sun_pos[2]*sun_pos[2]);
-
-    double x = sun_pos[0];
-    double y = sun_pos[1];
-    double z = sun_pos[2];
-    
-    arma::Mat<double> rotation = { { y*N, -x*N, 0},
-                                   { x*z,  y*z, -A*A},
-                                   { x*A,  y*A,  z*A},};
-
-    rotation = rotation/(A*N);
-
-    sun_pos  = rotation * sun_pos;
-    moon_pos = rotation * moon_pos;
-    sc_pos   = rotation * sc_pos;
-
-
-    arma::Mat<double> rotatedAxis = rotation * telescopeAxis;
-    return getStrayLightObject(moon, sun_pos, moon_pos, sc_pos, rotatedAxis, 1000);
-}
-
-
-
-
-
-
-/**
- *
- * \brief: Returns the straylight of the object (in #electrons) in the subfield pixel
- *        (row, column).
- *
- * \param: object        The object from which we want to get the straylight
- * \param: sun_pos       Position of the sun
- * \param: object_pos    Position of the object
- * \param: sc_pos        Position of the spacecraft
- * \param: gridPoints    Amount of gridpoints used to model the object
- * 
- */
-double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos, arma::vec sc_pos, arma::Mat<double> telescopeAxis, unsigned int nGrid)
-{
-
-    std::cout << "Estimaged reflected area: " << 50*(1 - acos(arma::dot(sun_pos,sc_pos) / (arma::norm(sun_pos)*arma::norm(sc_pos))) / 3.1415 ) << "%" << std::endl;
-    std::chrono::steady_clock clock;
-    auto start_integration = clock.now();
-
-    // This models the total straylight from an object by reflecting light from (nGrid * nGrid) grid points on its surface.
-    // Each grid point contributes to the straylight based on three key angles and its surface area.
-    // The contribution is calculated as follows:
-
-    // Contribution = Surface Area × cos(gpIrradiance) × cos(gpRadiance) × cos(scIrradiance) [m^2]
-
-    // Where:
-    //    -> gpIrradiance: The angle at which sunlight reaches the grid point relative to the normal at that point.
-    //    -> gpRadiance: The angle at which the spacecraft is positioned relative to the grid point's normal.
-    //    -> scIrradiance: The angle at which reflected light reaches the camera relative to the optical axis.
-
-    // It is important to note that we only consider contributions where the cosine of all angles is positive. 
-    // This condition ensures that light can effectively reach the camera, as negative values would indicate
-    // angles where light does not contribute to straylight detection.
-
-    double sA = 0; // Reflected exposed surface area
-    double tA = 0; // Total exposed surface area
-    double maxGridDependencies = 0; // Upper limit to the grid dependencies
-    double gridDependencies = 0;    // Total contribution of the grid dependencies
-    for (unsigned int i=1; i<=nGrid; i++)
+    std::ifstream orbitFile(orbitPath);
+    if (orbitFile.is_open())
     {
-        for (unsigned int j=0; j<=nGrid; j++)
+        std::string line;
+        while (getline(orbitFile, line))
         {
-            double theta = i*Constants::PI / (2*nGrid);
-            double phi   = 2*j*Constants::PI / nGrid;
+            // Skip empty lines
 
-            arma::vec n_object = {sin(theta)*cos(phi),
-                          sin(theta)*sin(phi),
-                          cos(theta)};
-            double dA = std::pow(object.radius, 2)*sin(theta)
-                        *(Constants::PI / (2*nGrid))* (2*Constants::PI / nGrid);
+            if (line.size() == 0)
+                continue;
 
-            double cos_gpIrradiance = arma::dot(sun_pos - object.radius*n_object, n_object) / arma::norm(sun_pos - object.radius*n_object);
-            double cos_gpRadiance = arma::dot(sc_pos - object.radius*n_object, n_object) / arma::norm(sc_pos - object.radius*n_object);
-            double cos_scIrradiance =
-                arma::dot(sc_pos - object.radius * n_object, telescopeAxis.col(2)) /
-                arma::norm(sc_pos - object.radius * n_object);
+            // Skip lines that only contain white space
 
-            
-            tA += dA;
-            if (cos_gpRadiance > 0 && cos_scIrradiance > 0)
-            {
-                gridDependencies +=
-                    cos_gpIrradiance * cos_gpRadiance * cos_scIrradiance *
-                    dA;
+            const std::string whitespace = " /t/r/n";
+            if (line.find_first_not_of(whitespace) == std::string::npos)
+                continue;
 
-                sA += dA;
-                maxGridDependencies += dA * cos_gpIrradiance;
-            }
-        }
-    }
-    
-    auto end_integration = clock.now();
-    std::chrono::duration<double> elapsed = end_integration-start_integration;
-    std::chrono::milliseconds ms_elapsed =
-        std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-    std::cout << "Exact reflected area: " << (sA / tA)*50 << "%" << std::endl;
+            // Skip header line starting with '#'.
 
-    std::cout << "->\tIntegration of gp took: " << ms_elapsed.count() << "ms"
-    << std::endl;
-    std::cout << "GRID DEPENDENCIES: " << gridDependencies << " m^2\t\tmax: " << maxGridDependencies << " m^2\n" << std::endl;
- 
+            if (line[0] == '#')
+                continue;
 
-    auto start_pst = clock.now();
+            std::istringstream buffer(line);
+            std::vector<std::string> value_of_line = splitLine(line);
 
-    // We now determines the contributions of straylight that are wavelength-dependent. These consist of:
-    // - Planck's equation for a black body radiator (B), which models the sunlight that will be reflected. 
-    // - The Point Source Transmittance (PST) function, which requires the declination angle (the angle between the optical axis and the incoming ray)
-    //   and the azimuth angle (the angle of the projected ray on the camera relative to the x-axis of the telescope). 
-    // - Energy per photon, calculated using E = h * c * lambda, where E is energy, h is Planck’s constant, c is the speed of light and lambda is the wavelength.
-    
-    // The explicit wavelength dependence has already been integrated out (int_lambda B * PST / E). We simply load in the combined effects 
-    // from an HDF5 file at the correct declination and azimuth angles. 
+            Time t = Time(value_of_line[0]);
 
-    double declination = acos(arma::dot(sc_pos, telescopeAxis.col(2)) / arma::norm(sc_pos));
-    declination = rad2deg(declination);
+            // Skip points that are not part of the simulation.
+            double time = t - t0;
+            if (time < lower_bound)
+                continue;
 
-    arma::vec projected = sc_pos - arma::dot(sc_pos, telescopeAxis.col(2))*telescopeAxis.col(2);
-    double azimuth = acos(arma::dot(projected, telescopeAxis.col(0)) / arma::norm(projected));
-    azimuth = rad2deg(azimuth);
+            // If this is a point that we do consider we extract the data
+            // and add it to the vectors.
 
-    double pst = getPSTValue(declination, azimuth);
-    auto end_pst = clock.now();
+            arma::vec sc_row(3);
+            sc_row[0] = std::stod(value_of_line[3]);
+            sc_row[1] = std::stod(value_of_line[4]);
+            sc_row[2] = std::stod(value_of_line[5]);
 
-    std::chrono::duration<double> elapsed_pst = end_integration-start_integration;
-    std::chrono::milliseconds ms_elapsed_pst = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed);
-    std::cout << "->\tDetermination of pst took: " << ms_elapsed_pst.count() << "ms" << std::endl;
-    std::cout << "PST DEPENDENCIES: " << pst << " ph s-1 m^-2\t\tMax value: " << 1.485e24 << " ph s-1 m^-2"
-    << std::endl;
-    
-    // Lastely we have some constant values that need to be set in order to get
-    // the straylight these are:
-    // k * pi * pixelSize * exposureTime * Rsun^2 / (d_object_sun^2 *
-    // d_object_camera^2), where
-    // -> k is the reflexivity of the object
-    // -> pixelSize is the area of a pixel (in m)
-    // -> exposureTime is the time for one exposure (in s)
-    // -> Rsun is the radius of the sun
-    // -> d_object_sun is the distance from the object to the sun (in m)
-    // -> d_object_camera is the discance from the object to the camera (in m)
+            arma::vec sun_row(3);
+            sun_row[0] = std::stod(value_of_line[7]);
+            sun_row[1] = std::stod(value_of_line[8]);
+            sun_row[2] = std::stod(value_of_line[9]);
 
-    auto object_sun = (sun_pos - object_pos);
-    double d_object_sun_sq = arma::dot(object_sun, object_sun);
+            arma::vec moon_row(3);
+            moon_row[0] = std::stod(value_of_line[11]);
+            moon_row[1] = std::stod(value_of_line[12]);
+            moon_row[2] = std::stod(value_of_line[13]);
 
-    auto object_camera = (sc_pos - object_pos);
-    double d_object_camera_sq = arma::dot(object_camera, object_camera);
+	        // We add these values and convert them from [km] to [m] units
+            sc_position.push_back(sc_row * 1000);
+            sun_position.push_back(sun_row * 1000);
+            moon_position.push_back(moon_row * 1000);
+            times.push_back(time);
 
-
-    double const_term = object.reflectivity * std::pow(pixelSize, 2) *
-                        std::pow(Constants::SOLARRADIUS, 2) * cycleTime /
-                        (d_object_sun_sq * d_object_camera_sq);
-
-    std::cout << "\nCONSTANT DEPENDENCIES: " << const_term << " s" << std::endl;
-    return pst*gridDependencies*const_term;
-
-
-}
-
-
-
-
-
-
-
-
-
-double StrayLight::getPSTValue(double declination, double azimuth)
-{
-
-    double rho_0 = 0;
-    arma::vec pst_azs(4);
-    for (int idx_az=0; idx_az < 5; idx_az++)
-    {
-        for (int idx_rho=0; idx_rho < rhoValues[idx_az].size(); idx_rho++)
-        {
-            double rho = (rhoValues[idx_az])[idx_rho];
-
-            if (rho < declination)
-            {
-                rho_0 = rho;
-            }
-            else
-            {
-                auto param = (parameters[idx_az])[idx_rho-1];
-
-                auto f = [param](double a)
-                {
-                    return param[0] * std::pow(a, 3) + param[1] * std::pow(a, 2) +
-                           param[2] * a + param[3];
-                };
-
-                pst_azs[idx_az] = f(declination);
+            // We add one line outside our upper_bound and then we stop
+            if (time > upper_bound)
                 break;
-            }
-      }
-    }
-
-
-    if (azimuth < 0)
-    {
-        azimuth += 180;
-    }
-    else if (azimuth > 180)
-    {
-        azimuth -= 180;
-    }
-
-    if (azimuth == 0)
-    {
-        return pst_azs[0];
-    }
-    unsigned int idx = 0;
-    while (azimuth > azs[idx])
-    {
-        idx++;
-    }
-
-    return ((azimuth - azs[idx-1])*pst_azs[idx] + (azs[idx] - azimuth)*pst_azs[idx-1])/(azs[idx] - azs[idx-1]);
-}
-
-
-
-
-
-
-/**
- *
- * \brief: Extrapolate the straylight [#e-/s]for the value az. The straylight is
- *         is known for all the values in AZs and given in electronsAtDetector.
- *
- * \param: electronsAtDetector   The values in straylight for the values in AZs.
- * \param: az                    The az value for which we want the straylight.
- *
- * \note: The straylight is known at five points (AZs), we can connect these
- *        points with a fourth order polynomial with coefficients given by
- *        column p. These coefficients are defined such that for any i in
- *        {0,1,2,3,4},
- *        for a[i] = { AZs[i]^4, AZs[i]^3, AZs[i]^2, AZs[i], 1}, we have
- *        a * p = y[i] = electronsAtDetector[i]. This can be expressed as
- *        A*p = y, where the matrix A's ith row is a[i]. Thus p can be found by
- *        p = A^-1 * y. The straylight s at az is then given by:
- *        s = sum_i=0^4 p[i] az^(4-i).
- *       
- */
-double StrayLight::getStraylightFromAZ(const std::array<double, 5> &electronsAtDetector, double az)
-{
-
-    // We define the matrix A
-    arma::mat A(5, 5);
-    for (int idx = 0; idx < 5; idx++)
-    {
-        arma::Row<double> a = { std::pow(AZs[idx], 4), std::pow(AZs[idx], 3), std::pow(AZs[idx], 2), std::pow(AZs[idx], 1), 1};
-        A.row(idx) = a;
-    }
-
-
-    // Define the Col y
-    arma::Col<double> y = {electronsAtDetector[0], electronsAtDetector[1], electronsAtDetector[2], electronsAtDetector[3], electronsAtDetector[4]};
-
-    // p is given by p = A^-1 * y
-    arma::Col<double> p = arma::inv(A) * y;
-
-
-    arma::Row<double> x = {std::pow(az,4), std::pow(az,3), std::pow(az,2), az, 1};
-    return arma::as_scalar(x*p);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-/**
- * \brief: Calculates the spectral radiance for all gridpoints.
- *
- * \param: sun           Position of the sun.
- * \param: object        Position of the celestial object.
- * \param: reflectivity  Reflectivity of the celestial object.
- * \param: grid          The grid around the celstial object.
- *
- * /note: This method changes the grid variable, so that after the method has
-run,
- *        it no longer contains gridpoints that don't receive light from the
-sun.
- *
- * /output: objectIrradiance     Irradiance of the celestial object on every
- *                               gridpoint that sees light. [W/m^2*m],
- *                               dim [#lighted_grid_points x #wavelengths]
- *
- */
-
-std::vector<arma::vec> StrayLight::getCelestialObjectGridSpectralRadiance(
-    arma::vec sun, arma::vec object, double reflectivity,
-    std::vector<GridPoint> &grid)
-{
-
-    // Normalized vector from object to sun.
-    arma::vec sunObejectVector = (sun - object);
-    double distanceSunObject = sqrt(dot(sunObejectVector, sunObejectVector));
-    sunObejectVector = sunObejectVector / distanceSunObject;
-
-    // Solar irradiance at the object for different wavelengths
-    std::array<double, 29> solarIrradiance =
-        solarSpectralIrradiance(distanceSunObject);
-    std::vector<arma::vec> objectIrradiance;
-    std::vector<GridPoint> new_grid;
-
-    for (const GridPoint &p : grid)
-    {
-        // Normalize the vector from object to gridpoint.
-        arma::vec x = p.point;
-        x = x / sqrt(arma::as_scalar(x.t() * x));
-
-        // Angle between sun, object and gridpoint.
-
-        double cos_gamma = arma::as_scalar(x.t() * sunObejectVector);
-
-        if (cos_gamma < 0)
-        {
-            // Dark side of the object
-            continue;
-        }
-        else
-        {
-            // Bright side of the object
-
-            // reflectivity of the celestial object
-            double a = reflectivity * cos_gamma * cos_gamma / Constants::PI;
-
-            // cosider the solar spectral irradiance using Plank's law
-            arma::vec irradiance(29);
-            for (unsigned int i = 0; i < 29; i++)
-            {
-                irradiance[i] = a * solarIrradiance[i];
-            }
-            objectIrradiance.push_back(irradiance);
-            new_grid.push_back(p);
         }
     }
-    grid = new_grid;
-    return objectIrradiance;
-}
-
-
-
-
-
-/**
- * \brief: This function returns a grid with nPoints points, around a celestial
- *         object with radius radius.
- *
- * \param: radius   Radius of the celstial object.
- * \param: nPoints  Amount of points in the grid.
- *
- * \output: returns a vector of gridpoints. (consisting of the position of the
- *          gridpoints and the surface area of the points.
- *
- */
-std::vector<GridPoint> StrayLight::getGrid(double radius, unsigned int nPoints)
-{
-    double dTheta = Constants::PI / nPoints;
-    double dPhi = 2 * Constants::PI / nPoints;
-
-    std::vector<GridPoint> grid;
-
-    // We should skip the case i=0, since this has size 0.
-
-    for (unsigned int i = 1; i < nPoints; i++)
-    {
-        for (unsigned int j = 0; j < nPoints; j++)
-        {
-
-            arma::vec gridPosition(3);
-            gridPosition[0] = radius * sin(i * dTheta) * cos(j * dPhi);
-            gridPosition[1] = radius * sin(i * dTheta) * sin(j * dPhi);
-            gridPosition[2] = radius * cos(i * dTheta);
-
-            GridPoint gridPoint;
-            gridPoint.point = gridPosition;
-            gridPoint.size = radius * radius * sin(i * dTheta) * dTheta * dPhi;
-
-            grid.push_back(gridPoint);
-        }
-    }
-    std::cout << "Amount of gridpoints: " << grid.size() << " n: " << nPoints << std::endl;
-    return grid;
 }
 
 
@@ -572,137 +241,39 @@ std::vector<std::string> StrayLight::splitLine(std::string &line)
 
 
 
-
-void StrayLight::readInFile(std::string orbitPath, std::vector<arma::vec> &sc_position,
-                            std::vector<arma::vec> &moon_position,
-                            std::vector<arma::vec> &sun_position)
-{
-    Time t0 = Time("20260611T190026");
- 
-    double lower_bound = cycleTime * beginExposures;
-    double upper_bound = cycleTime * numExposure + lower_bound;
-
-    std::ifstream orbitFile(orbitPath);
-    if (orbitFile.is_open())
-    {
-        std::string line;
-        while (getline(orbitFile, line))
-        {
-            // Skip empty lines
-
-            if (line.size() == 0)
-                continue;
-
-            // Skip lines that only contain white space
-
-            const std::string whitespace = " /t/r/n";
-            if (line.find_first_not_of(whitespace) == std::string::npos)
-                continue;
-
-            // Skip header line starting with '#'.
-
-            if (line[0] == '#')
-                continue;
-
-            std::istringstream buffer(line);
-            std::vector<std::string> value_of_line = splitLine(line);
-
-            Time t = Time(value_of_line[0]);
-
-            // Skip points that are not part of the simulation.
-
-            if ((t - t0 < lower_bound) || (t - t0 > upper_bound))
-                continue;
-
-            double time = t-t0;
-            
-            arma::vec sc_row(3);
-            sc_row[0] = std::stod(value_of_line[3]);
-            sc_row[1] = std::stod(value_of_line[4]);
-            sc_row[2] = std::stod(value_of_line[5]);
-
-            arma::vec sun_row(3);
-            sun_row[0] = std::stod(value_of_line[7]);
-            sun_row[1] = std::stod(value_of_line[8]);
-            sun_row[2] = std::stod(value_of_line[9]);
-
-            arma::vec moon_row(3);
-            moon_row[0] = std::stod(value_of_line[11]);
-            moon_row[1] = std::stod(value_of_line[12]);
-            moon_row[2] = std::stod(value_of_line[13]);
-
-	    // We add these values and convert from [km] units to [m] units
-            sc_position.push_back(sc_row * 1000);
-            sun_position.push_back(sun_row * 1000);
-            moon_position.push_back(moon_row * 1000);
-            times.push_back(time);
-        }
-    }
-}
-
-
-
-
-
-/**
- * \brief:    Calculates the solar irradiance using Planck's law
- *
- * \param:    distance  distance from object to the sun.
- *
- * \output:   Array containing the irradiance for different wavelengths [W/(m^2*m)]
- *
- */
-std::array<double, 29> StrayLight::solarSpectralIrradiance(double distance)
-{
-
-    // Wavelength range (400nm -> 1125nm)
-    std::array<double, 29> irradiance;
-
-    for (unsigned int i = 0; i < 29; i++)
-    {
-        double wavelength = (400 + i * 25)*1e-9; // [m]
-        // Spectral Solar Radiance
-        double radiance =
-            (2 * Constants::HPLANCK * Constants::CLIGHT * Constants::CLIGHT) /
-            (std::pow(wavelength, 5) *
-             (std::pow(Constants::E, (Constants::HPLANCK * Constants::CLIGHT /
-                                      (wavelength * Constants::KBOLTZMANN *
-                                       Constants::SOLART))) -
-              1));
-        irradiance[i] = Constants::PI * radiance *
-                        std::pow((Constants::SOLARRADIUS / distance), 2);
-
-    }
-
-    return irradiance;
-}
-
-
-
-
-
 /**
  *
+ * \brief: reads in and interpolates the PST Radiance data as defined in the
+ *         pstRadiancePath.
+ *
+ * \param: pstRadiancePath: path where we can find the pstRadiance
+ *
+ * \note: the term pstRadiance is here used to describe the wavelength
+ *        integrated product of the pst with the spectral radiance of a
+ *        BB radiator, devided by the photon energy. Since the pst is dependent
+ *        on two incident angles (rho, az), so is this property.
+ *
+ * \note: We interpolate the pst over rho using a 1-D monotonic cubic interpolation.
  */
-void StrayLight::getPST(std::string pstPath)
+void StrayLight::getPSTRadiance(std::string pstRadiancePath)
 {
-    // Save PST file in datastructure
-    if (!FileUtilities::fileExists(pstPath))
+    // Save file in datastructure
+    if (!FileUtilities::fileExists(pstRadiancePath))
     {
-        throw FileException("Straylight: trying to load the PST HDF5 file (" + pstPath + "), but file doesn't exist.");
+        throw FileException("Straylight: trying to load the PST HDF5 file (" + pstRadiancePath + "), but file doesn't exist.");
     }
     try
     {
-        pstFile.open(pstPath);
+        pstFile.open(pstRadiancePath);
     }
     catch (H5::FileIException ex)
     {
         Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
-        throw H5FileException("Straylight: Could not open HDF5 file: " + pstPath);
+        throw H5FileException("Straylight: Could not open HDF5 file: " + pstRadiancePath);
     }
 
-    std::array<std::vector<double>, 5> pstValues;
-    //std::array<std::vector<double>, 5> rhoValues;
+    std::array<std::vector<double>, 5> pstRadianceValues;
+
     int idx = 0;
     for (int az : azs)
     {
@@ -729,34 +300,37 @@ void StrayLight::getPST(std::string pstPath)
             throw H5FileException("Straylight: PST file does have the dataset rho in group:  " + group);
           }
         }
-        pstValues[idx] = pst;
+        pstRadianceValues[idx] = pst;
         rhoValues[idx] = rho;
         idx++;
-      }
-    extrapolatePST(rhoValues, pstValues);
-    std::cout << "Done setting up" << std::endl;
+    }
+
+    // interpolate the PSTRadiance values between rhoValues.
+
+      interpolatePSTRadiance(rhoValues, pstRadianceValues);
 }
 
 
 
 
 
-
-
-
-
-
 /**
- * TODO write this
  *
+ * \brief: Get a 1-D monotonic cubic interpolation of the pstRadiance.
+ *
+ * \param: rhoValues: rho values where we know the pstRadiance values.
+ * \param: pstRadianceValues: pstRadiance values that are known.
+ *
+ * \note: This function stores the 4 parameters that describe the cubic polynoom
+ *        between rhoValues[i] and rhoValues[i+1] in parameters[i].
  */
-void StrayLight::extrapolatePST(std::array<std::vector<double>, 5> rhoValues,
-                                  std::array<std::vector<double>, 5> pstValues)
+void StrayLight::interpolatePSTRadiance(std::array<std::vector<double>, 5> rhoValues,
+                                  std::array<std::vector<double>, 5> pstRadianceValues)
 {
 
     for (int i = 0; i < 5; i++)
     {
-        std::vector<double> PST = pstValues[i];
+        std::vector<double> PSTRadiance = pstRadianceValues[i];
         std::vector<double> rho = rhoValues[i];
 
         std::vector<std::array<double, 4>> cubicParameters;
@@ -767,7 +341,7 @@ void StrayLight::extrapolatePST(std::array<std::vector<double>, 5> rhoValues,
         double d0 = 0; // Boundary condition of the derivative
                        // at start of interpolation
 
-        for (int angle_idx = 0; angle_idx < rho.size() - 2; angle_idx++)
+        for (int angle_idx = 0; angle_idx < rho.size() - 1; angle_idx++)
         {
             double alpha =
                 double(
@@ -777,136 +351,44 @@ void StrayLight::extrapolatePST(std::array<std::vector<double>, 5> rhoValues,
 
             // Boundary condition of the derivative at rho[angle_idx+1]
             double d1;
-            if ((PST[angle_idx] == PST[angle_idx + 1]) &&
-                (PST[angle_idx] == PST[angle_idx + 2]))
+
+            // The boundary condition of the derivative at the end of the interpolation.
+            if (angle_idx == rho.size() -1) {d1 = 0;}
+
+            else if ((PSTRadiance[angle_idx] == PSTRadiance[angle_idx + 1]) &&
+                     (PSTRadiance[angle_idx] == PSTRadiance[angle_idx + 2]))
             {
                 d1 = 0;
             }
             else{
                 d1 =
-                    (PST[angle_idx + 1] -
-                     PST[angle_idx]) *
-                    (PST[angle_idx + 2] -
-                     PST[angle_idx + 1]) /
+                    (PSTRadiance[angle_idx + 1] -
+                     PSTRadiance[angle_idx]) *
+                    (PSTRadiance[angle_idx + 2] -
+                     PSTRadiance[angle_idx + 1]) /
                     (alpha *
-                         (PST[angle_idx + 2] -
-                          PST[angle_idx + 1]) *
+                         (PSTRadiance[angle_idx + 2] -
+                          PSTRadiance[angle_idx + 1]) *
                          (rho[angle_idx + 1] - rho[angle_idx]) +
                      (1 - alpha) *
-                         (PST[angle_idx + 1] -
-                          PST[angle_idx]) *
+                         (PSTRadiance[angle_idx + 1] -
+                          PSTRadiance[angle_idx]) *
                          (rho[angle_idx + 2] - rho[angle_idx + 1]));
             }
+
             // Get parameters in the region rho_AZ[angle_idx]
+
             std::array<double, 4> param = getCubicParameters(
                     double(rho[angle_idx]), double(rho[angle_idx + 1]),
-                                            PST[angle_idx], PST[angle_idx + 1], d0, d1);
+                                            PSTRadiance[angle_idx], PSTRadiance[angle_idx + 1], d0, d1);
 
             cubicParameters.push_back(param);
 
             d0 = d1;
         }
+
         parameters[i] = cubicParameters;
     }
-}
-
-
-
-
-
-
-
-
-/**
- *  /brief: extrapolate the values for irradiance_alpha for the piecewise qubic
- *          polynomial defined by parameters defined at the angles rho.
- *
- * \param: irradiance_alpha:  the angles for which we want the obtain the values
- * \param: rho:               the angles that define the intervals where the
- *                            piecwise function is defined.
- * \param: parameters:        the parameters that define the cubic polynoom
- *                            in the intervales given by rho.
- *
- * \note: This function is only used in StrayLight::interpolatePSToverRho
- */
-std::vector<double> StrayLight::extrapolate(std::vector<double> &irradiance_alpha, std::vector<int> &rho, std::vector<std::array<double, 4>> &parameters)
-{
-
-    std::vector<double> extrapolated;
-    for (double alpha : irradiance_alpha)
-    {
-        unsigned int idx = 0;
-        while (rho[idx+1] < alpha) 
-        {
-            idx++;
-        }
-
-        std::array<double, 4> params = parameters[idx];
-        auto f = [params](double a)
-        {
-            return params[0] * std::pow(a, 3) + params[1] * std::pow(a, 2) +
-                   params[2] * a + params[3];
-        };
-
-        extrapolated.push_back(f(alpha));
-    }
-
-    // return extrapolated
-    return extrapolated;
-}
-
-
-
-
-
-/**
- * TODO
- */
-std::array<std::vector<double>,5> StrayLight::getNumberOfStraylightPhotoelectronsAtDetector(std::array<std::vector<arma::vec>, 5> &straylight)
-{
-
-    arma::vec energyOfPhoton(29); // [J]
-    std::array<std::vector<arma::vec>, 5> electronsAtDetectorPerWavelengthPerSecond;   // [#e- / ( s * m)]
-
-
-    // fill the energyOfPhoton and wavelengths array 
-    for (unsigned int wavelength_idx = 0; wavelength_idx < 29; wavelength_idx++)
-    {
-        double wavelength = 400 + wavelength_idx * 25; // [nm]
-        energyOfPhoton[wavelength_idx] =
-            Constants::CLIGHT * Constants::HPLANCK / (wavelength * 1.e-9); // [J]
-    }
-
-    // get the number of photoelectrons at the detectorfor every wavelength
-    for (int az = 0; az < 5; az++)
-    {
-        for (auto light : straylight[az])
-        {
-            electronsAtDetectorPerWavelengthPerSecond[az].push_back(
-                light / energyOfPhoton);
-        }
-    }
-
-    std::array<std::vector<double>,5> electronsAtDetectorPerSecond;
-    for (int az = 0; az < 5; az++)
-    {
-
-	std::vector<double> electronsAtGridpoint;
-	for (arma::vec electrons_wl : electronsAtDetectorPerWavelengthPerSecond[az])
-        {
-            // We integrate out the wavelengths dependency for every gridpoint.
-            // We use the composite trapezoidal rule.
-	    double integral = 0;
-	    for (int wl_idx = 0; wl_idx < 28; wl_idx++)
-            {
-                integral = integral + 0.5 * (25E-9) *   
-		           (electrons_wl[wl_idx] + electrons_wl[wl_idx+1]);
-            }
-            electronsAtGridpoint.push_back(integral);
-        }
-        electronsAtDetectorPerSecond[az] = electronsAtGridpoint;
-    }
-    return electronsAtDetectorPerSecond;
 }
 
 
@@ -925,7 +407,10 @@ std::array<std::vector<double>,5> StrayLight::getNumberOfStraylightPhotoelectron
  *          parameters[3], and
  *          f(x_0) = y_0; f(x_1) = y_1; f'(x_0) = d0; f'(x_1) = d1
  *
- * \param: pstPath  Path to the corresponding PST file.
+ * \param: x_0 x_1   Min/Max x-values for which the cubic function f(x) is
+ *                   defined. (x in the interval [x_0, x_1])
+ * \param: y_0, y_1  Values at the Min/Max x-values. (y_i = f(x_i))
+ * \param: d0,  d1   Values of the derivative function y'(x) at the Min/Max x-values. (y'(x_i) = di)
  */
 std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
                                                      double y_0, double y_1,
@@ -942,17 +427,6 @@ std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
 
     std::array<double, 4> parameters = {a, b, c, d};
 
-    auto f = [parameters](double x)
-    {
-        return  parameters[0] * std::pow(x, 3) + parameters[1] * std::pow(x, 2) +
-               parameters[2] * x + parameters[3];
-    };
-    auto df = [parameters](double x)
-    {
-        return 3*parameters[0] * std::pow(x, 2) + 2*parameters[1] * x +
-               parameters[2];
-    };
-
     return parameters;
 }
 
@@ -960,126 +434,275 @@ std::array<double, 4> StrayLight::getCubicParameters(double x_0, double x_1,
 
 
 
-
-
-
-
-
-
 /**
- * TODO
+ *
+ * \brief: Returns the average straylight of the moon (in #electrons) over the subfield
+ *
+ * \param: time: Time at which we want to find the straylight
+ *
+ * \note: this function extract the needed parameters to call a more general
+ *       function getStrayLightMoon(). 
+   
  */
-std::tuple<std::vector<double>, std::vector<double>, std::vector<arma::vec>,
-           std::vector<arma::vec>>
-StrayLight::getIrradianceAtCamera(Camera &camera, double row, double column,
-                                  std::vector<GridPoint> grid,
-                                  std::vector<arma::vec> emmitterIrradiance,
-                                  arma::vec emmitterPosition,
-                                  arma::vec cameraPosition)
+double StrayLight::getStrayLightMoon(double time)
 {
 
-    // Get the max angle where light can fall onto the camera
+    // Get the index so that we get the position at the correct time
+    int idx = 0;
+    while (times[idx] < time){idx++;}
 
-    double cos_alpha_max = cos(radiusFOV);
+    // We get the positions of the spacecraft, moon and sun
+    arma::vec sun_pos = sun_positions[idx];
+    arma::vec moon_pos = moon_positions[idx];
+    arma::vec sc_pos = sc_positions[idx];
 
-    // pointing vectors
-    double xFPmm, yFPmm;
-    tie(xFPmm, yFPmm) = detector.pixelToFocalPlaneCoordinates(row, column);
+    Log.debug("Straylight: sun positions: (" + to_string(sun_pos[0]) +
+              " " + to_string(sun_pos[1]) + " " + to_string(sun_pos[2]) + ")");
+    Log.debug("Straylight: moon positions: (" + to_string(moon_pos[0]) + " " +
+              to_string(moon_pos[1]) + " " + to_string(moon_pos[2]) + ")");
+    Log.debug( "Straylight: spacecraft positions: (" + to_string(sc_pos[0]) + " " +
+              to_string(sc_pos[1]) + " " + to_string(sc_pos[2]) + ")");
+
+    // Transform these into a reference frame where the moon lies in the origin
+    // and sun lies on the z-axis.
+
+    // Translation that sets the moon in the origin
+
+    sun_pos  = sun_pos - moon_pos;
+    sc_pos   = sc_pos- moon_pos;
+    moon_pos = moon_pos - moon_pos;
     
+    double A = std::sqrt(sun_pos[0]*sun_pos[0] + sun_pos[1]*sun_pos[1]);
+    double N = std::sqrt(sun_pos[0]*sun_pos[0] + sun_pos[1]*sun_pos[1] + sun_pos[2]*sun_pos[2]);
 
-    double alpha, delta;
-    double lambda, beta;
-    tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(xFPmm, yFPmm);
-    // tie(alpha, delta) = camera.focalPlaneToSkyCoordinates(0, 0);
-    equatorial2ecliptic(alpha, delta, lambda, beta);
+    // Rotate so that the sun lies on the z-axis
 
-    arma::vec nCamera = {cos(lambda) * cos(beta), sin(lambda) * cos(beta),
-                         sin(beta)};
+    double x = sun_pos[0];
+    double y = sun_pos[1];
+    double z = sun_pos[2];
+    
+    arma::Mat<double> rotation = { { y*N, -x*N, 0},
+                                   { x*z,  y*z, -A*A},
+                                   { x*A,  y*A,  z*A},};
 
-    std::vector<double> irradiance_alpha;
-    std::vector<double> grid_alpha;
+    rotation = rotation/(A*N);
 
-    std::vector<arma::vec> irradiance_E;
-    std::vector<arma::vec> projected_irradiance_E;
+    sun_pos  = rotation * sun_pos;
+    moon_pos = rotation * moon_pos;
+    sc_pos = rotation * sc_pos;
 
-    for (unsigned int idx = 0; idx < grid.size(); idx++)
-    {
-
-        arma::vec n_Cam_Grid =
-            emmitterPosition + grid[idx].point - cameraPosition;
-        double rho_Cam_Grid = sqrt(arma::as_scalar((emmitterPosition + grid[idx].point - cameraPosition).t() * (emmitterPosition + grid[idx].point - cameraPosition)));
-        n_Cam_Grid =
-            n_Cam_Grid / rho_Cam_Grid;
-
-
-
-        double beta0 = asin(((emmitterPosition - cameraPosition)[2]) /
-                           sqrt(arma::as_scalar(
-                                  (emmitterPosition - cameraPosition).t() *
-                                  (emmitterPosition - cameraPosition))));
-
-        double lambda0 = asin(((emmitterPosition - cameraPosition)[1]) /
-                         (sqrt(arma::as_scalar(
-                              (emmitterPosition - cameraPosition).t() *
-                              (emmitterPosition - cameraPosition))) *
-                          cos(beta0)));
-
-
-
-        double cos_alpha1 =
-            -1*arma::as_scalar(grid[idx].point.t() * n_Cam_Grid) /
-            sqrt(arma::as_scalar(grid[idx].point.t() * grid[idx].point));
-        double cos_alpha2 = arma::as_scalar(nCamera.t() * n_Cam_Grid);
-
-        arma::vec E(29);
-
-        if (cos_alpha1 < 0)
-        {
-            // Emmitter point doesn't fall on camera
-            E.zeros();
-
-        }
-        else if (cos_alpha2 < 0)
-        {
-            // Emmitted light doesn't fall on camera
-            E.zeros();
-        }
-        else
-        {
-            E = emmitterIrradiance[idx] * grid[idx].size * cos_alpha1 /
-                (rho_Cam_Grid * rho_Cam_Grid);
-        }
-
-	irradiance_E.push_back(E);
-
-        double gridCameraAlpha	= 180*acos(cos_alpha1)/Constants::PI;
-        double gridCameraPointingAlpha	= 180*acos(cos_alpha2)/Constants::PI;
-
-        arma::vec Eproj(29);
-        if (cos_alpha2 < cos_alpha_max)
-        {
-            Eproj.zeros();
-        }
-        else
-        {
-            Eproj = E * cos_alpha2;
-        }
-
-        irradiance_alpha.push_back(gridCameraPointingAlpha);
-        grid_alpha.push_back(gridCameraAlpha);
-	
-        projected_irradiance_E.push_back(Eproj);
-
-    }
-
-    return std::tie(irradiance_alpha, grid_alpha, irradiance_E, projected_irradiance_E);
+    arma::Mat<double> rotatedAxis = rotation * telescopeAxis;
+    return getStrayLightObject(moon, sun_pos, moon_pos, sc_pos,
+                                                        rotatedAxis, 1000);
 }
 
 
 
 
+
 /**
- * TODO
+ *
+ * \brief: Returns the straylight of the object (in #electrons) in the subfield pixel
+ *        (row, column).
+ *
+ * \param: object        The object from which we want to get the straylight
+ * \param: sun_pos       Position of the sun
+ * \param: object_pos    Position of the object
+ * \param: sc_pos        Position of the spacecraft
+ * \param: gridPoints    Amount of gridpoints used to model the object
+ * 
+ */
+double StrayLight::getStrayLightObject(CelestialObject object, arma::vec sun_pos, arma::vec object_pos,
+                                       arma::vec sc_pos, arma::Mat<double> telescopeAxis,
+                                       unsigned int nGrid)
+{
+
+    // This models the total straylight from an object by reflecting light from (nGrid * nGrid) grid points on its surface.
+    // Each grid point contributes to the straylight based on three key angles and its surface area.
+    // The contribution is calculated as follows:
+
+    // Contribution = Surface Area × cos(gpIrradiance) × cos(gpRadiance) × cos(scIrradiance) [m^2]
+
+    // Where:
+    //    -> gpIrradiance: The angle at which sunlight reaches the grid point relative to the normal at that point.
+    //    -> gpRadiance: The angle at which the spacecraft is positioned relative to the grid point's normal.
+    //    -> scIrradiance: The angle at which reflected light reaches the camera relative to the optical axis.
+
+    // It is important to note that we only consider contributions where the cosine of all angles is positive. 
+    // This condition ensures that light can effectively reach the camera, as negative values would indicate
+    // angles where light does not contribute to straylight detection.
+
+    double gridDependencies = 0;    // Total contribution of the grid dependencies
+    for (unsigned int i=1; i<=nGrid; i++)        
+    {
+        for (unsigned int j=0; j<=nGrid; j++)
+        {
+            double theta = i * Constants::PI / (2 * nGrid); // Remark that we don't include the values pi/2 -> pi,
+                                                            // since cos[theta] < 0 for these values.
+            double phi   = 2*j*Constants::PI / nGrid;
+
+            arma::vec n_object = {sin(theta)*cos(phi),
+                          sin(theta)*sin(phi),
+                          cos(theta)};
+            double dA = std::pow(object.radius, 2)*sin(theta)
+                        *(Constants::PI / (2*nGrid))* (2*Constants::PI / nGrid);
+
+            double cos_gpIrradiance =
+                arma::dot(sun_pos - object.radius * n_object, n_object) /
+                arma::norm(sun_pos - object.radius * n_object);
+
+            double cos_gpRadiance = arma::dot(sc_pos - object.radius*n_object, n_object) / arma::norm(sc_pos - object.radius*n_object);
+            double cos_scIrradiance =
+                arma::dot(object.radius * n_object - sc_pos,
+                          telescopeAxis.col(2)) /
+                arma::norm(object.radius * n_object - sc_pos);
+
+            if (cos_gpRadiance > 0 && cos_scIrradiance > 0)
+            {
+                gridDependencies +=
+                    cos_gpIrradiance * cos_gpRadiance * cos_scIrradiance * dA;
+
+            }
+        }
+    }
+
+    // We now determines the contributions of straylight that are wavelength-dependent. These consist of:
+    // - Planck's equation for a black body radiator (B), which models the sunlight that will be reflected. 
+    // - The Point Source Transmittance (PST) function, which requires the declination angle (the angle between the optical axis and the incoming ray)
+    //   and the azimuth angle (the angle of the projected ray on the camera relative to the x-axis of the telescope). 
+    // - Energy per photon, calculated using E = h * c * lambda, where E is energy, h is Planck’s constant, c is the speed of light and lambda is the wavelength.
+    
+    // The explicit wavelength dependence has already been integrated out (int_lambda B * PST / E). We simply load in the combined effects 
+    // from an HDF5 file at the correct declination and azimuth angles. 
+
+    // get the declination
+    double declination = acos(arma::dot(sc_pos, telescopeAxis.col(2)) / arma::norm(sc_pos));
+    declination = rad2deg(declination);
+
+    // get the azimuth
+    arma::vec projected = sc_pos - arma::dot(sc_pos, telescopeAxis.col(2))*telescopeAxis.col(2);
+    double azimuth = acos(arma::dot(projected, telescopeAxis.col(0)) / arma::norm(projected));
+    azimuth = rad2deg(azimuth);
+
+
+    double pstRadiance = getPSTRadianceValue(declination, azimuth);
+    
+    // Lastely we have some constant values that need to be set in order to get
+    // the straylight these are:
+    // k * pi * pixelSize * exposureTime * Rsun^2 / (d_object_sun^2 *
+    // d_object_camera^2), where
+    // -> k is the reflexivity of the object
+    // -> pixelSize is the area of a pixel (in m)
+    // -> exposureTime is the time for one exposure (in s)
+    // -> Rsun is the radius of the sun
+    // -> d_object_sun is the distance from the object to the sun (in m)
+    // -> d_object_camera is the discance from the object to the camera (in m)
+
+    auto object_sun = (sun_pos - object_pos);
+    double d_object_sun_sq = arma::dot(object_sun, object_sun);
+
+    auto object_camera = (sc_pos - object_pos);
+    double d_object_camera_sq = arma::dot(object_camera, object_camera);
+
+    double const_term = Constants::PI * object.reflectivity * std::pow(pixelSize, 2) *
+                        std::pow(Constants::SOLARRADIUS, 2) * cycleTime /
+                        (d_object_sun_sq * d_object_camera_sq);
+
+    return pstRadiance*gridDependencies*const_term;
+}
+
+
+
+
+
+/**
+ *
+ * \brief: Returns the "PST radiance value" at the given azimuth and declination level.
+ *
+ *
+ * \param: declination, azimuth: angles for which we need to "PST value".
+[degrees]
+ *
+ * \note: In this case the "PST radiance value" means contributions of the PST, BB
+ *        radiator and photon energy integrated ever the wavelength.
+ * \note: The PST value we get from the extrapolated PST might be negative, in
+ *        that case we assume PST = 0.
+ */
+double StrayLight::getPSTRadianceValue(double declination, double azimuth)
+{
+
+    arma::vec pst_azs(4); 
+    for (int idx_az=0; idx_az < 5; idx_az++)
+    {
+        int rhoLength = rhoValues[idx_az].size();
+
+        // If our declanation is larger then the largest rho value in the pst
+        // file, it's value is zero.
+        if (rhoValues[idx_az][rhoLength - 1] < declination)
+        {
+            pst_azs[idx_az] = 0;
+        }
+        else
+        {
+            for (int idx_rho=0; idx_rho < rhoLength; idx_rho++)
+            {
+                // We want to find the closest index for which rhoValues[idx] <= declination.
+                double rho = (rhoValues[idx_az])[idx_rho];
+                if (rho >= declination)
+                {
+                
+                    auto param = (parameters[idx_az])[idx_rho-1];
+                    auto f = [param](double a)
+                    {
+                        return param[0] * std::pow(a, 3) + param[1] * std::pow(a, 2) +
+                               param[2] * a + param[3];
+                    };
+
+                    pst_azs[idx_az] = f(declination);
+                    break;
+                }
+            }
+        }
+    }
+
+    if (azimuth < 0)
+    {
+        azimuth += 180;
+    }
+    else if (azimuth > 180)
+    {
+        azimuth -= 180;
+    }
+
+    if (azimuth == 0)
+    {
+        return pst_azs[0];
+    }
+    unsigned int idx = 0;
+    while (azimuth > azs[idx])
+    {
+        idx++;
+    }
+
+    double pst = ((azimuth - azs[idx - 1]) * pst_azs[idx] +
+                  (azs[idx] - azimuth) * pst_azs[idx - 1]) /
+                 (azs[idx] - azs[idx - 1]);
+    if (pst < 0)
+    {
+        pst = 0;
+    }
+    return pst;
+}
+
+
+
+
+
+/**
+ * \brief: constructor for the Time class
+ *
+ * \note: this class is defined to deal well with
+ *        the format of the time in the orbit file.
  */
 Time::Time(std::string datetime)
 {
@@ -1104,3 +727,11 @@ Time::Time(std::string datetime)
 
     t = mktime(&tm);
 }
+
+int Time::totalSeconds() const
+{
+    return seconds + 60* (minutes + 60 * (hours + 24*days) );
+}
+
+
+

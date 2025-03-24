@@ -91,8 +91,6 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         map<unsigned int, map<unsigned int, vector<unsigned int>>> rowIndexOfMaskOfTarget;  // The row indices of all mask pixels, for each target
         map<unsigned int, map<unsigned int, vector<unsigned int>>> colIndexOfMaskOfTarget;  // The column indices of all mask pixels, for each target
 
-    private:
-    void addStraylightToPixelMap();
 };
 
 

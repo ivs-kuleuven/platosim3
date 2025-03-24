@@ -522,6 +522,14 @@ class SimFile (object):
         return self.getMap("ThroughputMaps", imageNr=imageNr)
 
     
+    def getStraylight(self):
+        """Get the straylight"""
+
+        sl = self.hdf5file["Straylight"]["Moon"][:]
+        grid = self.hdf5file["Straylight"]["Grid"][:]
+        pst = self.hdf5file["Straylight"]["Pst"][:]
+        cst = self.hdf5file["Straylight"]["Cst"][:]
+        return sl, grid, pst, cst
     
 
         

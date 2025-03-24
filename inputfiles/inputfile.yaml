@@ -9,7 +9,7 @@ General:
 ObservingParameters:
 
     MissionDuration:                 4.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
-    NumExposures:                    1              # Number of exposures
+    NumExposures:                    1               # Number of exposures
     BeginExposureNr:                 0               # Sequential number of first exposure (useful for slurm parallellisation)
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
     Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
@@ -52,8 +52,10 @@ Platform:
     JitterFileName:                  inputfiles/jitter.txt
 
 StrayLight:
+    IncludeStraylight:               True
     FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
-    PstPath:                         inputfiles/pst.hdf5
+    PstRadiancePath:                 inputfiles/pst.hdf5
+    Time0:                           20260718T015614
 
 Telescope:
 

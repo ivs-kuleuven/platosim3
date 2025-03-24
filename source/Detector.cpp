@@ -198,7 +198,11 @@ Detector::Detector(ConfigurationParameters &configParam,
         backgroundMap.zeros(numRowsPixelMap, numColumnsPixelMap);
     }
 
-    straylight = new StrayLight(configParam, hdf5file, camera, *this);
+    if (includeStraylight)
+    {
+        // Include straylight
+        straylight = new StrayLight(configParam, hdf5file, camera, *this);
+    }
 
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
     // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
@@ -294,8 +298,16 @@ Detector::~Detector()
         writeBackgroundMapToHDF5();
     }
 
-    flushOutput();
+    if (includeStraylight)
+    {
+        hdf5File.writeStraylight(straylightValues);
+        
+    }
+    
 
+
+    flushOutput();
+    delete straylight;
     delete frontEndElectronics;
 }
 
@@ -542,6 +554,7 @@ void Detector::updateParameters(double time)
     includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
     constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
     includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
+    includeStraylight               = configParam.getBoolean("StrayLight/IncludeStraylight");
 
     if (includeRelativeTransmissivity)
     {
@@ -3413,6 +3426,11 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapLeft");
         hdf5File.createGroup("/Cosmics/BiasMapRight");
       }
+
+    if (includeStraylight)
+      {
+        hdf5File.createGroup("/Straylight");
+      }
 }
 
 
@@ -3862,3 +3880,22 @@ void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposu
     }
 
 }
+
+
+
+
+
+/**
+ *
+ * \brief: Adds the straylight in electrons to the pixelmap.  
+ * 
+ */
+void Detector::addStraylightToPixelMap(double time)
+{
+    double light = (*straylight).getStrayLightMoon(time);
+
+    pixelMap += light;  // [electrons]
+    straylightValues.push_back(light);
+
+
+};

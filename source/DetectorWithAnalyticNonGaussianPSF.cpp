@@ -11,7 +11,7 @@
  * bias register map, smearing map, etc.) will be saved.
  *
  * The following maps are initialized to zero (partly through the base class Detector):
- *
+n *
  * pixelMap
  * subPixelMap
  * biasMap
@@ -544,16 +544,19 @@ void DetectorWithAnalyticNonGaussianPSF::integrateLight(int exposureNr, double s
     }
 
 
-    // TO BE REMOVED:
-
-    addStraylightToPixelMap();
-
-
     // Apply throughput efficiency on the pixel map.
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
     // PixelMap units change from [photons] to [electrons]
 
     applyThroughputEfficiency();
+
+    // Include straylight after we apply the throughput efficiency, since this
+    // is already taken into account in the PST that we use in the straylight
+    
+    if (includeStraylight)
+    {
+        addStraylightToPixelMap(startTime);
+    }
 
     // Apply the charge injection which will mitigate the CTI. The injection happens in electrons,
     // so the throughput efficiency should already have been applied. The injected charges do feel the PRNU,
@@ -1332,13 +1335,4 @@ void DetectorWithAnalyticNonGaussianPSF::applyPhotometry(const unsigned int expo
 
 
 
-
-
-void DetectorWithAnalyticNonGaussianPSF::addStraylightToPixelMap()
-{
-    std::cout << (*straylight).getStrayLightMoon(0) << " ph" << std::endl;
-    std::cout << "===================================================\n\n\n" << std::endl;
-
-
-};
 
