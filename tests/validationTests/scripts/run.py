@@ -43,6 +43,7 @@ from quaternion                                    import Quaternion
 from RefFrames.focalPlaneCoordinates               import FocalPlaneCoordinates
 from nonlineargain                                 import NonlinearGainTest 
 from spr                                           import SPRTest
+from straylight                                    import Straylight
 
 
 from contextlib import contextmanager
@@ -123,6 +124,7 @@ myTests = [
     (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
     (NonlinearGainTest(),          "Nonlinear gain"),
     (SPRTest(),                    "Stellar pollution ratio (SPR)")
+    (Straylight(),                 "Straylight")
 ]                                  
 
 
