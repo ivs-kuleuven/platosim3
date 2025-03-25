@@ -1,0 +1,45 @@
+#+TITLE:Straylight
+#+AUTHOR:Dries Seynaeve
+
+* Construction of Straylight object
+
+We define a Straylight object and pass it the configuration parameters as input.
+During the object's construction, we read the orbit file and the PST file.
+For the orbit file, we only keep those values between the first and last exposure.
+
+For the PST file, we load the entire file. Thus we load in 5 PST "matrices" (one for each of the five AZ values),
+these "matrices" have a row for every angle rho_a and a column for the 3 wavelengths (500nm, 750nm
+and 1000nm). When reading in a single row, we extrapolate this into wavelengths from 400nm
+to 1125nm in steps of 25nm. Thus we end up with 5 matrices, each with 29 columns. 
+
+* getStrayLightMoon or getStrayLightEarth
+
+*!IMPORTANT:* The function ~getStrayLightEarth~ is not yet implemented.
+
+Both of these functions take in as arguments the row and column of the subfield. These functions select the correct position
+of the sun, the moon/earth and the spacecraft. *!IMPORTANT:* This still needs to be implemented, for now, we always take the first
+position of these objects. Lastly, these functions call a function ~getStrayLightObject~ with arguments: the positions,
+the row and column and the number of gridpoints into which we divide the earth or moon.
+
+* getStrayLightObject
+
+This is the function that is responsible for most of the work in getting the stray light. We describe step by step what this function does.
+For debugging purposes, we should check the result at every step and make sure it is sensible. 
+
+First, we start by modelling a grid around the object we consider.
+n
+Secondly, we obtain the irradiance of the sun onto each of the object grid points. We discard the gridpoints where no light fall
+onto (on the dark side of the object). 
+
+Thirdly, we get the irradiance of every gridpoint at the camera. For this, we take two positions into account, the orientation of the
+gridpoint and the pointing of the camera. 
+
+To get the light that falls onto the camera, taking into account the QE and the baffle of the camera, we need to use the PST function that
+we read during the configuration. We have these PST values for those angles in the PST file, we extrapolate this to get the PST
+values for the angles at which the light falls onto the camera for every gridpoint.
+
+Once we have this, we multiply the PST file (for every angle and wavelength) with the irradiance at the camera (for every gridpoint and wavelength).
+
+
+Then we should convert the irradiance into the number of straylight electrons and integrate out the wavelength and grid dependency
+of the amount of electrons. From this, we get the amount of electrons that fall onto the subfield at this row and column. 
