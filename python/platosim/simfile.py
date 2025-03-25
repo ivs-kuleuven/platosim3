@@ -526,10 +526,7 @@ class SimFile (object):
         """Get the straylight"""
 
         sl = self.hdf5file["Straylight"]["Moon"][:]
-        grid = self.hdf5file["Straylight"]["Grid"][:]
-        pst = self.hdf5file["Straylight"]["Pst"][:]
-        cst = self.hdf5file["Straylight"]["Cst"][:]
-        return sl, grid, pst, cst
+        return sl
     
 
         

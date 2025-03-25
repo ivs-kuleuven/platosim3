@@ -42,7 +42,7 @@ from metallicShield                                import MetallicShield
 from quaternion                                    import Quaternion                   
 from RefFrames.focalPlaneCoordinates               import FocalPlaneCoordinates
 from nonlineargain                                 import NonlinearGainTest 
-
+from straylight                                    import Straylight
 
 from contextlib import contextmanager
 import sys, os
@@ -120,7 +120,8 @@ myTests = [
     (DarkSignalNonUniformity(),    "Dark Signal Non Uniformity"),
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),
     (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
-    (NonlinearGainTest(),          "Nonlinear gain")
+    (NonlinearGainTest(),          "Nonlinear gain"),
+    (Straylight(),                 "Straylight")
 ]                                  
 
 
