@@ -123,7 +123,7 @@ myTests = [
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),
     (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
     (NonlinearGainTest(),          "Nonlinear gain"),
-    (SPRTest(),                    "Stellar pollution ratio (SPR)")
+    (SPRTest(),                    "Stellar pollution ratio (SPR)"),
     (Straylight(),                 "Straylight")
 ]                                  
 
