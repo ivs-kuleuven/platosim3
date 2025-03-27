@@ -65,6 +65,15 @@ class Payload(object):
         self.plot = args.plot
         self.aocs = args.aocs
 
+        # Optional parameters
+        self.seed = args.seed
+
+        # TED amplitude
+        if args.ted_ampl is None:
+            self.ted_ampl = 2
+        else:
+            self.ted_ampl = args.ted_ampl
+        
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
         if args.verbose == 0:
             self.verbose = 0            
@@ -198,6 +207,12 @@ class Payload(object):
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, self.G, self.C, self.Q,
                             fcam=False, ofile=filename)
+
+            filename = f"{self.odir}/{self.prefix}_ncam_new.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFileNew(self.N, self.G, self.C,
+                               fcam=False, ofile=filename)
             
             filename = f"{self.odir}/{self.prefix}_fcam.data"
             if self.verbose > 1:
@@ -234,7 +249,7 @@ class Payload(object):
         # Generete PRE file
         if self.verbose > 1:
             errorcode('module', '\nPointing repeatability error (PRE)')
-        ns.getPRE(self.alpha, self.delta, self.kappa, self.Q, sigma=3,
+        ns.getPRE(self.alpha, self.delta, self.kappa, self.Q, sigma=3, seed=self.seed,
                   ofile=self.fileNamePRE, table=self.table, plot=self.plot)
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNamePRE}")
@@ -252,7 +267,7 @@ class Payload(object):
         # Generete APE file
         if self.verbose > 1:
             errorcode('module', '\nAbsolute Pointing Error (APE)')
-        ns.getAPE(self.alpha, self.delta, self.kappa, sigma=3,
+        ns.getAPE(self.alpha, self.delta, self.kappa, sigma=3, seed=self.seed,
                   ofile=self.fileNameAPE, table=self.table, plot=self.plot)
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNameAPE}")
@@ -292,7 +307,7 @@ class Payload(object):
             print('Downtime due to quater interuptions')
             print('Downtime due to loss of fine guidance')
             print('Downtime due to safe-mode events')
-        _, self.t0, self.td = ns.getDataGaps(self.time, self.Q,
+        _, self.t0, self.td = ns.getDataGaps(self.time, self.Q, seed=self.seed,
                                              ofile=self.fileNameGAP, plot=self.plot)
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNameGAP}")
@@ -318,11 +333,13 @@ class Payload(object):
         # Generate TED file
         if self.verbose > 1:
             errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
-        ns.getTED(self.Q, ofile=self.fileNameTED, table=self.table, plot=self.plot)
+        ns.getTED(self.Q, ofile=self.fileNameTED, ampl=self.ted_ampl,
+                  wheel_offloading=False,
+                  seed=self.seed, table=self.table, plot=self.plot)
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNameTED}")
 
-
+            
 
 
         
@@ -335,6 +352,8 @@ class Payload(object):
         if self.aocs and self.odir:
             if self.verbose > 1:
                 errorcode('module', '\nAttitude Control System (ACS)\n')
+            #ns.getACS(self.time, seed=self.seed, ofile=self.fileNameACS, plot=self.plot)
+            # TODO: JMCC - removed seed as platosim was complaining
             ns.getACS(self.time, ofile=self.fileNameACS, plot=self.plot)
             if self.odir and self.verbose > 1:
                 print(f"File saved: {self.fileNameACS}")
@@ -361,10 +380,13 @@ out_group.add_argument('-o', '--outdir',  metavar='PATH', type=str, help='Output
 out_group.add_argument('--project',       metavar='NAME', type=str, help='Name of PLATOnium project')
 
 obs_group = parser.add_argument_group('OBSERVATION PARAMETERS')
-obs_group.add_argument('--group',   metavar='INT', type=str, help='Group   number: 1, 2, .... (Default: 1-4 = all)')
-obs_group.add_argument('--camera',  metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
-obs_group.add_argument('--quarter', metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
-obs_group.add_argument('--aocs',    action='store_true', help='Flag to generate a red noise AOCS jitter file')
+obs_group.add_argument('--group',    metavar='INT', type=str, help='Group   number: 1, 2, .... (Default: 1-4 = all)')
+obs_group.add_argument('--camera',   metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
+obs_group.add_argument('--quarter',  metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
+obs_group.add_argument('--ted_ampl', metavar='FLOAT', type=float, help='Approx max amplitude of TED model (Default: 5 arcsec)')
+#obs_group.add_argument('--wheel_', metavar='FLOAT', type=float, help='Approx max amplitude of TED model (Default: 5 arcsec)')
+obs_group.add_argument('--seed',     metavar='INT',   type=int,   help='Seed to reproduce results (Default: None)')
+obs_group.add_argument('--aocs',     action='store_true', help='Flag to generate a red noise AOCS jitter file')
 
 args = parser.parse_args()
 

@@ -79,8 +79,7 @@ class DifferentialAberration(Test):
 
         # Fetch parameters
         row, col = f.getStarPositions(sid[0])
-
-        return 4-row, 4-col
+        return 4-row[0], 4-col[0]
 
 
 
@@ -94,10 +93,10 @@ class DifferentialAberration(Test):
         dy = np.zeros((npos, nexp))
 
         colors = ['blue', 'orange', 'green', 'red', 'purple']
-
+        
         for i in range(npos):
             for j in range(nexp):
-                dx[i,j], dy[i,j] = self.simulate(True, self.positions[i], self.exposures[j], f"output{self.nr}")
+                dx[i,j], dy[i,j] = self.simulate(True, self.positions[i], self.exposures[j], f"output{self.nr}")                
                 c[i,j] = np.sqrt((dx[i,j]**2 + dy[i,j]**2))
 
 
@@ -105,7 +104,6 @@ class DifferentialAberration(Test):
         fig, ax = plt.subplots()
         for i in range(npos):
             ax.plot(self.exposures*25/86400, c[i,:], 'o-', label=f'(row,col) = ({self.positions[i]}, {self.positions[i]}) pix', color=colors[i])
-
 
         ax.set(ylabel='Delta position [pixel]')
         fig.legend()
@@ -124,11 +122,12 @@ class DifferentialAberration(Test):
             xc, yc, a, b, theta = ell.params
 
             plt.scatter(dx[i,:], dy[i,:], label=f'(row, col) = ({self.positions[i]}, {self.positions[i]}) pix', color=colors[i])
-
+            plt.scatter([0.3, 0.3, -0.3, -0.3], [0.3, -0.3, 0.3, -0.3])
             ell_path = Ellipse((xc, yc), 2*a, 2*b, angle=theta*180/np.pi, edgecolor=colors[i], facecolor='none')
 
-            widths.append(ell_path.get_width())
-            heights.append(ell_path.get_height())
+            widths.append(min(a, b))
+            heights.append(max(a,b))
+
             ax.add_patch(ell_path)
 
         plt.xlabel("dx [pxl]")

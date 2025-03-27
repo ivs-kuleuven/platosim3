@@ -9,10 +9,10 @@ General:
 ObservingParameters:
 
     MissionDuration:                 4.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
-    NumExposures:                    10              # Number of exposures
+    NumExposures:                    1               # Number of exposures
     BeginExposureNr:                 0               # Sequential number of first exposure (useful for slurm parallellisation)
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    Fluxm0:                          1.00179e8       # Photon flux of a V=0 G2V-star [phot/s/m^2/nm]
+    Fluxm0:                          1.00179e8       # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
     
@@ -37,8 +37,8 @@ Platform:
     Orientation:
       Source:                        Angles          # Should be either "Angles" or "Quaternion" 
       Angles:
-        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
-        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
+        RAPointing:                  208.6988            # Platform (not telescope) right ascension pointing coordinate   [deg]
+        DecPointing:                -16.7981            # Platform (not telescope) declination pointing coordinate       [deg]
         SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
         Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
@@ -51,6 +51,11 @@ Platform:
     JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
+StrayLight:
+    IncludeStraylight:               True
+    FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
+    PstRadiancePath:                 inputfiles/pst.hdf5
+    Time0:                           20260718T015614
 
 Telescope:
 
@@ -171,8 +176,7 @@ CCD:
         RefValueRight:               2.21            # E side of CCD [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
-        Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # O = B + I + a0 + a1 * I + a2 * I^2
-                                                                        # O=output signal [ADU], B=bias [ADU], I=input signal [ADU]
+        Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # Output signal [ADU] = Bias + I + a0 + a1 * I + a2 * I^2,  I=input signal [ADU]
     QuantumEfficiency:
         MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE

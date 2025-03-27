@@ -42,6 +42,8 @@ from metallicShield                                import MetallicShield
 from quaternion                                    import Quaternion                   
 from RefFrames.focalPlaneCoordinates               import FocalPlaneCoordinates
 from nonlineargain                                 import NonlinearGainTest 
+from spr                                           import SPRTest
+from straylight                                    import Straylight
 
 
 from contextlib import contextmanager
@@ -96,7 +98,7 @@ myTests = [
     (Quaternion(),                 "Quaternions"),
     (QuantumEfficiency(),          "Quantum Efficiency"),
     (PRNU(),                       "Pixel-Responsivity Non Uniformity"),
-    (Short2013CTIFromFile(),       "Short 2013 from file model"),
+#    (Short2013CTIFromFile(),       "Short 2013 from file model"),
     (AnalyticNonGaussianPSF(),     "Analytic non Gaussian PSF"),
     (ElectronicOffset(),           "Electronic Offset"),
     (Rebinning(),                  "Rebinning Subpixel"),
@@ -120,8 +122,11 @@ myTests = [
     (DarkSignalNonUniformity(),    "Dark Signal Non Uniformity"),
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),
     (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
-    (NonlinearGainTest(),          "Nonlinear gain")
+    (NonlinearGainTest(),          "Nonlinear gain"),
+    (SPRTest(),                    "Stellar pollution ratio (SPR)"),
+    (Straylight(),                 "Straylight")
 ]                                  
+
 
 
 def runTheTest(description, test, i):

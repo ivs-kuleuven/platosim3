@@ -2170,6 +2170,16 @@ void HDF5File::writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuant
 
 
 
+/**
+ * \brief: include the Straylight to the HDF5 file.
+ *
+ */  
+void HDF5File::writeStraylight(vector<double>& straylight)
+{
+  writeArray("/Straylight/", "Moon", straylight.data(), straylight.size());
+
+}
+
 
 
 /**
@@ -2213,7 +2223,6 @@ void HDF5File::writeStarPositionByExposure(map<double, map<unsigned int, array<d
     vector<double> time;
     for(auto keyValuePair: detectedStarInfo) time.push_back(keyValuePair.first);
 
-    // TODO Remove this and replace with more genric time column in a new release
 
     if (!time.empty())
     {

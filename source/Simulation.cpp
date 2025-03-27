@@ -873,6 +873,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeFullWellSaturation");
     addBoolean("IncludeDigitalSaturation");
     addBoolean("IncludeQuantisation");
+    addBoolean("IncludeGainNonlinearity");
     subGroup = "CCD/BFE";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("CoefficientsFileName");
@@ -882,6 +883,7 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("RefValueRight");
     addDouble("Stability");
     addDouble("AllowedDifference");
+    addDoubleVector("Nonlinearity");
     subGroup = "CCD/QuantumEfficiency";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addDouble("MeanQuantumEfficiency");

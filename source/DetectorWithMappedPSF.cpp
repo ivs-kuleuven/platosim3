@@ -499,7 +499,7 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     // Integration (incl. jitter): point sources
 
-    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime);
 
     // Convolve with the point spread function
 
@@ -538,6 +538,14 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
     // PixelMap units change from [photons] to [electrons]
 
     applyThroughputEfficiency();
+
+    // Include straylight after we apply the throughput efficiency, since this
+    // is already taken into account in the PST that we use in the straylight
+
+    if (includeStraylight)
+    {
+        addStraylightToPixelMap(startTime);
+    }
 
     // Apply the charge injection which will mitigate the CTI. The injection happens in electrons,
     // so the throughput efficiency should already have been applied. In principle, the injected charges do

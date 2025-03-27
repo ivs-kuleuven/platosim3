@@ -123,8 +123,8 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
 
     // Double the dimensions (this is necessary because of the behaviour of the Fourier transforms)
 
-    int Nrows = 2 * numRowsPixelMap;
-    int Ncolumns = 2 * numColumnsPixelMap;
+    int unsigned Nrows    = 2 * numRowsPixelMap;
+    int unsigned Ncolumns = 2 * numColumnsPixelMap;
 
     arma::cx_fmat evenMap = arma::cx_fmat(Nrows, Ncolumns);
 
@@ -170,6 +170,7 @@ void DetectorWithAnalyticGaussianPSF::generateFlatfieldMap()
     if (writeFlatfieldMap)
     {
         Log.debug("Detector: writing PRNU to HDF5");
+        hdf5File.createGroup("/Flatfield");
         hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
     }
 }
@@ -301,7 +302,7 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     // Integration (incl. jitter): point sources + background
     // PixelMap units after: [photons]
 
-    camera.exposeDetectorWithStars(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    camera.exposeDetectorWithStars(*this, startTime, exposureTime);
     if (constantSkyBackground)
     {
         camera.exposeDetectorWithSkyBackground(*this, startTime, exposureTime, readoutTimeBeforeNextExposure);
@@ -310,6 +311,12 @@ void DetectorWithAnalyticGaussianPSF::integrateLight(int exposureNr, double star
     {
         addBackgroundMapToPixelMap(camera, startTime);
     }
+
+    // Apply throughput efficiency on the pixel map.
+    // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
+    // PixelMap units change from [photons] to [electrons]
+
+    applyThroughputEfficiency();
 
     // Apply throughput efficiency on the pixel map.
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.

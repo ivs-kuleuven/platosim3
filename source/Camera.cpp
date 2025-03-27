@@ -180,7 +180,7 @@ tuple<double, double, double, double, double, double> Camera::getInfoForTheMostR
     // Find the map item with the given starID
 
     auto it = detectedStarInfo[timeStamp].find(starID);
-    if (it == detectedStarInfo[timeStamp].end())
+    if ((it == detectedStarInfo[timeStamp].end()) || (detectedStarInfo[timeStamp][starID][5] == 0))
     {
         // The starID couldn't be found in the map.
 
@@ -531,7 +531,7 @@ void Camera::updateParameters(double time)
  * \param exposureTime: Duration of one exposure [s].
  * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
  */
-void Camera::exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+void Camera::exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime)
 {
     // Make a rough selection of:
     //  - stars that are on or near the sub-field (or will produce an extended ghost on or near the sub-field)
@@ -539,7 +539,7 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
     //    accounting for the distance cut-off)
 
     unsigned long numStars, numPointLikeGhosts;
-    tie(numStars, numPointLikeGhosts) = makeStarCatalogSelection(detector, startTime, exposureTime, readoutTimeBeforeNextExposure);
+    tie(numStars, numPointLikeGhosts) = makeStarCatalogSelection(detector, startTime, exposureTime);
 
     // If the telescope and/or platform show small variations (e.g. due to jitter) during the exposure,
     // the exposure time is split up in many small intervals, to track the effect of these variations
@@ -719,6 +719,12 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
             }
         }
 
+        if (numStarsInSubField == 0)
+        {
+            detectedStarInfo[startTime][0] = {{0., 0., 0., 0., 0., 0.}};
+        }
+
+
         if(includePointLikeGhosts)
         {
             // Loop over the selected originators of symmetric point-like ghosts and
@@ -841,14 +847,13 @@ void Camera::exposeDetectorWithStars(Detector &detector, double startTime, doubl
  *
  * \param detector: Detector for which to make a rough selection of stars.
  * \param startTime: Start time of the exposure [s].
- * \param exposureTime: Duration of one exposure [s].
- * \param readoutTimeBeforeNextExposure: Duration of the readout that takes place before the next exposure starts [s].
+ * \param exposureTime: Duration of one exposure [s].(exposure number 0 is at startTime = 0)
  *
  * \return: Number of selected stars that are on or near the sub-field, and number of selected stars that produces
  *          symmetric point-like ghosts on or near the sub-field (without accounting for the distance cut-off).  The
  *          latter is zero if ghosts are not to be included in the simulation.
  */
-tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
+tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime)
 {
     // Focal-plane coordinates of the centre, and the lower left and upper right corner
     // of the sub-field
@@ -964,21 +969,18 @@ tuple<unsigned long, unsigned long> Camera::makeStarCatalogSelection(Detector &d
 
     if (includeAberrationCorrection)
     {
-        // The time at the middle of the time series is the time when the Sun is defined to be 180 degrees away from platform pointing
-
-        double timeMiddle = numExposures * (exposureTime + readoutTimeBeforeNextExposure) / 2.0;
 
         // Get the apparent position of the stars, i.e. apply the differential aberration correction to
         // the positions of the selected stars and originators of symmetrical point-like ghosts
         // We do this calcuation only once per exposure as the effect is negligible within the exposure time
 
         Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected stars.");
-        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+        sky.aberrateSelectedStarPositions(platform, aberrationCorrectionType, startTime);
 
         if(includePointLikeGhosts)
         {
             Log.info("Camera: applying " + aberrationCorrectionType + " aberration correction to the selected originators of symmetrical point-like ghosts.");
-            sky.aberrateSelectedGhostOrigPositions(platform, aberrationCorrectionType, startTime, timeMiddle);
+            sky.aberrateSelectedGhostOrigPositions(platform, aberrationCorrectionType, startTime);
         }
     }
 
@@ -1270,6 +1272,45 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
     return make_pair(raStar, decStar);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+arma::colvec Camera::telescopeToSkyCoordinates(arma::vec vecTL, bool useInitialOrientation)
+{
+
+    // Get the rotation matrices Telescope (TL) -> Spacecraft (SC) and Spacecraft (SC) -> Equatorial (EQ)
+
+    arma::mat rotSC2EQ;
+    arma::mat rotTL2SC;
+
+    if (useInitialOrientation)
+    {
+        rotSC2EQ = platform.getUnjitteredSpacecraftToEquatorialRotationMatrix();
+        rotTL2SC = telescope.getUndriftedTelescopeToPlatformRotationMatrix();
+    }
+    else
+    {
+        rotSC2EQ = platform.getJitteredSpacecraftToEquatorialRotationMatrix();
+        rotTL2SC = telescope.getDriftedTelescopeToPlatformRotationMatrix();
+    }  
+
+    // Combine all the rotation matrices
+  
+    arma::mat rotTL2EQ = rotSC2EQ * rotTL2SC;
+
+    // Transform the unnormalized platform coordinates to the corresponding ones in the equatorial reference frame
+
+    arma::colvec vecEQ = rotTL2EQ * vecTL;
+    return vecEQ;
+}
 
 
 

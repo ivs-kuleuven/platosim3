@@ -198,6 +198,12 @@ Detector::Detector(ConfigurationParameters &configParam,
         backgroundMap.zeros(numRowsPixelMap, numColumnsPixelMap);
     }
 
+    if (includeStraylight)
+    {
+        // Include straylight
+        straylight = new StrayLight(configParam, hdf5file, camera, *this);
+    }
+
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
     // the FOV (relevant only in case of mechanical vignetting).  When mechanical vignetting is
     // disabled, all pixels of the detector are inside the FOV.
@@ -292,8 +298,16 @@ Detector::~Detector()
         writeBackgroundMapToHDF5();
     }
 
-    flushOutput();
+    if (includeStraylight)
+    {
+        hdf5File.writeStraylight(straylightValues);
+        
+    }
+    
 
+
+    flushOutput();
+    delete straylight;
     delete frontEndElectronics;
 }
 
@@ -540,6 +554,7 @@ void Detector::updateParameters(double time)
     includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
     constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
     includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
+    includeStraylight               = configParam.getBoolean("StrayLight/IncludeStraylight");
 
     if (includeRelativeTransmissivity)
     {
@@ -605,7 +620,7 @@ void Detector::updateParameters(double time)
         readCTIinputFile(ctiInputFile);
         radiationSmearingMap.resize(numRowsSmearingMap, numColumnsPixelMap);
         radiationSmearingMap.fill(1.0);
-	numberOfOccupiedTrapsPixelMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
+	    numberOfOccupiedTrapsPixelMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
         numberOfOccupiedTrapsSmearingMap = arma::zeros<arma::Mat<float>>(numTrapSpecies, numColumnsPixelMap);
     }
     else
@@ -717,7 +732,7 @@ void Detector::readCTIinputFile(string ctiInputFile)
     arma::Mat<float> map(numRows, numColumns);
     CTIFile.readArray("/", "radiationMap", map);
 
-    // Rescale the radiatio  map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
+    // Rescale the radiation map so that it has mean = 1, and only keep the part relevant to subfield we're interested in.
 
     radiationMap.resize(numRowsPixelMap, numColumnsPixelMap);
     radiationMap = map.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldZeroPointRow+numRowsPixelMap-1, subFieldZeroPointColumn+numColumnsPixelMap-1);
@@ -2320,18 +2335,38 @@ void Detector::applyShort2013CTImodel(string map)
             // Interpolate between the BOL and EOL to get the trap density for species k corresponding to the current `internalTime`
 
             arma::Mat<float> currentTrapDensityMap = (meanTrapDensityBOL[k]
-                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration
-                                                     ) * (*radiation);
+                                                      + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration) * (*radiation);
+            
+            // Compute the accumulated number of traps that the charges will
+            // cross during the transfer. We loop over all the rows that will
+            // be crossed as a double to increase accuracy.
 
+            arma::Row<double> totalTrapsAsDouble(numColumnsPixelMap, arma::fill::zeros);
+
+            for (int row = 0; row < rowNumber + 1; row++)
+            {
+                totalTrapsAsDouble = totalTrapsAsDouble + currentTrapDensityMap.row(rowNumber);
+            }
+
+            double valueRow = (meanTrapDensityBOL[k] + (meanTrapDensityEOL[k] - meanTrapDensityBOL[k]) * internalTime / missionDuration);
+            arma::Row<double> uniformRow(numColumnsPixelMap, arma::fill::ones);
+	    totalTrapsAsDouble += zeroPointRow * uniformRow * valueRow;
+
+            // We convert the Row<double> into Row<float>
+            arma::Row<float> totalTraps =
+                arma::conv_to<arma::Row<float>>::from(totalTrapsAsDouble);
             // Compute the number of electrons captured in a trap, according to Eq. (22)-(23) of Short et al. (2013).
             // Note that Armadillo uses % for elementwise multiplication.
             // In the following line: +1 as row = 0 also has to be transferred once
-            gamma = 2 * currentTrapDensityMap.row(rowNumber) * (zeroPointRow + rowNumber + 1) / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
+            gamma = 2 * totalTraps / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
+            
 
-            numberOfCapturedElectrons =   (gamma % arma::pow((*matMap).row(rowNumber), beta) - (*numberOfOccupiedTraps).row(k)) \
-                                        / (gamma % arma::pow((*matMap).row(rowNumber), beta-1) + 1)                          \
-                                        % (1 - arma::exp(-alpha(k) * arma::pow((*matMap).row(rowNumber), 1-beta)));
-
+            numberOfCapturedElectrons =
+                (gamma % arma::pow((*matMap).row(rowNumber), beta) -
+                 (*numberOfOccupiedTraps).row(k)) /
+                (gamma % arma::pow((*matMap).row(rowNumber), beta - 1) + 1) %
+                (1 - arma::exp(-alpha(k) *
+                               arma::pow((*matMap).row(rowNumber), 1 - beta)));
             // Captured electron numbers can't be negative, so clip negative value to zero.
 
             arma::Col<arma::uword> isNegative = arma::find(numberOfCapturedElectrons < 0.0);
@@ -3411,6 +3446,11 @@ void Detector::initHDF5Groups()
         hdf5File.createGroup("/Cosmics/BiasMapLeft");
         hdf5File.createGroup("/Cosmics/BiasMapRight");
       }
+
+    if (includeStraylight)
+      {
+        hdf5File.createGroup("/Straylight");
+      }
 }
 
 
@@ -3860,3 +3900,22 @@ void Detector::fillBackgroundMap(Camera &camera, double startTime, double exposu
     }
 
 }
+
+
+
+
+
+/**
+ *
+ * \brief: Adds the straylight in electrons to the pixelmap.  
+ * 
+ */
+void Detector::addStraylightToPixelMap(double time)
+{
+    double light = (*straylight).getStrayLightMoon(time);
+
+    pixelMap += light;  // [electrons]
+    straylightValues.push_back(light);
+
+
+};
