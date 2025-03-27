@@ -21,12 +21,15 @@ generated/version.h
 
 !inputfiles/inputfile.yaml
 !inputfiles/inputfile_FCAM_required.yaml
+!inputfiles/Plato_straylight_example_index_2574.csv
 !aps_N6000K_v2.txt
 !orbit.txt
 !inputfiles/cl2bCcds.txt
 !starcatalog.txt
 !starcatalogOld.txt
 !AOCS_spiral_8Hz_airbus_3h.txt
+!Plato_Straylight_PST.txt
+!pst.hdf5
 
 # Compile command json file for neovim LSP
 

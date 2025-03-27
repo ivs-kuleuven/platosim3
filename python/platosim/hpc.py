@@ -52,14 +52,16 @@ class HPC(object):
         self.vardir = self.pdir / 'varsource'
 
         # Software
-        self.VARSIM    = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/varsim.py'
-        self.PLATONIUM = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
+        simpath = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/'
+        self.VARSIM    = simpath + 'varsim.py'
+        self.PLATONIUM = simpath + 'platonium.py'
 
 
 
 
         
-    def run(self, script, param_file=False, sim_range=False, odir=False, kwargs=None):
+    def run(self, script, param_file=False, odir=False, vdir=False,
+            sim_range=False, kwargs=None):
 
         """Function to run the parallelisation.
         """
@@ -69,7 +71,7 @@ class HPC(object):
             self.odir = self.pdir / 'output'
         else:
             self.odir = odir
-
+            
         # Parse additional arguments
         self.kwargs = kwargs
             
@@ -83,7 +85,7 @@ class HPC(object):
             sim_range = range(sim_range[0]-1, sim_range[1])
         else:
             errorcode('error', 'Use either "param_file" or "sim_range"!')
-            
+
         # Configure parallel computing
         
         with parallel_config(backend=self.backend, n_jobs=self.cpus):
@@ -96,19 +98,17 @@ class HPC(object):
 
             # RUN VARSIM
                 
-            if script == 'varsim' and self.project == 'cs-smbhb':
+            if script == 'varsim' and self.project == 'mocka':
+                Parallel()(delayed(self.run_varsim_mocka)(i)
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
+
+            elif script == 'varsim' and self.project == 'cs-smbhb':
                 Parallel()(delayed(self.run_varsim_smbhb)(i)
-                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
-                
-            elif script == 'varsim' and self.project == 'mocka':
-                Parallel()(delayed(self.run_varsim_mocka)(i, N, project, projectDir)
-                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
-                
+                           for i in tqdm(sim_range, bar_format=ut.tqdmBar()))                
+
             elif script == 'varsim':
                 Parallel()(delayed(self.run_varsim)(i, N, params[i])
                            for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
-
-
 
             
     #--------------------------------------------------------------#
@@ -126,13 +126,13 @@ class HPC(object):
         C = int(params[i,2])
         Q = int(params[i,3])
         starID = f'{S}'.zfill(9)
-        
+
         # Testing MOCKA locally
-        varfile = self.vardir / f'{starID}' / f'varsource_001.txt'
-        vararg = f'--varfile {varfile}'
+        #varfile = self.vardir / f'{starID}' / f'varsource_001.txt'
+        #vararg = f'--varfile {varfile}'
         
-        # # Parse arguments
-        # if self.vardir != '':
+        # Parse arguments
+        # if vdir:
         #     starID9 = f'{S}'.zfill(9)
         #     varfile = self.vardir / f'varsource_{starID}.txt'
         #     varlist = self.vardir / f'{starID}' / f'varSourceList.txt'
@@ -140,10 +140,10 @@ class HPC(object):
         #         vararg = f'--varfile {varfile}'
         #     elif varlist.is_file():
         #         vararg = f'--varlist {varlist}'
-                
+        
         # Run PlatoSim simulation
         os.system(f'{self.PLATONIUM} {S} {G} {C} {Q} --project {self.project} ' +
-                  f'-o {self.odir} {vararg} {self.kwargs} -v 0 -w')
+                  f'-o {self.odir} {self.kwargs} -v 0 -w')
 
 
 
@@ -167,10 +167,10 @@ class HPC(object):
 
 
 
-    def run_varsim_mocka(self, i, N, project, projectDir):
+    def run_varsim_mocka(self, i):
 
         """Function to run the parallelisation.
         """
         
-        os.system(f'{self.VARSIM} --mocka {project} gdor {i+1} no {self.odir} ' +
-                  '--puls gang2020 --quarter 1-16 -v 0' )
+        os.system(f'{self.VARSIM} --mocka {self.project} gDor {i+1} no {self.odir} ' +
+                  '--quarter 1-8 -v 0')

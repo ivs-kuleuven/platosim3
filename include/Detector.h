@@ -11,6 +11,7 @@
 
 #include "Faddeeva.hh"
 
+#include "StrayLight.h"
 #include "Constants.h"
 #include "ArrayOperations.h"
 #include "Mathematics.h"
@@ -27,7 +28,10 @@
 #include "Units.h"
 #include "Parameter.h"
 
+
 using namespace std;
+
+class StrayLight;
 
 class Camera;      // forward declaration
 
@@ -94,6 +98,7 @@ class Detector: public HDF5Writer
         virtual void applyDistortion(double &, double &){};
         virtual void applyInverseDistortion(double &, double &){};
         void addBackgroundMapToPixelMap(Camera &camera, double startTime);
+        void addStraylightToPixelMap(double startTime);
 
     protected:
 
@@ -126,6 +131,7 @@ class Detector: public HDF5Writer
         virtual void applyDigitalSaturation();
         virtual void applyOverAndUnderShoot();
 
+        StrayLight *straylight;
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
         void makeSubGroupForCosmics(string field, int exposureNr);
@@ -157,7 +163,7 @@ class Detector: public HDF5Writer
         vector<unsigned int> columnsOfCosmicsInSmearingMap;
         vector<double> fluxOfCosmicsInSmearingMap;
 
-
+        vector<double> straylightValues;
         vector<unsigned int> rowsOfCosmicsInBiasMapLeft;
         vector<unsigned int> columnsOfCosmicsInBiasMapLeft;
         vector<double> fluxOfCosmicsInBiasMapLeft;
@@ -208,7 +214,10 @@ class Detector: public HDF5Writer
         int bfeNeighbors[4][2];                  // Neighbours X for the BFE in Sect. 5.2 in Guyonnet et al. 2015
         int bfeRange;                            // How far pixels can be apart and still influence each other [pixels] (use window with dimensions 2 * range + 1)
 
-        bool includeCosmicsInSubField;           // Whether or not to include cosmic hits in the subfield
+        bool includeCosmicsInSubField;           // Whether or not to include cosmic hits
+                                                 // in the subfield
+        bool includeStraylight;                  // Wheter or not to include straylight
+                                                 // in the subfield
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
         bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
         bool groupByExposure;                    

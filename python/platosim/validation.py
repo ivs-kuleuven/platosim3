@@ -46,6 +46,7 @@ def switchOffAllEffects(sim):
                 - digital saturation;
                 - quantisation.
                 - non-linear gain
+                - straylight
 
     INPUT:
         - sim: Simulation for which to switch off all effects.
@@ -53,6 +54,9 @@ def switchOffAllEffects(sim):
     OUTPUT:
         - Simulation with all effects switched off.
     """
+
+    # Straylight
+    sim["StrayLight/IncludeStraylight"] = "no"
 
     # Sky parameters
 

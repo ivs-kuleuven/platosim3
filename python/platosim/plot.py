@@ -47,7 +47,7 @@ lw = 0.5  # Line-width
 pt = 0.1  # Percentage
 
 # Define some nice colors
-colors_sea = ['royalblue', 'lightseagreen', 'limegreen']
+colors_sea = ['purple', 'royalblue', 'lightseagreen', 'limegreen']
 colors_hot = ['tomato', 'darkorange', 'gold']
 colors_new = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
 
@@ -65,15 +65,19 @@ def getAxesMinMax(x=None, y=None, percentage=2):
     using a default spacing in percentage (pt). The user need only to
     specify which axis a min and max limit should be returned from.
     """
-
+    
     pt = percentage / 100.
     
     if x is not None:
+        x = np.sort(x)
         axmin = x[0]  - (x[-1]-x[0])*pt
         axmax = x[-1] + (x[-1]-x[0])*pt
+
     if y is not None:
+        y = np.sort(y)
         axmin = np.min(y) - (np.max(y)-np.min(y))*pt
         axmax = np.max(y) + (np.max(y)-np.min(y))*pt
+        
     return axmin, axmax
 
 
@@ -673,16 +677,6 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
     fovMm      = focalLength * np.tan(np.radians(fovDegrees))
 
-    def mm2pixels(distanceMm):
-        """
-        Conversion from millimeters to pixels.
-        :param distanceMm: Distance [mm].
-        :return distancePixels: Distance [pixels].
-        """
-        distancePixels = (np.degrees( np.arctan(distanceMm / focalLength)) /
-                          plateScale * c.degree / c.arcsec)
-        return distancePixels
-
     sign = lambda x: (1, -1)[x < 0]
 
     xFP = np.array([])
@@ -750,14 +744,15 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     yPixels = np.copy(yFP)
 
     for group in range(numGroups):
-        xPixels[group] = mm2pixels(xPixels[group])  # [mm] -> [pixels]
-        yPixels[group] = mm2pixels(yPixels[group])  # [mm] -> [pixels]
+        # [mm] -> [pixels]
+        xPixels[group] = ut.mm2pixels(xPixels[group], focalLength, plateScale)  
+        yPixels[group] = ut.mm2pixels(yPixels[group], focalLength, plateScale)
 
     index = 0
 
     cornersX, cornersY = rf.computeCCDcornersInFocalPlane(refCcdCode, pixelSize)
-    offsetX = mm2pixels(cornersX[index]) + xPixels[refGroup - 1]
-    offsetY = mm2pixels(cornersY[index]) + yPixels[refGroup - 1]
+    offsetX = ut.mm2pixels(cornersX[index], focalLength, plateScale) + xPixels[refGroup - 1]
+    offsetY = ut.mm2pixels(cornersY[index], focalLength, plateScale) + yPixels[refGroup - 1]
 
     # Correct input pixel coordinates to match orientation of CCD origin
     
@@ -795,8 +790,8 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     for ccdCode in ccdCodes:
         cornersX, cornersY = rf.computeCCDcornersInFocalPlane(ccdCode, pixelSize)
         for corner in range(numCorners):
-            cornersX[corner] = mm2pixels(cornersX[corner])
-            cornersY[corner] = mm2pixels(cornersY[corner])
+            cornersX[corner] = ut.mm2pixels(cornersX[corner], focalLength, plateScale)
+            cornersY[corner] = ut.mm2pixels(cornersY[corner], focalLength, plateScale)
         cornersX = np.append(cornersX, cornersX[0])  # [mm]
         cornersY = np.append(cornersY, cornersY[0])  # [mm]
         for group in range(numGroups):
@@ -1026,8 +1021,8 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
-                         cbarOrientation=None, cbarMap='rainbow',
-                         figsize=(13, 9)):
+                         cbarOrientation=None, cbarMap='rainbow', color='r',
+                         title=None, fs=20, figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
 
@@ -1071,11 +1066,16 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     
     gal = SkyCoord(raStars, decStars, frame='icrs', unit=u.deg)
     gal = gal.galactic
+
+    # Show title if requested
+
+    if title:
+        # Aitoff projection in Galactic coordinates
+        plt.title(title, fontsize=fs+2, y=1.02)
+
     
     # Plot Aitoff projection in Galactic coordinates
-    
-    fs = 20
-    plt.title('Aitoff projection in Galactic coordinates', fontsize=fs+2, y=1.02)
+
     fig, ax = fig
     if len(raStars) <= 1e2: ms = 3.
     if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1.3
@@ -1100,10 +1100,14 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
         cbarMap = None
         
     # Plot the targets on the sky (autumn_r, rainbow)
-    
-    im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
-                     s=ms, cmap=cbarMap, zorder=3)
 
+    if magStars is not None:
+        im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
+                         s=ms, cmap=cbarMap, zorder=3)
+    else:
+        im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=color,
+                         s=ms, zorder=3)
+        
     # Vertical or horizontal colorbar showing magnitudes
 
     if magStars is not None:
@@ -1246,9 +1250,11 @@ def compass(ax, x, y, size):
 
 
             
-def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, showFcamFOV=False, showLegend=True, ncamStars=True,
-                 title=None, fovSize=30, fs=20, ms=1, aa=1, figsize=(9,9)):
+def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
+                 raStars=0, decStars=0, magStars=None, ms=2, aa=1,
+                 c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
+                 showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
+                 title=None, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1375,16 +1381,22 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
 
     if raStars is not None:
         starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
-        scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
-                             transform=ax.get_transform('world'), 
-                             s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=1, zorder=5)
-    
+        if c is None:
+            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
+                                 transform=ax.get_transform('world'), 
+                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=lw, zorder=5)
+        else:
+            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
+                                 transform=ax.get_transform('world'), 
+                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=lw, zorder=5)
+            cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
+            cbar.set_label(clabel)
+
     # Plot pointing of each camera group
     
     if showGroups:
 
         # Show N-CAM groups
-
         raGroups, decGroups = rf.getCameraGroupCoordinates(np.deg2rad(alpha),
                                                            np.deg2rad(delta),
                                                            np.deg2rad(kappa))
@@ -1432,12 +1444,13 @@ def plotPlatoFOV(pointingField, raStars=0, decStars=0, magStars=None, system="ic
     if showLegend and showGroups:
         ax.legend(loc='upper right')    
     if title is not None:
-        ax.set_title(title, fontsize=fs+2)        
+        ax.set_title(title, fontsize=fs+2, pad=10)        
     ax.set_xlabel('RA',  fontsize=fs)
     ax.set_ylabel('Dec', fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
     ax.tick_params(axis='both', labelsize=fs)
+    plt.tight_layout()
     
     # Return figure
     
@@ -2234,9 +2247,12 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
 
 
 def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
-                       yscale="log", cmap="coolwarm", show_targets=False,
-                       show_ncam_noise_limits=False, show_saturation_limits=False,
-                       grid=True, legend=False, figsize=(10,6)):
+                       yscale="log", cmap="rainbow",
+                       show_targets=False,
+                       show_ncam_noise_limits=False,
+                       show_saturation_limits=False,
+                       grid=False, legend=False, cbar_extend=None,
+                       figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
 
@@ -2275,7 +2291,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
 
     # Define global colormap
     
-    cmap = plt.cm.get_cmap('coolwarm')
+    cmap = plt.cm.get_cmap(cmap)
     
     # Set figure labels
 
@@ -2321,10 +2337,15 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.set_ylabel(ylabel)
         
     # Extra settings for colorbar after image generation
-        
+
+    if column == 'rOA':
+        column_label = r'$\vartheta_{\rm OA}$ [deg]'
+    else:
+        column_label = column
+    
     if norm is None:
-        cb = plt.colorbar(im, extend="max", pad=0.01)
-        cb.set_label(column)
+        cb = plt.colorbar(im, extend=cbar_extend, pad=0.01)
+        cb.set_label(column_label)
     else:
 
         # Change label
@@ -2332,9 +2353,9 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
             column_label = r'$n_{\rm CAM}$'
         elif column == 'ncon':
             column_label = r'$n_{\rm contaminants}$'
-
+            
         # Plot the colorbar
-        cb = plt.colorbar(im, extend="max", pad=0.01, spacing='proportional',
+        cb = plt.colorbar(im, extend=cbar_extend, pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
         cb.set_label(column_label)
         cb.minorticks_off()
@@ -2369,7 +2390,9 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
         
     elif residuals == "multi" and 'ncam' in df:
-        for nsr, ncam, color in zip([100, 70, 58, 50], [6, 12, 18, 24], [0.0, 0.33, 0.66, 0.999]):
+        for nsr, ncam, color in zip([100, 70, 58, 50],
+                                    [6, 12, 18, 24],
+                                    [0.0, 0.33, 0.66, 0.999]):
             ax.axhline(y=nsr, color=cmap(color), linestyle="--",
                        label=f"{nsr} ppm for "+r"$n_{\rm CAM}=\,$"+f"{ncam}", zorder=0)
         ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
@@ -2379,30 +2402,35 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     if show_ncam_noise_limits:
         
         # Magnitude range
-        mag = np.linspace(df.mag.min()-1, df.mag.max()+1, 100)
+        mag = np.linspace(0, 20, 100)
 
-        # Jitter noise
-        rms = 0.037
+        # 
         if show_ncam_noise_limits == 1:
+            ncam  = 1
             level = 'camera'
         else:
+            ncam  = 24
             level = 'instrument'
-        noise_jitter = getJitterNoiseLimitNSR(rms, level=level)
-        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2, label='Jitter noise')
+        
+        # Jitter noise
+        rms = 0.04
+        noise_jitter = ut.getJitterNoiseLimitNSR(rms, tdur=3600, camType='normal')
+        ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
+                   label='Jitter noise')
 
         # Photon noise
         ncams = show_ncam_noise_limits
-        noise_photon = getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
-        ax.plot(mag, noise_photon * 0.7324478224428527, '-.', c='deeppink', lw=1.5,
-                zorder=2, label='Photon noise')
+        noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
+        ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2,
+                label='Photon noise')
         
         # Background and readout noise
-        noise_background = getBackgroundNoiseLimitNSR(mag, passband=passband)
+        noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband, ncam=ncam)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky and read noise')
 
         # Combine and plot
-        noise = noise_jitter + noise_photon + noise_background
+        noise = np.sqrt(noise_jitter**2 + noise_photon**2 + noise_background**2)
         ax.plot(mag, noise, '-', c='orange', lw=2,  zorder=2,
                 label=r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model")
         
@@ -3027,26 +3055,31 @@ def plot_final_lc(lc, figsize=(9,8)):
     """
 
     # Fetch component or set to zero
-    
     zeros = np.zeros(len(lc['time']))
-    if 'gran' not in lc: lc.gran = zeros.tolist()
-    if 'puls' not in lc: lc.puls = zeros.tolist()
-    if 'spot' not in lc: lc.spot = zeros.tolist()    
-    if 'tran' not in lc: lc.tran = zeros.tolist()
+    if 'gran'  not in lc: lc.gran  = zeros.tolist()
+    if 'puls'  not in lc: lc.puls  = zeros.tolist()
+    if 'spot'  not in lc: lc.spot  = zeros.tolist()
+    if 'flare' not in lc: lc.flare = zeros.tolist()    
+    if 'tran'  not in lc: lc.tran  = zeros.tolist()
 
     # Handle time units
-    
-    time    = lc.time / 86400.
-    p_modes = lc.gran + lc.puls
-    
+    time = lc.time / 86400.
+
+    # Make sure p mode plot is valid
+    if ('gran' not in lc) and ('puls' not in lc):
+        p_modes = zeros.tolist()
+    else:
+        p_modes = lc.gran + lc.puls
+
     # Start plotting
     
-    fig, ax = plt.subplots(4, 1, figsize=figsize, sharex=True)
+    fig, ax = plt.subplots(5, 1, figsize=figsize, sharex=True)
 
-    ax[0].plot(time, p_modes, '-', c=colors_sea[0], label='Gran + Puls')
-    ax[1].plot(time, lc.spot, '-', c=colors_sea[1], label='Spots')
-    ax[2].plot(time, lc.tran, '-', c=colors_sea[2], label='Transits')
-    ax[3].plot(time, lc.flux, '-', c='k',           label='Combined')
+    ax[0].plot(time, p_modes,  '-', c=colors_sea[0], label='Gran + Puls')
+    ax[1].plot(time, lc.spot,  '-', c=colors_sea[1], label='Spots')
+    ax[2].plot(time, lc.flare, '-', c=colors_sea[2], label='Flares')
+    ax[3].plot(time, lc.tran,  '-', c=colors_sea[3], label='Transits')
+    ax[4].plot(time, lc.flux,  '-', c='k',           label='Combined')
     
     for i in range(4):
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
@@ -3321,6 +3354,75 @@ def plotDetectedPlanets():
     
 
 
+def plotHistogramSED(df, title=False, figsize=(8,15)):
+
+    # Compute ranges
+    P_min, P_max = df.Pmag.min(), df.Pmag.max()
+    M_min, M_max = df.M.min(), df.M.max()
+    R_min, R_max = df.R.min(), df.R.max()
+    Teff_min, Teff_max = df.Teff.min(), df.Teff.max()
+    logg_min, logg_max = df.logg.min(), df.logg.max()
+    Z_min, Z_max = df.Z.min(), df.Z.max()
+    # Seperate stars
+    df06 = df[df.ncams ==  6]
+    df12 = df[df.ncams == 12]
+    df18 = df[df.ncams == 18]
+    df24 = df[df.ncams == 24]
+
+    lw = 1.1
+    c = ['royalblue', 'green', 'orange', 'orangered']
+
+    # Inspect magnitude counts
+    fig, ax = plt.subplots(6, 1, figsize=figsize)
+
+    N = 50
+    ax[0].hist(df06.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[0], lw=lw)
+    ax[0].hist(df12.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[1], lw=lw)
+    ax[0].hist(df18.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[2], lw=lw)
+    ax[0].hist(df24.Pmag, bins=N, range=(P_min, P_max), histtype='step', ec=c[3], lw=lw)
+    ax[0].set_xlabel(r'PLATO magnitude, $\mathcal{P}$')
+    if title: ax[0].set_title(title, fontsize=20, pad=10)
+    
+    ax[1].hist(df06.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[0], lw=lw)
+    ax[1].hist(df12.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[1], lw=lw)
+    ax[1].hist(df18.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[2], lw=lw)
+    ax[1].hist(df24.M, bins=N, range=(M_min, M_max), histtype='step', ec=c[3], lw=lw)
+    ax[1].set_xlabel(r'Mass, $M$ [$M_{\odot}$]')
+
+    ax[2].hist(df06.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[0], lw=lw)
+    ax[2].hist(df12.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[1], lw=lw)
+    ax[2].hist(df18.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[2], lw=lw)
+    ax[2].hist(df24.R, bins=N, range=(R_min, R_max), histtype='step', ec=c[3], lw=lw)
+    ax[2].set_xlabel(r'Radius, $R$ [$R_{\odot}$]')
+
+    ax[3].hist(df06.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[0], lw=lw)
+    ax[3].hist(df12.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[1], lw=lw)
+    ax[3].hist(df18.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[2], lw=lw)
+    ax[3].hist(df24.Teff, bins=N, range=(Teff_min, Teff_max), histtype='step', ec=c[3], lw=lw)
+    ax[3].set_xlabel(r'Effective temperature, $T_{\rm eff}$ [K]')
+
+    ax[4].hist(df06.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[0], lw=lw)
+    ax[4].hist(df12.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[1], lw=lw)
+    ax[4].hist(df18.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[2], lw=lw)
+    ax[4].hist(df24.logg, bins=N, range=(logg_min, logg_max), histtype='step', ec=c[3], lw=lw)
+    ax[4].set_xlabel(r'Surface gravity, log $g$')
+
+    ax[5].hist(df06.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='6',  ec=c[0], lw=lw)
+    ax[5].hist(df12.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='12', ec=c[1], lw=lw)
+    ax[5].hist(df18.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='18', ec=c[2], lw=lw)
+    ax[5].hist(df24.Z, bins=N, range=(Z_min, Z_max), histtype='step', label='24', ec=c[3], lw=lw)
+    ax[5].set_xlabel(r'Metallicity, [Fe/H]')
+    ax[5].legend(loc='upper left')
+
+    for i in range(6):
+        ax[i].set_ylabel('Count')
+        ax[i].get_yaxis().set_label_coords(-0.07, 0.5)
+    plt.tight_layout(pad=0.5)
+
+    return fig, ax
+
+    
+
 #--------------------------------------------------------------#
 #                          ANIMATIONS                          #
 #--------------------------------------------------------------#
@@ -3440,7 +3542,8 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
         # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = simfile.getApertureMask(showMaskOfStarID, imgNumber)
+            rowIndices, colIndices, _, _, _, _ = simfile.getApertureMask(showMaskOfStarID,
+                                                                         imgNumber)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='royalblue', facecolor='none', hatch="/",
@@ -3475,9 +3578,10 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                                           edgecolor='k', linewidth=lw, zorder=4)
 
                 # Add magnitude label above star position
-                
+
+                ax.annotate(f'{mag[0]:.1f}', xy=(col[0]-0.25, row[0]+0.30), color='green')
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.20), color='darkorange', weight='bold')
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.30), color='darkorange')
                     
             # Or hightligth all stars the same
             
@@ -3486,6 +3590,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
                            facecolors='royalblue', edgecolors='k',
                            linewidth=lw, zorder=4)
 
+                
             # If requested, add star IDs to plot
             
             # if showStarIDs:
@@ -3533,7 +3638,7 @@ def plotSubfieldAnimation(filename, outputFileName=False, cadence=25,
             if len(col) > 1:
                 ims.append([imagePlot, title, coor_tar, coor_con])
             else:
-                ims.append([imagePlot, title, coor_tar, mask])
+                ims.append([imagePlot, title, coor_tar])
         else:
             ims.append([imagePlot, title])
 

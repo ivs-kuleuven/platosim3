@@ -45,7 +45,7 @@ class Camera : public HDF5Writer
         virtual ~Camera();
 
         virtual void configure(ConfigurationParameters &configParam);
-        virtual void exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+        virtual void exposeDetectorWithStars(Detector &detector, double startTime, double exposureTime);
         virtual void exposeDetectorWithSkyBackground(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
         virtual void updateParameters(double time);
         double getTransmissionEfficiency(double startTime);
@@ -54,6 +54,7 @@ class Camera : public HDF5Writer
 
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation=false);
         pair<double, double> focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation=false);
+  arma::colvec telescopeToSkyCoordinates(arma::vec vecTL, bool useInitialOrientation=false);
 
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
@@ -71,7 +72,7 @@ class Camera : public HDF5Writer
 
     protected:
 
-        virtual tuple<unsigned long, unsigned long> makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure);
+        virtual tuple<unsigned long, unsigned long> makeStarCatalogSelection(Detector &detector, double startTime, double exposureTime);
 
         int beginExposureNr;                 // Sequential number of first exposure. useful for slurm parallellisation
         int numExposures;                    // Number of exposures

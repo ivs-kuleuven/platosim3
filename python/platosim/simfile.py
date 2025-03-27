@@ -94,7 +94,20 @@ class SimFile (object):
 
 
 
-            
+    def getVersion(self):
+
+        """Check that photometry has been saved.
+        """
+
+        application = self.hdf5file['Version'].attrs['Application']
+        gitVersion  = self.hdf5file['Version'].attrs['GitVersion']
+
+        return application, gitVersion
+
+
+
+
+    
     #--------------------------------------------------------------#
     #                       INPUT PARAMETERS                       #
     #--------------------------------------------------------------#
@@ -522,6 +535,11 @@ class SimFile (object):
         return self.getMap("ThroughputMaps", imageNr=imageNr)
 
     
+    def getStraylight(self):
+        """Get the straylight"""
+
+        sl = self.hdf5file["Straylight"]["Moon"][:]
+        return sl
     
 
         
@@ -1089,7 +1107,7 @@ class SimFile (object):
         # Extract information depending of HDF5 structure
         
         groupByExposure = self.getInputParameter("ControlHDF5Content", "GroupByExposure") 
-        
+
         if groupByExposure:
 
             # Construct the exposure name that was used to store the image
@@ -1137,6 +1155,12 @@ class SimFile (object):
                 flux   = flux[sorted]
 
                 # Add radius column for extended ghosts
+                
+                if groupName == "StarPositions":
+                    # print(starID, row, col, Xmm, Ymm, flux)
+                    isNotValid = np.all([row != row, col != col, Xmm != Xmm, Ymm != Ymm])
+                    if isNotValid:
+                        return None, None, None, None, None, None
 
                 if groupName == "ExtendedGhostPositions":
                     
@@ -1648,7 +1672,7 @@ class SimFile (object):
 
                 # Get the aperture mask pixels
                 
-                row_mask, col_mask, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
+                row_mask, col_mask, _, _, _, _ = self.getApertureMask(starID=starID, imageNr=i)
 
                 # Compare mask pixels to cosmics affected pixels element wise
 
@@ -1736,7 +1760,7 @@ class SimFile (object):
 
         # Convert unit [e-/exp] -> [e-/s]
         
-        df0 /= self.getReadoutTime()[0]
+        df0 /= self.getExposureTime()
         
         # Finito!
 
@@ -1848,6 +1872,16 @@ class SimFile (object):
         exposureNr : ndarray
             The image number in which the mask was derived:
             exposureNr <= imageNr
+        maskSize: ndarray
+            The number of pixels a mask contains 
+        maskNSR: ndarray 
+            The Noise-to-Signal ratio of the flux. Noise coming from 
+            target + contaminants + sky + instrument. Signal coming 
+            from the target.
+        maskSPR: ndarray 
+            Stellar pollution ratio. The ratio of the flux inside the
+            mask coming from contaminants and the flux coming from 
+            target + contaminants + sky. A number between 0 and 1.
 
         Notes
         -----
@@ -1862,7 +1896,7 @@ class SimFile (object):
         if starIDgroupName not in self.hdf5file["Photometry"]["Masks"].keys():
             print(f"Error: getPhotometricMask(): {starIDgroupName}" +
                   " not present in Photometry/Masks/ in the HDF5 file")
-            return None, None, None, None, None
+            return None, None, None, None, None, None
 
         # Fetch mask info and mask updates
         
@@ -1871,15 +1905,14 @@ class SimFile (object):
         numMaskUpdates = len(exposureNrOfMaskUpdate)
 
         # If a specific image number for the mask update is requested:
-        # NOTE masks are not updated for every exposure hence find most recent mask
+        # NOTE: masks are not updated for every exposure hence find most recent mask
 
-        if isinstance(imageNr, int):
+        if isinstance(imageNr, int):                                # imageNr is not None
 
             idx = np.searchsorted(exposureNrOfMaskUpdate, imageNr, side='right') - 1
             if idx < 0:
-                print("Error: getPhotometricMask(): " +
-                      "requesting an imageNr that is too early for this HDF5 file")
-                return None, None, None, None, None
+                print("Error: getPhotometricMask(): requesting an imageNr that is too early for this HDF5 file")
+                return None, None, None, None, None, None
 
             exposureNrOfMaskUpdate = exposureNrOfMaskUpdate[idx]
 
@@ -1887,6 +1920,7 @@ class SimFile (object):
 
             maskSize = np.array(mask[starIDgroupName]['maskSize'])[idx]
             maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])[idx]
+            maskSPR = np.array(mask[starIDgroupName]['maskSPR'])[idx]
 
             # Extract the indices of the proper mask
 
@@ -1902,6 +1936,7 @@ class SimFile (object):
 
             maskSize = np.array(mask[starIDgroupName]['maskSize'])
             maskNSR  = np.array(mask[starIDgroupName]['maskNSR'])
+            maskSPR = np.array(mask[starIDgroupName]['maskSPR'])
 
             # Extract the indices of all masks
 
@@ -1916,7 +1951,7 @@ class SimFile (object):
 
         # Finito!
 
-        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR
+        return rowIndices, colIndices, exposureNrOfMaskUpdate, maskSize, maskNSR, maskSPR
 
 
 
@@ -2179,7 +2214,7 @@ class SimFile (object):
         # NOTE: imshow reverses rows and columns
 
         if showMaskOfStarID is not None:
-            rowIndices, colIndices, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
+            rowIndices, colIndices, _, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
                                          edgecolor='royalblue', facecolor='none', hatch="/",
@@ -2216,7 +2251,7 @@ class SimFile (object):
                 # Add magnitude label above star position
                 
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='darkorange', weight='bold')
+                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
                     
             # Or hightligth all stars the same
             

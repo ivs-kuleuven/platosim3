@@ -46,12 +46,13 @@ class Sky
         virtual void updateParameters(double time);
 
         unsigned long selectStarsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
-        void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
+  
+        void aberrateSelectedStarPositions(Platform &platform, string aberrationCorrectionType, double startTime);
         tuple<unsigned int, double, double, double> getSelectedStar(unsigned int n);
         tuple<double, double, double> getInfoOfStarWithID(unsigned int starID);
 
         unsigned long selectGhostOrigsWithinRadiusFrom(double RA, double dec, double radius, Unit angleUnit = Angle::degrees);
-        void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime, double timeMiddle);
+        void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime);
         tuple<unsigned int, double, double, double> getSelectedGhostOrig(unsigned int n);
 
         double time0;
@@ -72,7 +73,7 @@ class Sky
         string orbitPlatoFile;
 
     private:
-
+        void aberrateSelectedPositions(Platform &platform, vector<unsigned int> &selectedID, vector<double> &RA, vector<double> &Dec, string aberrationCorrectionType, double startTime);
         map<unsigned int, tuple<double, double, double>> starDB;    // star database: starDB[stardID] contains (RA, dec, Vmag),
                                                                     // with (RA, dec) in radians, and Vmag = Johnson V magnitude,
                                                                     // and starID the star identification number.

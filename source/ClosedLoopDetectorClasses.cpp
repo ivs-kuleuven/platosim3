@@ -159,7 +159,7 @@ double ClosedLoopDetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr
     }
 
 
-    DetectorWithAnalyticNonGaussianPSF::takeExposure(exposureNr, startTime, exposureTime);
+    return DetectorWithAnalyticNonGaussianPSF::takeExposure(exposureNr, startTime, exposureTime);
 }
 
 

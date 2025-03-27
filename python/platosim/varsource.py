@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 """
-This script contains all relevant functions and classes that 
-are used by the PLATOnium script "varsim.py".
+This file contains all relevant functions and classes 
+that are used by the PLATOnium script "varsim.py".
 
 NOTE This class needs the Poetry install: 
      >> poetry install --with platonium 
@@ -13,20 +13,24 @@ import os
 import glob
 import math
 import random
+import warnings
 import urllib.request
 from pathlib import Path
 
 # PlatoSim standard
-import h5py
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 from matplotlib import pyplot as plt
-from scipy.stats import norm, truncnorm
+import scipy
+import scipy.stats as ss
 from scipy.interpolate import interp1d, make_interp_spline
 from astropy.io import fits
 from astropy.table import Table
 from astropy import units as u
 from astropy import constants as c
+from tqdm import tqdm
+import h5py
 
 # PLATOnium extra
 from numba import njit
@@ -43,142 +47,7 @@ from platosim.utilities import errorcode
 #                        SOLAR-LIKE STARS                      #
 #==============================================================#
     
-    
-class StellarFlares(object):
-
-    """Model stellar flares.
-
-    A simplistic analytical description of stellar flares described by
-    an sudden flux increase followed by an exponential decay. Given the
-    time of the time series the corresponding flux is returned including
-    the wanted flares.
-    """
-
-    def __init__(self, time, seed=False):
         
-        # Store array
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-
-    def initToyModelBeta0(self): # TODO under construction!
-
-        """Uniform distribution of toy model.
-        """
-
-        # Time in [days] and ampl in [mmag]
-        nflares = self.rng.integers(0, 10, 1)[0]
-        self.tscale = self.rng.uniform(0.01, 0.1, nflares)
-        self.tmax   = self.rng.uniform(0, self.time[-1], nflares)
-        self.ampl   = self.rng.uniform(0, 0.2, nflares)
-
-        return self.tscale, self.tmax, self.ampl
-
-    
-        
-    def evaluate(self, tscale=False, tmax=False, ampl=False, asym=1, plot=False):
-
-        """Analytic model of stellar flares.
-        
-        Parameters
-        ----------
-        tscale : float, ndarray
-            Time scale duration of the flare(s) [days]
-        tmax : float, ndarray
-            Full time-width at half-maximum-flux of the flare(s) maximum intensity [days]
-        ampl : float, ndarray
-            Amplitude of the flare(s) [mmag]
-        asym : float, ndarray
-            Asymmetry factor of the flare(s)
-        """
-
-        # Check parsing
-        if not tscale: tscale = self.tscale
-        if not tmax:   tmax   = self.tmax
-        if not ampl:   ampl   = self.ampl
-        
-        # Placeholders
-        flux     = np.zeros_like(self.time)
-        self.mag = np.zeros_like(self.time)
-
-        # Sampling
-        dt = np.diff(self.time)[0]
-        
-        # Secure that single flare works
-        try: len(tmax)
-        except: tmax = [tmax]
-        
-        # Loop over each flare event
-        
-        for m in range(len(tmax)):
-
-            # Start and end of flare event
-            t0 = (self.time[0]  - tmax[m])
-            t1 = (self.time[-1] - tmax[m])
-
-            # Time array during flare event
-            tn = np.arange(t0, t1, dt)
-            t  = tn / tscale[m]
-
-            # Model parameters of flare
-            B = asym
-            C = 1/B
-            b = -1.941 - 0.175 + 2.246 + 1
-            c = 1 - 0.689
-
-            # Loop over every time-step in the flare time interval:
-            # NOTE: this is defined relative to this flares maxima
-            # and put in units of the time-scale here the analytic
-            # expressions for the rise and decay are used to determine
-            # the flux of this flare
-
-            for i in range(len(t)):
-
-                # Rise of flare
-                if t[i]*B > -1 and t[i]*B <= 0:
-                    flux[i] += (1
-                                + 1.941 * (t[i]*B)
-                                - 0.175 * (t[i]*B)**2
-                                - 2.246 * (t[i]*B)**3
-                                - b     * (t[i]*B)**4)
-
-                # Decay of flare
-                elif t[i]*C > 0:
-                    flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
-                                c     * np.exp(-0.2783 * t[i]*C))
-
-                # No flare
-                else:
-                    flux[i] += 0
-
-            # Convert to magnitude [mmag]
-            self.mag = flux * ampl[m]
-                    
-        # plot light curve
-        if plot: self.plot()
-            
-        # Return relative flux
-        return self.mag
-
-
-
-    def plot(self):
-
-        """Function to plot result.
-        """
-        plt.figure(figsize=(9, 5))
-        plt.plot(self.time, self.mag, 'k-')
-        plt.xlabel('Time [d]')
-        plt.ylabel(r'$\delta m$ [mmag]')
-        plt.xlim(np.min(self.time), np.max(self.time))
-        plt.tight_layout()
-        plt.show()
-
-
-
-            
-    
 class StellarSpots(object):
     
     """Class to generate rotational star spot modulations.
@@ -215,7 +84,7 @@ class StellarSpots(object):
         
         # Random number generator
         self.rng = ut.rng(seed)
-
+        
         # Constants
         self.BV_SUN    = 0.656
         self.LRHK_SUN  = -5.025 # from Lorenzo-Oliveira et al. (2018, A&A 619, A73)
@@ -242,25 +111,37 @@ class StellarSpots(object):
                       f'Returning B-V for Teff={min(self.t1["Teff"])}')
             if teff < min(self.t1['Teff']): return max(self.t1['BV'])
             if teff > max(self.t1['Teff']): return min(self.t1['BV'])
-
         g = interp1d(self.t1['Teff'], self.t1['BV'])
         return g(teff)
 
     
     def get_lrhk_from_S_and_bv(self, S, bv):
-        # Cf Noyes et al. (1984, ApJ 279 763, Appendix a)
+        # conversion from S to R (Noyes et al. 1984a, ApJ 279 763, Appendix a)
         lCcf = 1.13 * bv**3 - 3.91 * bv**2 + 2.84 * bv - 0.47 
         if bv < 0.63:
             x = 0.63 - bv
             lCcf += 0.135 * x - 0.814 * x**2 + 6.03 * x**3
-        return -4 + np.log10(1.34) + lCcf + np.log10(S)
+        lrhk = -4 + np.log10(1.34) + lCcf + np.log10(S)    
+        # photospheric correction (Noyes et al. 1984a, ApJ 279 763, Appendix b)    
+        lrphot  = -4.898 + 1.918 * bv**2 -2.893 * bv**3
+        lrhk = np.log10(10**lrhk - 10**lrphot)
+        return lrhk
+    
+
+    def get_Smin_from_bv(self, bv):
+        if bv < 0.94:
+            Smin = 0.144
+        elif bv < 1.07:
+            x = (bv - 0.94) / (1.07 - 0.94)
+            Smin = 0.144 + x * (0.19 - 0.144)
+        else:
+            x = (bv - 1.07) / (1.2 - 1.07)
+            Smin = 0.19 + x * (0.48 - 0.19)
+        return Smin
 
 
     def get_lrhk_from_bv(self, bv):
-        if bv < 0.94:
-            Smin = 0.144
-        else:
-            Smin = 0.0269231 * bv + 0.118892
+        Smin = self.get_Smin_from_bv(bv)
         lrhkmin = self.get_lrhk_from_S_and_bv(Smin, bv)
         lrhkmax = -0.375 * bv - 4.4
         return self.rng.random() * (lrhkmax - lrhkmin) + lrhkmin
@@ -318,13 +199,22 @@ class StellarSpots(object):
         return prot * 10**y
 
     
-    def get_acyc_from_bv_and_lrhk(self, bv, lrhk):
+    def get_acyc_from_bv_and_lrhk(self, bv, lrhk, level='random'):
         if bv < 0.851:
             Acyc_max = 0.727 * bv - 0.292
         else:
             Acyc_max = 0.727 * 0.851 - 0.292
         Acyc_min = max([0.28 * bv - 0.196, 0.342 * lrhk + 1.703, 0.005])
-        return self.rng.random() * (Acyc_max - Acyc_min) + Acyc_min
+        # User defined activity level
+        if level == 'random':
+            tmp = self.rng.random()
+        elif level == 'high':
+            tmp = 0.9 + 0.1*tmp
+        elif level == 'low':
+            tmp = 0.0 + 0.1*tmp
+        else:
+            errorcode('error', f'Invalid activity level "{level}"')
+        return tmp * (Acyc_max - Acyc_min) + Acyc_min
 
     
     def get_arate_from_acyc(self, acyc):
@@ -332,6 +222,16 @@ class StellarSpots(object):
         return acyc/asun
 
 
+    def get_decay_rate(self, nspots):
+        # spot emergence and decay timescales
+        # The settings below are designed approximately match the distributions used in
+        # Borgniet et al. (2015) and Meunier et al. (2019)
+        mea = 15 * 1e-6
+        med = 10 * 1e-6
+        mu = np.log(med)
+        sig = np.sqrt(2*np.log(mea/med))
+        return self.rng.lognormal(mean=mu, sigma=sig, size=nspots)    
+    
 
     def regions(self, activity_rate=1, cycle_period=10, cycle_overlap=0, randspots=False,
                 maxlat=70, minlat=0, tsim=1000, tstart=0, verbose=False):
@@ -384,7 +284,7 @@ class StellarSpots(object):
 
         # Initialize time since last emergence of a large region, as function
         # of longitude, latitude and hemisphere:
-        tau = np.zeros((nlon,nlat,2),'int') + tau2
+        tau = np.zeros((nlon, nlat, 2), 'int') + tau2
         dlon = 360. / nlon
         dlat = maxlat / nlat
 
@@ -525,7 +425,7 @@ class StellarSpots(object):
         reg_arr[3] = np.deg2rad(np.array(reg_angs))
         return reg_arr
     
-
+    #---------------------------------------------------- v3
 
     def spots(self, reg_arr, incl=None, omega_0=None, omega_1=0.0,
               dur=None, threshold=0.1):
@@ -538,7 +438,7 @@ class StellarSpots(object):
 
         # Set global parameters which are the same for all spots inclination [deg]
         if incl == None:
-            self.incl = np.rad2deg(np.arcos(np.random.uniform()))
+            self.incl = np.rad2deg(np.arcos(self.rng.uniform()))
         else:
             self.incl = incl
 
@@ -550,7 +450,7 @@ class StellarSpots(object):
         self.omega_1 = omega_1
         
         # Regions parameters
-        t0 = reg_arr[0,:]
+        t0  = reg_arr[0,:]
         lat = reg_arr[1,:]
         lon = reg_arr[2,:]
         ang = reg_arr[3,:]
@@ -562,7 +462,7 @@ class StellarSpots(object):
         else:
             self.dur = dur
         l = (t0 < self.dur) * (ang > threshold)
-        self.nspot = l.sum()
+        self.nspots = l.sum()
         self.t0 = t0[l]
         self.lat = lat[l]
         self.lon = lon[l]
@@ -576,7 +476,7 @@ class StellarSpots(object):
         med = 10 * 1e-6
         mu = np.log(med)
         sig = np.sqrt(2*np.log(mea/med))
-        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspot)
+        self.decay_rate = self.rng.lognormal(mean=mu, sigma=sig, size=self.nspots)
 
 
     def calci(self, time, i):
@@ -591,12 +491,18 @@ class StellarSpots(object):
         area        = np.zeros(len(time)) 
         decay_time  = self.amax[i] / self.decay_rate[i]
         emerge_time = decay_time / 10.0
-        
-        # exponential growth and decay
+
+        # squared exponential growth and decay
         l = time < self.t0[i]
-        area[l] = self.amax[i] * np.exp(-(self.t0[i]-time[l]) / emerge_time)
+        area[l] = self.amax[i] * np.exp(-0.5*(self.t0[i]-time[l])**2 / emerge_time**2)
         l = time >= self.t0[i]
-        area[l] = self.amax[i] * np.exp(-(time[l]-self.t0[i]) / decay_time)
+        area[l] = self.amax[i] * np.exp(-0.5*(time[l]-self.t0[i])**2 / decay_time**2)
+
+        # exponential growth and decay
+        # l = time < self.t0[i]
+        # area[l] = self.amax[i] * np.exp(-(self.t0[i]-time[l]) / emerge_time)
+        # l = time >= self.t0[i]
+        # area[l] = self.amax[i] * np.exp(-(time[l]-self.t0[i]) / decay_time)
         
         # linear growth and decay
         # l = (time >= (self.t0[i]-emerge_time)) * (time < self.t0[i])
@@ -625,7 +531,7 @@ class StellarSpots(object):
         """
         
         N = len(time)
-        M = self.nspot
+        M = self.nspots
 
         # Don't go beyond 5 Gb RAM memory!
         bytemax = int(5/8*1e9)
@@ -646,10 +552,353 @@ class StellarSpots(object):
                 dF[i,:] = dF_i
             return area, ome, beta, dF
 
+    #---------------------------------------------------- v4
+
+    def compute_spot_area(self,
+                          time: np.ndarray,
+                          spot_params: Table,
+                          min_area: float,
+                          evolution: str = 'exponential'
+                          ) -> np.ndarray:
+        """ Compute the area of a single spot as a function of time.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+        min_area: float
+            The smallest spot area to be considered in units of hemispheres.
+        evolution: str
+            The temporal evolution of the spot area (default: 'exponential').
+
+        Returns
+        -------
+        area: np.ndarray
+            The size of the spot in units of hemispheres.
+
+        """
+
+        # Extract spot parameters.
+        amax = spot_params['A_MAX']*1e-6
+        tmax = spot_params['T_MAX']
+        decay_time = spot_params['TAU']
+        emerge_time = decay_time/10.0
+
+        # Compute the spot area.
+        tmp1 = (time - tmax)/emerge_time
+        tmp2 = (time - tmax)/decay_time
+
+        if evolution == 'exponential':
+            area = np.where(time < tmax, np.exp(-np.abs(tmp1)), np.exp(-np.abs(tmp2)))
+        elif evolution == 'squared-exponential':
+            area = np.where(time < tmax, np.exp(-0.5 * tmp1 ** 2), np.exp(-0.5 * tmp2 ** 2))
+        else:
+            raise ValueError(f"Unknown value for spot evolution profile: {evolution}")
+
+        area = amax*area
+        area = np.where(area < min_area, 0, area)
+
+        return area
 
 
-    def evaluate(self, teff, time, dur, cadence_hours, incl=None, isim=0,
-                 odir=None, verbose=False, save=False):
+    def compute_spot_location(self,
+                              time: np.ndarray,
+                              spot_params: Table
+                              ) -> tuple[np.ndarray, np.ndarray]:
+        """ Compute the location of a single spot as a function of time.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+
+        Returns
+        -------
+        lat: np.ndarray
+            The spot latitude.
+        lon: np.ndarray
+            The spot longitude.
+
+        """
+
+        # Extract spot parameters.
+        lat = spot_params['LAT']
+        lon = spot_params['LON']
+        prot = spot_params['PROT']
+
+        # Compute projected spot position as a function of time.
+        lat = lat * np.ones_like(time)
+        lon = lon + 360 * time / prot
+        lon = np.mod(lon - 180, 360) - 180
+
+        return lat, lon
+
+
+    def compute_spot_parameters(self,
+                                time: np.ndarray,
+                                spot_params: Table,
+                                inc_star: float = 90.,
+                                min_area: float = 0.,
+                                evolution: str = 'exponential'
+                                ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """ Compute the latitude, longitude, angular distance from the center of the
+            stellar disk, and radius in angular units for a given starspot.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute spot parameters.
+        spot_params: Table
+            A row from an astropy Table containg the parameters of the spot.
+        inc_star: float
+            The stellar inclination in degrees (default: 90 degrees).
+        min_area: float
+            The smallest spot area to be considered in units of hemispheres
+            (default: 0).
+        evolution: str
+            The temporal evolution of the spot area.
+
+        Returns
+        -------
+        alpha: np.ndarray
+            The spot radius in degrees.
+        beta: np.ndarray
+            The spot location in degrees from the center of the stellar disk.
+        lat: np.ndarray
+            The spot latitude.
+        lon: np.ndarray
+            The spot longitude.
+
+        """
+        
+        # Compute the spot position and area.
+        lat, lon = self.compute_spot_location(time, spot_params)
+        area = self.compute_spot_area(time, spot_params, min_area, evolution=evolution)
+
+        # Convert degrees to radians.
+        inc_star = np.deg2rad(inc_star)
+        lat, lon = np.deg2rad(lat), np.deg2rad(lon)
+
+        # Compute the spot angle beta.
+        cos_beta = np.cos(inc_star) * np.sin(lat) + np.sin(inc_star) * np.cos(lat) * np.cos(lon)
+        beta = np.arccos(cos_beta)
+
+        # Convert spot areas to spot radii.
+        sa = 2 * np.pi * area  # Spot area in steradians.
+        alpha = np.arccos(1 - sa / (2 * np.pi))  # Spot radius in radians.
+
+        return alpha, beta, lat, lon, area
+
+    
+    def filter_spots_table(self,
+                           time: np.ndarray,
+                           spots_table: Table,
+                           min_area: float = 1e-8,
+                           evolution: str = 'exponential'
+                           ) -> Table:
+        """ Given an array of times compute which spots can contribute to the
+            lightcurve.
+
+        Parameters
+        ----------
+        time: np.ndarray
+            Array of times at which to compute the lightcurve.
+        spots_table: Table
+            An astropy Table containg the parameters of the spots to be used.
+        min_area: float
+            The smallest spots area to be considered in units of hemispheres
+            (default: 1e-8).
+        evolution: str
+            The temporal evolution of the spot area.
+
+        Returns
+        -------
+        spots_table: Table
+            A version of the input spots_table containing only the relevant spots.
+
+        """
+
+        tmin = np.amin(time)
+        tmax = np.amax(time)
+
+        area = self.compute_spot_area(tmin, spots_table, min_area=min_area, evolution=evolution)
+        mask1 = (spots_table['T_MAX'] < tmin) & (area < min_area)
+
+        area = self.compute_spot_area(tmax, spots_table, min_area=min_area, evolution=evolution)
+        mask2 = (spots_table['T_MAX'] > tmax) & (area < min_area)
+        
+        mask = mask1 | mask2
+
+        return spots_table[~mask]
+
+
+    def parse_limb_darkening(self,
+                             ld_type: str,
+                             ld_pars: ArrayLike
+                             ) -> tuple[np.ndarray, np.ndarray]:
+        """ Parse various limb-darkening laws into the non-linear form.
+        """
+
+        if ld_type not in ['uniform', 'linear', 'quadratic', 'nonlinear']:
+            raise ValueError(f"Unknown limb-darkening law: {ld_type}")
+
+        ld_idx = np.arange(5)
+        ld_pars_ = np.zeros(5)
+
+        if ld_type == 'uniform':
+            pass
+        if ld_type == 'linear':
+            ld_pars_[2] = ld_pars[0]
+        if ld_type == 'quadratic':
+            ld_pars_[2] = ld_pars[0] + 2*ld_pars[1]
+            ld_pars_[4] = -ld_pars[1]
+        if ld_type == 'nonlinear':
+            ld_pars_[1] = ld_pars[0]
+            ld_pars_[2] = ld_pars[1]
+            ld_pars_[3] = ld_pars[2]
+            ld_pars_[4] = ld_pars[3]
+
+        ld_pars_[0] = 1 - np.sum(ld_pars_[1:])
+
+        return ld_idx, ld_pars_
+
+    
+    def zeta_func(self, x: np.ndarray) -> np.ndarray:
+        """ The zeta function defined in Kipping 2012, equation 17.
+        """
+        return np.cos(x)*np.heaviside(x, 0.5)*np.heaviside(np.pi/2 - x, 0.5) + np.heaviside(-x, 0.5)
+
+
+    def kipping_spot_model(self,
+                           time: np.ndarray,
+                           spots_table: Table,
+                           inc_star: float = 90.,
+                           ld_type: str = 'linear',
+                           ld_pars: ArrayLike = (0.6,),
+                           min_area: float = 0.,
+                           evolution: str = 'exponential'
+                           ) -> np.ndarray:
+        """ Computes the flux coming from a star covered in evolving starspots
+            following Kipping 2012.
+
+        Parameters
+        ----------
+        time : np.ndarray
+            The times for which to compute the flux.
+        spots_table : astropy.table.Table
+            The parameters of the star spots.
+        inc_star : float
+            The inclination of the star in degrees (default: 90.).
+        ld_type : str
+            The limd-darkening law used (default: 'linear').
+        ld_pars : tuple
+            The limb-darkening parameters to use (default: (0.6,)).
+        min_area : float
+            The smallest spot areas to consider in hemispheres,
+            when the spot area is below this threshold it will be set to zero (default: 0.).
+        evolution : str
+            Time evolution of the spot-area, either an 'exponential' or
+            'squared-exponential' profile may be used.
+
+        Returns
+        -------
+        flux : np.ndarray
+            The stellar flux values.
+
+        """
+
+        spots_table = self.filter_spots_table(time,
+                                              spots_table,
+                                              min_area=min_area,
+                                              evolution=evolution)
+
+        ld_idx, ld_pars = self.parse_limb_darkening(ld_type, ld_pars)
+        const1 = np.sum(ld_idx * ld_pars / (ld_idx + 4))
+
+        flux = np.ones_like(time) - const1
+        area = []
+        for i in range(len(spots_table)):
+
+            alpha, beta, _, _, A = self.compute_spot_parameters(time,
+                                                                spots_table[i],
+                                                                inc_star=inc_star,
+                                                                min_area=min_area,
+                                                                evolution=evolution)
+            area.append(A)
+            mask = alpha > 0
+            if not np.any(mask):
+                continue
+
+            args, = np.where(mask)
+            imin = np.amin(args)
+            imax = np.amax(args) + 1  # Add 1 because slices are exclusive.
+
+            alpha = alpha[imin:imax]
+            beta = beta[imin:imax]
+
+            # Convert to complex for use with Kipping 2012, equation 14.
+            alpha = alpha.astype('complex256')
+            beta = beta.astype('complex256')
+
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+                cot_alpha = 1/np.tan(alpha)
+                cot_beta = 1/np.tan(beta)
+                xi = np.sin(alpha)*np.arccos(-cot_alpha*cot_beta)
+                psi = np.sqrt(1 - np.cos(alpha)**2/np.sin(beta)**2)
+                a = np.arccos(np.cos(alpha)/np.sin(beta))
+                b = np.cos(beta)*np.sin(alpha)*xi
+                c = np.cos(alpha)*np.sin(beta)*psi
+
+            alpha = alpha.real
+            beta = beta.real
+            sky_area = (a + b - c).real
+
+            # The above equations seems to contain some singularities at beta=0,pi, this fixes them.
+            sky_area = np.where(beta > np.pi/2 - alpha, sky_area, np.pi * np.sin(alpha)**2 * np.cos(beta))
+            sky_area = np.where(beta < np.pi/2 + alpha, sky_area, 0)
+
+            # Equations C23.
+            zeta_neg = self.zeta_func((beta - alpha).real)
+            zeta_pos = self.zeta_func((beta + alpha).real)
+
+            denom = zeta_neg**2 - zeta_pos**2
+            denom = np.where(denom < 1e-6, 1, denom)
+
+            const2 = 0
+            for j in ld_idx:
+                exp = (j + 4)/2
+                num = zeta_neg**exp - zeta_pos**exp
+                const2 += (4*ld_pars[j])/(j + 4)*num/denom
+
+            flux[imin:imax] = flux[imin:imax] - sky_area/np.pi*const2
+
+        flux = flux/(1 - const1)
+
+        return flux.astype('float64'), np.array(area)
+    
+    #----------------------------------------------------
+    
+    def evaluate(self,
+                 teff,
+                 time,
+                 dur,
+                 cadence_hours,
+                 incl=None,
+                 activity_level: str = 'random',
+                 activity_phase: tuple[float, float] = (0., 1.),
+                 min_area: float = 1e-8,
+                 evolution: str = 'squared-exponential',
+                 ld_type: str = 'linear',
+                 ld_pars: ArrayLike = (0.6,),
+                 odir=None,
+                 verbose=False,
+                 save=False):
 
         """Generate spot modulated light curve.
         """
@@ -667,109 +916,376 @@ class StellarSpots(object):
         pcyc     =  self.get_pcyc_from_prot(prot)
         clen     = pcyc / 365.
         coverlap = self.rng.random() * 0.1 * clen 
-        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk)
+        acyc     = self.get_acyc_from_bv_and_lrhk(bv, lrhk, level=activity_level)
         arate    = self.get_arate_from_acyc(acyc)
         if incl is None:
             incl = np.rad2deg(np.arccos(self.rng.random()))
-
-        # simulate regions
-        reg_arr = self.regions(activity_rate=arate,
-                               cycle_period=clen, cycle_overlap=coverlap, verbose=False,
-                               maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
-
-        # make the simulation start at a random point in the cycle
-        reg_arr[0] -= self.rng.random() * pcyc
-
+        
         # simulate LC
-        self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
-                   threshold=0.1, dur=dur)
-        
-        # NOTE we decrease the sampling to 30 min for increased performance
-        # NOTE this corresponds to every 72nd time point -> 30 * 60 / 25
-        time0 = np.copy(time)
-        time = time[::72]
-        area, ome, beta, dF = self.calc(time)
-        
-        # Stop here if the RAM memory would have been overflown
-        if dF is None:
-            return None, None
+        #------------------------------------------------------------------ v3
+        # # simulate regions
+        # reg_arr = self.regions(activity_rate=arate,
+        #                        cycle_period=clen, cycle_overlap=coverlap, verbose=False,
+        #                        maxlat=lmax, minlat=lmin, tsim=dur+pcyc, tstart=0)
+        # # make the simulation start at a random point in the cycle
+        # reg_arr[0] -= self.rng.random() * pcyc
+        # # Calculate spots
+        # self.spots(reg_arr, incl=incl, omega_0=omega_0, omega_1=omega_1,
+        #            threshold=0.1, dur=dur)
+        # # Decrease the sampling to 30 min for increased performance
+        # time0 = np.copy(time)
+        # time = time[::72] - time0[0]
+        # area, ome, beta, dF = self.calc(time)
+        # # We interpolate back to original time grid of 25s cadence
+        # # Interpolate (piecewise cubic) into higher resolution grid
+        # spline = make_interp_spline(time, dF.sum(0), k=3)
+        # flux   = spline(time0)
+        # # Finito!
+        # self.dur, self.time, self.flux, self.area = dur, time, dF.sum(0), area.sum(0)
+        # self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
+        # return flux, self.params, self.area
+        #------------------------------------------------------------------ v4
+        # Simulate a generous time-span to ensure we have all the spots we need.
+        n = np.ceil(dur/pcyc/2) + 1
+        span = (2*n + 1) * pcyc
+        # simulate regions
+        reg_arr = self.regions(activity_rate=arate, cycle_period=clen, cycle_overlap=coverlap,
+                               maxlat=lmax, minlat=lmin, tsim=span, tstart=0, verbose=verbose)
+        # Pick a time t0 such that the middle of the duration falls within a certain phase range of the activity cycle.
+        phase0 = activity_phase[0] + self.rng.random() * (activity_phase[1] - activity_phase[0])
+        t0 = (n + phase0)*pcyc - dur/2
+        reg_arr[0] -= t0
+        # Unpack the regions
+        tmax  = reg_arr[0,:]
+        lat   = reg_arr[1,:]
+        lon   = reg_arr[2,:]
+        amax  = reg_arr[3,:]**2 * 300 * 1e-6  # Area in hemispheres.
+        self.t0, self.lat, self.amax = tmax, lat, amax
+        # compute omega and decay_rate for each spot
+        omega      = self.get_omega_from_lat_and_omega01(lat, omega_0, omega_1)
+        decay_rate = self.get_decay_rate(len(tmax))
+        prot_diff  = 2 * np.pi / omega / 86400
+        lifetime = amax / decay_rate
+        # Store number of spots for plotting
+        self.nspots = len(omega)
+        # Create the spots table
+        meta_data = dict()
+        meta_data["T_eff"] = teff
+        meta_data["B-V"] = bv
+        meta_data["log R'_HK"] = lrhk
+        meta_data["P_rot"] = prot
+        meta_data["P_min"] = pmin
+        meta_data["P_max"] = pmax
+        meta_data["max. latitude"] = lmax
+        meta_data["P_cycle"] = clen
+        meta_data["Cycle overlap"] = coverlap
+        meta_data["Activity rate"] = arate
+        spots_table = Table([lat, lon, prot_diff, tmax, amax*1e6, lifetime, lifetime/prot_diff],
+                            names=('LAT', 'LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R'),
+                            meta=meta_data)
 
-        # Save data and figure
-        if save:
-
-            # save individual spot properties
-            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('LAT','LON', 'PROT', 'T_MAX', 'A_MAX', 'TAU', 'TAU_R')
-            flo.write('# {}\n'.format(header))
-            header = '{:6s} {:6s} {:6s} {:6s} {:8s} {:6s} {:6s}'.format('deg','deg', 'days', 'days', 'muHem', 'days', 'periods')
-            flo.write('# {}\n'.format(header))
-            
-            for i in range(self.nspot):
-                # spot came too early or too late or was too short lived given cadence
-                if area[i,:].max() == 0:
-                    continue
-                prot = 2*np.pi / ome[i] / 86400
-                lifetime = self.amax[i] / self.decay_rate[i]
-                str_ = '{:6.1f} {:6.2f} {:6.2f} {:6.2f} {:8.2e} {:6.2f} {:6.2f}'.format(self.lat[i], self.lon[i], prot, self.t0[i], self.amax[i] * 1e6, lifetime, lifetime/prot)
-                flo.write('{}\n'.format(str_))
-
-            # save LC
-            X = np.zeros((2,len(time)))
-            X[0,:] = time
-            X[1,:] = dF.sum(0)
-            lfile = os.path.join(odir, 'lightcurve_{:04d}.txt'.format(isim)) # save LC
-            np.savetxt(lfile,X.T)
-
+        # Remove spots that do not contribute to the simulated lightcurve.
+        time0 = time - time[0]
+        spots_table = self.filter_spots_table(time0,
+                                              spots_table,
+                                              min_area=min_area,
+                                              evolution=evolution)
+        # Decrease the sampling to 30 min for increased performance: (30*60)s/25s = 72
+        time1 = time0[::72]        
+        # Simulate the lightcurve.
+        flux1, area1 = self.kipping_spot_model(time1,
+                                               spots_table,
+                                               inc_star=incl,
+                                               ld_type=ld_type,
+                                               ld_pars=ld_pars,
+                                               min_area=min_area,
+                                               evolution=evolution)
         # We interpolate back to original time grid of 25s cadence
         # NOTE Interpolate (piecewise cubic) into higher resolution grid
-        #time_int = np.linspace(time0[0], time0[-1], len(time0)
-        spline = make_interp_spline(time, dF.sum(0), k=3)
-        flux   = spline(time0)
-
+        flux1 -= 1 # Normalised around zero 
+        spline = make_interp_spline(time1, flux1, k=3)
+        flux0  = spline(time0)
+        
         # Finito!
-        self.dF, self.dur, self.area, self.time = dF, dur, area, time
+        self.dur, self.time, self.flux, self.area = dur, time1, flux1, area1.sum(0)
         self.params = [bv.tolist(), lrhk, arate, prot, pmin, pmax, clen, coverlap, lmax, incl]
-        return flux, self.params
-
+        return flux0, self.params, self.area        
+        #------------------------------------------------------------------ end
     
 
-    def plot(self):
+    def plot(self, title='params', panels=3, figsize=(11,8)):
 
         """Plot spot modulation model.
         """
 
-        fig, axes = plt.subplots(3,1, figsize=(11,8), sharex=True)
-        ttl= ('Model: ' +
-              r'${\rm AR} = $'+f'{self.params[2]:5.3f}, ' +
-              r'${\rm CL} = $'+f'{self.params[6]:6.3f} yr, ' +
-              r'$P_{\rm min} = $'+f'{self.params[4]:6.2f} d, ' +
-              r'$P_{\rm max} = $'+f'{self.params[5]:6.2f} d, ' +
-              r'$L_{\rm max} = $'+f'{self.params[8]:5.2f}'+r'$^{\circ}$, ' +
-              r'$i = $'+f'{self.params[9]:6.2f}'+r'$^{\circ}$')
-        axes[0].set_title(ttl, fontsize='18')
-        axes[0].set_facecolor('yellow')
-        axes[0].axhline(y=0, color='k', linestyle='--')
-        for j in range(self.nspot):
-            if self.t0[j] < -10:
-                continue
-            if self.t0[j] > self.dur:
-                continue
-            axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8,
-                         markersize=self.amax[j]*(1./3e-4)*5)
-        axes[0].set_ylim(-90,90)
-        axes[0].set_ylabel('Spot latitude [deg]')
-        axes[1].plot(self.time, self.area.sum(0)*100, 'k-')
-        axes[1].set_ylabel(r'Spot coverage [\%]')        
-        axes[2].plot(self.time, self.dF.sum(0)*1e6, 'k-')
-        axes[2].set_ylabel('Relative flux [ppm]')
-        axes[2].set_xlim(0, self.dur)
-        axes[2].set_xlabel('Time [days]')
+        fig, axes = plt.subplots(panels,1, figsize=figsize, sharex=True)
+        if title == 'params': 
+            title= ('Model: ' +
+                    r'${\rm AR} = $'+f'{self.params[2]:5.3f}, ' +
+                    r'${\rm CL} = $'+f'{self.params[6]:6.3f} yr, ' +
+                    r'$P_{\rm min} = $'+f'{self.params[4]:6.2f} d, ' +
+                    r'$P_{\rm max} = $'+f'{self.params[5]:6.2f} d, ' +
+                    r'$L_{\rm max} = $'+f'{self.params[8]:5.2f}'+r'$^{\circ}$, ' +
+                    r'$i = $'+f'{self.params[9]:6.2f}'+r'$^{\circ}$')
+        if title:
+            axes[0].set_title(title, fontsize='18')
+        axes[0].set_facecolor('lemonchiffon')
+        axes[0].axhline(y=0, color='gray', linestyle='--')
+        for j in range(self.nspots):
+            if self.t0[j] < -10: continue
+            if self.t0[j] > self.dur: continue
+            axes[0].plot(self.t0[j], self.lat[j], 'ko', alpha=0.8, ms=self.amax[j]*(1./3e-4)*5)
+        axes[0].set_ylim(-90, 90)
+        axes[0].set_ylabel(r'Latitude [$^{\circ}$]')
+        axes[1].plot(self.time, self.area*1e3, 'k-')
+        axes[1].set_ylabel(r'Coverage [\%]')        
+        axes[1].set_xlim(0, self.dur)
+        axes[2].plot(self.time, self.flux*1e3, 'k-')
+        axes[2].set_ylabel('Spot flux [ppt]')
+        axes[-1].set_xlabel(r'Time from $t_0$ [days]')
         plt.tight_layout(h_pad=0.1)
-        plt.show()
+        return fig, axes
         
     
 
+
+        
+class StellarFlares(object):
+
+    """Model stellar flares.
+
+    A simplistic analytical description of stellar flares described by
+    an sudden flux increase followed by an exponential decay. Given the
+    time of the time series the corresponding flux is returned including
+    the wanted flares.
+    """
+
+    def __init__(self, time, scale=None, seed=False):
+        
+        # Store array
+        self.time  = time
+        self.scale = scale
+        self.rng   = ut.rng(seed)
+
+        
+
+    def initToyModel(self):
+
+        """Uniform distribution of toy model.
+
+        Model parameter from Jasper Thys MSc thesis, which are imspired
+        by the distribution from Van Doorsselaere et al. (2017). 
+        """
+
+        # Rate of flaring events [events/quarter]
+        n_rate = self.rng.uniform(5, 15, 1)[0]
+
+        # Number of flares scales with lenght of time series
+        n_max    = int(n_rate * self.time[-1] / ut.quarter())
+        n_flares = self.rng.integers(1, n_max, 1)[0]
+
+        # Time of peak flare flux [d]
+        self.tmax = self.rng.uniform(0, self.time[-1], n_flares)
+
+        # FWHM time scale of flare [min -> d]
+        self.tscale = self.rng.uniform(1, 150, n_flares) / (24 * 60.)
+
+        # Amplitude distibution of flares (< 10 ppt) [norm]
+        self.ampl = self.rng.exponential(0.001, n_flares)
+
+        return n_rate, n_flares
+
     
 
+    def initDoorsselaere2017(self, spec_type, activity_rate, spot_coverage):
+
+        """Model parameters from Kepler M-dwarf (Van Doorsselaere et al. 2017)
+
+        Notes
+        -----
+        Since the distributions of this paper used the long cadence
+        (i.e. 30-min) Kepler observations, there may be a potential
+        of missing short (<30 min) flaring events.
+        """
+        
+        # Spectral type dependence
+        if spec_type == 'F':
+            a_A, b_A = -0.36, -1.06
+            a_rate, b_rate = -0.21, -0.33
+        elif spec_type == 'G':
+            a_A, b_A = -0.36, -1.35
+            a_rate, b_rate = -0.15, -0.69
+        elif spec_type in ['K', 'M']:
+            a_A, b_A = -0.23, -1.38
+            a_rate, b_rate = -0.13, -0.54
+        else:
+            errorcode('warning', f'Spectral type {spec_type} is not in [F, G, K, M]. ' +
+                      'Ignoring stellar flares..')
+            return
+
+        # Draw random number of grid points to sample from
+        N = self.rng.integers(1000, 5000, 1)[0]
+        
+        # Use rate benchmark of 20 [events/star/quater]
+        # Number of flares scales with lenght of time series and activity rate
+        n_range = np.linspace(0, 12, N)
+        n_func  = 10**(a_rate * n_range + b_rate)
+        n_rate  = pd.Series(n_range).sample(1,
+                                            weights=n_func,
+                                            random_state=self.rng).to_numpy()[0]
+        n_rate_a = n_rate * activity_rate
+        n_flares = int(n_rate_a * self.time[-1] / ut.quarter())
+        # Secure at least one flare
+        if n_flares == 0:
+            n_flares += 1
+        
+        # Time a peak flux of flare [d]
+        # We use spot coverage as weight for drawing the flares
+        area = spot_coverage * 100
+        time = np.linspace(self.time[0], self.time[-1], len(area))
+        spline = make_interp_spline(time, area, k=3)
+        self.area = np.abs(spline(self.time))        
+        self.tmax = pd.Series(self.time).sample(n_flares,
+                                                weights=self.area,
+                                                random_state=self.rng).to_numpy()
+
+        # Amplitude distibution of flares (< 10 ppt) [norm]
+        A_range = np.linspace(0, 10, N)
+        A_func  = 10**(a_A * A_range + b_A)
+        self.ampl = pd.Series(A_range).sample(n_flares,
+                                              weights=A_func,
+                                              random_state=self.rng).to_numpy() / 1e3
+        
+        # Secure lower amplitudes for less active stars
+        if activity_rate < 1:
+            self.ampl *= activity_rate
+                
+        # FWHM time scale of flare [min -> d]
+        scale_fwhm = self.ampl / self.ampl.max() / 2
+        self.tscale = self.rng.uniform(10, 200, n_flares) / (24 * 60.) * scale_fwhm
+        return n_rate_a, n_flares
+        
+
+    
+    def evaluate(self):
+
+        # Apply bolometric correction
+        if self.scale:
+            self.ampl *= self.scale
+
+        # Prepare flux array
+        self.flux = np.ones_like(self.time)
+        
+        for i in range(len(self.tmax)):
+            flux_rel = model_flares(self.time, self.tmax[i], self.tscale[i])
+            flux_ratio = flux_rel * self.ampl[i]
+            self.flux *= (flux_ratio + 1)
+
+        # Return parameters
+        df = pd.DataFrame({'tmax_day': self.tmax,
+                           'tscale_day': self.tscale,
+                           'ampl_norm': self.ampl})    
+        return self.flux, df
+
+    
+        
+    def plot(self):
+
+        """Function to plot result.
+        """
+
+        try:
+            self.area
+        except:
+            plt.figure(figsize=(9, 4))        
+            plt.plot(self.time, (self.flux-1)*1e6, 'k-')
+            plt.xlabel('Time [d]')
+            plt.ylabel(r'Flux [ppm]')
+            plt.xlim(np.min(self.time), np.max(self.time))
+            plt.tight_layout()
+            plt.show()
+        else:
+            fig, ax = plt.subplots(2, 1, figsize=(9, 6))
+            ax[0].plot(self.time, self.area, 'k-')
+            ax[1].plot(self.time, (self.flux-1)*1e6, 'k-')
+            ax[1].set_xlabel('Time [d]')
+            ax[0].set_ylabel(r'Spot coverage [\%]')
+            ax[1].set_ylabel(r'Flux [ppm]')
+            ax[0].set_xlim(np.min(self.time), np.max(self.time))
+            ax[1].set_xlim(np.min(self.time), np.max(self.time))
+            plt.tight_layout()
+            plt.show()
+
+
+        
+@njit
+def model_flares(time, tmax, tscale, asym=1):
+
+    """Analytic model of stellar flares (Daveport+2014)
+
+    Parameters
+    ----------
+    time : ndarray
+        Time points arrray [days]
+    tmax : float
+        Full-width at half-maximum of the flare(s) maximum intensity [days]
+    tscale : float
+        Time scale duration of the flare(s) [days]
+    asym : float
+        Asymmetry factor of the flare(s)
+    """
+
+    # Placeholders
+    flux = np.zeros_like(time)
+
+    # Sampling
+    dt = np.diff(time)[0]
+
+    # Start and end of flare event
+    t0 = (time[0]  - tmax)
+    t1 = (time[-1] - tmax)
+
+    # Time array during flare event
+    tn = np.arange(t0, t1, dt)
+    t  = tn / tscale
+
+    # Model parameters of flare
+    B = asym
+    C = 1/B
+    b = -1.941 - 0.175 + 2.246 + 1
+    c = 1 - 0.689
+
+    # Loop over every time-step in the flare time interval:
+    # NOTE: this is defined relative to this flares maxima
+    # and put in units of the time-scale here the analytic
+    # expressions for the rise and decay are used to determine
+    # the flux of this flare
+
+    for i in range(len(t)):
+
+        # Rise of flare
+        if t[i]*B > -1 and t[i]*B <= 0:
+            flux[i] += (1
+                        + 1.941 * (t[i]*B)
+                        - 0.175 * (t[i]*B)**2
+                        - 2.246 * (t[i]*B)**3
+                        - b     * (t[i]*B)**4)
+
+        # Decay of flare
+        elif t[i]*C > 0:
+            flux[i] += (0.689 * np.exp(-1.6    * t[i]*C) +
+                        c     * np.exp(-0.2783 * t[i]*C))
+
+        # No flare
+        else:
+            flux[i] += 0
+
+    return flux
+
+
+
+
+        
 class SolarLikeOscillator(object):
 
     """Class to generate gravity oscillation time series.
@@ -927,7 +1443,7 @@ class SolarLikeOscillator(object):
         deltanu_frac = self.deltanu / deltanu_sun
         
         # SELECT SCALING RELATION
-        
+
         if scaling == 'KB1995Brown1991':
             # According to Corsaro et al. (2013) Eq. 6 [ppm]
             A_puls_bol = numax_frac**-1 * self.T**1.5 * A_puls_bol_sun
@@ -1089,8 +1605,8 @@ def pulsations(time, freq, eta, Ntime, Nmode, amplsin, amplcos,
             # Now make the last small step until 'time[j]'
             deltatime = time[j] - last_kicktime[i]
             damp = np.exp(-eta[i] * deltatime)
-            signal[j] = signal[j] + damp * (amplsin[i] * np.sin(2*np.pi*freq[i]*time[j])    \
-                                  + amplcos[i] * np.cos(2*np.pi*freq[i]*time[j]))
+            signal[j] = ( signal[j] + damp * (amplsin[i] * np.sin(2*np.pi*freq[i]*time[j])
+                                    + amplcos[i] * np.cos(2*np.pi*freq[i]*time[j])) )
 
     return(signal)
 
@@ -1118,10 +1634,11 @@ class SurfaceModulations(object):
     PLATO passband.
     """
 
-    def __init__(self, time, seed=None):
+    def __init__(self, time, scale=None, seed=None):
         
-        self.time = time
-        self.rng  = ut.rng(seed)
+        self.time  = time
+        self.scale = scale       
+        self.rng   = ut.rng(seed)
     
 
         
@@ -1145,6 +1662,10 @@ class SurfaceModulations(object):
         
         # Create light curve
         mag = np.cos(2*np.pi * (self.time/P)) + A * np.cos(4*np.pi * (self.time/P) + phi)
+    
+        # Apply passband correction
+        if self.scale:
+            amplitude_range = np.array(amplitude_range) * self.scale
 
         # Scale amplitude within the range
         scale = self.rng.uniform(amplitude_range[0], amplitude_range[1]) / np.abs(mag.max())
@@ -1179,35 +1700,58 @@ class SurfaceModulations(object):
 #==============================================================#
 
 
-class GravityOscillator(object):
+class Pulsator(object):
 
-    """Class to generate gravity oscillation time series.
+    """Class to generate time series from list of pulsation modes.
     """
 
-    def __init__(self, time, power, seed=False):
+    def __init__(self, time, power, scale=None, seed=None):
 
         self.time  = time
         self.power = power
-
+        self.scale = scale
+        
         # Random number generator
         self.rng = ut.rng(seed)
             
 
+
+    def download(self, odir, filename):
+
+        """Utility to download data.
+        """
         
-    def initToyModel(self, period_range, amplitude_range, nmodes=False):
+        filepath = Path(f'{odir}/{filename}')
+
+        # Check if a file or a folder is requested
+
+        if not filepath.is_file():
+
+            if filepath.suffix in ['.ftr', '.txt']:
+                print(f'Downloading {filename}')
+                ut.downloadFromFTP(filename=filename, outputDir=odir, server='plato')
+        
+            elif not filepath.is_dir() and filepath.suffix != '.ftr':
+                zipfile = f'{filename}.zip'
+                print(f'Downloading {zipfile} files..')
+                ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
+                os.system(f'unzip {odir}/{zipfile} -d {odir} > /dev/null')
+                os.system(f'rm {odir}/{zipfile}')
+
+            
+        
+    def initToyModel(self, freq_range, ampl_range, nmodes=False):
 
         """Draw pulsations from uniform distribution.
 
         Parameters
         ----------
-        period_range : list
-            Range of pulsation periods [Pmin, Pmax] in unit of [days]
-        amplitude_range : list
-            Range of pulsation amplitudes [Amin, Amax] in units of [mmag]
+        freq_range : list
+            Range of pulsation frequencies [fmin, fmax] in unit of [c/d]
+        ampl_range : list
+            Range of pulsation amplitudes [Amin, Amax] in units of [mag]
         nmodes : int
             Number of pulsation modes to include
-
-        TODO Model gives wrong results! High value at 0 c/d!
         """
         
         # Number of pulsation modes
@@ -1215,130 +1759,521 @@ class GravityOscillator(object):
             nmodes = int(self.rng.normal(50, 5))
         
         # Generate pulsations using uniform distributions
-        self.freq  = self.rng.uniform(0, 2*np.pi, nmodes)
-        self.ampl  = self.rng.uniform(period_range[0], period_range[1], nmodes)
-        self.phase = self.rng.uniform(amplitude_range[0], amplitude_range[1], nmodes)
-        self.starname = 'g-Dor'
+        self.df = pd.DataFrame()
+        self.df['freq']  = self.rng.uniform(freq_range[0], freq_range[1], nmodes)
+        self.df['ampl']  = self.rng.uniform(ampl_range[0], ampl_range[1], nmodes)
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, nmodes)
+        self.starname = 'Toy model'
 
-        
-        
-    def initGang2020(self, odir, starID=None):
 
-        """Draw frequencies from Kepler g-Dor legacy.
+
+    def initFromFile(self, odir, sample, starID=None, variable=None):
+
+        """Draw pulsation modes from Kepler/TESS legacies.
         """
 
-        # Name of folder on FTP server
-        filename = 'varsource_gdor_gang2020'
-        dataDir  = Path(f'{odir}/{filename}')
+        # Select sample
         
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
+        if sample == 'Gang2020':
+            suffix   = 'dat'
+            sep      = ' '
+            comment  = '#'
+            freq_unit = 'c/d'
+            ampl_unit = 'norm'
+            filename = 'varsource_gdor_gang2020'
+            names    = ['freq', 'ampl', 'phase', 'snr']
+            
+        elif sample == 'Pedersen2021':
+            suffix   = 'dat'
+            sep      = ' '
+            comment  = '#'
+            freq_unit = 'day'
+            ampl_unit = 'ppm'
+            filename = 'varsource_SPB_pedersen2021'
+            
+        elif sample == 'Bowman2018':
+            suffix   = 'txt'
+            sep      = '  '
+            comment  = None
+            freq_unit = 'c/d'
+            ampl_unit = 'mmag'
+            filename = 'varsource_dsct_bowman2018'
+            names    = ['niter', 'freq', 'freq_err', 'ampl', 'ampl_err', 
+                        'phase', 'phase_err', 'snr']
+            
+        elif sample == 'Bodi2023':
+            suffix   = 'fou'
+            sep      = '  '
+            comment  = None
+            freq_unit = 'c/d'
+            ampl_unit = 'norm'
+            names    = ['freq', 'ampl', 'phase']
+            if variable == 'RRLyr':
+                filename = 'varsource_rrly_bodi2023'
+            elif variable == 'Ceph':
+                filename = 'varsource_ceph_bodi2023'
+            else:
+                errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+
         else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
+            errorcode('error', f'No sample named {sample}!')
+        
+        # Download files if not done
+        self.download(odir, filename)
 
         # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
         if starID is None:
             starfile = Path(self.rng.choice(filenames))
         else:
             starfile = Path(filenames[starID-1])
             
         # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
+        if sample == 'Pedersen2021':
+            dn = np.loadtxt(starfile, comments=comment, usecols=[0,2,4])
+            self.df = pd.DataFrame({'freq':dn[:,0], 'ampl':dn[:,1], 'phase':dn[:,2]})
+        else:
+            self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
 
-        # Else load the data
-        self.freq  = 1/df.freq      # [days]
-        self.ampl  = df.ampl * 1e3  # [mag]
-        self.phase = df.phase       # [rad]
-        self.snr   = df.snr
-        self.starname = starfile.name
+        # Filename of star
+        self.starname = f'{sample}: {starfile.name}'
 
+        # Convert freq unit [c/d]
+        if freq_unit == 'day':
+            self.df.freq = 1 / self.df.freq
+                
+        # Convert ampl unit [mag]
+        if ampl_unit == 'mmag':
+            self.df.ampl /= 1e3  
+        elif ampl_unit == 'norm':
+            self.df.ampl = -2.5*np.log10(1-self.df.ampl)
+        elif ampl_unit == 'ppm':
+            self.df.ampl = -2.5*np.log10(1-self.df.ampl/1e6)
+            
+        # Return the star ID
+        return starfile.stem
+    
         
 
+    def initMockaGang2020(self, odir):
+
+        """Draw pulsation modes from Kepler GDOR legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_gdor_gang2020.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        
+        # Load file containing columns
+        dm = pd.read_feather(filepath)
+        
+        # Generate KDEs
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+        
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_ran = np.arange(N_min, dm.N.max(), 1)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+        
+        # Randomly select grid step to 
+        n = self.rng.integers(10000, 100000, 1)[0]
+
+        # Prevent unphysical patterns with P_i > 3.3
+        P_max = 5
+        while P_max > 3.3:
+
+            # Select maximum period from KDE [day]
+            P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+            P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
+
+            # First period spacing in pattern from KDE [day]
+            dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+            dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
+
+            # Select slope from fit to distribution (cf. Fig. 10 of L20)
+            a, b, c, d, e = np.array([0.47980586, 1.27007297, 0.44030565, 0.11122096, 0.26489501])
+            slope = a * np.exp(-b * P0) + c * np.log10(d * P0) + e
+
+            # Create period-spacing pattern [day]
+            P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+
+            # Check maximum period
+            P_max = P_i.max()
+            
+        # Draw amplitude below maximum (20 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.02, n)
+        param = [1.3177087487666639, 2.1808585006453023e-06, 3.156249403328533e-05]
+        A_i_fit = ss.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2]) + 5e-5
+        A_i = np.array(random.choices(A_i_ran, weights=A_i_fit, k=N))
+
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)
+        if n_dex > n_off/2:
+            n_dex = int(n_dex - 1) 
+        try:
+            A_i[n_max] = A_i[n_dex]
+            A_i[n_dex] = A_max
+        except:
+            pass
+        
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.starname = 'MOCKA: gamma Doradus (Gang+2020)'
+
+        # Return parameters
+        return N, P0, dP0, slope, A_max, self.df
+
+    
+    
+    def initMockaPedersen2021(self, odir):
+
+        """Draw pulsation modes from Kepler SPB star legacy.
+        """
+
+        # Download analysis file
+        filename = 'varsim_mocka_SPB_pedersen2021.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+
+        # Load file containing columns
+        dm = pd.read_feather(filepath)
+        
+        # Generate KDEs
+        N_kde     = scipy.stats.gaussian_kde(dm.N)
+        P0_kde    = scipy.stats.gaussian_kde(dm.P0)
+        dP0_kde   = scipy.stats.gaussian_kde(dm.dP0)
+        slope_kde = scipy.stats.gaussian_kde(dm.slope)
+
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_max = dm.N.max()
+        N_ran = np.arange(N_min, N_max, 1)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+
+        # Randomly select grid step to
+        n = self.rng.integers(10000, 100000, 1)[0]
+
+        # Prevent unphysical patterns with P_i > 3.3
+        P_max = 4
+        while P_max > 3.3:
+            
+            # First period in pattern from KDE [day]
+            P0_ran = np.linspace(dm.P0.min(), dm.P0.max(), n)
+            P0 = random.choices(P0_ran, weights=P0_kde(P0_ran), k=1)[0]
+
+            # First period spacing in pattern from KDE [day]
+            dP0_ran = np.linspace(dm.dP0.min(), dm.dP0.max(), n)
+            dP0 = random.choices(dP0_ran, weights=dP0_kde(dP0_ran), k=1)[0]
+
+            # Select slope from fit to distribution (cf. Fig. 10 of L20)
+            # Compared to gDor stars, we here use the KDE
+            slope_ran = np.linspace(dm.slope.min(), dm.slope.max(), n)
+            slope = random.choices(slope_ran, weights=slope_kde(slope_ran), k=1)[0]
+
+            # Create period-spacing pattern [day]
+            P_i = np.array([dP0 * ((1 + slope)**i - 1)/slope + P0 for i in range(N)])
+
+            # Check maximum
+            P_max = P_i.max()
+            
+        # Draw amplitude below maximum (20 mmag) [mag]
+        A_i_ran = np.linspace(0, 0.02, n)
+        param   = [1.4225080146060183, 8.415648200068788e-07, 0.00012715214085614303]
+        A_i_fit = ss.lognorm.pdf(A_i_ran, param[0], loc=param[1], scale=param[2]) + 5e-5
+        A_i = np.array(random.choices(A_i_ran, weights=A_i_fit, k=N))
+        
+        # Max peak amplitude
+        n_max = np.argmax(A_i)
+        A_max = A_i[n_max]
+
+        # Swap max peak location with offset
+        n_off = np.random.randint(-5, 5)
+        n_dex = int(N/2 + n_off)
+        if n_dex > n_off/2: n_dex = int(n_dex - 1)
+        try:
+            A_i[n_max] = A_i[n_dex]
+            A_i[n_dex] = A_max
+        except:
+            pass
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+        
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = 1 / P_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.starname = 'MOCKA: SPB star (Pedersen+2021)'
+
+        # Return parameters
+        return N, P0, dP0, slope, A_max, self.df
+    
+
+
+    def initMockaBowman2018(self, odir):
+
+        """Draw pulsations modes from Kepler DSCT legacy.
+        """
+
+        # Download file containing all modes of stars
+        filename = 'varsim_mocka_dsct_bowman2018.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        df = pd.read_feather(filepath)
+
+        # Download file containing number statistics
+        filename = 'varsim_mocka_dsct_bowman2018_modes.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        dm = pd.read_feather(filepath)
+
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_max = dm.N.max()
+        N_ran = np.arange(N_min, N_max, 1)
+        N_kde = scipy.stats.gaussian_kde(dm.N)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+
+        # Randomly select grid step to
+        n = self.rng.integers(10000, 100000, 1)[0]
+        
+        # Select frequcies from KDE [day]
+        f_min = df.freq.min()
+        f_max = df.freq.max()
+        f_ran = np.linspace(f_min, f_max, n)
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        f_i = np.array(random.choices(f_ran, weights=f_kde(f_ran), k=N))
+
+        # Draw amplitude below maximum [mag]
+        A_ran = np.linspace(0, df.ampl.max(), n)
+        param = [1.2918151399120281, 6.509817422443962e-06, 0.000379812324281023]
+        A_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2]) + 1e-5
+        A_i = np.array(random.choices(A_ran, weights=A_fit, k=N))
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+
+        # Swap max peak location if not in [5, 25] c/d
+        # This is based on observations from:
+        # (Rodríguez & López-González 2000; Rodríguez et al. 2000)
+        n_max = np.argmax(A_i)
+        if f_i[n_max] < 5 or f_i[n_max] > 25:
+            f_i[n_max] = self.rng.integers(5, 25, 1)[0]
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = f_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.df = self.df.sort_values('freq').reset_index(drop=True)
+        self.starname = 'MOCKA: delta Scuti (Bowman+2018)'
+
+        # Return parameters
+        return self.df
+
+
+
+
+    def initMockaHeyAerts2024(self, odir):
+
+        """Draw pulsation modes from TESS/Gaia BCEP legacy.
+        """
+
+        # Download file containing all modes of stars
+        filename = 'varsim_mocka_bcep_heyaerts2024.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        df = pd.read_feather(filepath)
+
+        # Download file containing number statistics
+        filename = 'varsim_mocka_bcep_heyaerts2024_modes.ftr'
+        filepath = Path(f'{odir}/{filename}')
+        self.download(odir, filename)
+        dm = pd.read_feather(filepath)
+
+        # Select number modes (secure at least 5 modes)
+        N_min = 5
+        N_max = dm.N.max()
+        N_ran = np.arange(N_min, N_max, 1)
+        N_kde = scipy.stats.gaussian_kde(dm.N)
+        N = int(random.choices(N_ran, weights=N_kde(N_ran), k=1)[0])
+
+        # Randomly select grid step to
+        n = self.rng.integers(10000, 100000, 1)[0]
+        
+        # Select frequcies from KDE [day]
+        f_min = df.freq.min()
+        f_max = df.freq.max()
+        f_ran = np.linspace(f_min, f_max, n)
+        f_kde = scipy.stats.gaussian_kde(df.freq)
+        f_i = np.array(random.choices(f_ran, weights=f_kde(f_ran), k=N))
+
+        # Draw amplitude below maximum [mag]
+        A_ran = np.linspace(0, df.ampl.max(), n)
+        param = [1.387736448703769, 4.673526797156983e-05, 0.0008632607679823016]
+        A_fit = scipy.stats.lognorm.pdf(A_ran, param[0], loc=param[1], scale=param[2]) + 1e-5
+        A_i = np.array(random.choices(A_ran, weights=A_fit, k=N))
+
+        # Apply passband correction
+        if self.scale:
+            A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
+            A_i = 2.5 * np.log10(1 + A_i)
+
+        # Swap max peak location if not in [5, 25] c/d
+        # This is based on observations from:
+        # (Rodríguez & López-González 2000; Rodríguez et al. 2000)
+        n_max = np.argmax(A_i)
+        if f_i[n_max] < 5 or f_i[n_max] > 25:
+            f_i[n_max] = self.rng.integers(5, 25, 1)[0]
+
+        # Create new data frame
+        self.df = pd.DataFrame()
+        self.df['freq']  = f_i
+        self.df['ampl']  = A_i
+        self.df['phase'] = self.rng.uniform(0, 2*np.pi, N)
+        self.df = self.df.sort_values('freq').reset_index(drop=True)
+        self.starname = 'MOCKA: beta Cephei (Hey \& Aerts 2024)'
+
+        # Return parameters
+        return self.df
+
+    
+        
+
+
+    def initMockaBodi2023(self, odir, variable):
+
+        """Draw pulsation modes from TESS RRLYR star legacy.
+        """
+
+        suffix   = 'fou'
+        sep      = '  '
+        comment  = None
+        freq_unit = 'c/d'
+        ampl_unit = 'norm'
+        names    = ['freq', 'ampl', 'phase']
+        filename = 'varsource_rrly_bodi2023'
+
+        # Check variable class
+        if variable == 'RRLyr':
+            filename = 'varsource_rrly_bodi2023'
+        elif variable == 'Ceph':
+            filename = 'varsource_ceph_bodi2023'
+        else:
+            errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
+        
+        # Download files if not done
+        self.download(odir, filename)
+
+        # If requested, select specific star or else do a random draw
+        filenames = glob.glob(f'{odir}/{filename}/*.{suffix}')
+        starfile = Path(self.rng.choice(filenames))
+
+        # Load data frame
+        self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
+
+        # Perturb modes up to 10%
+        f_corr = self.rng.uniform(0.9, 1.1)
+        A_corr = self.rng.uniform(0.9, 1.1)
+        self.df.freq *= f_corr
+        self.df.ampl *= A_corr
+        
+        # Apply passband correction
+        if self.scale:
+            self.df.ampl *= self.scale
+
+        # Convert units
+        self.df.ampl = 2.5 * np.log10(1 + self.df.ampl)
+            
+        # Create new data frame
+        self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
+
+        # Return parameters
+        return starfile.stem, f_corr, A_corr, self.df
+
+
+
+
+    
+    def initMockaLPV(self, odir, startype=None):
+
+        """Draw pulsation modes from OGLE survey legacy.
+        """
+
+        # Random draw of variable type
+        if startype in [None, 'mocka', 'LPV']:
+            types = ['Mira', 'SVR', 'OSARG']
+            startype = self.rng.choice(types)
+
+        # Select star type
+        if startype == 'Mira':
+            filename = 'varsim_OGLE_Mira.txt'
+        elif startype == 'SVR':
+            filename = 'varsim_OGLE_SVR.txt'
+        elif startype == 'OSARG':
+            filename = 'varsim_OGLE_OSARG.txt'
+            
+        # Download file containing all modes of stars
+        self.download(odir, filename)
+
+        # Load file with pulsators
+        filepath = Path(f'{odir}/{filename}')
+        dn = np.loadtxt(filepath, comments='#', usecols=[10, 11, 12, 13, 14, 15])
+
+        # Randomly select star 
+        i = self.rng.integers(0, dn.shape[0], 1)[0]
+        self.df = pd.DataFrame({'freq':1/np.array([dn[i][0], dn[i][2], dn[i][4]]),
+                                'ampl':np.array([dn[i][1], dn[i][3], dn[i][5]]),
+                                'phase':self.rng.uniform(0, 2*np.pi, len(dn[i][::2]))})
+
+        # Create new data frame
+        self.starname = f'MOCKA: LPV of type {startype} (OGLE survey)'
+
+        # Return parameters
+        return startype, i, self.df
+
+
+    
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
-        """
 
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
+        time [day], freq [c/d], ampl [mag], phase [rad]
+        """
+        
+        return ns.timeSeriesFromFourier(self.time, self.df.freq, self.df.ampl, self.df.phase,
+                                        power=self.power, title=self.starname, plot=plot)
    
 
 
 
-
-class ClassicalPulsator(object):
-
-    """Class to generate variability classical pulsators
-    """
-
-    def __init__(self, time, seed=False):
-        
-        self.time = time
-        self.rng  = ut.rng(seed)
-
-
-        
-    def initFromFile(self, odir, starID=None):
-
-        """Draw frequencies from Kepler g-Dor legacy.
-        """
-
-        # Name of folder on FTP server
-        filenames = glob.glob(f'{self.idir}/RRL-CEP/*.fou')
-        starfile = random.choice(filenames)
-        
-        # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            filenames = glob.glob(f'{odir}/{filename}/*.dat')
-        else:
-            zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
-            ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
-            os.system(f'unzip {odir}/{zipfile} -d {odir}')
-            os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starfile = Path(self.rng.choice(filenames))
-        else:
-            starfile = Path(filenames[starID-1])
-            
-        # Load file containing columns
-        df = pd.read_csv(starfile, sep=' ', comment='#',
-                         names=['freq', 'ampl', 'phase', 'snr'])
-
-        # Else load the data
-        self.starname  = starfile.name
-        self.period    = df.freq        # [days]
-        self.amplitude = df.ampl * 1e3  # [mag]
-        self.phase     = df.phase       # [rad]
-        self.snr       = df.snr
-
-
-        
-    def evaluate(self, plot=False):
-
-        """Evaluate and return generated model.
-        """
-
-        return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
-                                        plot=plot, title=self.starname)
-
-
-
-
-
-
+    
 #==============================================================#
 #                         OTHER OBJECTS                        #
 #==============================================================#
-
 
 
 class EclipsingBinary(object):
@@ -1346,93 +2281,21 @@ class EclipsingBinary(object):
     """Models Eclipsing Binaries (EBs).
     """
 
-
-    def __init__(self, time, seed=None):
+    def __init__(self, time, seed=None, verbose=2):
 
         """Open the HDF5 output file
         """
 
         self.time = time
         self.rng  = ut.rng(seed)
-
+        self.verbose = verbose
 
 
     def read_parameters_hdf5(self, file_name, verbose=False):
 
-        """Read the full model parameters of the linear, sinusoid
+        """Copy of method from STARSHADOW:
+        Read the full model parameters of the linear, sinusoid
         and eclipse models to an hdf5 file.
-
-        Parameters
-        ----------
-        file_name: str
-            File name (including path) for loading the results.
-        verbose: bool
-            If set to True, this function will print some information.
-
-        Returns
-        -------
-        results: dict
-            Contains:
-            sin_mean: None, list[numpy.ndarray[float]]
-                Parameter mean values for the linear and sinusoid model in the order they appear below.
-                linear parameters: const, slope,
-                sinusoid parameters: f_n, a_n, ph_n
-            sin_err: None, list[numpy.ndarray[float]]
-                Parameter error values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_err, sl_err,
-                sinusoid parameters: f_n_err, a_n_err, ph_n_err
-            sin_hdi: None, list[numpy.ndarray[float]]
-                Parameter hdi values for the linear and sinusoid model in the order they appear below.
-                linear parameters: c_hdi, sl_hdi,
-                sinusoid parameters: f_n_hdi, a_n_hdi, ph_n_hdi
-            sin_select: None, list[numpy.ndarray[bool]]
-                Sinusoids that pass certain selection criteria
-                passed_sigma, passed_snr, passed_h
-            ephem: None, numpy.ndarray[float]
-                Ephemerides of the EB, p_orb and t_zero
-            ephem_err: None, numpy.ndarray[float]
-                Error values for the ephemerides, p_err and t_zero_err
-            ephem_err: None, numpy.ndarray[float]
-                Hdi values for the ephemerides, p_hdi and t_zero_hdi
-            phys_mean: None, numpy.ndarray[float]
-                Parameter mean values for the physical eclipse model in the order they appear below.
-                ecosw, esinw, cosi, phi_0, log_rr, log_sb,
-                extra parametrisations: e, w, i, r_sum, r_rat, sb_rat
-            phys_err: None, numpy.ndarray[float]
-                Parameter error values for the physical eclipse model in the order they appear below.
-                ecosw_err, esinw_err, cosi_err, phi_0_err, log_rr_err, log_sb_err,
-                Extra parametrisation: e_err, w_err, i_err, r_sum_err, r_rat_err, sb_rat_err
-            phys_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the physical eclipse model in the order they appear below.
-                ecosw_hdi, esinw_hdi, cosi_hdi, phi_0_hdi, log_rr_hdi, log_sb_hdi,
-                Extra parametrisations: e_hdi, w_hdi, i_hdi, r_sum_hdi, r_rat_hdi, sb_rat_hdi
-            timings: None, numpy.ndarray[float]
-                Eclipse timings of minima and first and last contact points, internal tangency
-                and eclipse depth of the primary and secondary:
-                t_1, t_2, t_1_1, t_1_2, t_2_1, t_2_2, t_b_1_1, t_b_1_2, t_b_2_1, t_b_2_2, depth_1, depth_2
-            timings_err: None, numpy.ndarray[float]
-                Parameter error values for the eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            timings_hdi: None, numpy.ndarray[float]
-                Parameter hdi values for the eclipse timings and depths:
-                t_1_hdi, t_2_hdi, t_1_1_hdi, t_1_2_hdi, t_2_1_hdi, t_2_2_hdi,
-                t_b_1_1_hdi, t_b_1_2_hdi, t_b_2_1_hdi, t_b_2_2_hdi, depth_1_hdi, depth_2_hdi
-            timings_indiv_err: None, numpy.ndarray[float]
-                Parameter error values for the individual eclipse timings and depths:
-                t_1_err, t_2_err, t_1_1_err, t_1_2_err, t_2_1_err, t_2_2_err,
-                t_b_1_1_err, t_b_1_2_err, t_b_2_1_err, t_b_2_2_err, depth_1_err, depth_2_err
-            var_stats: None, list[union(float, numpy.ndarray[float])]
-                Variability level diagnostic statistics
-                std_1, std_2, std_3, std_4, ratios_1, ratios_2, ratios_3, ratios_4
-            stats: None, list[float]
-                Some statistics: t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level
-            i_sectors: numpy.ndarray[int]
-                Pair(s) of indices indicating the separately handled timespans
-                in the piecewise-linear curve.
-            text: list[str]
-                Some information about the file and data:
-                identifier, data_id, description and date_time
         """
         # check some input
         ext = os.path.splitext(os.path.basename(file_name))[1]
@@ -1527,27 +2390,33 @@ class EclipsingBinary(object):
                               e[0], w[0], i[0], r_sum[0], r_rat[0], sb_rat[0]])
         phys_err = np.array([ecosw[1], esinw[1], cosi[1], phi_0[1], log_rr[1], log_sb[1],
                              e[1], w[1], i[1], r_sum[1], r_rat[1], sb_rat[1]])
-        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4], log_rr[2:4], log_sb[2:4],
-                             e[2:4], w[2:4], i[2:4], r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
+        phys_hdi = np.array([ecosw[2:4], esinw[2:4], cosi[2:4], phi_0[2:4],
+                             log_rr[2:4], log_sb[2:4], e[2:4], w[2:4], i[2:4],
+                             r_sum[2:4], r_rat[2:4], sb_rat[2:4]])
         timings = np.array([t_1[0], t_2[0], t_1_1[0], t_1_2[0], t_2_1[0], t_2_2[0],
-                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0], depth_1[0], depth_2[0]])
+                            t_b_1_1[0], t_b_1_2[0], t_b_2_1[0], t_b_2_2[0],
+                            depth_1[0], depth_2[0]])
         timings_err = np.array([t_1[1], t_2[1], t_1_1[1], t_1_2[1], t_2_1[1], t_2_2[1],
-                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1], depth_1[1], depth_2[1]])
-        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4], t_2_1[2:4], t_2_2[2:4],
-                                t_b_1_1[2:4], t_b_1_2[2:4], t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
+                                t_b_1_1[1], t_b_1_2[1], t_b_2_1[1], t_b_2_2[1],
+                                depth_1[1], depth_2[1]])
+        timings_hdi = np.array([t_1[2:4], t_2[2:4], t_1_1[2:4], t_1_2[2:4],
+                                t_2_1[2:4], t_2_2[2:4], t_b_1_1[2:4], t_b_1_2[2:4],
+                                t_b_2_1[2:4], t_b_2_2[2:4], depth_1[2:4], depth_2[2:4]])
         timings_indiv_err = np.array([t_1[4], t_2[4], t_1_1[4], t_1_2[4], t_2_1[4], t_2_2[4],
-                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4], depth_1[4], depth_2[4]])
+                                      t_b_1_1[4], t_b_1_2[4], t_b_2_1[4], t_b_2_2[4],
+                                      depth_1[4], depth_2[4]])
         var_stats = [ratios_1[0], ratios_2[0], ratios_3[0], ratios_4[0],
                      ratios_1[1:], ratios_2[1:], ratios_3[1:], ratios_4[1:]]
         stats = [t_tot, t_mean, t_mean_s, t_int, n_param, bic, noise_level]
         text = [identifier, data_id, description, date_time]
         # put everything in a dict
-        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi, 'sin_select': sin_select,
+        results = {'sin_mean': sin_mean, 'sin_err': sin_err, 'sin_hdi': sin_hdi,
+                   'sin_select': sin_select,
                    'ephem': ephem, 'ephem_err': ephem_err, 'ephem_hdi': ephem_hdi,
                    'phys_mean': phys_mean, 'phys_err': phys_err, 'phys_hdi': phys_hdi,
                    'timings': timings, 'timings_err': timings_err, 'timings_hdi': timings_hdi,
                    'timings_indiv_err': timings_indiv_err,
-                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors, 'text': text}
+                   'var_stats': var_stats, 'stats': stats, 'i_sectors': i_sectors,'text': text}
         if verbose:
             print(f'Loaded analysis file with identifier: {identifier}, created on {date_time}. \n'
                   f'data_id: {data_id}. Description: {description} \n')
@@ -1561,43 +2430,49 @@ class EclipsingBinary(object):
         """
 
         # Name of folder on FTP server
-        filename = 'varsource_EBs_kepler_ijspeert2021'
+        filename = 'varsource_ebs_ijspeert2021'
         dataDir  = Path(f'{odir}/{filename}')
         
         # Select a random object from the list and load Fourier data
-        if dataDir.is_dir():
-            folders = glob.glob(f'{odir}/{filename}/*')
-        else:
+        if not dataDir.is_dir():
             zipfile = f'{filename}.zip'
-            print(f'Downloading {zipfile} files..')
+            if self.verbose > 1:
+                print(f'Downloading {zipfile} files..')
             ut.downloadFromFTP(filename=zipfile, outputDir=odir, server='plato')
             os.system(f'unzip {odir}/{zipfile} -d {odir}')
             os.system(f'rm {odir}/{zipfile}')
-
-        # If requested, select specific star or else do a random draw
-        if starID is None:
-            starDir = Path(self.rng.choice(folders))
-        else:
-            starDir = Path(filenames[starID-1])
             
+        # If requested, select specific star or else do a random draw
+        folders = glob.glob(f'{odir}/{filename}/*')
+        starDir = Path(self.rng.choice(folders))
+                    
         # Load file containing columns
         starfile = starDir / f'{starDir.name}_2.hdf5' 
         result   = self.read_parameters_hdf5(starfile)
         data     = result['sin_mean']
-
-        # Else load the data
-        self.freq  = data[2]      # [days]
-        self.ampl  = data[3] * 1e3 #df.ampl * 1e3  # [mag]
-        self.phase = data[4] #df.phase       # [rad]
+        self.freq  = data[2]  # [c/d]
+        self.ampl  = data[3]  # [mag]
+        self.phase = data[4]  # [rad]
         self.starname = str(starDir.stem)
 
+        # Extract period if avilable
+        starfile = starDir / f'{starDir.name}_5.hdf5'
+        try:
+            result = self.read_parameters_hdf5(starfile)
+            params = result['ephem']
+            P = params[0]
+        except:
+            P = None
 
+        return self.starname, P
+        
 
+    
     def evaluate(self, plot=False):
 
         """Evaluate and return generated model.
         """
-
+        
         return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
                                         plot=plot, title=self.starname)
         
@@ -1615,12 +2490,12 @@ class SMBHB(object):
 
     def __init__(self, time, seed=None):
 
-        """Open the HDF5 output file
+        """Initialize class
         """
-
-        self.time = time
-        self.rng  = ut.rng(seed)
         
+        self.time = time
+        self.seed = seed
+        self.rng  = ut.rng(seed)
 
 
         
@@ -1770,25 +2645,502 @@ class SMBHB(object):
         # Return models
         return self.flux, self.flux_beam, self.flux_lens
 
+    #---------------------------------------------------------------------------
+
+    def period_observed(self):
+
+        """Orbital period in observers frame [s]
+        """
+        return self.P * (1 + self.z)
+
+    
+    def semimajor_axis(self):
+
+        """Semi-major axis in binary rest frame [cm].
+        """
+        return (c.G.cgs * self.M * self.P**2 / (4 * np.pi**2))**(1/3)     
 
 
-    def plot(self):
+    #---------------------------------------------------------------------------
+    
+    def calculate_eccentric_anomaly(self, M_A, e):
 
-        fig, ax = plt.subplots(1, 1, figsize=(9,4))
-        ax.plot(self.time, self.flux_beam, '-', c='green')
-        ax.plot(self.time, self.flux_lens, '-', c='orange')
-        ax.plot(self.time, self.flux,      '-', c='royalblue')
-        ax.set_xlabel('Time [d]')
-        ax.set_ylabel(r'Relative flux')
-        ax.set_xlim(self.time.min(), self.time.max())
-        plt.tight_layout()
+        """Kepler's equation (M = E – e sin E) to determine the Eccentric anomaly E.
+        Newton Raphson method is used to obtain the eccentric anomaly
+
+        Parameters
+        ----------
+        M = mean anomaly
+        e = eccentricity
+        """
+
+        # Initialize E with M
+        E = M_A
+        tol = 1e-12 * u.rad
+        max_iterations = 1000  
+
+        for _ in range(max_iterations):
+            E_next = E - (E - e * np.sin(E) * u.rad - M_A) / (1 - e * np.cos(E))
+            if np.allclose(E_next, E, atol=tol):
+                return E_next
+            E = E_next
+
+        raise Exception("Eccentric anomaly solver did not converge.") 
+
+
+    def rv_semiamplitude(self, M_i):
+
+        """The RV semi-amplitude of secondary
+        """
+        
+        return 
+
+    
+
+    def doppler_boosting(self, z, t0, P, M1, M2, i, e, w, alpha, v_z=0):
+
+        """Signal from Doppler boosting effect.
+
+        This function initialise the Doppler boosting model of a
+        two-body gravitationally bound system.
+
+        Parameters
+        ----------
+        t0 : float 
+            Arbitrary reference time [s]
+        P : float
+            Orbital period [s]
+        M1 : float
+            Mass of primary Black hole [kg]
+        M2 : float 
+            Mass of secondary Black hole [kg]
+        e : float
+            Eccentricity [0, 1]
+        i : float 
+            inclination [deg]
+        w : float
+            Argument of periapse [deg]
+        alpha : float 
+            Spectral index
+
+        Return
+        ------
+        Relative flux time series of doppler boosting signal.
+
+        NOTE We assume proper motion v_z is zero by default.
+        """
+
+        # Convert units
+        self.z  = z
+        self.P  = P.to('s')
+        t0 = t0.to('s')
+        M1 = M1.to('kg')
+        M2 = M2.to('kg')
+        i  = i.to('rad')
+        e  = e
+        w  = w.to('rad')
+        
+        # Constants
+        self.M = M1 + M2
+        self.q = M2 / M1
+        
+        # Orbital period in binary rest frame [s] 
+        T = self.period_observed()
+        
+        # Semi-major axis [m]        
+        a = self.semimajor_axis()
+
+        # Correction factor (alpha) between true bolmetric flux and finite flux:
+        # We use Sphorer+2017 Eq.5 analytical expression obtained approximating
+        # a blackbody spectrum. In bolometric light, alpha=1, but otherwise
+        # deviating due to finite bandpass measurement.
+        # Teff = 107 * u.K
+        # wvl_c = 550 * u.nm
+        # x = c.h * c.c / (wvl_c * c.k_B * Teff)
+        # alpha = 1/4 * x*np.exp(x) / (np.exp(x) - 1)
+        
+        # The RV semi-amplitude of secondary
+        K2 = (2 * np.pi / T) * (M1 / self.M) * a * np.sin(i) / np.sqrt(1 - e**2)
+        K1 = self.q * K2
+        
+        # Find the true anomaly using mean anomaly [rad]
+        f_mean = 2*np.pi * (self.time - t0) / T * u.rad
+        E = self.calculate_eccentric_anomaly(f_mean, e)
+        f = 2 * np.arctan(np.sqrt((1 + e) / (1 - e)) * np.tan(E/2))
+        
+        # (Murray & Correria, 2010)
+        # Projection of the velocity vector on to the line of sight.
+        # NOTE Minus sign is introduced here as the RV is defined to be
+        #      positive when object is moving away from the observed
+        RV1 = v_z + K1 * (np.cos(w + f) + e * np.cos(w))    
+        RV2 = v_z - K2 * (np.cos(w + f) + e * np.cos(w))    
+
+        # (Charisi et al. 2018)
+        D1 = (3 - alpha) * RV1 / c.c + 1
+        D2 = (3 - alpha) * RV2 / c.c + 1
+        return D1, D2
+
+    #--------------------------------
+
+    def r_ISCO(self, M):
+        return 6 * c.G.cgs * M.cgs / c.c.cgs**2
+
+    def accretion_rate(self, M):
+        radiative_efficiency = 0.1
+        #M_g = M * 1.989e33  # g
+        year_in_sec = 3.1536e7 #s
+        return 2.26e-2 * (radiative_efficiency / 0.1)**-1 * (M.cgs/10**6) / year_in_sec
+
+    def temp(self, r):
+        #M_g = M * 1.989e33  # g.
+        #sigma = 5.67e-5 # erg cm^-2s^-1K^-4
+        # power = 3 * G * M_g * accretion_rate(M) * (1 - np.sqrt(r_ISCO(M) / r)) / (8 * np.pi * r**3)
+        M = self.q * self.M.cgs / (1 + self.q)
+        a_rate = self.accretion_rate(M)
+        r_isco = self.r_ISCO(M)
+        power = 3 * c.G.cgs * M * a_rate * (1 - np.sqrt(r_isco/r)) / (8 * np.pi * r**3)
+        return (power.value / c.sigma_sb.cgs.value)**0.25 * u.K  
+
+
+    def planck_wavelength(self, wvl, T):
+        numerator   = (2 * c.h.cgs * c.c.cgs**2).value
+        exponent    = ((c.h.cgs * c.c.cgs) / (wvl.cgs * c.k_B.cgs * T)).value
+        denominator = (wvl.cgs.value**5) * (np.exp(exponent) - 1)
+        return (numerator / denominator) * u.cm
+
+    
+    def flux(self, r, wvl):
+        
+        r_isco = self.r_ISCO(self.q * self.M.cgs / (1 + self.q))
+        flux = np.where(
+            (r_isco < r) & (r < 0.27 * self.a * self.q**0.3),
+            np.pi * self.planck_wavelength(wvl, self.temp(r)),
+            0
+        )
+        return flux.value
+
+    #--------------------------------
+
+    
+    def schwarzchild_radius(self):
+
+        """Schwarzchild radius of primary and secondary [cm].
+        """
+        RS1 = 2 * c.G.cgs * self.M / ((1 + self.q) * c.c.cgs**2)
+        RS2 = 2 * c.G.cgs * self.M * self.q / ((1 + self.q) * c.c.cgs**2)
+        return RS1, RS2
+    
+    
+    def einstein_radius(self, phi1, phi2):
+
+        """Einstein radius of primary and secondary [cm].
+        """
+        RE1 = np.sqrt(2 * self.RS[0] * self.a * np.cos(self.I) * np.sin(phi1))
+        RE2 = np.sqrt(2 * self.RS[1] * self.a * np.cos(self.I) * np.sin(phi2))
+        return RE1, RE2
+
+    
+    def position_uv(self, time, phi1, phi2, RE1, RE2):
+
+        """Complex components of u (projected  binary seperation) [RE]
+        """
+        
+        if 0 < (time - self.t0.to('yr').value) / self.T.to('yr').value < 0.5:
+            phase = np.sqrt(np.cos(phi1)**2 + np.sin(self.I)**2 * np.sin(phi1)**2)
+            u0 = self.a / RE1 * phase
+        else:
+            phase = np.sqrt(np.cos(phi2)**2 + np.sin(self.I)**2 * np.sin(phi2)**2)
+            u0 = self.a / RE2 * phase
+
+        v0 = np.arctan(np.sin(self.I) * np.tan(phi1))
+        
+        return u0, v0 
+
+    
+    def radius(self, u, v, u0, v0, RE):
+
+        sinv = u * np.sin(v) - u0 * np.sin(v0)
+        cosv = u * np.cos(v) - u0 * np.cos(v0)
+        phiv = np.arcsin(sinv / np.sqrt(sinv**2 + cosv**2))
+
+        rs = RE * np.sqrt(u0**2 + u**2 - 2 * u0 * u * np.cos(v - v0))
+
+        return rs * np.sqrt(np.cos(phiv)**2 + np.sin(phiv)** 2 / (np.cos(np.pi/2 - self.J)**2))
+
+
+    def magnification_point(self, u):
+
+        """Magnification of a point source.
+        """
+        return (u**2 + 2) / (u * np.sqrt(u**2 + 4))
+
+    
+    def magnification_point_u(self, u):
+
+        """Just a dummy function, not point-source magnification
+        """
+        return (u**2 + 2) / (np.sqrt(u**2 + 4))
+
+    #--------------------------------
+
+    def gravitational_lensing(self, z, t0, P, M1, M2, I, J, wvl=None):
+
+        """Initialise model for gravitational lensing.        
+        """
+
+        # Convert units
+        # self.z   = z
+        # self.t0  = t0.cgs
+        # self.T   = T.cgs
+        # self.M1  = M1.cgs
+        # self.M2  = M2.cgs
+        # self.w = w
+        # self.e = e
+                
+        self.z  = z
+        self.t0 = t0.cgs
+        self.P  = P.cgs
+        self.M1 = M1.cgs
+        self.M2 = M2.cgs
+        #self.q  = 0.1
+        #self.M  = (1e6 * u.M_sun).cgs
+        self.J  = np.pi / 4
+        self.I  = 0.005
+        # self.I   = I.to('rad').value
+        # self.J   = J.to('rad').value
+
+        # Constants
+        self.M = self.M1 + self.M2
+        self.q = self.M2 / self.M1
+        
+        # Orbital period in binary rest frame [s] 
+        self.T = self.period_observed()
+        
+        # Semi-major axis [m]        
+        self.a = self.semimajor_axis()
+        
+        # Schwarzchild radii (primary and secondary)
+        self.RS = self.schwarzchild_radius()
+
+        # Maximum Einstein radius (primary and secondary)
+        RE1 = np.sqrt(2 * self.a * self.RS[0])
+        RE2 = np.sqrt(2 * self.a * self.RS[1])
+
+        # Print values
+        ut.errorcode('message', 'Model parameters:')
+        print(f'Orbital period in rest frame  : {self.P.to("yr"):.3f}')
+        print(f'Orbital period in obs. frame  : {self.T.to("yr"):.3f}')
+        print(f'Mass total (M1 + M2)          : {self.M.to("M_sun")/1e6:.4f} x 1e6')
+        print(f'Mass ratio (M2 / M1)          : {self.q:.4f}')
+        #print(f'Light ratio (L2 /(L1 + L2))   : {self.:.4f}')
+        print(f'Inclination of orbits         : {I.to("deg"):.2f}')
+        print(f'Inclination of mini-disc      : {J.to("deg"):.2f}')
+        #print(f'Argument of periapse          : {self.w:.2f}')
+        print(f'Semi-major axis of binaries   : {self.a.to("AU"):.2f}')
+        print(f'Schwarchild radius primary    : {self.RS[0].to("R_sun"):.2f}')
+        print(f'Schwarchild radius secondary  : {self.RS[1].to("R_sun"):.2f}')
+        print(f'Max Einstein radius primary   : {RE1.to("AU"):.2f}')
+        print(f'Max Einstein radius secondary : {RE2.to("AU"):.2f}')
+
+        # TODO under implementation
+        
+        # Time and phases
+        # T  = self.T.to('yr').value
+        # t0 = self.t0.to('yr').value
+        # time = np.linspace(0, T, 1000)
+        # phi1 = 2 * np.pi * (time - t0) / T 
+        # phi2 = phi1 - np.pi
+
+        # In phase space
+        T  = self.T.to('yr').value
+        t0 = self.t0.to('yr').value
+        time = np.linspace(0, 2.2, 1000)
+        phi1 = np.linspace(1.92, 2.08, 1000)
+        phi2 = np.linspace(0.92, 1.08, 1000)
+
+        t0_yr = self.t0.to('yr').value
+        P_yr = self.P.to('yr').value
+        T_yr = self.T.to('yr').value
+        print( T_yr, t0_yr/T_yr, 2*np.pi*t0_yr/T_yr)
+        print( P_yr, t0_yr/P_yr, 2*np.pi*t0_yr/P_yr)
+
+        plt.figure()
+        plt.plot(phi1, np.ones_like(phi1))
+        plt.plot(phi2, np.ones_like(phi1))
         plt.show()
+        
+        # Grid to model mini-disc of secondary
+        u_max, num1, num2 = 30, 1000, 100  
+        u_array = np.linspace(0, u_max, num1)
+        v_array = np.linspace(0, 2 * np.pi, num2)
+        delta_u = u_max / num1
+        delta_v = 2 * np.pi / num2
+        u_grid, v_grid = np.meshgrid(u_array, v_array)
+
+        # Prepare for iterations
+        N = len(time)
+        self.A = np.zeros(N)
+        
+        for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+
+            # Einstein radius (primary and secondary)
+            RE1, RE2 = self.einstein_radius(phi1[i], phi2[i])
+
+            # 
+            u0, v0 = self.position_uv(time[i], phi1[i], phi2[i], RE1, RE2)
+
+            # Model magnification
+            if wvl is None:
+                # Magnitfication of point source
+                self.A[i] = self.magnification_point(u0)
+            else:
+                # Magnification of finite source
+                radius = self.radius(u_grid, v_grid, u0, v0, RE1)
+                flux   = self.flux(radius, wvl)
+                A_ps_u = self.magnification_point_u(u_grid)
+                numer = np.sum(flux * A_ps_u * delta_u * delta_v)
+                denom = np.sum(flux * u_grid * delta_u * delta_v)
+                self.A[i] = numer / denom
+
+        # Plot example
+        if wvl is None:
+            lab = 'Point source'
+        else:
+            lab = f'Finite source: \n {wvl.to("nm"):.0f}'
+        plt.figure(figsize=(8,6))
+        plt.plot(time, self.A, 'k-', label=lab)
+        plt.xlabel('time [yr]')
+        plt.ylabel(r'$\mathcal{M}$')
+        plt.legend()
+        #plt.xlim(0, P)
+        plt.show()
+
+        return self.A
+    
+
+
+    def quasar_variability(self, tau, sigma):
+
+        """Initialise ANG intrinsic variability.
+
+        This model uses a damped random walk (i.e. red noise) descroption
+        to compute the quasar variability.
+
+        Parameters
+        ----------
+        tau : ndarray
+            Time scale tau of each red noise component [s]
+        sigma : ndarray 
+            Variation scale of each red noise component [ppm]
+            
+        Returns
+        -------
+        Signal containing all red noise components [pp1]
+        """
+
+        tau = tau.to('d').value
+        time = self.time.to('d').value
+        
+        return ns.modelRedNoise(time, tau, sigma, seed=self.seed) * 1e-6 + 1
+
     
     
+    def evalPhysicalModel():
+
+        """Evaluate physical SMBH binary model.
+        """
+
+        
+        # Model combined signal flux
+        flux = (1 + flux_boost) * (1 + flux_lens) * (1 + flux_red) 
+    
+    
+
+    # def plot(self):
+
+    #     fig, ax = plt.subplots(1, 1, figsize=(9,4))
+    #     ax.plot(self.time, self.flux_beam, '-', c='green')
+    #     ax.plot(self.time, self.flux_lens, '-', c='orange')
+    #     ax.plot(self.time, self.flux,      '-', c='royalblue')
+    #     ax.set_xlabel('Time [d]')
+    #     ax.set_ylabel(r'Relative flux')
+    #     ax.set_xlim(self.time.min(), self.time.max())
+    #     plt.tight_layout()
+    #     plt.show()
+    
+
+
+
+        
 #==============================================================#
 #                         EXOPLANETS                           #
 #==============================================================#
 
+
+class Exoplanet(object):
+
+    """Class for modelling exoplanets.
+    """
+
+    def __init__(self, seed=False):
+
+        # Random number generator
+        self.rng = ut.rng(seed)
+
+
+        
+    def ldc(self, ):
+
+        """Compute the Limb Darkening (LD) coefficients.
+
+        This module uses the software LDTk:        
+        """
+
+        if self.verbose > 1:
+            print('\nComputing limb darkening coefficients with LDTk')
+            
+        # Convert input parameters
+        wvl_tele  = self.wvl_tele.value  # [nm]
+        tran_tele = self.tra_tele        # [0-1]
+
+        # Interpolate (piecewise cubic) into higher resolution grid
+        grid_no  = 1000
+        wvl_int  = np.linspace(wvl_tele[0], wvl_tele[-1], grid_no)
+        passband = make_interp_spline(wvl_tele, tran_tele, k=3)
+        tran_int = passband(wvl_int)
+
+        # Create passband object
+        filters = [TabulatedFilter('plato', wvl_int, tran_int)]
+
+        # Create instance of class
+        # NOTE uncertainties are vital for the software to work!
+        sc = LDPSetCreator(teff=(self.Teff.value, 50),
+                           logg=(self.logg, 0.20),
+                           z=(self.Z, 0.05),
+                           filters=filters)
+
+        # Create the limb darkening profiles
+        ps = sc.create_profiles()
+
+        # Estimate quadratic law coefficients
+        # Take care of occations when LDTk fails
+        try:
+            u, _ = ps.coeffs_qd(do_mc=True)
+        except:
+            self.ldc = [0.430, 0.170]
+            errorcode('warning', 'LD coefficients failed for ' +
+                      f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
+        else:
+            self.ldc = u[0]
+
+        return self.ldc
+
+
+
+
+        
+    
+    
 
 class LimbDarkening(funcFit.OneDFit):
 
@@ -1833,6 +3185,8 @@ class LimbDarkening(funcFit.OneDFit):
         See links:
         Webpage : https://phoenix.astro.physik.uni-goettingen.de/
         Download: http://phoenix.astro.physik.uni-goettingen.de/data/
+
+        NOTE not used anymore py VarSim.
         """
 
         #  Convert input parameters
@@ -1945,24 +3299,22 @@ class DopplerBeaming(funcFit.OneDFit):
         wvl_c = self['wvl_c'].to('m')
         Ms    = self['Ms'].to('kg')
         Mp    = self['Mp'].to('kg')
-        #Teff  = self['Teff'].to('K')
+        Teff  = self['Teff'].to('K')
 
         # Correction factor (alpha) between true bolmetric flux and finite flux:
-        # We use Sphorer (2017) Eq.5 analytical expression obtained approximating a blackbody spectrum.
-        # In bolometric light alpha = 1, but otherwise deviating due to finite bandpass measurement.
-
+        # We use Sphorer+2017 Eq.5 analytical expression obtained approximating
+        # a blackbody spectrum. In bolometric light, alpha=1, but otherwise
+        # deviating due to finite bandpass measurement.
         xx = c.h * c.c / (wvl_c * c.k_B * Teff)
         alpha = 1/4. * xx*np.exp(xx)/(np.exp(xx) - 1)
 
-        # Amplitude: Sphorer (2019) Eq. 3
-
+        # Amplitude: Sphorer (2019) Eq. 3:
         A = (0.0028 * alpha * P.to('d')**(-1/3) * (Ms.to('M_sun') + Mp.to('M_sun'))**(-2/3) *
              Mp.to('M_sun') * np.sin(i)) * 1e6
 
         # RV signal as function of nu: Murray & Correia (2011) Eq. 61, 65 and 66
         # NOTE "astar" in the following is the reduced semimajor axies due to the common
         # center-of-mass and "K" is the relative RV semi-amplitude of the star.
-
         phi = (x.value - t0.value) / P.value * u.rad
         astar = Mp/(Mp + Ms) * a
         K     = 2.*np.pi/P * astar * np.sin(i)/np.sqrt(1. - e**2)
@@ -1970,7 +3322,6 @@ class DopplerBeaming(funcFit.OneDFit):
         RV    = K * (np.cos(2*np.pi*phi + w) - e*np.cos(w))
 
         # Final beaming effect [ppm]: Second term in Eq.1 from Sphorer (2017) but normalized
-
         y = 4 * alpha * RV/c.c * 1e6
 
         return y.value, A.value
@@ -2008,7 +3359,6 @@ class EllipsoidalDistortion(funcFit.OneDFit):
     def evaluate(self, x, nu):
 
         # Convert to SI units
-
         x  = x.to('s')
         nu = nu * u.rad
         e  = self['e']
@@ -2022,28 +3372,22 @@ class EllipsoidalDistortion(funcFit.OneDFit):
         Mp = self['Mp'].to('kg')
 
         # Orbital phase
-
         phi = (x.value - t0.value) / P.value
 
         # Coefficient accounting for the stellar LD and GD: Sphorer (2019) Eq.8
-
         alpha = 0.15 * (15. + self["u"]) * (1. + self["g"])/(3. - self["u"])
 
         # Amplitude of the ellipsoidal variation: Sphorer (2019) Eq.7
-
         A = alpha * Mp/Ms * (Rs/a)**3 * np.sin(i)**2 * 1e6
 
         # Add parameterization of elliptical orbits: Murray & Correia (2011) Eq.20
         # This is just 1 for e=0
-
         a1 = (1 + e*np.cos(nu)) / (1. - e**2)
 
         # Add parameterization of the ellipsoidal distortion itself
-
         a2 = - np.cos(4 * np.pi * phi)
 
         # Final ellipsoidal distortion [ppm]
-
         y = A * a1 * a2
 
         return y.value, A.value
@@ -2060,17 +3404,17 @@ class PlanetMRforecast():
     def __init__(self):
         
         # constant
-        mearth2mjup = 317.828
-        mearth2msun = 333060.4
-        rearth2rjup = 11.21
-        rearth2rsun = 109.2
+        self.mearth2mjup = 317.828
+        self.mearth2msun = 333060.4
+        self.rearth2rjup = 11.21
+        self.rearth2rsun = 109.2
 
         # Boundary
         mlower = 3e-4
         mupper = 3e5
 
         # Number of different populations
-        n_pop = 4
+        self.n_pop = 4
 
         # read parameter file
         filepath = 'inputfiles/data_varsim/varsim_exomass_fitting_parameters.h5' 
@@ -2086,92 +3430,105 @@ class PlanetMRforecast():
 
         # Open file
         h5 = h5py.File(hyper_file, 'r')
-        all_hyper = h5['hyper_posterior'][:]
+        self.all_hyper = h5['hyper_posterior'][:]
         h5.close()
 
 
-    def indicate(M, trans, i):
-        '''
-        indicate which M belongs to population i given transition parameter
-        '''
-        ts = np.insert(np.insert(trans, n_pop-1, np.inf), 0, -np.inf)
+    def indicate(self, M, trans, i):
+
+        """Indicate which M belongs to population i given transition parameter.
+        """
+        
+        ts = np.insert(np.insert(trans, self.n_pop-1, np.inf), 0, -np.inf)
         ind = (M>=ts[i]) & (M<ts[i+1])
+
         return ind
 
 
-    def split_hyper_linear(hyper):
+    
+    def split_hyper_linear(self, hyper):
+
+        """Split hyper and derive c.
         """
-        split hyper and derive c
-        """
-        c0, slope,sigma, trans = \
-        hyper[0], hyper[1:1+n_pop], hyper[1+n_pop:1+2*n_pop], hyper[1+2*n_pop:]
+        
+        c0    = hyper[0]
+        slope = hyper[1:1+self.n_pop] 
+        sigma = hyper[1+self.n_pop:1+2*self.n_pop], 
+        trans = hyper[1+2*self.n_pop:]
         
         c = np.zeros_like(slope)
         c[0] = c0
-        for i in range(1,n_pop):
-                c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
+        for i in range(1, self.n_pop):
+            c[i] = c[i-1] + trans[i-1]*(slope[i-1]-slope[i])
 
         return c, slope, sigma, trans
 
 
     
-    def piece_linear(hyper, M, prob_R):
-        '''
-        model: straight line
-        '''
-        c, slope, sigma, trans = split_hyper_linear(hyper)
+    def piece_linear(self, hyper, M, prob_R):
+
+        """model: straight line
+        """
+        
+        c, slope, sigma, trans = self.split_hyper_linear(hyper)
         R = np.zeros_like(M)
         for i in range(4):
-                ind = indicate(M, trans, i)
-                mu = c[i] + M[ind]*slope[i]
-                R[ind] = norm.ppf(prob_R[ind], mu, sigma[i])
+            ind = self.indicate(M, trans, i)
+            mu = c[i] + M[ind]*slope[i]
+            R[ind] = ss.norm.ppf(prob_R[ind], mu, sigma[i])
 
         return R
 
+    
 
-    def ProbRGivenM(radii, M, hyper):
-        '''
-        p(radii|M)
-        '''
-        c, slope, sigma, trans = split_hyper_linear(hyper)
+    def ProbRGivenM(self, radii, M, hyper):
+
+
+        """Probability of R given M: p(radii|M)
+        """
+
+        c, slope, sigma, trans = self.split_hyper_linear(hyper)
         prob = np.zeros_like(M)
 
         for i in range(4):
-                ind = indicate(M, trans, i)
-                mu = c[i] + M[ind]*slope[i]
-                sig = sigma[i]
-                prob[ind] = norm.pdf(radii, mu, sig)
+            ind = self.indicate(M, trans, i)
+            mu = c[i] + M[ind]*slope[i]
+            sig = sigma[0][i]
+            prob[ind] = ss.norm.pdf(radii, mu, sig)
 
-        prob = prob/np.sum(prob)
+        prob = prob / np.sum(prob)
 
         return prob
 
 
-    def classification( logm, trans ):
-        '''
-        classify as four worlds
-        '''
+    
+    def classification(self, logm, trans):
+
+        """Classify as four worlds.
+        """
+        
         count = np.zeros(4)
         sample_size = len(logm)
 
         for iclass in range(4):
                 for isample in range(sample_size):
-                        ind = indicate( logm[isample], trans[isample], iclass)
+                        ind = self.indicate(logm[isample], trans[isample], iclass)
                         count[iclass] = count[iclass] + ind
 
         prob = count / np.sum(count) * 100.
         print('Terran %(T).1f %%, Neptunian %(N).1f %%, Jovian %(J).1f %%, Star %(S).1f %%' \
                         % {'T': prob[0], 'N': prob[1], 'J': prob[2], 'S': prob[3]})
+
         return None
 
 
     
-    def Mpost2R(mass, unit='Earth', classify='No'):
-        """
-        Forecast the Radius distribution given the mass distribution.
+    def Mpost2R(self, mass, unit='Earth', classify='No'):
+
+        """Forecast the Radius distribution given the mass distribution.
 
         Parameters
-        ---------------
+        ----------
         mass: one dimensional array
                 The mass distribution.
         unit: string (optional)
@@ -2183,7 +3540,7 @@ class PlanetMRforecast():
                 Result will be printed, not returned.
 
         Returns
-        ---------------
+        -------
         radius: one dimensional array
                 Predicted radius distribution in the input unit.
         """
@@ -2194,52 +3551,57 @@ class PlanetMRforecast():
 
         # unit input
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mass = mass * mearth2mjup
+            mass = mass * self.mearth2mjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # mass range
         if np.min(mass) < 3e-4 or np.max(mass) > 3e5:
-                print('Mass range out of model expectation. Returning None.')
-                return None
+            print('Mass range out of model expectation. Returning None.')
+            return None
 
-        ## convert to radius
+        # convert to radius
         sample_size = len(mass)
         logm = np.log10(mass)
         prob = np.random.random(sample_size)
         logr = np.ones_like(logm)
 
-        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
-        hyper = all_hyper[hyper_ind,:]
+        hyper_ind = np.random.randint(low=0, high=np.shape(self.all_hyper)[0],
+                                      size=sample_size)
+        hyper = self.all_hyper[hyper_ind,:]
 
         if classify == 'Yes':
-                classification(logm, hyper[:,-3:])
+            self.classification(logm, hyper[:,-3:])
 
 
         for i in range(sample_size):
-                logr[i] = piece_linear(hyper[i], logm[i], prob[i])
+            logr[i] = piece_linear(hyper[i], logm[i], prob[i])
 
         radius_sample = 10.** logr
 
-        ## convert to right unit
+        # convert to right unit
         if unit == 'Jupiter':
-                radius = radius_sample / rearth2rjup
+            radius = radius_sample / self.rearth2rjup
         else:
-                radius = radius_sample 
+            radius = radius_sample 
 
         return radius
 
 
 
-    def Mstat2R(mean, std, unit='Earth', sample_size=1000, classify = 'No'):	
-        """
-        Forecast the mean and standard deviation of radius given the mena and standard deviation of the mass.
-        Assuming normal distribution with the mean and standard deviation truncated at the mass range limit of the model.
+    def Mstat2R(self, mean, std, unit='Earth', sample_size=1000, classify='No'):	
+
+        """Forecast the mean and standard deviation of radius.
+
+        Forecast the mean and standard deviation of radius given the mean
+        and standard deviation of the mass. Assuming normal distribution
+        with the mean and standard deviation truncated at the mass range
+        limit of the model.
 
         Parameters
-        ---------------
+        ----------
         mean: float
                 Mean (average) of mass.
         std: float
@@ -2248,8 +3610,9 @@ class PlanetMRforecast():
                 Unit of the mass. Options are 'Earth' and 'Jupiter'.
         sample_size: int (optional)
                 Number of mass samples to draw with the mean and std provided.
+
         Returns
-        ---------------
+        -------
         mean: float
                 Predicted mean of radius in the input unit.
         std: float
@@ -2258,38 +3621,40 @@ class PlanetMRforecast():
 
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mean = mean * mearth2mjup
-                std = std * mearth2mjup
+            mean = mean * self.mearth2mjup
+            std  = std  * self.mearth2mjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        mass = truncnorm.rvs( (mlower-mean)/std, (mupper-mean)/std, loc=mean, scale=std, size=sample_size)	
+        mass = ss.truncnorm.rvs((mlower-mean)/std, (mupper-mean)/std,
+                                loc=mean, scale=std, size=sample_size)
+        
         if classify == 'Yes':	
-                radius = Mpost2R(mass, unit='Earth', classify='Yes')
+            radius = self.Mpost2R(mass, unit='Earth', classify='Yes')
         else:
-                radius = Mpost2R(mass, unit='Earth')
+            radius = self.Mpost2R(mass, unit='Earth')
 
         if unit == 'Jupiter':
-                radius = radius / rearth2rjup
+            radius = radius / self.rearth2rjup
 
         r_med = np.median(radius)
         onesigma = 34.1
-        r_up = np.percentile(radius, 50.+onesigma, interpolation='nearest')
+        r_up   = np.percentile(radius, 50.+onesigma, interpolation='nearest')
         r_down = np.percentile(radius, 50.-onesigma, interpolation='nearest')
 
         return r_med, r_up - r_med, r_med - r_down
 
 
 
-    def Rpost2M(radius, unit='Earth', grid_size = 1e3, classify = 'No'):
-        """
-        Forecast the mass distribution given the radius distribution.
+    def Rpost2M(self, radius, unit='Earth', grid_size = 1e3, classify = 'No'):
+
+        """Forecast the mass distribution given the radius distribution.
 
         Parameters
-        ---------------
+        ----------
         radius: one dimensional array
                 The radius distribution.
         unit: string (optional)
@@ -2303,67 +3668,67 @@ class PlanetMRforecast():
                 Result will be printed, not returned.
 
         Returns
-        ---------------
+        -------
         mass: one dimensional array
                 Predicted mass distribution in the input unit.
         """
 
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                radius = radius * rearth2rjup
+            radius = radius * self.rearth2rjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
 
         # radius range
         if np.min(radius) < 1e-1 or np.max(radius) > 1e2:
-                print('Radius range out of model expectation. Returning None.')
-                return None
-
-
+            print('Radius range out of model expectation. Returning None.')
+            return None
 
         # sample_grid
         if grid_size < 10:
-                print('The sample grid is too sparse. Using 10 sample grid instead.')
-                grid_size = 10
+            print('The sample grid is too sparse. Using 10 sample grid instead.')
+            grid_size = 10
 
         ## convert to mass
         sample_size = len(radius)
         logr = np.log10(radius)
         logm = np.ones_like(logr)
 
-        hyper_ind = np.random.randint(low = 0, high = np.shape(all_hyper)[0], size = sample_size)	
-        hyper = all_hyper[hyper_ind,:]
-
+        hyper_ind = np.random.randint(low=0, high=np.shape(self.all_hyper)[0],
+                                      size=sample_size)
+        hyper = self.all_hyper[hyper_ind,:]
+        
         logm_grid = np.linspace(-3.522, 5.477, 1000)
 
         for i in range(sample_size):
-                prob = ProbRGivenM(logr[i], logm_grid, hyper[i,:])
-                logm[i] = np.random.choice(logm_grid, size=1, p = prob)
+            prob = self.ProbRGivenM(logr[i], logm_grid, hyper[i,:])
+            logm[i] = np.random.choice(logm_grid, size=1, p = prob)
 
         mass_sample = 10.** logm
 
         if classify == 'Yes':
-                classification(logm, hyper[:,-3:])
+            self.classification(logm, hyper[:,-3:])
 
         ## convert to right unit
         if unit == 'Jupiter':
-                mass = mass_sample / mearth2mjup
+            mass = mass_sample / self.mearth2mjup
         else:
-                mass = mass_sample
+            mass = mass_sample
 
         return mass
 
 
 
-    def Rstat2M(mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify = 'No'):	
-        """
-        Forecast the mean and standard deviation of mass given the mean and standard deviation of the radius.
+    def Rstat2M(self, mean, std, unit='Earth', sample_size=1e3, grid_size=1e3, classify='No'):
+
+        """Forecast the mean and standard deviation of mass given
+        the mean and standard deviation of the radius.
 
         Parameters
-        ---------------
+        ----------
         mean: float
                 Mean (average) of radius.
         std: float
@@ -2375,38 +3740,40 @@ class PlanetMRforecast():
         grid_size: int (optional)
                 Number of grid in the mass axis when sampling mass from radius.
                 The more the better results, but slower process.
+        
         Returns
-        ---------------
+        -------
         mean: float
                 Predicted mean of mass in the input unit.
         std: float
                 Predicted standard deviation of mass.
         """
+        
         # unit
         if unit == 'Earth':
-                pass
+            pass
         elif unit == 'Jupiter':
-                mean = mean * rearth2rjup
-                std = std * rearth2rjup
+            mean = mean * self.rearth2rjup
+            std  = std  * self.rearth2rjup
         else:
-                print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
+            print("Input unit must be 'Earth' or 'Jupiter'. Using 'Earth' as default.")
 
         # draw samples
-        radius = truncnorm.rvs( (0.-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)	
+        radius = ss.truncnorm.rvs((0-mean)/std, np.inf, loc=mean, scale=std, size=sample_size)
         if classify == 'Yes':
-                mass = Rpost2M(radius, 'Earth', grid_size, classify='Yes')
+            mass = self.Rpost2M(radius, 'Earth', grid_size, classify='Yes')
         else:
-                mass = Rpost2M(radius, 'Earth', grid_size)
+            mass = self.Rpost2M(radius, 'Earth', grid_size)
 
         if mass is None:
-                return None
+            return None
 
         if unit=='Jupiter':
-                mass = mass / mearth2mjup
+            mass = mass / self.mearth2mjup
 
         m_med = np.median(mass)
         onesigma = 34.1
-        m_up = np.percentile(mass, 50.+onesigma, interpolation='nearest')
+        m_up   = np.percentile(mass, 50.+onesigma, interpolation='nearest')
         m_down = np.percentile(mass, 50.-onesigma, interpolation='nearest')
 
         return m_med, m_up - m_med, m_med - m_down        
