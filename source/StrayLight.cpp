@@ -31,8 +31,8 @@ std::ostream& operator<<(std::ostream& os, const Time &obj)
  *
  */
 StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
-                       Camera &camera, Detector &detector)
-  : HDF5Writer(hdf5File), camera(camera), detector(detector)
+                       Camera &camera)
+  : HDF5Writer(hdf5File), camera(camera)
 {
     // Parse the parameters from the configuration file.
 

@@ -201,7 +201,7 @@ Detector::Detector(ConfigurationParameters &configParam,
     if (includeStraylight)
     {
         // Include straylight
-        straylight = new StrayLight(configParam, hdf5file, camera, *this);
+        straylight = new StrayLight(configParam, hdf5file, camera);
     }
 
     // If we are going to apply open-shutter smearing, we have to know which pixels are within
