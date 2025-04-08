@@ -31,8 +31,8 @@ std::ostream& operator<<(std::ostream& os, const Time &obj)
  *
  */
 StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
-                       Camera &camera, Detector &detector)
-  : HDF5Writer(hdf5File), camera(camera), detector(detector)
+                       Camera &camera)
+  : HDF5Writer(hdf5File), camera(camera)
 {
     // Parse the parameters from the configuration file.
 
@@ -54,7 +54,7 @@ void StrayLight::configure(ConfigurationParameters &configParam)
     numExposure         = configParam.getInteger("ObservingParameters/NumExposures");
     beginExposures      =
         configParam.getInteger("ObservingParameters/BeginExposureNr");
-    cycleTime           = configParam.getInteger("ObservingParameters/CycleTime");
+    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");
     pixelSize           = configParam.getDouble("CCD/PixelSize") * 1e-6;  // [m]
 
     // Get the coordinates of the telescope reference frame
