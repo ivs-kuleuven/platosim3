@@ -301,13 +301,10 @@ Detector::~Detector()
     if (includeStraylight)
     {
         hdf5File.writeStraylight(straylightValues);
-        
+        delete straylight;        
     }
-    
-
 
     flushOutput();
-    delete straylight;
     delete frontEndElectronics;
 }
 
