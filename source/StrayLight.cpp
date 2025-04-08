@@ -54,7 +54,7 @@ void StrayLight::configure(ConfigurationParameters &configParam)
     numExposure         = configParam.getInteger("ObservingParameters/NumExposures");
     beginExposures      =
         configParam.getInteger("ObservingParameters/BeginExposureNr");
-    cycleTime           = configParam.getInteger("ObservingParameters/CycleTime");
+    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");
     pixelSize           = configParam.getDouble("CCD/PixelSize") * 1e-6;  // [m]
 
     // Get the coordinates of the telescope reference frame
