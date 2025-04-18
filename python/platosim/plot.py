@@ -2246,12 +2246,16 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     
 
 
-def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
-                       yscale="log", cmap="rainbow",
-                       show_targets=False,
+def plotNSRvsMagnitude(df, column=False,
+                       residuals=False,
+                       passband='P',
+                       yscale="log",
+                       cmap="rainbow",
                        show_ncam_noise_limits=False,
                        show_saturation_limits=False,
-                       grid=False, legend=False, cbar_extend=None,
+                       grid=False,
+                       legend=False,
+                       cbar_extend=None,
                        figsize=(10,6)):
 
     """Plot the NSR vs. Magnitude for a star catalogue.
@@ -2364,12 +2368,6 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         # if (df[column].max() - df[column].min()) > 24:
         #     for label in cb.ax.yaxis.get_ticklabels()[::2]:
         #         label.set_visible(False)
-
-    # Highlight single stars
-    
-    if show_targets and column == 'ncon' and residuals == 'multi':
-        dc = df.loc[df.ncon == 0]
-        ax.scatter(dc.mag, dc.NSR, s=3, color=cmap(0.0), zorder=1)
                 
     # Plot saturation limits
     
@@ -2404,7 +2402,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         # Magnitude range
         mag = np.linspace(0, 20, 100)
 
-        # 
+        # Auto selection of level
         if show_ncam_noise_limits == 1:
             ncam  = 1
             level = 'camera'
@@ -3228,8 +3226,6 @@ def plotTimesPlanetsHZ():
                    '%.2f' % p[0][2].to('min').value[i], '%.2f' % p[0][3].to('min').value[i],
                    '%.2f' % p[2][0].to('d').value[i], '%.2f' % p[2][1].to('d').value[i]])
 
-    print(t)
-    exit()
     # Plot figure showing results
 
     fig = plt.figure(figsize=(4.3,5))
