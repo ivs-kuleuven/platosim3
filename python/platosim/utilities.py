@@ -6,7 +6,6 @@ used by the PlatoSim and PLATOnium.
 """
 
 # Built-in
-
 import os
 import sys
 import math
@@ -18,7 +17,6 @@ from pathlib import Path
 from zipfile import ZipFile
 
 # PlatoSim standard
-
 import numpy as np
 import pandas as pd
 from matplotlib.colors import Normalize, LogNorm
@@ -28,7 +26,6 @@ from scipy.stats import gaussian_kde
 from scipy import constants as c
 
 # Backward compatability
-
 try:
     from scipy.integrate import cumulative_trapezoid
 except ImportError:
@@ -1186,7 +1183,8 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
-
+    
+    FIXME These limits do not seem to match Borner+2024
     TODO update gain values for F-CAMs
     """
 
@@ -1195,49 +1193,42 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     if camType == 'normal':
         texp = 21.
         tcyc = 25.
-        gain = 0.03 # 0.0186 * 2.15   # [ADU/e-]
     else:
         texp = 2.1
         tcyc = 2.5
-        gain = 0.05
 
+    # FEE + CCD gains [ADU/e-]
+    gain = 2.18 * 0.0186 
+        
     # Flux of stars [e-/s]
     
     if passband == "V":
-        f0 = 1.00179e8 *2
+        f0 = 1.00179e8
         f = 10**(-0.4 * mag) * f0
-        
+
     elif passband == 'P':
         # The P passband zero-point
         if camType == 'normal':
-            zp   = 21 #20.77
+            zp = 20.77
         if camType == 'fastblue':
             zp = 20.18
         if camType == 'fastred':
             zp = 19.81
         # Calculate flux
         f = 10**(-0.4 * (mag - zp))
-        
-        #f0 = 7.324509159344043e7
-        #f = 10**(-0.4 * mag) * f0
-        
+
     else:
         errorcode('error', f'Wrong {camType} name!')
 
     # Observed total flux [ADU/exp]
 
-    flux = f * tcyc * gain
-
+    
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-
-    nsr = 1e6 / np.sqrt(flux * ncam * ntra * tdur)
-
-    # Correction needed for PLATO passband
-    
-    if passband == 'P':
-        nsr *= 0.7324478224428527
-    
+    #tdur = (tdur / tcyc) * texp
+    flux = f * tdur * gain * texp
+    nsr  = 1e6 / np.sqrt(flux * ncam * ntra)
+        
     return nsr 
 
 
@@ -1245,7 +1236,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
 
 def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
-                               tdur=3600, bg=2250, ncam=1):
+                               tdur=3600, bg=124, ncam=1):
 
     """NSR estimate in the photon noise limit of bright stars.
 
@@ -1271,6 +1262,8 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
+
+    FIXME doesn't seem to be correct!
     """
 
     # The passband zero-point flux
@@ -1288,9 +1281,14 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
         errorcode('error', f'Wrong {camType} name!')
         
     # Method cf. Matuszewskic+2023 
-    f = 10**(-0.4 * mag) * f0
-    
-    return np.sqrt(bg**2 / f**2 * tdur) / np.sqrt(ncam)
+    gain = 2.5 * 0.0185
+    tcyc = 25
+    texp = 21
+    tdur = (tdur / tcyc) * texp
+
+    f = 10**(-0.4 * mag) * f0 * gain
+
+    return np.sqrt((bg/f)**2 * tdur) / np.sqrt(ncam)
 
 
 
