@@ -96,8 +96,8 @@ more massive and more evolved than the Sun:
   - delta Scuti    (dSct)  [ToyModel, Bowman2018,   mocka]
   - gamma Doradus  (gDor)  [ToyModel, Gang2020,     mocka]
   - roAp star      (roAp)  [ToyModel]
-  - RR Lyrae       (RRLyr) [Bodi2023]
-  - Cepheid        (Ceph)  [Bodi2023]
+  - RR Lyrae       (RRLyr) [          Bodi2023,     mocka]
+  - Cepheid        (Ceph)  [          Bodi2023,     mocka]
 
 Names within the round brackets are benchmark stars ("--star <Object>").
 Names within the square brackets are the mode model ("--puls <Model>"):
@@ -108,11 +108,6 @@ Names within the square brackets are the mode model ("--puls <Model>"):
 Usage examples:
   $ varsim --star gDor --puls Gang2020 --quarter 1-8 -o </path/to/file> -p
 """
-
-# TODO models to implement
-# - LPV            (LPV)
-# - DAV/DBV        (WD)
-
 
 # Built-in
 import os
@@ -645,6 +640,46 @@ class VarSim(object):
             
         return params
         
+
+    def load_exomoon(self, source):
+
+        """Module to load benchmark exopmoon to be used by varsim.
+
+        NOTE in the following the astropy-units are required, however,
+        the the choice of units (e.g. seconds vs. hours) are optional. 
+
+        Parameters
+        ----------
+        R : float
+            Moon radius [astropy.units]
+        Mr : float
+            Planet-to-moon mass ratio [0, 1]
+        P : float
+           Orbital period [astropy.units]
+        tau : float
+            [0, 1] [astropy.units]
+        W : float
+            [0, 180] [astropy.units]
+        i : float
+            Orbital inclination [0, 90] [astropy.units]
+        e : float
+            Eccentricity (0-1)
+        w : float
+            Longitude of periastron [0, 360] [astropy.units]
+        """
+
+        if source == 'pandora':
+            # Default example from Pandora tutorial
+            params = {'R'   : 5.0 * u.R_earth,
+                      'M'   : 10.0 * u.M_earth,
+                      'P'   : 0.3 * u.d,
+                      'tau' : 0.07,
+                      'W'   : 0.0  * u.deg,
+                      'i'   : 80.0 * u.deg,
+                      'e'   : 0.9,
+                      'w'   : 20.0 * u.deg}
+
+        return params
     
     #--------------------------------------------------------------#
     #                       STELLAR PARAMETERS                     #
@@ -728,7 +763,6 @@ class VarSim(object):
             
         # Print available stellar model parameters
         if self.verbose > 1:
-
             print(f"Stellar ID      : {self.star_source}")
             print(f"Spectral type   : {self.spec}")
             print(f"Stellar Teff    : {self.df.Teff_K:4.0f}")
@@ -1804,7 +1838,8 @@ class VarSim(object):
         self.t0_tra_cen = t0_tra_cen
         self.t0_occ_cen = t0_occ_cen
         self.dt_c = dt_c
-
+        self.b_tra = float(b_tra)
+        
             
     def planet_transit(self):
 
@@ -2052,6 +2087,116 @@ class VarSim(object):
                       'No phase plot, time series is shorter than the orbital period!')
 
 
+    def moon_transit(self):
+
+        """Model exomoon transits.
+
+        In the following the exomoon transits are being modelled with Pandora:
+        https://github.com/hippke/Pandora
+
+        NOTE: t0 and P can principly be anything as long as they are consistant. 
+        Here we make sure to use consistent reference time unit.
+        """
+
+        import pandoramoon as pandora
+        params = pandora.model_params()
+
+        #time = self.time.to('d')
+
+        # if args.moon_params is None:
+
+        #     # Load exoplanet parameters [SI units]
+        #     try:
+        #         params = self.load_exoplanet(args.planet)
+        #     except UnboundLocalError:
+        #         errorcode('error', 'No planet with that name! Check --planet entry')
+        #     else:
+        #         t0 = params['t0'].to('s')
+        #         P  = params['P'].to('s')
+        #         e  = params['e']
+        #         i  = params['i'].to('rad')
+        #         w  = params['w'].to('rad')
+        #         Rp = params['rp'].to('m')
+        #         Mp = params['mp'].to('kg')
+        #         xi = params['xi']
+        #         Tn = params['Tn'].to('K').value
+        #         dT = params['dT'].to('K').value
+            
+        # else:
+
+            # # Load exoplanet parameters [SI units]
+            # params = args.planet_params[0]
+            # t0 = (params[0] * u.d).to('s')
+            # P  = (params[1] * u.d).to('s')
+            # e  = params[2]
+            # i  = (params[3] * u.deg).to('rad')
+            # w  = (params[4] * u.deg).to('rad')
+            # Rp = (params[5] * u.R_earth).to('m')
+            # Mp = (params[6] * u.M_earth).to('kg')
+            # xi = 0.
+            # Tn = 0.
+            # dT = 0.
+        
+        # Stellar parameters
+        params.R_star = self.R.to('m').value
+        params.u1     = self.ldc[0]
+        params.u2     = self.ldc[1]
+        
+        # Planet parameters
+        params.per_bary       = self.P.to('d').value
+        params.a_bary         = self.a.to('m').value / self.R.to('m').value
+        params.r_planet       = self.Rp.to('m').value / self.R.to('m').value
+        params.b_bary         = self.b_tra
+        params.t0_bary        = self.t0.to('d').value
+        params.t0_bary_offset = 0  # [days]
+        params.M_planet       = self.Mp.to('kg').value
+        params.w_bary         = self.w.to('deg').value
+        params.ecc_bary       = self.e
+        
+        # Moon parameters
+        params_moon = self.load_exomoon(args.moon)
+        print(params_moon)
+        params.r_moon = params_moon['R'].to('m').value / self.R.to('m').value
+        params.M_moon = 0.05395 * params.M_planet  # [0..1]
+        params.per_moon = 0.3 # [days]
+        params.tau_moon = 0.07  # [0..1]
+        params.Omega_moon = 0  # [0..180]
+        params.i_moon = 80  # [0..180]
+        params.e_moon = 0.9  # [0..1]
+        params.w_moon = 20  # [deg]
+        
+
+        # Other model paramters
+        params.epochs = 3  # [int]
+        params.epoch_duration = 0.6  # [days]
+        params.cadences_per_day = 250  # [int]
+        params.epoch_distance = 365.26   # [days]
+        params.supersampling_factor = 1  # [int]
+        params.occult_small_threshold = 0.1  # [0..1]
+        params.hill_sphere_threshold = 1.2
+
+        time = pandora.time(params).grid()
+
+        model = pandora.moon_model(params)
+
+        flux_total, flux_planet, flux_moon = model.light_curve(time)
+
+        noise_level = 100e-6  # Gaussian noise to be added to the generated data
+        noise = np.random.normal(0, noise_level, len(time))
+        testdata = noise + flux_total
+        yerr = np.full(len(testdata), noise_level)
+
+        plt.figure()
+        plt.plot(time, flux_planet, color="blue")
+        plt.plot(time, flux_moon, color="red")
+        plt.plot(time, flux_total, color="black")
+        plt.scatter(time, testdata, color="black", s=0.5)
+        plt.xlabel("Time (days)")
+        plt.ylabel("Relative flux")
+        plt.xlim(min(time), min(time)+params.epoch_duration)
+        plt.show()
+        exit()
+        
     #--------------------------------------------------------------#
     #                      PROLOGUE AND SAVING                     #
     #--------------------------------------------------------------#
@@ -2219,6 +2364,9 @@ class VarSim(object):
                 if args.plot and args.kul20 is None:
                     v.plot_phase_curve()
 
+                # Include exomoon
+                v.moon_transit()
+                    
         # Combine and save
         self.run_prolog()
 
@@ -2658,6 +2806,8 @@ planet_group.add_argument('--planet_params', action='append', type=float, nargs=
                           help='Planet model parameters (check --notes)')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
 planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darkening model [quadratic]')
+planet_group.add_argument('--moon', metavar='NAME', type=str, help='Benchmark moon (check --notes)')
+
 
 mode_group = parser.add_argument_group('DISTRIBUTION MODES')
 mode_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')

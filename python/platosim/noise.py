@@ -519,12 +519,12 @@ def plotNoisePeakSNR(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
 
     # Load file with SNR values    
     
-    filename = f'{path}/snr_quarters{quarters}_cadence{cadence}.ftr'
+    filename = f'{path}/snr_quarters{quarters}.ftr'
     dx = pd.read_feather(filename)
-
-    # Calculate requested FAP
+    dx = dx[f'snr{cadence}']
     
-    snr_fap = st.hist_fap(dx.snr, fap=fap)[0]
+    # Calculate requested FAP
+    snr_fap = st.hist_fap(dx, fap=fap)[0]
 
     # Start plotting
 

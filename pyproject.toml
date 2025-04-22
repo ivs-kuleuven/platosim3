@@ -53,6 +53,13 @@ lmfit = "^1.2.2"
 
 
 
+[tool.poetry.group.exomoon]
+optional = true
+[tool.poetry.group.exomoon.dependencies]
+pandoramoon = "^1.2"
+ultranest = "^4.4.0"
+dynasty = "^0.0.3"
+
 [tool.poetry.group.pipeline]
 optional = true
 [tool.poetry.group.pipeline.dependencies]
