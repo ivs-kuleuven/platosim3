@@ -54,6 +54,7 @@ class Camera : public HDF5Writer
 
         pair<double, double> skyToFocalPlaneCoordinates(double raStar, double decStar, bool useInitialOrientation=false);
         pair<double, double> focalPlaneToSkyCoordinates(double xFP, double yFP, bool useInitialOrientation=false);
+  arma::colvec telescopeToSkyCoordinates(arma::vec vecTL, bool useInitialOrientation=false);
 
         pair<double, double> undistortedToDistortedFocalPlaneCoordinates(double xFPmm, double yFPmm);
         pair<double, double> distortedToUndistortedFocalPlaneCoordinates(double xFPdist, double yFPdist);
