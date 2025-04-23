@@ -252,10 +252,78 @@ class Spectrum(object):
                 with urllib.request.urlopen(url) as response, open(phoenix_path, "wb") as out_file:
                     data = response.read()
                     out_file.write(data)
-            wvl = fits.getdata(phoenix_path)   # [AA]
+            wvl = fits.getdata(phoenix_path)  # [AA]
 
+            # SECURE PARAMETER SPACE
+            
+            if Z == 1.0:
+                if   Teff >= 5300 and Teff < 6200 and logg < 0.5:
+                    logg = 0.5
+                elif Teff >= 6200 and Teff < 8400 and logg < 1.0:
+                    logg = 1.0
+                elif Teff >= 8400 and Teff < 8800 and logg < 1.5:
+                    logg = 1.5
+                elif Teff >= 8800 and Teff < 9600 and logg < 2.0:
+                    logg = 2.0
+                elif Teff >= 9600 and Teff < 11600 and logg < 2.5:
+                    logg = 2.0
+                elif Teff >= 11600 and logg < 3.0:
+                    logg = 3.0
+            
+            elif Z == 0.5:
+                if   Teff >= 5800 and Teff < 6200 and logg < 0.5:
+                    logg = 0.5
+                elif Teff >= 6200 and Teff < 8400 and logg < 1.0:
+                    logg = 1.0
+                elif Teff >= 8400 and Teff < 9400 and logg < 1.5:
+                    logg = 1.5
+                elif Teff >= 9400 and logg < 2.0:
+                    logg = 2.0
+            
+            elif Z == 0.0:
+                if   Teff >= 5700 and Teff < 6000 and logg < 0.5:
+                    logg = 0.5
+                elif Teff >= 6000 and Teff < 8400 and logg < 1.0:
+                    logg = 1.0
+                elif Teff >= 8400 and Teff < 9400 and logg < 1.5:
+                    logg = 1.5
+                elif Teff >= 9400 and logg < 2.0:
+                    logg = 2.0
+                    
+            elif Z == -0.5:
+                if   Teff >= 5800 and Teff < 6100 and logg < 0.5:
+                    logg = 0.5
+                elif Teff >= 6100 and Teff < 8400 and logg < 1.0:
+                    logg = 1.0
+                elif Teff >= 8400 and Teff < 9600 and logg < 1.5:
+                    logg = 1.5
+                elif Teff >= 9600 and logg < 2.0:
+                    logg = 2.0                    
+
+            elif Z == -1.0:
+                if   Teff == 5900 and logg < 0.5:
+                    logg = 0.0
+                elif Teff == 5900 and logg >= 0.5 and logg <= 1.0:
+                    logg = 1.0
+                elif Teff >= 6100 and Teff < 8400 and logg < 1.0:
+                    logg = 1.0
+                elif Teff >= 8400 and Teff < 9600 and logg < 1.5:
+                    logg = 1.5
+                elif Teff >= 9600 and logg < 2.0:
+                    logg = 2.0
+
+            elif Z in [-1.5, -2.0, -3.0, -4.0]:
+                if   Teff >= 6100 and Teff < 6200 and logg < 0.5:
+                    logg = 0.5
+                elif Teff >= 6200 and Teff < 8400 and logg < 1.0:
+                    logg = 1.0
+                elif Teff >= 8400 and Teff < 9600 and logg < 1.5:
+                    logg = 1.5
+                elif Teff >= 9600 and logg < 2.0:
+                    logg = 2.0                    
+                    
             # FETCH SPECTRUM
-
+                    
             baseurl = (
                 "ftp://phoenix.astro.physik.uni-goettingen.de/"
                 "HiResFITS/PHOENIX-ACES-AGSS-COND-2011/"
