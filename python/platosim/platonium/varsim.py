@@ -1189,7 +1189,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_spb(self):
@@ -1251,7 +1251,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_dsct(self):
@@ -1288,7 +1288,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_gdor(self):
@@ -1347,7 +1347,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
         
     def star_roap(self):
@@ -1374,7 +1374,7 @@ class VarSim(object):
             print(f'Scaled amplitude    : {round(params[3],3)}')
         
         # Return model
-        self.lc['flux'] = model.evaluate(plot=args.plot)
+        self.lc['puls'] = model.evaluate(plot=args.plot)
         self.df['Prot_day'] = params[0]
         self.df['dphi_rad'] = params[1]
         self.df['Arel']     = params[2]
@@ -1420,7 +1420,7 @@ class VarSim(object):
 
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
         
 
     def star_ceph(self):
@@ -1454,7 +1454,7 @@ class VarSim(object):
                         
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
         
     def star_lpv(self):
@@ -1484,7 +1484,7 @@ class VarSim(object):
             
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
         
                 
     #--------------------------------------------------------------#
@@ -2096,6 +2096,8 @@ class VarSim(object):
 
         NOTE: t0 and P can principly be anything as long as they are consistant. 
         Here we make sure to use consistent reference time unit.
+
+        FIXME This module are under construction!
         """
 
         import pandoramoon as pandora
@@ -2222,10 +2224,15 @@ class VarSim(object):
         # Combine all signals for solar-like stars
         if (not self.star in stars and
             not self.binary in binaries and
-            self.mocka_solar == True):
+            self.mocka_solar == True or
+            self.star in stars and args.puls):
 
             # Granulation and pulsation are additive
             self.lc['flux'] = np.zeros(len(self.lc.time))
+
+            if self.star in stars and args.puls:
+                self.lc.puls = (self.lc.puls - 1) * 1e6 
+
             if 'gran' in self.lc:
                 self.lc['flux'] += self.lc.gran
             if 'puls' in self.lc:
@@ -2234,19 +2241,29 @@ class VarSim(object):
                 self.lc['flux'] += self.lc.spot
             if 'flare' in self.lc:
                 self.lc['flux'] += self.lc.flare
-                
+
             # Convert to relative flux to multiply with transits
             self.lc['flux'] = self.lc['flux'] / 1e6 + 1 
-            
-            # Spots and transits are multiplicative
-            if 'tran' in self.lc:
-                self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
 
-            # Plot combined light curve [flux -> ppm]
+            # Combined planet signal
+            if 'tran' in self.lc:
+                flux_planet = self.lc.tran
+                if 'occu' in self.lc:
+                    flux_planet += self.lc.occu
+                if 'beam' in self.lc:
+                    flux_planet += self.lc.beam
+                if 'elli' in self.lc:
+                    flux_planet += self.lc.elli
+
+                # Spots and transits are multiplicative
+                self.lc['flux'] *= (flux_planet / 1e6 + 1)
+
+            # Final flux column [ppm]
+            self.lc.flux = (self.lc.flux - 1) * 1e6
+                
+            # Plot combined light curve
             if self.plot and self.star != 'constant':
-                lc = self.lc
-                lc.flux = (lc.flux - 1) * 1e6
-                fig, ax = pt.plot_final_lc(lc)
+                fig, ax = pt.plot_final_lc(self.lc)
                 plt.show()
                                             
         # SAVE DATA
@@ -2259,9 +2276,9 @@ class VarSim(object):
             ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
 
             # Convert to magnitude [mag]
-            df = self.lc.flux.to_numpy() 
+            df = self.lc.flux.to_numpy() / 1e6 + 1
             dm = - 2.5 * np.log10(df)            
-                
+
             # Save light curve
             if self.verbose > 1:
                 print(f'Saving file : {self.ofile}')
@@ -2353,18 +2370,19 @@ class VarSim(object):
                 if args.gran and args.puls:
                     v.solar_granosc()
                     
-            # Include exoplanet
-            if args.planet or args.planet_params:
-                v.ldc()
-                v.planet_model()
-                v.planet_transit()
-                v.planet_occultation()
-                v.planet_beaming()
-                v.planet_ellipsoidal()
-                if args.plot and args.kul20 is None:
-                    v.plot_phase_curve()
+        # Include exoplanet
+        if args.planet or args.planet_params:
+            v.ldc()
+            v.planet_model()
+            v.planet_transit()
+            v.planet_occultation()
+            v.planet_beaming()
+            v.planet_ellipsoidal()
+            if args.plot and args.kul20 is None:
+                v.plot_phase_curve()
 
-                # Include exomoon
+            # Include exomoon
+            if args.moon:
                 v.moon_transit()
                     
         # Combine and save
@@ -2683,7 +2701,7 @@ class VarSim(object):
                     if self.df.spec == 'M' and starType in [None, 'solar_puls', 'solar_spot', 'solar_flare']:
                         starType = 'dwarf_red'
                         
-            # Just as a sanity check, stop script if none has been selected
+            # Just as a sanity check, select SPV if nothing else
             if starType == None:
                 starType = 'SPV'
 

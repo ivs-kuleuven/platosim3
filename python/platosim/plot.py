@@ -3059,7 +3059,7 @@ def plot_final_lc(lc, figsize=(9,8)):
     if 'spot'  not in lc: lc.spot  = zeros.tolist()
     if 'flare' not in lc: lc.flare = zeros.tolist()    
     if 'tran'  not in lc: lc.tran  = zeros.tolist()
-
+    
     # Handle time units
     time = lc.time / 86400.
 
