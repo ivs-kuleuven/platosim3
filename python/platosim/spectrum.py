@@ -313,7 +313,9 @@ class Spectrum(object):
                     logg = 2.0
 
             elif Z in [-1.5, -2.0, -3.0, -4.0]:
-                if   Teff >= 6100 and Teff < 6200 and logg < 0.5:
+                if   Teff == 7800 and Z == -4.0 and logg == 3.0:
+                    logg = 3.5
+                elif Teff >= 6100 and Teff < 6200 and logg < 0.5:
                     logg = 0.5
                 elif Teff >= 6200 and Teff < 8400 and logg < 1.0:
                     logg = 1.0
