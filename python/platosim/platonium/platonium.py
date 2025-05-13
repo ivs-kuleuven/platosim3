@@ -39,8 +39,7 @@ from platosim.simulation   import Simulation
 from platosim.simfile      import SimFile
 from platosim.utilities    import errorcode, getPointingField
 from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
-from platosim.matplotlibrc import setup
-setup()
+from platosim.matplotlibrc import setup; setup()
 
 # pylint: disable=line-too-long
 # pylint: disable=invalid-name
@@ -322,6 +321,7 @@ class PLATOnium(object):
                 extra_str = ''
 
             # Fetch PIC targets and contaminants
+            print(glob.glob(f'{self.inputDir}/starcat**{extra_str}**targets.ftr'))
             try:
                 picTarFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**targets.ftr')[0]
                 picConFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**contaminants.ftr')[0]

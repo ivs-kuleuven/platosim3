@@ -36,8 +36,7 @@ import astropy.units as u
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
-from platosim.matplotlibrc import setup
-setup()
+from platosim.matplotlibrc import setup; setup()
 
 # Hard-code values
 aa = 0.5  # Alpha transparency

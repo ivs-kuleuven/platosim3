@@ -308,12 +308,11 @@ Notes on PIC catalogue creation:
         self.title = f'{self.pic}, {self.field}, {self.sample} sample'
         
         # Add latex font if catalogue is saved
-        if self.outputDir is None:
-            from platosim.matplotlibrc import setup
-            setup()
-        else:
-            from platosim.matplotlibrc import latex
-            latex()
+        from platosim.matplotlibrc import setup; setup()
+        # if self.outputDir is None:
+        #     from platosim.matplotlibrc import setup; setup()
+        # else:
+        #     from platosim.matplotlibrc import latex; latex()
          
 
             

@@ -253,12 +253,11 @@ class VarSim(object):
             self.ofile = Path(self.ofile).resolve()
             
         # Add latex font if catalogue is saved
-        if self.ofile is None:
-            from platosim.matplotlibrc import setup
-            setup()
-        else:
-            from platosim.matplotlibrc import latex
-            latex()
+        from platosim.matplotlibrc import setup; setup()
+        # if self.ofile is None:
+        #     from platosim.matplotlibrc import setup; setup()
+        # else:
+        #     from platosim.matplotlibrc import latex; latex()
 
         # Data (download) for usage of varsim
         if not Path(self.idir + '/passband_plato.txt').is_file():
