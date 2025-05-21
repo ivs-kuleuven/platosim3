@@ -2179,8 +2179,10 @@ class Pulsator(object):
         # Check variable class
         if variable == 'RRLyr':
             filename = 'varsource_rrly_bodi2023'
+            self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
         elif variable == 'Ceph':
             filename = 'varsource_ceph_bodi2023'
+            self.starname = 'MOCKA: Cepheid star (Bodi+2023) '
         else:
             errorcode('error', 'Not valid variable! Use "RRLyr" or "Ceph"')
         
@@ -2194,12 +2196,16 @@ class Pulsator(object):
         # Load data frame
         self.df = pd.read_csv(starfile, sep=sep, comment=comment, names=names)
 
-        # Perturb modes up to 10%
-        f_corr = self.rng.uniform(0.9, 1.1)
+        # Perturb amplitudes pm 10% with a constant multiplicative shift
         A_corr = self.rng.uniform(0.9, 1.1)
-        self.df.freq *= f_corr
         self.df.ampl *= A_corr
-        
+
+        # Perturb frequencies pm 10% but secure original frequency ratios
+        f_corr  = self.rng.uniform(0.9, 1.1)
+        f0      = f_corr * self.df.freq.iloc[0]
+        f_ratio = self.df.freq / self.df.freq.iloc[0]
+        self.df.freq = f0 * f_ratio
+
         # Apply passband correction
         if self.scale:
             self.df.ampl *= self.scale
@@ -2207,9 +2213,6 @@ class Pulsator(object):
         # Convert units
         self.df.ampl = 2.5 * np.log10(1 + self.df.ampl)
             
-        # Create new data frame
-        self.starname = 'MOCKA: RR Lyr star (Bodi+2023) '
-
         # Return parameters
         return starfile.stem, f_corr, A_corr, self.df
 

@@ -119,6 +119,16 @@ class PLATOnium(object):
         self.pipeExtendedMask = args.pipe_emask
         self.pipePlots        = args.pipe_plots
 
+        # default to not L1 only. This is to debug L1 without
+        # re-simulating all platosim data
+        self.l1_only = False
+
+        # Overwrite simulation
+        if args.overwrite:
+            self.overwrite = True
+        else:
+            self.overwrite = False
+
         # MANDATORY PARAMETERS
         # Normal cameras
         if self.group in [1, 2, 3, 4]:
@@ -164,12 +174,6 @@ class PLATOnium(object):
             self.verbose = 3
             self.verbose_platosim = 3
             self.devnull = ''
-
-        # Overwrite simulation
-        if args.overwrite:
-            self.overwrite = True
-        else:
-            self.overwrite = False
 
         # Save animation
         if args.animation:
@@ -487,8 +491,13 @@ class PLATOnium(object):
             os.system(f'chmod 755 {self.outputDir}')
 
         # Check if output file exists
-        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file():
-            errorcode('error', 'HDF5 file already exists! Use "-w" to overwrite it')
+        if not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file() and not self.pipeline:
+            errorcode('error', 'HDF5 file already exists and no pipeline run triggered. Use "-w" to overwrite it')
+        elif not self.overwrite and Path(f'{self.outputSimName}.hdf5').is_file() and self.pipeline:
+            errorcode('warning', 'HDF5 file already exists and pipeline triggered. Analysing existing HDF5 file.')
+            self.l1_only = True
+        else:
+            pass
 
     def init_sim(self):
         """
@@ -731,7 +740,7 @@ class PLATOnium(object):
                 sim["SubField/NumColumns"] = sim["CCDPositions/NumColumns"][0]
 
             # Control output requirements
-            sim["ControlHDF5Content/GroupByExposure"]    = True
+            sim["ControlHDF5Content/GroupByExposure"]    = False
             sim["ControlHDF5Content/WritePixelMaps"]     = True
             sim["ControlHDF5Content/WriteStarPositions"] = True
 
@@ -1332,14 +1341,14 @@ class PLATOnium(object):
         Module to control HDF5 content for L1 pipeline.
         """
         # Include HDF5 content
-        sim["ControlHDF5Content/GroupByExposure"]             = True
+        sim["ControlHDF5Content/GroupByExposure"]             = False
         sim["ControlHDF5Content/WritePixelMaps"]              = True
         sim["ControlHDF5Content/WriteBiasMaps"]               = True
         sim["ControlHDF5Content/WriteSmearingMaps"]           = True
         sim["ControlHDF5Content/WriteFlatfieldMap"]           = True
         sim["ControlHDF5Content/WriteThroughputMaps"]         = True
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
-        sim["ControlHDF5Content/WriteBackgroundMap"]          = False
+        sim["ControlHDF5Content/WriteBackgroundMap"]          = True
         sim["ControlHDF5Content/WriteCTI"]                    = False
         sim["ControlHDF5Content/WriteSubPixelImages"]         = False
         sim["ControlHDF5Content/WriteHighResolutionPSF"]      = True
@@ -1348,7 +1357,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteGhostPositions"]         = False
-        sim["ControlHDF5Content/WriteCosmics"]                = True
+        sim["ControlHDF5Content/WriteCosmics"]                = False
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
     def run_microscan(self, sim):
@@ -1419,7 +1428,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteTransmissionEfficiency"] = True
         sim["ControlHDF5Content/WriteStarPositions"]          = True
         sim["ControlHDF5Content/WriteACS"]                    = True
-        sim["ControlHDF5Content/WriteCosmics"]                = True
+        sim["ControlHDF5Content/WriteCosmics"]                = False
         sim["ControlHDF5Content/WriteStarCatalog"]            = True
         sim["ControlHDF5Content/WriteTelescopeACS"]           = True
         sim["ControlHDF5Content/WriteCTI"]                    = True
@@ -1446,6 +1455,11 @@ class PLATOnium(object):
             self.tocMicroscan = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+    def run_L1_microscan(self):
+        """
+        Splits L1 processing of microscan into its own function
+        This allows better testing of L1
+        """
         # Change directory needed to execute scripts
         os.chdir(self.microscanDir)
 
@@ -1509,12 +1523,14 @@ class PLATOnium(object):
             errorcode('message', '\n[gen_pflux_ts]: PSF fitting for light curve generation')
 
         # build the gen_pflux command
+        # NOTE: the psf fittign currently struggles at <0.25 separation with contaminants
+        # Reza suggested setting this limit to 0.5 pixels for safety
         if self.pipePsfMethod == 'microscan':
             psf_path = f"{self.microscanDirInvers}/000000001_inverse_psf.hdf5"
-            comm = f"gen_pflux_ts --psf {psf_path}"
+            comm = f"gen_pflux_ts --psf {psf_path} --distance-min 0.5"
         else:
             psf_lib_path = f"{self.inputDir}/{self.psfLibraryFilename}"
-            comm = f"gen_pflux_ts --psf-library {psf_lib_path}"
+            comm = f"gen_pflux_ts --psf-library {psf_lib_path} --distance-min 0.5"
         if self.pipePlots:
             comm += " -P"
         if self.noAberrCorr:
@@ -2032,7 +2048,9 @@ p.load_stars()
 p.configure_output()
 sim = p.init_sim()
 p.create_seeds(sim)
-p.create_inputfiles(sim)
+# skip if only doing L1
+if not p.l1_only:
+    p.create_inputfiles(sim)
 
 if args.plot:
     # Only show imagette
@@ -2041,18 +2059,22 @@ if args.plot:
 elif args.pipeline and args.sample == 'P1':
     # Run on-ground L0-L1 pipeline chain
     p.control_hdf5()
-    p.run_sim_normal(sim)
-    if p.pipePsfMethod == "microscan":
-        p.run_microscan(sim)
+    if not p.l1_only:
+        p.run_sim_normal(sim)
+        if p.pipePsfMethod == "microscan":
+            p.run_microscan(sim)
+    p.run_L1_microscan()
     p.run_L1_onground()
     p.sort_output_pipeline()
 
 elif args.pipeline and args.sample == 'P5':
     # Run on-board L0-L1 pipeline chain
     p.control_hdf5()
-    p.run_sim_normal(sim)
-    if p.pipePsfMethod == "microscan":
-        p.run_microscan(sim)
+    if not p.l1_only:
+        p.run_sim_normal(sim)
+        if p.pipePsfMethod == "microscan":
+            p.run_microscan(sim)
+    p.run_L1_microscan()
     p.run_L1_onboard()
     p.sort_output_pipeline()
 

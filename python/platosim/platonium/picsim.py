@@ -878,14 +878,15 @@ Notes on PIC catalogue creation:
 
         # Arguments for GaiaDR3 star query
         self.simbad = args.simbad
-        self.field = args.pipe_field
+        self.field  = args.pipe_field
 
         self.saveAscii = args.save
         self.inputFiles = args.incat
 
         self.outputPrefix = f'starcat_'
 
-        # we need to set a sample because it is needed by platonium for the pipeline (P1 treated differently from P5)
+        # We need to set a sample because it is needed by platonium for the pipeline
+        # (P1 treated differently from P5)
         if args.pipe_sample in ['P1', 'P2', 'P4', 'P5', None]:
             self.pipeSample = args.pipe_sample
             if self.pipeSample is not None:
@@ -893,7 +894,8 @@ Notes on PIC catalogue creation:
         else:
             errorcode('error', 'Not a valid PIC sample! Use --pipe_sample {P1, P2, P4, P5}')
 
-        # we need to set a field because it is needed by platonium for the pipeline (to dictate the pointing)
+        # We need to set a field because it is needed by platonium for the pipeline
+        # (to dictate the pointing)
         if self.field in ['SPF', 'NPF', 'LOPS2', 'LOPN1', None]:
             self.field = args.pipe_field
             if self.field is not None:
@@ -927,22 +929,26 @@ Notes on PIC catalogue creation:
         if self.verbose > 1:
             print(f'\nGaia sources in the vicinity of {self.simbad}:')
             print(self.df_all)
-        # set df to just the first row
+            
+        # Set df to just the first row
         self.df = self.df_all.iloc[:1]
 
-        # if there are contaminants, set dc to the rest of the rows
+        # If there are contaminants, set dc to the rest of the rows
         if len(self.df_all) > 1:
             self.dc = self.df_all.iloc[1:]
 
-            # apply contamination limits
+            # Apply contamination limits
             self.dc = self.dc[self.dc['Pmag'] < (self.df.iloc[0]["Pmag"] + self.dmagConLimit)]
 
-            # platonium needs the gaiaDR3 ID to be set to that of the target (to identify contaminants)
+            # Platonium needs the gaiaDR3 ID to be set to that of the target
+            # (to identify contaminants)
             self.dc["gaiaDR3"] = self.df["gaiaDR3"].iloc[0]
 
         else:
-            # set self.dc to a panda df with same columns as self.df
+            # Set self.dc to a panda df with same columns as self.df
             self.dc = pd.DataFrame(columns=self.df.columns)
+
+        # Print actual catlogue saved
         if self.verbose > 1:
             print(f'\nCatalogue for {self.simbad}:')
             print(self.df)

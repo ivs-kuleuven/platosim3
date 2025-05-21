@@ -72,6 +72,7 @@ class HDF5File
         void writeTransmissionEfficiencyValues(double* array, int size);
         void writeThroughput(int exposureNr, arma::Mat<float>& throughputMap);
         void writeSmearingMap(arma::Mat<float>& smearingMap, bool includeQuantisation, int exposureNr);
+        void writeStraylight(vector<double>& );
         void writeTelescopeACS(vector<double>&, vector<double>&, vector<double>&, vector<double>&,
                                 vector<double>&, vector<double>&);
         void writeStarPositionByExposure(map<double, map<unsigned int, array<double, 6>>>& detectedStarInfo,

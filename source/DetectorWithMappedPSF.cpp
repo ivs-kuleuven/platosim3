@@ -539,6 +539,14 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
 
     applyThroughputEfficiency();
 
+    // Include straylight after we apply the throughput efficiency, since this
+    // is already taken into account in the PST that we use in the straylight
+
+    if (includeStraylight)
+    {
+        addStraylightToPixelMap(startTime);
+    }
+
     // Apply the charge injection which will mitigate the CTI. The injection happens in electrons,
     // so the throughput efficiency should already have been applied. In principle, the injected charges do
     // feel the PRNU, but for the MappedPSF we first need to apply the PRNU on sub-pixel level and afterwards

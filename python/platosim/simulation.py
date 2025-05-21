@@ -278,7 +278,8 @@ class Simulation(object):
 
         try:
             value = ast.literal_eval(node)
-        except ValueError:
+        except Exception:
+            
             value = node
 
         # Return the value of the deepest node
@@ -671,6 +672,9 @@ class Simulation(object):
         self["CCD/IncludeQuantisation"]             = switch
         self["CCD/IncludeGainNonlinearity"]         = switch
 
+        # Straylight
+        self["StrayLight/IncludeStraylight"]        = switch
+
 
 
 
@@ -851,7 +855,7 @@ class Simulation(object):
         self.__setitem__("CCD/NumRows",                   "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
         
-        # If requested, select basic input parameters from MPD
+        # If requested, select basic input parameters from MPDB
         
         if performance in ["required", "designed"]:
 
@@ -859,22 +863,30 @@ class Simulation(object):
             
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL, camera="Fast")
-
+            
         # Select time and wavelength dependent parameters
 
+        if performance == 'required':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL", "0.6915")  # 0.8135 x 0.85
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL", "0.6753")  # 0.7945 x 0.85
+        
         if passband == "blue":
             self.__setitem__("Camera/ThroughputBandwidth",                  "165")
             self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
-            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
             self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
+
+            if performance == 'designed':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "0.79")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "0.77")
 
         if passband == "red":
             self.__setitem__("Camera/ThroughputBandwidth",                  "335")
             self.__setitem__("Camera/ThroughputLambdaC",                    "832")
-            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
-            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
             self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
+
+            if performance == 'designed':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "0.81")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "0.80")
 
         return
 

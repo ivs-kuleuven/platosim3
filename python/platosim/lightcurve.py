@@ -128,21 +128,28 @@ class LightCurve(object):
                     self.df.drop(columns=['chi2', 'iter', 'lamb'], inplace=True)
 
             elif self.fileExtention == ".hdf5":
-                
-                # Load HDF5 file
-                simfile = SimFile(filename)
 
-                # Fetch light curve
-                self.df = simfile.getLightCurve(1, df=True)
-
-                # Add time column if not found
-                if not 'time' in self.df:
-                    exptime  = simfile.getExposureTime()
-                    readtime = simfile.getReadoutTime()
+                # L1A pipeline data product
+                if Path(filename).stem[22:] == 'LIGHTCURVE_L1A_IMAGETTE':
+                    f = h5py.File(filename, "r")
+                    self.df = pd.DataFrame({'time': f['FLUX_TS']['ONBOARD_TIME'],
+                                            'flux': f['FLUX_TS']['FLUX'],
+                                            'flag': f['FLUX_TS']['IMAGETTE_OUTLIERS_NB']})
+                    # Remove flagged outliers
+                    self.df = self.df[self.df.flag == 0]
                     
-                # Mask and updates 
-                self.mask_updates  = simfile.getMaskUpdateEvents()
-                self.mask_aperture = simfile.getApertureMask(starID=1)
+                else:
+                    # Load HDF5 file
+                    simfile = SimFile(filename)
+                    # Fetch light curve
+                    self.df = simfile.getLightCurve(1, df=True)
+                    # Add time column if not found
+                    if not 'time' in self.df:
+                        exptime  = simfile.getExposureTime()
+                        readtime = simfile.getReadoutTime()
+                    # Mask and updates 
+                    self.mask_updates  = simfile.getMaskUpdateEvents()
+                    self.mask_aperture = simfile.getApertureMask(starID=1)
 
             # Option to load CSV file
                 
@@ -439,9 +446,9 @@ class LightCurve(object):
         # Distinguish between single camera and multi camera obs
         if self.mode == "single":
             parts = Path(self.filename).stem.split('_')
-            self.group   = int(parts[-2][4])
-            self.camera  = int(parts[-2][6])
-            self.quarter = int(parts[-1][1:])
+            self.group   = int(parts[1][4])
+            self.camera  = int(parts[1][6])
+            self.quarter = int(parts[2][1:])
         else:
             self.group   = False
             self.camera  = False
@@ -992,11 +999,18 @@ class LightCurve(object):
         return fig, ax
 
     
-    def detrend(self, column='flux', model="poly",
-                degree=False, gradient=False,                      # Model -> Polynomial
-                method="biweight", window=3, tbin=1/6, mask=None,  # Model -> Wotan
-                segments=True, replace=False, plot=False):
-                
+    def detrend(self,
+                column='flux',
+                model="poly",
+                degree=False,         # Model -> Polynomial
+                gradient=False,       # Model -> Polynomial
+                method="biweight",    # Model -> Wotan
+                window=3,             # Model -> Wotan
+                tbin=1/6,             # Model -> Wotan
+                mask=None,            # Model -> Wotan
+                segments=True,
+                replace=False,
+                plot=False):
         """Detrend time series.
 
         This function can be used to detrend a time series using either 
@@ -1030,6 +1044,8 @@ class LightCurve(object):
         plot : bool
             Flag to activate dianostic plot of module
         """
+        # Check model
+        if model: model = 'poly'
         
         # Remove clipped NaNs
         self.df = self.df.dropna()
@@ -2696,8 +2712,11 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
     
-    def stat_sim_table(self, ofile=False, clean=False, verbose=True):
-
+    def stat_sim_table(self,
+                       ofile=False,
+                       clean=False,
+                       verbose=True,
+                       quarter=None):
         """Generate a overvies simulation-table per star.
 
         This creates a combined table for a set of simulations using all the 
@@ -2768,6 +2787,10 @@ class LightCurve(object):
                     df1 = pd.read_feather(f)
                     df0 = pd.concat([df0, df1])
 
+            # Select specific quarter
+            if quarter:
+                df0 = df0[df0.quarter == quarter]
+                
             # Handle output format
             df = df0.reset_index()
             df = df.drop(columns='index')
@@ -2994,7 +3017,7 @@ class LightCurve(object):
                     lcs.unpack()
 
                 # Fetch simulation table
-                dt = lcs.stat_sim_table(verbose=False)
+                dt = lcs.stat_sim_table(quarter=quarter, verbose=False)
                                                         
                 # Merge light curves from star/quarter simulation
                 lc = lcs.merge(quarter=quarter,

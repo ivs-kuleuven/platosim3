@@ -1283,6 +1283,45 @@ pair<double, double> Camera::focalPlaneToSkyCoordinates(double xFP, double yFP, 
 
 
 
+arma::colvec Camera::telescopeToSkyCoordinates(arma::vec vecTL, bool useInitialOrientation)
+{
+
+    // Get the rotation matrices Telescope (TL) -> Spacecraft (SC) and Spacecraft (SC) -> Equatorial (EQ)
+
+    arma::mat rotSC2EQ;
+    arma::mat rotTL2SC;
+
+    if (useInitialOrientation)
+    {
+        rotSC2EQ = platform.getUnjitteredSpacecraftToEquatorialRotationMatrix();
+        rotTL2SC = telescope.getUndriftedTelescopeToPlatformRotationMatrix();
+    }
+    else
+    {
+        rotSC2EQ = platform.getJitteredSpacecraftToEquatorialRotationMatrix();
+        rotTL2SC = telescope.getDriftedTelescopeToPlatformRotationMatrix();
+    }  
+
+    // Combine all the rotation matrices
+  
+    arma::mat rotTL2EQ = rotSC2EQ * rotTL2SC;
+
+    // Transform the unnormalized platform coordinates to the corresponding ones in the equatorial reference frame
+
+    arma::colvec vecEQ = rotTL2EQ * vecTL;
+    return vecEQ;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
