@@ -2,6 +2,7 @@ from test import Test
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from plot_straylight import plot_figure
 from datetime import datetime, timedelta
 
@@ -88,7 +89,7 @@ def get_positions(t0, t):
 
     t0 = pd.to_datetime(t0, format='%Y%m%dT%H%M%S') + timedelta(seconds=t)
 
-    fileName = "/home/driess/Projects/PlatoSim3/inputfiles/Plato_straylight_example_index_2574.csv"
+    fileName = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/Plato_straylight_example_index_2574.csv'
     file = pd.read_csv(fileName)
     file["T"] = pd.to_datetime(file["#Date"], format='%Y%m%dT%H%M%S')
 
