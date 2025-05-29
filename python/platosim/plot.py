@@ -36,8 +36,7 @@ import astropy.units as u
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
-from platosim.matplotlibrc import setup
-setup()
+from platosim.matplotlibrc import setup; setup()
 
 # Hard-code values
 aa = 0.5  # Alpha transparency
@@ -3059,7 +3058,7 @@ def plot_final_lc(lc, figsize=(9,8)):
     if 'spot'  not in lc: lc.spot  = zeros.tolist()
     if 'flare' not in lc: lc.flare = zeros.tolist()    
     if 'tran'  not in lc: lc.tran  = zeros.tolist()
-
+    
     # Handle time units
     time = lc.time / 86400.
 
