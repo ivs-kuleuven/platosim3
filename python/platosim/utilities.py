@@ -790,7 +790,7 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
     return np.rad2deg(np.arccos(cosR))
 
 
-    
+
 
 
 def massLuminosityRelation(R, Teff):
@@ -807,6 +807,8 @@ def massLuminosityRelation(R, Teff):
     https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
     """
     return R**(1/2) * Teff/5777.
+
+
 
 
 
@@ -833,45 +835,45 @@ def mm2pixels(distanceMm, focalLength, plateScale):
                       plateScale * c.degree / c.arcsec)
     return distancePixels
 
-    
-#--------------------------------------------------------------#
-#                        PLATO SPECIFIC                        #
-#--------------------------------------------------------------#
 
 
-def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
-                throughputBandwidth=400, transmissionEfficiency=0.76,
-                lightCollectingArea=0.01131, quantumEfficiency=0.87):
 
-    """Compute the stellar flux given the instrumental characteristics.
+
+def ppt2mmag(flux):
+
+    """Convert relative flux [ppt] to relative magnitude [mmag].
 
     Parameters
     ----------
-    Vmag : float
-        Johnson-Cousin V magnitude
-    exposureTime : float
-        Exposure time (without the readout) [s]
-    fluxm0 : float
-        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
-    throughputBandwidth : float 
-        Throughput FWHM value in the passband [nm]
-    transmissionEfficiency : 
-        Transmission efficiency in the passband [0, 1]
-    lightCollectingArea : float
-        The aperture of the cameras [m^2]
-    quantumEfficiency : float
-        Quantum efficiency of the detector [0, 1]
+    flux : float
+        Input flux [ppt]
 
     Return
     ------
-    flux : float
-        Instrumental stellar flux [e-/exposure]
+    mag : ndarray
+        Relative magnitude [mmag]
+    """    
+    return - 2.5 * np.log10(flux/1e3 + 1) * 1e3
+
+
+
+
+
+def mmag2ppt(dmag):
+
+    """Convert relative magnitude [mmag] to relative flux [ppt].
+
+    Parameters
+    ----------
+    dmag : float
+        Input magnitude [mmag]
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux [ppt]
     """
-
-    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
-                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-
-    return photonFlux * quantumEfficiency
+    return (10**(dmag / -2.5 / 1e3) - 1) * 1e3
 
 
 
@@ -922,6 +924,7 @@ def fromMagToRelativeFlux(mag, norm=1e6):
 
 
 
+
 def normFlux(flux, norm=1e3):
 
     """Convert magnitude to relative flux
@@ -942,6 +945,44 @@ def normFlux(flux, norm=1e3):
     return (flux / np.nanmedian(flux) - 1) * norm
 
 
+#--------------------------------------------------------------#
+#                        PLATO SPECIFIC                        #
+#--------------------------------------------------------------#
+
+
+def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
+                throughputBandwidth=400, transmissionEfficiency=0.76,
+                lightCollectingArea=0.01131, quantumEfficiency=0.87):
+
+    """Compute the stellar flux given the instrumental characteristics.
+
+    Parameters
+    ----------
+    Vmag : float
+        Johnson-Cousin V magnitude
+    exposureTime : float
+        Exposure time (without the readout) [s]
+    fluxm0 : float
+        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
+    throughputBandwidth : float 
+        Throughput FWHM value in the passband [nm]
+    transmissionEfficiency : 
+        Transmission efficiency in the passband [0, 1]
+    lightCollectingArea : float
+        The aperture of the cameras [m^2]
+    quantumEfficiency : float
+        Quantum efficiency of the detector [0, 1]
+
+    Return
+    ------
+    flux : float
+        Instrumental stellar flux [e-/exposure]
+    """
+
+    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
+                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
+
+    return photonFlux * quantumEfficiency
 
 
 
