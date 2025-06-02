@@ -17,13 +17,12 @@ class Straylight(Test):
     def setAllEffects(self):
 
         super().setAllEffects()
-
         self.numExposures = 1
         self.sim["ObservingParameters/NumExposures"] = self.numExposures
         self.sim["ObservingParameters/BeginExposureNr"] = 0
         self.sim["SubField/NumColumns"] = 9
         self.sim["SubField/NumRows"] = 9
-        self.sim["StrayLight/IncludeStraylight"] = "yes"
+        self.sim["Sky/StrayLight/IncludeStrayLight"] = "yes"
         self.sim["Telescope/TransmissionEfficiency/EOL"] = self.sim["Telescope/TransmissionEfficiency/BOL"]
         self.sim["Sky/SkyBackground/BackgroundValue"] = 0
         self.sim["Platform/Orientation/Angles/RAPointing"] = 95.31041666666665
@@ -34,6 +33,7 @@ class Straylight(Test):
 
 
     def run(self):
+        
         self.runSimulation(365)
         return self.compare()
 
@@ -64,7 +64,7 @@ class Straylight(Test):
 
     def run_for_iteration(self, i):
 
-        t0 = self.sim["StrayLight/Time0"]
+        t0 = self.sim["Sky/StrayLight/Time0"]
         self.sim["ObservingParameters/BeginExposureNr"] = i*int(24*60*60 / 25)
         self.simFile = self.sim.run(removeOutputFile=True)
         s = self.simFile.getStraylight()

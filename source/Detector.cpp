@@ -551,7 +551,7 @@ void Detector::updateParameters(double time)
     includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
     constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
     includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
-    includeStraylight               = configParam.getBoolean("StrayLight/IncludeStraylight");
+    includeStraylight               = configParam.getBoolean("Sky/StrayLight/IncludeStrayLight");
 
     if (includeRelativeTransmissivity)
     {
