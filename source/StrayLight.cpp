@@ -69,17 +69,17 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
     // Get the time in the orbit file that corresponds to exposure number 0.
 
-    time0 = configParam.getString("StrayLight/Time0");
+    time0 = configParam.getString("Sky/StrayLight/Time0");
 
         // Read in the positions of the file and save them into the vectors.
 
     std::string orbitPath =
-        configParam.getAbsoluteFilename("StrayLight/FilePath");
+        configParam.getAbsoluteFilename("Sky/StrayLight/FilePath");
     readInFile(orbitPath, sc_positions, moon_positions, sun_positions);
 
     // Read in the PSTRadiance file and save it into vectors.
 
-    std::string pstRadiancePath = configParam.getAbsoluteFilename("StrayLight/PstRadiancePath");
+    std::string pstRadiancePath = configParam.getAbsoluteFilename("Sky/StrayLight/PstRadiancePath");
     getPSTRadiance(pstRadiancePath);
 
     // TODO: We should read this in from the input file once we add the option

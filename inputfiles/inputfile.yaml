@@ -30,15 +30,20 @@ Sky:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
+    StrayLight:
+      IncludeStrayLight:               True
+      FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
+      PstRadiancePath:                 inputfiles/pst.hdf5
+      Time0:                           20260718T015614
 
-      
+
 Platform:
 
     Orientation:
       Source:                        Angles          # Should be either "Angles" or "Quaternion" 
       Angles:
-        RAPointing:                  208.6988            # Platform (not telescope) right ascension pointing coordinate   [deg]
-        DecPointing:                -16.7981            # Platform (not telescope) declination pointing coordinate       [deg]
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
         SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
         Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
@@ -50,13 +55,6 @@ Platform:
     JitterRollRms:                   0.040           # RMS of RedNoise jitter in roll  [arcsec]
     JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
-
-    
-StrayLight:
-    IncludeStraylight:               True
-    FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
-    PstRadiancePath:                 inputfiles/pst.hdf5
-    Time0:                           20260718T015614
 
     
 Telescope:
