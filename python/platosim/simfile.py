@@ -1157,7 +1157,7 @@ class SimFile (object):
                 # Add radius column for extended ghosts
                 
                 if groupName == "StarPositions":
-                    # print(starID, row, col, Xmm, Ymm, flux)
+                    #print(starID, row, col, Xmm, Ymm, flux)
                     isNotValid = np.all([row != row, col != col, Xmm != Xmm, Ymm != Ymm])
                     if isNotValid:
                         return None, None, None, None, None, None
@@ -1170,7 +1170,7 @@ class SimFile (object):
         elif not groupByExposure:
 
             # Or grouped per star which is already sorted
-            
+
             star = list(self.hdf5file[groupName].keys())
             
             # Check if only a single image is requested and use that automatically
@@ -1211,20 +1211,27 @@ class SimFile (object):
         
         # If a cut in magnitude is required, get the magnitudes from the star input catalogue
 
-        inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
-        subFieldMag = mag[np.in1d(inputStarIDs, starID)]
+        try:
+            inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
+            subFieldMag = mag[np.in1d(inputStarIDs, starID)]
 
-        # If the min or max V magnitude is set to None, use the default values
+            # If the min or max V magnitude is set to None, use the default values
 
-        if minMag is None:
-            minMag = subFieldMag.min()
-        if maxMag is None:
-            maxMag = subFieldMag.max()
+            if minMag is None:
+                minMag = subFieldMag.min()
+            if maxMag is None:
+                maxMag = subFieldMag.max()
 
-        # Make the magnitude cut
+            # Make the magnitude cut
 
-        dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
+            dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
 
+        except:
+
+            # If star position doesn't exist return all
+            
+            dex = np.arange(starID.shape[0])
+                
         # Return after stellar cut
 
         if groupName == "ExtendedGhostPositions":

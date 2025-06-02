@@ -39,8 +39,7 @@ from platosim.simulation   import Simulation
 from platosim.simfile      import SimFile
 from platosim.utilities    import errorcode, getPointingField
 from platosim.plot         import drawStarInCCDfocalPlane, plotSubfieldAnimation
-from platosim.matplotlibrc import setup
-setup()
+from platosim.matplotlibrc import setup; setup()
 
 # pylint: disable=line-too-long
 # pylint: disable=invalid-name
@@ -291,17 +290,17 @@ class PLATOnium(object):
                 errorcode('error', 'No star catalogue found in the project input directory!')
             self.dx = pd.read_feather(starcat)
 
-            # Save star catalogue
+            # Store star catalogue
             self.ds = pd.DataFrame()
             self.ds['ra']  = self.dx.ra
             self.ds['dec'] = self.dx.dec
             self.ds['mag'] = self.dx.Pmag
             self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)            
 
-            # Break out of function
             return
 
         # SUBFIELD
+        
         # Fetch stars from custum catalogue
         if self.starcatFile is not None:
             # Read catalogue
@@ -322,6 +321,7 @@ class PLATOnium(object):
                 extra_str = ''
 
             # Fetch PIC targets and contaminants
+            print(glob.glob(f'{self.inputDir}/starcat**{extra_str}**targets.ftr'))
             try:
                 picTarFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**targets.ftr')[0]
                 picConFile = glob.glob(f'{self.inputDir}/starcat**{extra_str}**contaminants.ftr')[0]
@@ -1135,17 +1135,17 @@ class PLATOnium(object):
                 if 'index' in df: df.drop(columns=['index'], inplace=True)
                 df = df.reset_index(drop=True)
 
-                # Add stellar positions.
-                df['xCCD'] = col - 0.5
-                df['yCCD'] = row - 0.5
+                # Add stellar positions
+                df['flux'] = flux
+                df['xCCD'] = col
+                df['yCCD'] = row
                 df['xFP']  = xFP
                 df['yFP']  = yFP
-
-                # Only keep stars within the rOA FOV (value is after distortion)
+                
+                # Add gnomonic radial distance [deg]
                 focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1000
                 rOA = rf.gnomonicRadialDistanceFromOpticalAxis(df.xFP, df.yFP, focalLength)
                 df['rOA'] = np.rad2deg(rOA)
-                df = df[df.rOA <= 19.555]
 
                 # Save to file
                 df = df.reset_index(drop=True)

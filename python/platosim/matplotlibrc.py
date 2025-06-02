@@ -8,6 +8,7 @@ consistantly use the same settings for all plots.
 # Built-in
 import os
 import shutil
+import warnings
 
 # PlatoSim standard
 import matplotlib.pyplot as plt
@@ -47,7 +48,8 @@ def setup():
     plt.rcParams['font.family']    = 'serif'
     plt.rcParams['font.size']      = 17
     plt.rcParams['axes.titlesize'] = 17
-        
+
+
 def latex():    
     setup()
     # Check if LaTeX is installed
@@ -56,15 +58,16 @@ def latex():
     else:
         plt.rcParams['text.usetex'] = False 
     
-
         
-def setup_notebook():
+def setup_notebook(warning=True):
     setup()
-    latex()
-
-    
-    
-def setup_paper():
+    latex()    
+    if not warning:
+        warnings.simplefilter("ignore")
+        
+def setup_paper(warning=True):
     setup()
     latex()
     plt.rcParams['legend.fontsize'] = 17
+    if not warning:
+        warnings.simplefilter("ignore")

@@ -17,16 +17,13 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from scipy.signal import periodogram
 from pathlib import Path
+from numba import njit
 
 # PlatoSim imports
 import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 from platosim.utilities    import errorcode
-from platosim.matplotlibrc import latex
-latex()
-
-from numba import njit
 
 
 #--------------------------------------------------------------#
