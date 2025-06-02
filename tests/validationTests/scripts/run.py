@@ -89,6 +89,7 @@ myTests = [
     (SimpleCTI(),                  "Simple CTI model"),
     (AnalyticGaussianPSF(),        "Analytic Gaussian PSF"),
     (Short2013CTI(),               "Short 2013 model"),
+    (SPRTest(),                    "Stellar pollution ratio (SPR)"),    
     (JitterOnCameras(),            "Jitter on different cameras"),
     (ReadoutNoise(),               "Readout Noise"),
     (JitterFromFile(),             "Jitter from file"),
@@ -97,6 +98,8 @@ myTests = [
     (MolecularContamination(),     "Molecular Contamination"),
     (Quaternion(),                 "Quaternions"),
     (QuantumEfficiency(),          "Quantum Efficiency"),
+    (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
+    (Straylight(),                 "Straylight"),
     (PRNU(),                       "Pixel-Responsivity Non Uniformity"),
 #    (Short2013CTIFromFile(),       "Short 2013 from file model"),
     (AnalyticNonGaussianPSF(),     "Analytic non Gaussian PSF"),
@@ -108,6 +111,7 @@ myTests = [
     (OpenShutterSmearing(),        "Open-Shutter Smearing"),
     (TedYawPitchRoll(),            "Thermo-Elastic drift from noise"),
     (JitterYawPitchRoll(),         "Jitter from red noise"),
+    (NonlinearGainTest(),          "Nonlinear gain"),
     (Flooring(),                   "Flooring"),
     (DigitalSaturation(),          "Digital Saturation"),
     (TransmissionEfficiency(),     "Transmission Efficiency"),
@@ -121,10 +125,6 @@ myTests = [
     (Gain(),                       "Gain"),
     (DarkSignalNonUniformity(),    "Dark Signal Non Uniformity"),
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),
-    (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
-    (NonlinearGainTest(),          "Nonlinear gain"),
-    (SPRTest(),                    "Stellar pollution ratio (SPR)"),
-    (Straylight(),                 "Straylight")
 ]                                  
 
 
