@@ -534,21 +534,27 @@ class SimFile (object):
 
         return self.getMap("ThroughputMaps", imageNr=imageNr)
 
+
+
+
     
     def getStraylight(self):
-        """Get the straylight"""
 
-        sl = self.hdf5file["Straylight"]["Moon"][:]
-        return sl
+        """Get the straylight.
+        """
+
+        return self.hdf5file["Straylight"]["Moon"][:]
+
     
 
-        
+
+    
     def getImage(self, imageNr=False):
 
         """Get the pixel image.
         """
 
-        return self.getMap("Images", imageNr=imageNr)
+        return self.getMap("Images", imageNr=imageNr).astype(np.int32)
 
         
 
@@ -614,7 +620,7 @@ class SimFile (object):
 
         # Extract the imagette
 
-        return image[rowBegin:rowEnd, columnBegin:columnEnd]
+        return image[rowBegin:rowEnd, columnBegin:columnEnd].astype(np.int32)
 
 
     

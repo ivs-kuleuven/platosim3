@@ -56,8 +56,7 @@ Platform:
     JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
-
-
+    
 Telescope:
 
     GroupID:                         Custom          # Camera groups: {1, 2, 3, 4, Fast, Custom}
