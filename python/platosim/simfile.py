@@ -233,14 +233,15 @@ class SimFile (object):
         parallelTransferTimeFast = self.getInputParameter("CCD", "ParallelTransferTimeFast") * 1e-6
 
         numColumnsBiasMap  = self.getInputParameter("SubField", "NumBiasPrescanColumns")
+        numBiasPrescanRows = self.getInputParameter("SubField", "NumBiasPrescanRows")
         numRowsSmearingMap = self.getInputParameter("SubField", "NumSmearingOverscanRows")
 
         # Both detector halves are read out simultaneously -> columns read out by the FEE:
         # - half of the CCD
         # - serial prescan
-        # - serial overscan (virtual)
+        # - parallel prescan
 
-        numColumnsReadout = numColumns / 2 + numColumnsBiasMap  #+ numRowsSerialOverScan
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows
 
         # How many rows will be actually read out by the FEE?
         # - Nominal mode: image area + parallel over-scan
