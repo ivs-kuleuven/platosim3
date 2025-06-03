@@ -181,15 +181,28 @@ class VarSim(object):
         self.ofile  = args.ofile
         self.starID = None
         
-        # Star and planet mode
-        self.star   = args.star
-        self.binary = args.binary
-        self.planet = args.planet
-        self.star_params   = args.star_params
-        self.planet_params = args.planet_params
+        # Star mode
+        self.star        = args.star
+        self.star_params = args.star_params
 
+        # Binary mode
+        self.binary = args.binary
+
+        # Planet mode
+        self.planet = args.planet
+        self.planet_params = args.planet_params
         #self.phase_curve = args.phase_curve TODO
 
+        # Limb darkening model
+        self.ldms = ['linear', 'quadratic', 'squareroot', 'power2']
+        if args.ldm is None:
+            self.ldm = 'power2'
+        elif args.ldm not in self.ldms:
+            errorcode('error', f'Limb Darkening model "{args.ldm}" is not available!' +
+                      f'\nUse either: {self.ldms}')
+        else:
+            self.ldm = args.ldm
+            
         # Use Kallinger2014 by default
         if args.gran == None: 
             args.gran = 'Kallinger2014'
@@ -1609,24 +1622,41 @@ class VarSim(object):
         # Create the limb darkening profiles
         ps = sc.create_profiles()
 
-        # Estimate quadratic law coefficients
-        # Take care of occations when LDTk fails
+        # Determine law coefficients
+        # NOTE we only allow 2-term models
         try:
-            u, _ = ps.coeffs_qd(do_mc=True)
+            if self.ldm == 'linear':
+                u, _ = ps.coeffs_ln(do_mc=True)
+            elif self.ldm == 'quadratic':
+                u, _ = ps.coeffs_qd(do_mc=True)
+            elif self.ldm == 'squareroot':
+                u, _ = ps.coeffs_sq(do_mc=True)
+            elif self.ldm == 'power2':
+                u, _ = ps.coeffs_p2(do_mc=True)
         except:
-            self.ldc = [0.430, 0.170]
+            if self.ldm == 'linear':
+                self.ldc = [0.570]
+            elif self.ldm == 'quadratic':
+                self.ldc = [0.470, 0.153]
+            elif self.ldm == 'squareroot':
+                self.ldc = [0.334, 0.364]
+            elif self.ldm == 'power2':
+                self.ldc = [0.670, 0.759]
             errorcode('warning', 'LD coefficients failed for ' +
                       f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
         else:
             self.ldc = u[0]
 
-        # Show parameters
-        if self.verbose > 1:
-            print(f"LD coefficients        : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
-
         # Store parameters
-        self.df['u1'] = self.ldc[0]
-        self.df['u2'] = self.ldc[1]
+        if len(self.ldc) == 1:
+            self.df['u1'] = self.ldc[0]
+            if self.verbose > 1:
+                print(f"LD {self.ldm} coefficients : {self.ldc[0]:.3f}")
+        else:
+            self.df['u1'] = self.ldc[0]
+            self.df['u2'] = self.ldc[1]
+            if self.verbose > 1:
+                print(f"LD {self.ldm} coefficients : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
 
             
     def planet_model(self):
@@ -1851,15 +1881,9 @@ class VarSim(object):
         Here we make sure to use consistent reference time unit.
         """
 
-        # Limb darkening model options:
-        if args.ldm:
-            limbDarkModel = args.lmd
-        else:
-            limbDarkModel = 'quadratic'
-
         # Initialize batman model
         batman_params = batman.TransitParams()
-        batman_params.limb_dark = limbDarkModel
+        batman_params.limb_dark = self.ldm
         batman_params.u   = self.ldc
         batman_params.t0  = self.t0.to('d').value
         batman_params.per = self.P.to('d').value
@@ -1870,11 +1894,11 @@ class VarSim(object):
         batman_params.rp  = (self.Rp.to('m')/self.R.to('m')).value
 
         # Model parameters for eclipse
-        #params.fp          = 0.001
-        #params.t_secondary = 0.5
+        #batman_params.fp          = 0.001
+        #batman_params.t_secondary = 0.5
         
         # Initializes transit model and extract light curve [ppm]
-        model = batman.TransitModel(batman_params, self.time.value)
+        model = batman.TransitModel(batman_params, self.time.value) #, transittype='secondary')
         self.lc['tran'] = (model.light_curve(batman_params) - 1) * 1e6
 
         # True anomaly at each time: This will be used in our custom models later
@@ -2822,8 +2846,8 @@ planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark 
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
                           help='Planet model parameters (check --notes)')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
-planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darkening model [quadratic]')
-planet_group.add_argument('--moon', metavar='NAME', type=str, help='Benchmark moon (check --notes)')
+planet_group.add_argument('--ldm',  metavar='MODEL', type=str, help='Limb darkening model [power2, squareroot, quadratic, linear]')
+planet_group.add_argument('--moon', metavar='NAME',  type=str, help='Benchmark moon (check --notes)')
 
 
 mode_group = parser.add_argument_group('DISTRIBUTION MODES')
