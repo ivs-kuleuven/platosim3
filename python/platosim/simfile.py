@@ -465,24 +465,6 @@ class SimFile (object):
 
 
     
-    # def getIRNU(self):
-
-    #     """Get the Intra-pixel Response Non-Uniformity map from the HDF5 file.
-
-    #     To rebin the IRNU to the PRNU:
-
-    #     >>> Nrows, Ncols = 100, 100      # size in pixels of the subfield
-    #     >>> NsubPixels = 16              # 16^2 subpixels in 1 pixel
-    #     >>> assert(IRNU.shape == (Nrows*NsubPixels, Ncols*NsubPixels))
-    #     >>> PRNU = IRNU.reshape(Nrows, NsubPixels, Ncols, NsubPixels).sum(axis=3).sum(axis=1)
-    #     """
-
-    #     return self.getMap("IRNU", imageNr=0)
-
-
-
-
-    
     def getBackground(self):
 
         """Get the sky background map [photons/pixel/exposure]
@@ -554,7 +536,7 @@ class SimFile (object):
         """Get the pixel image.
         """
 
-        return self.getMap("Images", imageNr=imageNr).astype(np.int32)
+        return self.getMap("Images", imageNr=imageNr)
 
         
 
@@ -620,7 +602,7 @@ class SimFile (object):
 
         # Extract the imagette
 
-        return image[rowBegin:rowEnd, columnBegin:columnEnd].astype(np.int32)
+        return image[rowBegin:rowEnd, columnBegin:columnEnd]
 
 
     
