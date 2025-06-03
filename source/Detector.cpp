@@ -564,8 +564,8 @@ void Detector::updateParameters(double time)
     includeFieldDistortion          = configParam.getBoolean("Camera/IncludeFieldDistortion");
     constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
     includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
-    includeStraylight               = configParam.getBoolean("StrayLight/IncludeStraylight");
-    includeBadPixelMap             = configParam.getBoolean("StrayLight/IncludeStraylight");
+    includeStraylight               = configParam.getBoolean("Sky/StrayLight/IncludeStrayLight");
+     includeBadPixelMap             = configParam.getBoolean("CCD/BadPixelMap/includeBadPixelMap");
 
     if (includeRelativeTransmissivity)
     {
@@ -659,7 +659,7 @@ void Detector::updateParameters(double time)
         configParam.getBoolean("ControlHDF5Content/WriteBackgroundMap") &&
         !constantSkyBackground;
 
-     writeBadPixelMap  = includeBadPixelMap && configParam.getBoolean("ControlHDF5Content/writeBadPixelMap");
+     writeBadPixelMap  = includeBadPixelMap && configParam.getBoolean("ControlHDF5Content/WriteBadPixelMap");
 
     // Configuration parameters for the noise source random seeds
 

@@ -47,6 +47,7 @@ def switchOffAllEffects(sim):
                 - quantisation.
                 - non-linear gain
                 - straylight
+                - bad pixels
 
     INPUT:
         - sim: Simulation for which to switch off all effects.
@@ -105,6 +106,7 @@ def switchOffAllEffects(sim):
     sim["CCD/IncludeDigitalSaturation"] = "no"
     sim["CCD/IncludeQuantisation"] = "no"
     sim["CCD/IncludeGainNonlinearity"] = "no"
+    sim["CCD/BadPixelMap/includeBadPixelMap"] = "no"
 
     return sim
 

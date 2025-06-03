@@ -302,7 +302,7 @@ ControlHDF5Content:                                  # Data that can be written 
     WriteStarPositions:              yes             # Star Positions written in pixel and focal plane coordinates
     WriteGhostPositions:             yes             # Ghost positions (extended and point-like) written in pixel and focal plane coordinates
     WriteCosmics:                    yes             # Cosmic rays written as pixel columns, rows and fluxes
-    writeBadPixelMap:                yes             # Bad pixel map (binary values)
+    WriteBadPixelMap:                yes             # Bad pixel map (binary values)
 
 
 ControlTcpConnection:
