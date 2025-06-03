@@ -308,12 +308,11 @@ Notes on PIC catalogue creation:
         self.title = f'{self.pic}, {self.field}, {self.sample} sample'
         
         # Add latex font if catalogue is saved
-        if self.outputDir is None:
-            from platosim.matplotlibrc import setup
-            setup()
-        else:
-            from platosim.matplotlibrc import latex
-            latex()
+        from platosim.matplotlibrc import setup; setup()
+        # if self.outputDir is None:
+        #     from platosim.matplotlibrc import setup; setup()
+        # else:
+        #     from platosim.matplotlibrc import latex; latex()
          
 
             
@@ -734,9 +733,11 @@ Notes on PIC catalogue creation:
             if self.saveAscii:
                 if self.verbose > 1:
                     print(f'Saving file {self.outputFileCat}')
-                df0 = pd.concat([self.df.ra, self.dc.ra])
-                df0['dec'] = pd.concat([self.df.dec, self.dc.dec])
+                df0 = pd.DataFrame()
+                df0['ra']   = pd.concat([self.df.ra, self.dc.ra])
+                df0['dec']  = pd.concat([self.df.dec, self.dc.dec])
                 df0['Pmag'] = pd.concat([self.df.Pmag, self.dc.Pmag])
+                df0 = df0.reset_index()
                 df0.to_csv(self.outputFileCat, sep=' ', header=False, float_format='%.6f')
 
             else:

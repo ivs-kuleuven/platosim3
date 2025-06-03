@@ -181,15 +181,28 @@ class VarSim(object):
         self.ofile  = args.ofile
         self.starID = None
         
-        # Star and planet mode
-        self.star   = args.star
-        self.binary = args.binary
-        self.planet = args.planet
-        self.star_params   = args.star_params
-        self.planet_params = args.planet_params
+        # Star mode
+        self.star        = args.star
+        self.star_params = args.star_params
 
+        # Binary mode
+        self.binary = args.binary
+
+        # Planet mode
+        self.planet = args.planet
+        self.planet_params = args.planet_params
         #self.phase_curve = args.phase_curve TODO
 
+        # Limb darkening model
+        self.ldms = ['linear', 'quadratic', 'squareroot', 'power2']
+        if args.ldm is None:
+            self.ldm = 'power2'
+        elif args.ldm not in self.ldms:
+            errorcode('error', f'Limb Darkening model "{args.ldm}" is not available!' +
+                      f'\nUse either: {self.ldms}')
+        else:
+            self.ldm = args.ldm
+            
         # Use Kallinger2014 by default
         if args.gran == None: 
             args.gran = 'Kallinger2014'
@@ -253,12 +266,11 @@ class VarSim(object):
             self.ofile = Path(self.ofile).resolve()
             
         # Add latex font if catalogue is saved
-        if self.ofile is None:
-            from platosim.matplotlibrc import setup
-            setup()
-        else:
-            from platosim.matplotlibrc import latex
-            latex()
+        from platosim.matplotlibrc import setup; setup()
+        # if self.ofile is None:
+        #     from platosim.matplotlibrc import setup; setup()
+        # else:
+        #     from platosim.matplotlibrc import latex; latex()
 
         # Data (download) for usage of varsim
         if not Path(self.idir + '/passband_plato.txt').is_file():
@@ -1189,7 +1201,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_spb(self):
@@ -1251,7 +1263,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_dsct(self):
@@ -1288,7 +1300,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_gdor(self):
@@ -1347,7 +1359,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
         
     def star_roap(self):
@@ -1374,7 +1386,7 @@ class VarSim(object):
             print(f'Scaled amplitude    : {round(params[3],3)}')
         
         # Return model
-        self.lc['flux'] = model.evaluate(plot=args.plot)
+        self.lc['puls'] = model.evaluate(plot=args.plot)
         self.df['Prot_day'] = params[0]
         self.df['dphi_rad'] = params[1]
         self.df['Arel']     = params[2]
@@ -1420,7 +1432,7 @@ class VarSim(object):
 
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
         
 
     def star_ceph(self):
@@ -1454,7 +1466,7 @@ class VarSim(object):
                         
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
         
     def star_lpv(self):
@@ -1484,7 +1496,7 @@ class VarSim(object):
             
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
         
                 
     #--------------------------------------------------------------#
@@ -1610,24 +1622,41 @@ class VarSim(object):
         # Create the limb darkening profiles
         ps = sc.create_profiles()
 
-        # Estimate quadratic law coefficients
-        # Take care of occations when LDTk fails
+        # Determine law coefficients
+        # NOTE we only allow 2-term models
         try:
-            u, _ = ps.coeffs_qd(do_mc=True)
+            if self.ldm == 'linear':
+                u, _ = ps.coeffs_ln(do_mc=True)
+            elif self.ldm == 'quadratic':
+                u, _ = ps.coeffs_qd(do_mc=True)
+            elif self.ldm == 'squareroot':
+                u, _ = ps.coeffs_sq(do_mc=True)
+            elif self.ldm == 'power2':
+                u, _ = ps.coeffs_p2(do_mc=True)
         except:
-            self.ldc = [0.430, 0.170]
+            if self.ldm == 'linear':
+                self.ldc = [0.570]
+            elif self.ldm == 'quadratic':
+                self.ldc = [0.470, 0.153]
+            elif self.ldm == 'squareroot':
+                self.ldc = [0.334, 0.364]
+            elif self.ldm == 'power2':
+                self.ldc = [0.670, 0.759]
             errorcode('warning', 'LD coefficients failed for ' +
                       f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
         else:
             self.ldc = u[0]
 
-        # Show parameters
-        if self.verbose > 1:
-            print(f"LD coefficients        : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
-
         # Store parameters
-        self.df['u1'] = self.ldc[0]
-        self.df['u2'] = self.ldc[1]
+        if len(self.ldc) == 1:
+            self.df['u1'] = self.ldc[0]
+            if self.verbose > 1:
+                print(f"LD {self.ldm} coefficients : {self.ldc[0]:.3f}")
+        else:
+            self.df['u1'] = self.ldc[0]
+            self.df['u2'] = self.ldc[1]
+            if self.verbose > 1:
+                print(f"LD {self.ldm} coefficients : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
 
             
     def planet_model(self):
@@ -1852,15 +1881,9 @@ class VarSim(object):
         Here we make sure to use consistent reference time unit.
         """
 
-        # Limb darkening model options:
-        if args.ldm:
-            limbDarkModel = args.lmd
-        else:
-            limbDarkModel = 'quadratic'
-
         # Initialize batman model
         batman_params = batman.TransitParams()
-        batman_params.limb_dark = limbDarkModel
+        batman_params.limb_dark = self.ldm
         batman_params.u   = self.ldc
         batman_params.t0  = self.t0.to('d').value
         batman_params.per = self.P.to('d').value
@@ -1871,11 +1894,11 @@ class VarSim(object):
         batman_params.rp  = (self.Rp.to('m')/self.R.to('m')).value
 
         # Model parameters for eclipse
-        #params.fp          = 0.001
-        #params.t_secondary = 0.5
+        #batman_params.fp          = 0.001
+        #batman_params.t_secondary = 0.5
         
         # Initializes transit model and extract light curve [ppm]
-        model = batman.TransitModel(batman_params, self.time.value)
+        model = batman.TransitModel(batman_params, self.time.value) #, transittype='secondary')
         self.lc['tran'] = (model.light_curve(batman_params) - 1) * 1e6
 
         # True anomaly at each time: This will be used in our custom models later
@@ -2096,6 +2119,8 @@ class VarSim(object):
 
         NOTE: t0 and P can principly be anything as long as they are consistant. 
         Here we make sure to use consistent reference time unit.
+
+        FIXME This module are under construction!
         """
 
         import pandoramoon as pandora
@@ -2222,10 +2247,15 @@ class VarSim(object):
         # Combine all signals for solar-like stars
         if (not self.star in stars and
             not self.binary in binaries and
-            self.mocka_solar == True):
+            self.mocka_solar == True or
+            self.star in stars and args.puls):
 
             # Granulation and pulsation are additive
             self.lc['flux'] = np.zeros(len(self.lc.time))
+
+            if self.star in stars and args.puls:
+                self.lc.puls = (self.lc.puls - 1) * 1e6 
+
             if 'gran' in self.lc:
                 self.lc['flux'] += self.lc.gran
             if 'puls' in self.lc:
@@ -2234,19 +2264,29 @@ class VarSim(object):
                 self.lc['flux'] += self.lc.spot
             if 'flare' in self.lc:
                 self.lc['flux'] += self.lc.flare
-                
+
             # Convert to relative flux to multiply with transits
             self.lc['flux'] = self.lc['flux'] / 1e6 + 1 
-            
-            # Spots and transits are multiplicative
-            if 'tran' in self.lc:
-                self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
 
-            # Plot combined light curve [flux -> ppm]
+            # Combined planet signal
+            if 'tran' in self.lc:
+                flux_planet = self.lc.tran
+                if 'occu' in self.lc:
+                    flux_planet += self.lc.occu
+                if 'beam' in self.lc:
+                    flux_planet += self.lc.beam
+                if 'elli' in self.lc:
+                    flux_planet += self.lc.elli
+
+                # Spots and transits are multiplicative
+                self.lc['flux'] *= (flux_planet / 1e6 + 1)
+
+            # Final flux column [ppm]
+            self.lc.flux = (self.lc.flux - 1) * 1e6
+                
+            # Plot combined light curve
             if self.plot and self.star != 'constant':
-                lc = self.lc
-                lc.flux = (lc.flux - 1) * 1e6
-                fig, ax = pt.plot_final_lc(lc)
+                fig, ax = pt.plot_final_lc(self.lc)
                 plt.show()
                                             
         # SAVE DATA
@@ -2259,9 +2299,9 @@ class VarSim(object):
             ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
 
             # Convert to magnitude [mag]
-            df = self.lc.flux.to_numpy() 
+            df = self.lc.flux.to_numpy() / 1e6 + 1
             dm = - 2.5 * np.log10(df)            
-                
+
             # Save light curve
             if self.verbose > 1:
                 print(f'Saving file : {self.ofile}')
@@ -2353,18 +2393,19 @@ class VarSim(object):
                 if args.gran and args.puls:
                     v.solar_granosc()
                     
-            # Include exoplanet
-            if args.planet or args.planet_params:
-                v.ldc()
-                v.planet_model()
-                v.planet_transit()
-                v.planet_occultation()
-                v.planet_beaming()
-                v.planet_ellipsoidal()
-                if args.plot and args.kul20 is None:
-                    v.plot_phase_curve()
+        # Include exoplanet
+        if args.planet or args.planet_params:
+            v.ldc()
+            v.planet_model()
+            v.planet_transit()
+            v.planet_occultation()
+            v.planet_beaming()
+            v.planet_ellipsoidal()
+            if args.plot and args.kul20 is None:
+                v.plot_phase_curve()
 
-                # Include exomoon
+            # Include exomoon
+            if args.moon:
                 v.moon_transit()
                     
         # Combine and save
@@ -2683,7 +2724,7 @@ class VarSim(object):
                     if self.df.spec == 'M' and starType in [None, 'solar_puls', 'solar_spot', 'solar_flare']:
                         starType = 'dwarf_red'
                         
-            # Just as a sanity check, stop script if none has been selected
+            # Just as a sanity check, select SPV if nothing else
             if starType == None:
                 starType = 'SPV'
 
@@ -2805,8 +2846,8 @@ planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark 
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
                           help='Planet model parameters (check --notes)')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
-planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darkening model [quadratic]')
-planet_group.add_argument('--moon', metavar='NAME', type=str, help='Benchmark moon (check --notes)')
+planet_group.add_argument('--ldm',  metavar='MODEL', type=str, help='Limb darkening model [power2, squareroot, quadratic, linear]')
+planet_group.add_argument('--moon', metavar='NAME',  type=str, help='Benchmark moon (check --notes)')
 
 
 mode_group = parser.add_argument_group('DISTRIBUTION MODES')

@@ -465,24 +465,6 @@ class SimFile (object):
 
 
     
-    # def getIRNU(self):
-
-    #     """Get the Intra-pixel Response Non-Uniformity map from the HDF5 file.
-
-    #     To rebin the IRNU to the PRNU:
-
-    #     >>> Nrows, Ncols = 100, 100      # size in pixels of the subfield
-    #     >>> NsubPixels = 16              # 16^2 subpixels in 1 pixel
-    #     >>> assert(IRNU.shape == (Nrows*NsubPixels, Ncols*NsubPixels))
-    #     >>> PRNU = IRNU.reshape(Nrows, NsubPixels, Ncols, NsubPixels).sum(axis=3).sum(axis=1)
-    #     """
-
-    #     return self.getMap("IRNU", imageNr=0)
-
-
-
-
-    
     def getBackground(self):
 
         """Get the sky background map [photons/pixel/exposure]
@@ -534,15 +516,21 @@ class SimFile (object):
 
         return self.getMap("ThroughputMaps", imageNr=imageNr)
 
+
+
+
     
     def getStraylight(self):
-        """Get the straylight"""
 
-        sl = self.hdf5file["Straylight"]["Moon"][:]
-        return sl
+        """Get the straylight.
+        """
+
+        return self.hdf5file["Straylight"]["Moon"][:]
+
     
 
-        
+
+    
     def getImage(self, imageNr=False):
 
         """Get the pixel image.
@@ -1157,7 +1145,7 @@ class SimFile (object):
                 # Add radius column for extended ghosts
                 
                 if groupName == "StarPositions":
-                    # print(starID, row, col, Xmm, Ymm, flux)
+                    #print(starID, row, col, Xmm, Ymm, flux)
                     isNotValid = np.all([row != row, col != col, Xmm != Xmm, Ymm != Ymm])
                     if isNotValid:
                         return None, None, None, None, None, None
@@ -1170,7 +1158,7 @@ class SimFile (object):
         elif not groupByExposure:
 
             # Or grouped per star which is already sorted
-            
+
             star = list(self.hdf5file[groupName].keys())
             
             # Check if only a single image is requested and use that automatically
@@ -1211,20 +1199,27 @@ class SimFile (object):
         
         # If a cut in magnitude is required, get the magnitudes from the star input catalogue
 
-        inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
-        subFieldMag = mag[np.in1d(inputStarIDs, starID)]
+        try:
+            inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
+            subFieldMag = mag[np.in1d(inputStarIDs, starID)]
 
-        # If the min or max V magnitude is set to None, use the default values
+            # If the min or max V magnitude is set to None, use the default values
 
-        if minMag is None:
-            minMag = subFieldMag.min()
-        if maxMag is None:
-            maxMag = subFieldMag.max()
+            if minMag is None:
+                minMag = subFieldMag.min()
+            if maxMag is None:
+                maxMag = subFieldMag.max()
 
-        # Make the magnitude cut
+            # Make the magnitude cut
 
-        dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
+            dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
 
+        except:
+
+            # If star position doesn't exist return all
+            
+            dex = np.arange(starID.shape[0])
+                
         # Return after stellar cut
 
         if groupName == "ExtendedGhostPositions":

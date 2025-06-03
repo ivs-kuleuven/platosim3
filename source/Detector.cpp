@@ -566,6 +566,7 @@ void Detector::updateParameters(double time)
     includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
     includeStraylight               = configParam.getBoolean("StrayLight/IncludeStraylight");
     includeBadPixelMap             = configParam.getBoolean("StrayLight/IncludeStraylight");
+
     if (includeRelativeTransmissivity)
     {
         // expectedValueNaturalVignetting      = configParam.getDouble("CCD/Vignetting/NaturalVignetting/ExpectedValue");    # FIXME remove?

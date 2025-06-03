@@ -56,7 +56,7 @@ def switchOffAllEffects(sim):
     """
 
     # Straylight
-    sim["StrayLight/IncludeStraylight"] = "no"
+    sim["Sky/StrayLight/IncludeStrayLight"] = "no"
 
     # Sky parameters
 

@@ -346,28 +346,25 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
                 throw ConfigurationException("Simulation: Unknown readout mode specification in configuration file");
         }
 
-        double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
-        double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+        double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;		  // [ns] -> [s]
+        double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;	  // [µs] -> [s]
         double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
 
-
-    int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
-    int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
-
+	int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
+	int numBiasPrescanRows = configParams.getInteger("SubField/NumBiasPrescanRows");        // [pixels]
+	int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
 
 
         double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
-
-
 
         // Both detector halves are read out simultaneously
         // -> columns read out by the FEE:
         //              - half of the CCD
         //              - serial pre-scan
-        //              - (serial over-scan)
+        //              - Parallel pre-scan
 
-        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
+        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows;
 
         // How many rows will be actually read out by the FEE?
         //      - nominal mode: image area + parallel over-scan

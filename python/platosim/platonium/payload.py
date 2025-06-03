@@ -38,7 +38,7 @@ import platosim.noise     as ns
 import platosim.slurm     as sm
 import platosim.utilities as ut
 from platosim.utilities import errorcode
-
+from platosim.matplotlibrc import setup; setup()
 
 #==============================================================#
 #                         BEGIN CLASS                          #
