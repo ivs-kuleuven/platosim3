@@ -659,7 +659,7 @@ void Detector::updateParameters(double time)
         configParam.getBoolean("ControlHDF5Content/WriteBackgroundMap") &&
         !constantSkyBackground;
 
-     writeBadPixelMap  = includeBadPixelMap && configParam.getBoolean("ControlHDF5Content/writeBadPixelMap");
+     writeBadPixelMap  = includeBadPixelMap && configParam.getBoolean("ControlHDF5Content/WriteBadPixelMap");
 
     // Configuration parameters for the noise source random seeds
 
