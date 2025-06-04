@@ -814,13 +814,19 @@ class Simulation(object):
         self.__setitem__("CCD/NumRows",                   "4510")
         self.__setitem__("ObservingParameters/CycleTime", "25")
 
+        # NOTE These are the same for all requirements
+
+        self.__setitem__("Camera/ThroughputLambdaC",   "750")        
+        self.__setitem__("Camera/ThroughputBandwidth", "500")
+        
         # If requested, select basic input parameters from MPD
 
         if performance in ["required", "designed"]:
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL)
 
-        # NOTE same values as used in default YAML
+        # Other wavelength dependent parameters
+            
         if performance == 'required':
             self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8125")
             self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7941")

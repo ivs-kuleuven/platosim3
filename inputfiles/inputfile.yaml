@@ -86,8 +86,8 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             500             # FWHM [nm]. Is different for fast cams than for normal cams.
-    ThroughputLambdaC:               750             # Central wavelength of the throughput passband [nm]
+    ThroughputBandwidth:             532             # FWHM [nm]. Is different for fast cams than for normal cams.
+    ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
@@ -178,7 +178,7 @@ CCD:
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
         Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # Output signal [ADU] = Bias + I + a0 + a1 * I + a2 * I^2,  I=input signal [ADU]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.6267          # Mean quantum efficiency ("as required")
+        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency ("as required")
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # [ADU/pixel] -> 16 bit CCD
