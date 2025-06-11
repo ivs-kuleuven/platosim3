@@ -31,7 +31,7 @@ Sky:
       TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
     StrayLight:
-      IncludeStrayLight:             True            # Include stray light [True, False]
+      IncludeStrayLight:             yes             # Include stray light [yes, no]
       FilePath:                      inputfiles/Plato_straylight_example_index_2574.csv
       PstRadiancePath:               inputfiles/pst.hdf5
       Time0:                         20260718T015614
