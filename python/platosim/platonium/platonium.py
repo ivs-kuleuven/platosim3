@@ -65,7 +65,9 @@ class PLATOnium(object):
     """
 
     def __init__(self, args):
+
         # PARSED ARGUMENTS
+
         self.targetNo  = args.starID
         self.group     = args.groupID
         self.camera    = args.cameraID
@@ -129,6 +131,7 @@ class PLATOnium(object):
             self.overwrite = False
 
         # MANDATORY PARAMETERS
+        
         # Normal cameras
         if self.group in [1, 2, 3, 4]:
             if self.camera in [1, 2, 3, 4, 5, 6]:
@@ -158,6 +161,7 @@ class PLATOnium(object):
         # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
         # verbose = 1: Default mode: Print details to bash but do not save log files
         # verbose = 3: Debug mode  : Print details to bash and saves all log files
+        
         if args.verbose == 0:
             self.verbose = 0
             self.verbose_platosim = 0
@@ -217,6 +221,7 @@ class PLATOnium(object):
         if not self.conDisLimit: self.conDisLimit = 60   # [arcsec -> 15 arcsec/pixel]
 
         # PHOTOMETRY AND PIPELINE PARAMETERS
+        
         if self.pipeline:
             # Pipeline paths
             self.platoBin = self.path.joinpath(os.getenv('PLATO'), 'bin')
@@ -273,6 +278,7 @@ class PLATOnium(object):
         self.tic  = datetime.datetime.now()
         self.tic0 = datetime.datetime.now()
 
+        
     def load_stars(self):
         """
         Module to load the stellar targets and contaminants.
@@ -284,8 +290,12 @@ class PLATOnium(object):
 
         # FULL-FRAME CCD
         if self.fullFrame:
-            # Load stellar catalogue
-            starcat = Path(glob.glob(f'{str(self.inputDir)}/starcat**group{self.group}.ftr')[0])
+
+            # Get pointing field from YAML and load stellar catalogue
+            sim = Simulation(self.outputFileName, self.inputFile)
+            pointingField = sim['ObservingParameters/StarCatalogFile']
+            starcatName = f'starcat**_{pointingField}_group{self.group}.ftr'
+            starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
             if not starcat.is_file():
                 errorcode('error', 'No star catalogue found in the project input directory!')
             self.dx = pd.read_feather(starcat)
@@ -2044,8 +2054,8 @@ args = parser.parse_args()
 
 # Load and run modules
 p = PLATOnium(args)
-p.load_stars()
 p.configure_output()
+p.load_stars()
 sim = p.init_sim()
 p.create_seeds(sim)
 # skip if only doing L1

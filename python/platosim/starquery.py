@@ -42,6 +42,226 @@ import platosim.utilities as ut
 
 
 #--------------------------------------------------------------#
+#                      HIDDEN FUNCTIONS                        #
+#--------------------------------------------------------------#
+
+
+def _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar):
+
+    """Function to fecth columns from Gaia database.
+    """
+
+    cols = {
+        'default':['gaia.designation',
+                   'gaia.source_id',
+                   'gaia.ra',
+                   'gaia.dec',
+                   'gaia.l',
+                   'gaia.b',               
+                   'gaia.phot_g_mean_mag',
+                   'gaia.bp_rp',
+                   'gaia.ag_gspphot',
+                   'gaia.parallax', 'gaia.parallax_error',
+                   'gaia.pm',
+                   'gaia.pmra', 'gaia.pmra_error',
+                   'gaia.pmdec', 'gaia.pmdec_error',
+                   'gaia.ruwe'],
+        'stellar':['gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
+                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
+                   'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
+                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
+                   'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
+                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
+                   'astro.spectraltype_esphs',
+                   'astro.evolstage_flame'],
+        'variable':['gaia.phot_variable_flag',
+                    'astro.classlabel_espels',
+                    'astro.activityindex_espcs', 'astro.activityindex_espcs_uncertainty'],
+        'quasar':['quasar.vari_best_class_name',
+                  'astro.classprob_dsc_combmod_quasar',
+                  'quasar.vari_agn_membership_score',
+                  'quasar.qso_variability',
+                  'quasar.non_qso_variability',
+                  'quasar.host_galaxy_detected',
+                  'quasar.redshift_qsoc',
+                  'quasar.redshift_qsoc_lower',
+                  'quasar.redshift_qsoc_upper']
+    }
+    
+    # Fetch global name
+    columns = cols['default']
+    if flag_stellar:
+        c = cols['stellar']
+        for i in c: columns.append(i)
+    if flag_variable:
+        c = cols['variable']
+        for i in c: columns.append(i)
+    if flag_quasar:
+        c = cols['quasar']
+        for i in c: columns.append(i)
+        
+    return ','.join(columns)
+
+
+
+def _submit_gaia_query(query, ofile=False):
+
+    """Main function query data from Gaia database.
+    """
+
+    # We use the urllib to keep the connection open because
+    # the sky regions are huge which fails with Gaia.lunch_job
+    params = urllib.urlencode({"REQUEST"        : "doQuery",
+                               "LANG"           : "ADQL",
+                               "FORMAT"         : "votable_plain",
+                               "PHASE"          : "RUN",
+                               "JOBNAME"        : "PLATO catalog",
+                               "JOBDESCRIPTION" : "None", 
+                               "QUERY"          : query})
+    headers = {"Content-type": "application/x-www-form-urlencoded",
+               "Accept"      : "text/plain"}
+
+    # Information about server
+    host = "gea.esac.esa.int"
+    port = 443
+    pathinfo = "/tap-server/tap/async"
+    connection = httplib.HTTPSConnection(host, port)
+    connection.request("POST", pathinfo, params, headers)
+
+    # Get status    
+    response = connection.getresponse()
+    location = response.getheader("location")
+    jobid    = location[location.rfind('/')+1:]
+    connection.close()
+    
+    # Check job status, wait until finished
+
+    while True:
+        connection = httplib.HTTPSConnection(host, port)
+        connection.request("GET",pathinfo+"/"+jobid)
+        response = connection.getresponse()
+        data = response.read()
+
+        # XML response: parse it to obtain the current status
+        # (you may use pathinfo/jobid/phase entry point to avoid XML parsing)
+        dom = parseString(data)
+        phaseElement = dom.getElementsByTagName('uws:phase')[0]
+        phaseValueElement = phaseElement.firstChild
+        phase = phaseValueElement.toxml()
+
+        # Check finished
+        if phase == 'COMPLETED':
+            break
+        
+        # Wait and repeat
+        time.sleep(0.2)
+
+    connection.close()
+
+    # Get results    
+    connection = httplib.HTTPSConnection(host, port)
+    connection.request("GET",pathinfo+"/"+jobid+"/results/result")
+    response = connection.getresponse()
+    data = response.read().decode('iso-8859-1')
+    
+    # Write output file
+    if not ofile:
+        ofile = 'starcatGaiaDR3.vot'
+    outputFile = open(ofile, 'w')
+    outputFile.write(data)
+    outputFile.close()
+    connection.close()
+
+    # Load output file into a pandas df
+    votable = parse(ofile)
+    df = ut.votable2pandas(votable)
+    os.remove(ofile)
+    
+    return df
+
+
+
+def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
+
+    # Rename columns
+    df = df.rename(columns={
+        'designation': 'source_gaia',
+        'source_id': 'source_gaia_dr3',
+        'phot_g_mean_mag': 'Gmag',
+        'bp_rp': 'BP_RP',
+        'ag_gspphot': 'Ag',
+        'parallax': 'plx',
+        'parallax_error': 'plx_err'})
+
+    # Remove "Gaia DR" string in designation
+    df.source_gaia = df.source_gaia.str[9:]
+    
+    # Convert source ids to integers
+    df.source_gaia     = df.source_gaia.astype(np.int64)
+    df.source_gaia_dr3 = df.source_gaia_dr3.astype(np.int64)
+    
+    # Change base on columns flag
+    
+    if flag_stellar:
+        df = df.rename(columns={
+            'mh_gspphot': 'mh',
+            'mh_gspphot_upper': 'mh_upp',
+            'logg_gspphot': 'logg',
+            'logg_gspphot_lower': 'logg_low',
+            'logg_gspphot_upper': 'logg_upp',
+            'teff_gspphot': 'Teff',
+            'teff_gspphot_lower': 'Teff_low',
+            'teff_gspphot_upper': 'Teff_upp',
+            'radius_flame': 'R',
+            'radius_flame_lower': 'R_low',
+            'radius_flame_upper': 'R_upp',
+            'mass_flame': 'M',
+            'mass_flame_lower': 'M_low',
+            'mass_flame_upper': 'M_upp',
+            'lum_flame': 'L',
+            'lum_flame_lower': 'L_low',
+            'lum_flame_upper': 'L_upp',
+            'spectraltype_esphs': 'spec',
+            'evolstage_flame': 'evol',
+        })
+    
+        # Round Teff column
+        df = df.fillna(-1)
+        df = df.astype({'Teff':int,
+                        'Teff_low':int,
+                        'Teff_upp':int})
+        df = df.replace({-1:np.nan})
+
+    if flag_variable:
+        df = df.rename(columns={
+            'phot_variable_flag': 'variable',
+            'classlabel_espels': 'class',
+            'activityindex_espcs': 'sindex',
+            'activityindex_espcs_uncertainty': 'sindex_err',
+        })
+        
+    if flag_quasar:        
+        df = df.rename(columns={
+            'vari_best_class_name': 'class_name',
+            'classprob_dsc_combmod_quasar': 'p_quasar',
+            'vari_agn_membership_score': 'agn_score',
+            'qso_variability': 'qso_var',
+            'non_qso_variability': 'qso_non',
+            'host_galaxy_detected': 'host_galaxy',
+            'redshift_qsoc': 'z',
+            'redshift_qsoc_lower': 'z_lower',
+            'redshift_qsoc_upper': 'z_upper',            
+        })
+        
+        # Replace upper/lower error with redshift uncertainty
+        dex = df.columns.get_loc('z') + 1
+        df.insert(dex, 'z_err', np.abs(df.z_upper - df.z_lower) / df.z)
+        df.drop(['z_lower', 'z_upper'], axis=1, inplace=True)
+        
+    return df
+
+        
+#--------------------------------------------------------------#
 #                          FUNCTIONS                           #
 #--------------------------------------------------------------#
 
@@ -295,9 +515,9 @@ def simbadQuery(star, radius=45, maglim=21):
 
 
 
-def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
+def gaiaQueryCone(alpha, delta, radius=1, maglim=21):
 
-    """Query sky region using Gaia DR3.
+    """Query sky cone region using Gaia DR3.
 
     Parameters
     ----------
@@ -312,7 +532,7 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
     # Gaia query job cone
 
-    query_cone = f"""SELECT 
+    query = f"""SELECT TOP 100000000
     DISTANCE( POINT({alpha},{delta}), POINT(ra,dec) )
     AS dis, source_id, ra, dec,
     phot_g_mean_mag, bp_rp,
@@ -322,39 +542,35 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
     FROM gaiadr3.gaia_source AS cat
     WHERE 1=CONTAINS(POINT({alpha}, {delta}),
     CIRCLE(cat.ra, cat.dec, {radius}))
-    AND cat.phot_g_mean_mag < {maglim} 
-    ORDER BY dis ASC
+    AND cat.phot_g_mean_mag < {maglim}
     """
 
     # Launch Gaia query
-    
-    job     = Gaia.launch_job(query_cone)
+    print(query)
+    job     = Gaia.launch_job(query)
     results = job.get_results()
     
     # Convert astropy results table into pandas df
-
     df = results.to_pandas()
 
     # Rename columns
-    
-    df = df.rename(columns={'source_id': 'gaiaDR3',
-                            'phot_g_mean_mag': 'mag',
+    df = df.rename(columns={'SOURCE_ID': 'source_gaia_dr3',
+                            'phot_g_mean_mag': 'Gmag',
                             'bp_rp': 'BP_RP',
                             'parallax': 'plx',
-                            'parallax_error': 'plxe',
-                            'teff_gspphot': 'teff',
+                            'parallax_error': 'plx_err',
+                            'teff_gspphot': 'Teff',
                             'logg_gspphot': 'logg'})
     
     # Relocate distance column [arcsec]
-    
-    df.dist = (df.dist-df.dist.iloc[0]) * 3600.
-    col = df.dist.values.tolist()
+    df.dis = (df.dis-df.dis.iloc[0]) * 3600.
+    col = df.dis.values.tolist()
     df  = df.drop(columns=['dis'])
     df.insert(5, 'dis', col)
 
     #
-    df = df.fillna(0)
-    df = df.astype({'teff':int})
+    #df = df.fillna(0)
+    #df = df.astype({'Teff':int})
     
     # Sort and return
     
@@ -364,200 +580,69 @@ def gaiaRegionQuerySmall(alpha, delta, radius=1, maglim=21):
 
 
 
-def gaiaIDQuery(ID, ra, dec, radius=0.1, ofile=False):
+def gaiaQueryID(source_id, ra, dec, radius=0.01,
+                flag_stellar=False, flag_variable=False, flag_quasar=False,
+                ofile=False):
 
     """Function to query a target using it's Gaia DR3 ID.
     
     Parameters
     ----------
-    ra : float, ndarray
-        Right ascension of central point for query [deg]
-    dec : float, ndarray
-        Declination of central point for query [deg]
-    radius : int, float
-        Angular radius to search for stars within [deg]
-    maglim : int, float
-        Magitude limit to search for stars below
+    source_id : int64, ndarray
+        Gaia DR3 source ID(s)
     ofile : str
         File name (without file extension) to be saved
 
     Return
     ------
     Data frame with information c.f. the columns of 'colname'.
+
+    TODO update function to be dependent only on IDs!
     """
 
-    # Fetch columns from catalogues
-    colname = ['gaia.designation',
-               'gaia.source_id',
-               'gaia.ra',
-               'gaia.dec',
-               'gaia.phot_g_mean_mag',
-               'gaia.bp_rp',
-               'gaia.ag_gspphot',
-               'gaia.parallax', 'gaia.parallax_error',
-               'gaia.pmra',
-               'gaia.pmdec',
-               'gaia.ruwe',
-               'gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
-               'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
-               'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-               'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
-               'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
-               'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
-               'astro.spectraltype_esphs',
-               'astro.evolstage_flame']
-
+    # Fetch requested Gaia columns
+    columns = _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar)
+    
     # Construct query cone
-    # Further trim for quasars if requested
-
-    columns = ', '.join(colname)
-
-    query_base = f"""SELECT
-    {columns}
-    FROM gaiadr3.gaia_source AS gaia
-    JOIN gaiadr3.astrophysical_parameters AS astro
-      ON gaia.source_id = astro.source_id
-    WHERE 1=CONTAINS(
-      POINT(gaia.ra, gaia.dec),
-      CIRCLE({ra}, {dec}, {radius}))
-    """
-    #AND gaia.source_id = {ID}
-    
-    # We use the urllib to keep the connection open because
-    # the sky regions are huge which fails with Gaia.lunch_job
-    
-    params = urllib.urlencode({"REQUEST"        : "doQuery",
-                               "LANG"           : "ADQL",
-                               "FORMAT"         : "votable_plain",
-                               "PHASE"          : "RUN",
-                               "JOBNAME"        : "PLATO catalog",
-                               "JOBDESCRIPTION" : "None", 
-                               "QUERY"          : query_base})
-    
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept"      : "text/plain"}
-
-    # Information about server
-    
-    host = "gea.esac.esa.int"
-    port = 443
-    pathinfo = "/tap-server/tap/async"
-    connection = httplib.HTTPSConnection(host, port)
-    connection.request("POST", pathinfo, params, headers)
-
-    # Get status
-    
-    response = connection.getresponse()
-    location = response.getheader("location")
-    jobid    = location[location.rfind('/')+1:]
-    connection.close()
-
-    # Check job status, wait until finished
-
-    while True:
-        connection = httplib.HTTPSConnection(host, port)
-        connection.request("GET",pathinfo+"/"+jobid)
-        response = connection.getresponse()
-        data = response.read()
-
-        # XML response: parse it to obtain the current status
-        # (you may use pathinfo/jobid/phase entry point to avoid XML parsing)
-        dom = parseString(data)
-        phaseElement = dom.getElementsByTagName('uws:phase')[0]
-        phaseValueElement = phaseElement.firstChild
-        phase = phaseValueElement.toxml()
-
-        # Check finished
-        if phase == 'COMPLETED':
-            break
+    if flag_quasar:
+        query = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        JOIN gaiadr3.qso_candidates AS quasar
+          ON gaia.source_id = quasar.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+        """
+    else:
+        query = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+        """
         
-        # Wait and repeat
-        time.sleep(0.2)
+    # Submit job
+    df = _submit_gaia_query(query, ofile)
 
-    connection.close()
+    # Adjust data frame
+    df = _rename_columns(df, flag_stellar, flag_variable, flag_quasar)
 
-    # Get results
+    # Order after magnitude
+    df = df.sort_values(by=['Gmag'])
     
-    connection = httplib.HTTPSConnection(host, port)
-    connection.request("GET",pathinfo+"/"+jobid+"/results/result")
-    response = connection.getresponse()
-    data = response.read().decode('iso-8859-1')
-
-    # Write output file
-    
-    if not ofile:
-        ofile = 'starcatGaiaDR3.vot'
-    outputFile = open(ofile, 'w')
-    outputFile.write(data)
-    outputFile.close()
-    connection.close()
-
-    # Load output file into a pandas df
-    
-    votable = parse(ofile)
-    df = ut.votable2pandas(votable)
-    os.remove(ofile)
-
-    # Rename columns
-
-    df = df.rename(columns={'source_id': 'gaiaDR3',
-                            'phot_g_mean_mag': 'Gmag',
-                            'bp_rp': 'BP_RP',
-                            'ag_gspphot': 'Ag',
-                            'parallax': 'plx',
-                            'parallax_error': 'plx_err'})
-
-
-
-    df = df.rename(columns={'mh_gspphot': 'Z',
-                            'mh_gspphot_lower': 'Z_low',
-                            'mh_gspphot_upper': 'Z_upp',
-                            'logg_gspphot': 'logg',
-                            'logg_gspphot_lower': 'logg_low',
-                            'logg_gspphot_upper': 'logg_upp',
-                            'teff_gspphot': 'Teff',
-                            'teff_gspphot_lower': 'Teff_low',
-                            'teff_gspphot_upper': 'Teff_upp',
-                            'radius_flame': 'R',
-                            'radius_flame_lower': 'R_low',
-                            'radius_flame_upper': 'R_upp',
-                            'mass_flame': 'M',
-                            'mass_flame_lower': 'M_low',
-                            'mass_flame_upper': 'M_upp',
-                            'lum_flame': 'L',
-                            'lum_flame_lower': 'L_low',
-                            'lum_flame_upper': 'L_upp',
-                            'spectraltype_esphs': 'spec',
-                            'evolstage_flame': 'evol'})
-    # Round Teff column
-    df = df.fillna(-1)
-    df = df.astype({'Teff':int,
-                    'Teff_low':int,
-                    'Teff_upp':int})
-    df = df.replace({-1:np.nan})
-
-    # Remove "Gaia DR" string in designation
-
-    df.designation = df.designation.str[9:]
-        
-    # Sort values
-
-    df = df.sort_values(by=['BP_RP'])
-        
-    # Convert names to string
-
-    df.gaiaDR3 = df.gaiaDR3.astype(np.int64)
-
     # Reset index and return
-
     return df.reset_index(drop=True)
 
 
 
-
-
-
-def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
+def gaiaQueryRegion(ra, dec, radius=1,
+                    maglim_min=0, maglim_max=17,
                     flag_stellar=False, flag_variable=False, flag_quasar=False,
                     ofile=False):
 
@@ -571,76 +656,37 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
         Declination of central point for query [deg]
     radius : int, float
         Angular radius to search for stars within [deg]
-    maglim : int, float
-        Magitude limit to search for stars below
+    maglim_min : int, float
+        Lower G-mean magitude limit for search.
+    maglim_max : int, float
+        Upper G-mean magitude limit for search.
+    flag_stellar : bool
+        Flag to include specific columns for stars.
+    flag_variable : bool
+        Flag to include specific columns for variability.
+    flag_quasar : bool
+        Flag to include specific columns for quasars.
     ofile : str
         File name (without file extension) to be saved
 
     Return
     ------
-    Feather file given by the file name destination
+    Feather file given by the file name destination.
 
     Notes
     -----
-    Columns can be found at: https://gea.esac.esa.int/archive/
-    See: "Search" -> "Advanced (ADQL)" -> "Gaia Data Release 3"
-
-    NOTE Query only valid for Gmag < 17, else gaps are intoduced!
-    Use additional queries e.g. in bins of 0.5 mag for Gmag > 17.
+    - Columns can be found at: https://gea.esac.esa.int/archive/
+      See: "Search" -> "Advanced (ADQL)" -> "Gaia Data Release 3"
+    - Query only valid for Gmag < 17, else gaps are intoduced.
+      Use additional queries e.g. in bins of 0.5 mag for Gmag > 17.
     """
 
-    # Fetch columns from catalogues
-    colname = ['gaia.designation',
-               'gaia.source_id',
-               'gaia.ra',
-               'gaia.dec',
-               'gaia.l',
-               'gaia.b',               
-               'gaia.phot_g_mean_mag',
-               'gaia.bp_rp',
-               'gaia.ag_gspphot',
-               'gaia.parallax', 'gaia.parallax_error',
-               'gaia.pm',
-               'gaia.pmra', 'gaia.pmra_error',
-               'gaia.pmdec', 'gaia.pmdec_error',
-               'gaia.ruwe']
+    # Fetch requested Gaia columns
+    columns = _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar)
 
-    if flag_stellar:
-        c = ['gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
-             'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
-             'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-             'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
-             'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
-             'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
-             'astro.spectraltype_esphs',
-             'astro.evolstage_flame']
-        for i in c: colname.append(i)
-
-    if flag_variable:
-        c = ['gaia.phot_variable_flag',
-             'astro.classlabel_espels',
-             'astro.activityindex_espcs', 'astro.activityindex_espcs_uncertainty']
-        for i in c: colname.append(i)
-        
+    
     if flag_quasar:
-        c = ['quasar.redshift_qsoc',
-             'quasar.redshift_qsoc_lower',
-             'quasar.redshift_qsoc_upper',
-             'astro.classprob_dsc_combmod_quasar',
-             'quasar.vari_best_class_name',
-             'quasar.qso_variability',
-             'quasar.non_qso_variability',
-             'quasar.vari_agn_membership_score',
-             'quasar.host_galaxy_detected']
-        for i in c: colname.append(i)
-
-    # Construct query cone
-    # Further trim for quasars if requested
-
-    columns = ', '.join(colname)
-
-    if flag_quasar:
-        query_base = f"""SELECT
+        query = f"""SELECT TOP 100000000
         {columns}
         FROM gaiadr3.gaia_source AS gaia
         JOIN gaiadr3.astrophysical_parameters AS astro
@@ -653,9 +699,9 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
           AND gaia.phot_g_mean_mag > {maglim_min}
           AND gaia.phot_g_mean_mag < {maglim_max}
           AND astro.classprob_dsc_combmod_quasar > 0.99
-        """
+        """ # AND quasar.vari_best_class_name = AGN
     else:
-        query_base = f"""SELECT
+        query = f"""SELECT TOP 100000000
         {columns}
         FROM gaiadr3.gaia_source AS gaia
         JOIN gaiadr3.astrophysical_parameters AS astro
@@ -666,156 +712,27 @@ def gaiaRegionQuery(ra, dec, radius=1, maglim_min=0, maglim_max=17,
           AND gaia.phot_g_mean_mag > {maglim_min}
           AND gaia.phot_g_mean_mag < {maglim_max}
         """
+
+    #df = _submit_gaia_query(query, ofile)
+    # Submit job
+    df = None
+    counter = 0
+    counter_max = 10
+    while df is None:
+        try:
+            df = _submit_gaia_query(query, ofile)
+        except KeyboardInterrupt:
+            ut.errorcode('error', 'User stopped script..')
+        except:
+            ut.errorcode('warning', 'Query failed due to a socket.gaierror: [Errno -3] ' +
+                         'Temporary failure in name resolution.. Retrying in 10s ...')
+            counter += 1
+            if counter == counter_max:
+                ut.errorcode('error', f'Query failed after {counter_max} attempts..')
+            time.sleep(10)
         
-    # We use the urllib to keep the connection open because
-    # the sky regions are huge which fails with Gaia.lunch_job
-    
-    params = urllib.urlencode({"REQUEST"        : "doQuery",
-                               "LANG"           : "ADQL",
-                               "FORMAT"         : "votable_plain",
-                               "PHASE"          : "RUN",
-                               "JOBNAME"        : "PLATO catalog",
-                               "JOBDESCRIPTION" : "None", 
-                               "QUERY"          : query_base})
-    
-    headers = {"Content-type": "application/x-www-form-urlencoded",
-               "Accept"      : "text/plain"}
-
-    # Information about server
-    
-    host = "gea.esac.esa.int"
-    port = 443
-    pathinfo = "/tap-server/tap/async"
-    connection = httplib.HTTPSConnection(host, port)
-    connection.request("POST", pathinfo, params, headers)
-
-    # Get status
-    
-    response = connection.getresponse()
-    location = response.getheader("location")
-    jobid    = location[location.rfind('/')+1:]
-    connection.close()
-
-    # Check job status, wait until finished
-
-    while True:
-        connection = httplib.HTTPSConnection(host, port)
-        connection.request("GET",pathinfo+"/"+jobid)
-        response = connection.getresponse()
-        data = response.read()
-
-        # XML response: parse it to obtain the current status
-        # (you may use pathinfo/jobid/phase entry point to avoid XML parsing)
-        dom = parseString(data)
-        phaseElement = dom.getElementsByTagName('uws:phase')[0]
-        phaseValueElement = phaseElement.firstChild
-        phase = phaseValueElement.toxml()
-
-        # Check finished
-        if phase == 'COMPLETED':
-            break
-        
-        # Wait and repeat
-        time.sleep(0.2)
-
-    connection.close()
-
-    # Get results
-    
-    connection = httplib.HTTPSConnection(host, port)
-    connection.request("GET",pathinfo+"/"+jobid+"/results/result")
-    response = connection.getresponse()
-    data = response.read().decode('iso-8859-1')
-
-    # Write output file
-    
-    if not ofile:
-        ofile = 'starcatGaiaDR3.vot'
-    outputFile = open(ofile, 'w')
-    outputFile.write(data)
-    outputFile.close()
-    connection.close()
-
-    # Load output file into a pandas df
-    
-    votable = parse(ofile)
-    df = ut.votable2pandas(votable)
-    os.remove(ofile)
-
-    # Rename columns
-
-    df = df.rename(columns={'source_id': 'gaiaDR3',
-                            'phot_g_mean_mag': 'Gmag',
-                            'bp_rp': 'BP_RP',
-                            'ag_gspphot': 'Ag',
-                            'parallax': 'plx',
-                            'parallax_error': 'plx_err',
-                            'pmra_error': 'pmra_err',
-                            'pmdec_error': 'pmdec_err'})
-
-    if flag_stellar:
-        df = df.rename(columns={'mh_gspphot': 'Z',
-                                'mh_gspphot_lower': 'Z_low',
-                                'mh_gspphot_upper': 'Z_upp',
-                                'logg_gspphot': 'logg',
-                                'logg_gspphot_lower': 'logg_low',
-                                'logg_gspphot_upper': 'logg_upp',
-                                'teff_gspphot': 'Teff',
-                                'teff_gspphot_lower': 'Teff_low',
-                                'teff_gspphot_upper': 'Teff_upp',
-                                'radius_flame': 'R',
-                                'radius_flame_lower': 'R_low',
-                                'radius_flame_upper': 'R_upp',
-                                'mass_flame': 'M',
-                                'mass_flame_lower': 'M_low',
-                                'mass_flame_upper': 'M_upp',
-                                'lum_flame': 'L',
-                                'lum_flame_lower': 'L_low',
-                                'lum_flame_upper': 'L_upp',
-                                'spectraltype_esphs': 'spec',
-                                'evolstage_flame': 'evol'})
-        # Round Teff column
-        df = df.fillna(-1)
-        df = df.astype({'Teff':int,
-                        'Teff_low':int,
-                        'Teff_upp':int})
-        df = df.replace({-1:np.nan})
-
-    if flag_variable:
-        df = df.rename(columns={'phot_variable_flag': 'variable',
-                                'classlabel_espels': 'class',
-                                'activityindex_espcs': 'S',
-                                'activityindex_espcs_uncertainty': 'S_err'})
-        
-    if flag_quasar:
-        df = df.rename(columns={'redshift_qsoc': 'z',
-                                'redshift_qsoc_lower': 'z_lower',
-                                'redshift_qsoc_upper': 'z_upper',
-                                'classprob_dsc_combmod_quasar': 'p_comb_quasar',
-                                'vari_best_class_name': 'class_name',
-                                'qso_variability': 'qso_var',
-                                'non_qso_variability': 'qso_non',
-                                'vari_agn_membership_score': 'agn_score',
-                                'host_galaxy_detected': 'host_galaxy'})
-
-        # Replace upper/lower error with redshift uncertainty
-        dex = df.columns.get_loc('z') + 1
-        df.insert(dex, 'z_err', np.abs(df.z_upper - df.z_lower) / df.z)
-        df.drop(['z_lower', 'z_upper'], axis=1, inplace=True)
-
-
-    # Remove "Gaia DR" string in designation
-
-    df.designation = df.designation.str[9:]
-        
-    # Sort values
-
-    df = df.sort_values(by=['gaiaDR3'])
-        
-    # Convert names to string
-
-    df.gaiaDR3 = df.gaiaDR3.astype(str)
+    # Adjust data frame
+    df = _rename_columns(df, flag_stellar, flag_variable, flag_quasar)
 
     # Reset index and return
-
     return df.reset_index(drop=True)

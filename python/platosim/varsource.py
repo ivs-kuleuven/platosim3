@@ -3026,7 +3026,7 @@ class SMBHB(object):
 
         self.z  = z
         self.q  = q
-        self.M  = (M * u.M_sun).cgs
+        self.M  = M.to('M_sun')
         self.t0 = t0.to('yr')
         self.P  = P.to('yr')
         self.I  = np.pi/2 * u.rad - I
@@ -3035,62 +3035,73 @@ class SMBHB(object):
         # Orbital period in binary rest frame [s] 
         self.T = self.period_observed()
 
+        # # Semi-major axis [m]        
+        self.a = self.semimajor_axis()
+        
+        # Schwarzchild radii (primary and secondary)
+        self.RS = self.schwarzchild_radius()
+
+        # Maximum Einstein radius (primary and secondary)
+        RE1 = np.sqrt(2 * self.a * self.RS[0])
+        RE2 = np.sqrt(2 * self.a * self.RS[1])
+        
+        # Print values
+        ut.errorcode('message', 'Model parameters:')
+        print(f'Orbital period in rest frame, P    : {self.P.to("yr"):.3f}')
+        print(f'Orbital period in obs. frame, T    : {self.T.to("yr"):.3f}')
+        print(f'Mass total, M = (M1 + M2)          : {self.M.to("M_sun")/1e6:.3f} x 1e6')
+        print(f'Mass ratio, q = (M2 / M1)          : {self.q:.4f}')
+        #print(f'Light ratio (L2 /(L1 + L2))   : {self.:.4f}')
+        print(f'Inclination of orbits, I           : {I.to("deg"):.2f}')
+        print(f'Inclination of mini-disc, J        : {J.to("deg"):.2f}')
+        #print(f'Argument of periapse          : {self.w:.2f}')
+        print(f'Semi-major axis of binaries, a     : {self.a.to("AU"):.2f}')
+        print(f'Schwarchild radius primary, Rs1    : {self.RS[0].to("R_sun"):.2f}')
+        print(f'Schwarchild radius secondary, Rs2  : {self.RS[1].to("R_sun"):.2f}')
+        print(f'Max Einstein radius primary, Re1   : {RE1.to("AU"):.2f}')
+        print(f'Max Einstein radius secondary, Re2 : {RE2.to("AU"):.2f}')
+
         N = 1000
         time = np.linspace(0, self.T.value, N)
         phase = time / self.T.value
         t_dur = time[-1]
 
-        # # Semi-major axis [m]        
-        # self.a = self.semimajor_axis()
         
-        # # Schwarzchild radii (primary and secondary)
-        # self.RS = self.schwarzchild_radius()
-
-        # # Maximum Einstein radius (primary and secondary)
-        # RE1 = np.sqrt(2 * self.a * self.RS[0])
-        # RE2 = np.sqrt(2 * self.a * self.RS[1])
-        
-        # # Print values
-        # ut.errorcode('message', 'Model parameters:')
-        # print(f'Orbital period in rest frame, P    : {self.P.to("yr"):.3f}')
-        # print(f'Orbital period in obs. frame, T    : {self.T.to("yr"):.3f}')
-        # print(f'Mass total, M = (M1 + M2)          : {self.M.to("M_sun")/1e6:.3f} x 1e6')
-        # print(f'Mass ratio, q = (M2 / M1)          : {self.q:.4f}')
-        # #print(f'Light ratio (L2 /(L1 + L2))   : {self.:.4f}')
-        # print(f'Inclination of orbits, I           : {I.to("deg"):.2f}')
-        # print(f'Inclination of mini-disc, J        : {J.to("deg"):.2f}')
-        # #print(f'Argument of periapse          : {self.w:.2f}')
-        # print(f'Semi-major axis of binaries, a     : {self.a.to("AU"):.2f}')
-        # print(f'Schwarchild radius primary, Rs1    : {self.RS[0].to("R_sun"):.2f}')
-        # print(f'Schwarchild radius secondary, Rs2  : {self.RS[1].to("R_sun"):.2f}')
-        # print(f'Max Einstein radius primary, Re1   : {RE1.to("AU"):.2f}')
-        # print(f'Max Einstein radius secondary, Re2 : {RE2.to("AU"):.2f}')
-
+        #M_sun = 1.989e33   # [g]
         q = self.q
-        M = self.M.value
+        M = (self.M/u.M_sun).value
+        M_g = (M * u.M_sun).cgs.value
         t0 = self.t0.to('yr').value
+        T = self.T.to('yr').value
+        P = self.P.value
         I = self.I.value
         J = self.J.value
+        #print(M, M_g, u.M_sun.cgs); exit()
+        # z  = 0 
+        # T  = 4
+        # print(M); exit()
+        # M  = 1e9
+        # q = 0.05
+        # I = np.deg2rad(3.5)
+        # J = np.pi / 8
+        # wvl_cm = 550e-7
+        # time = np.linspace(0, T, 1000)
 
-        T  = self.T.to('yr').value
-        M_sun = 1.989e33   # [g]
         
         def r_ISCO(M):
-            M_g = M * M_sun #total mass in g
             return 6 * c.G.cgs.value * M_g / c.c.cgs.value**2 # in cm
 
-        def orbital_radius(M, period_rest):
-            M_g = M * M_sun
+        def orbital_radius(M, P):
             # Orbital period in binary rest frame [s]
-            T_s = period_rest * ut.year()
-            return ((c.G.cgs.value * M_g * T_s**2) / (4 * np.pi**2))**(1/3) 
+            T_s = P * ut.year()
+            a = ((c.G.cgs.value * M_g * T_s**2) / (4 * np.pi**2))**(1/3)
+            print( (a * u.cm).to('AU') ); exit()
+            return a
 
         def accretion_rate(M, radiative_efficiency=0.1):
-            M_g = M * M_sun  # g
             return 2.26 * 10**-2 * (radiative_efficiency / 0.1) **-1 * (M_g/10**6) / ut.year()
 
         def Temp(q, r, M):
-            M_g = M * M_sun  # g
             sigma = 5.67 * 10 **-5 # erg cm^-2s^-1K^-4
             power = 3 * c.G.cgs.value * q * M_g / (1+q) * accretion_rate(q * M / (1 + q)) * (1 - np.sqrt(r_ISCO(q * M / (1 + q)) / r)) / (8 * np.pi * r**3)
             return (power / sigma)**0.25  
@@ -3101,11 +3112,11 @@ class SMBHB(object):
             denominator = (wavelength**5) * (np.exp(exponent) - 1)
             return numerator / denominator
 
-        def flux(wavelength, r, q, M, period, z):
-            period_rest = period / (1 + z)
-            a = orbital_radius(M, period_rest)
+        def flux(wavelength, r, q, M, T, z):
+            #P = T / (1 + z)
+            #a = orbital_radius(M, P)
             r_isco = r_ISCO(q * M / (1 + q))
-            condition = (r_isco < r) & (r < 0.27 * a * q**0.3)
+            condition = (r_isco < r) & (r < 0.27 * self.a.value * q**0.3)
             flux_values = np.where(
                 condition,
                 np.pi * planck_wavelength(wavelength, Temp(q, r, M)),
@@ -3113,35 +3124,34 @@ class SMBHB(object):
             )
             return flux_values
 
-        def einstein_radius(q, M, I, period, time, z):
-            period_rest = period / (1 + z)
-            a = orbital_radius(M, period_rest)
+        def einstein_radius(q, M, I, T, time, z):
+            #P = T / (1 + z)
+            #a = orbital_radius(M, P)
 
-            M_g = M * M_sun  # g
             R_p = 2 * c.G.cgs.value * M_g / ((1 + q) * c.c.cgs.value**2)      # primary Schwarzchild in cm
             R_s = 2 * c.G.cgs.value * M_g * q / ((1 + q) * c.c.cgs.value**2)  # primary Schwarzchild in cm
 
-            primary   = np.sqrt(2 * R_p * a * np.cos(I) * np.sin(2 * np.pi * time / period))          # in cm
-            secondary = np.sqrt(2 * R_s * a * np.cos(I) * np.sin(-np.pi + 2 * np.pi * time / period)) # in cm
+            primary   = np.sqrt(2 * R_p * self.a.value * np.cos(I) * np.sin(2 * np.pi * time / T))          # in cm
+            secondary = np.sqrt(2 * R_s * self.a.value * np.cos(I) * np.sin(-np.pi + 2 * np.pi * time / T)) # in cm
             return primary, secondary
 
 
-        def position_uv(q, M, I, period, time, z):
-            period_rest = period / (1 + z)
-            a = orbital_radius(M, period_rest)
+        def position_uv(q, M, I, T, time, z):
+            #P = T / (1 + z)
+            #a = orbital_radius(M, P)
 
-            if 0 < time / period < 0.5:
-                phase = np.sqrt(np.cos(2 * np.pi * time / period) ** 2 + (np.sin(I) ** 2) * np.sin(2 * np.pi * time / period) ** 2)
-                # phase = np.cos(2 * np.pi * time / period)
-                u_0 = (a * phase / einstein_radius(q, M, I, period, time, z)[0])
+            if 0 < time / T < 0.5:
+                phase = np.sqrt(np.cos(2 * np.pi * time / T) ** 2 + (np.sin(I) ** 2) * np.sin(2 * np.pi * time / T) ** 2)
+                u_0 = (self.a.value * phase / einstein_radius(q, M, I, T, time, z)[0])
 
             else:
-                phase = np.sqrt(np.cos(-np.pi + 2 * np.pi * time / period) ** 2 + np.sin(I) ** 2 * np.sin(-np.pi + 2 * np.pi * time / period) ** 2)
-                u_0 = (a * phase / einstein_radius(q, M, I, period, time, z)[1])
+                phase = np.sqrt(np.cos(-np.pi + 2 * np.pi * time / T) ** 2 + np.sin(I) ** 2 * np.sin(-np.pi + 2 * np.pi * time / T) ** 2)
+                u_0 = (self.a.value * phase / einstein_radius(q, M, I, T, time, z)[1])
 
-            v_0 = np.arctan(np.sin(I) * np.tan(2 * np.pi * time / period))
+            v_0 = np.arctan(np.sin(I) * np.tan(2 * np.pi * time / T))
             return u_0, v_0 
 
+        
         def M_point_u(u): #just a dummy function, not point-source magnification
             return (u ** 2 + 2) / (np.sqrt(u**2 + 4))
 
