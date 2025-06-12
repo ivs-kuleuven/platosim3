@@ -132,9 +132,6 @@ class PicSim(object):
             errorcode('error', 'Not a valid contaminant-to-target distance! ' +
                       'Use {30, 45, 60} arcsec')
         
-
-        
-
         
     #--------------------------------------------------------------#
     #                        PIC OF DESTINY                        #
@@ -967,7 +964,7 @@ Notes on PIC catalogue creation:
 
         """Initialise the Simbad input parameters.
         """
-
+        
         if self.verbose > 1:
             errorcode('software', '\nVizier PLATO FOV query\n')
 
@@ -979,15 +976,15 @@ Notes on PIC catalogue creation:
         self.quasar   = args.gaia_quasar
         
         # Magnitude limits
-        if args.magmin is None:
-            self.magmin = 0
+        if args.mag_min is None:
+            self.mag_min = 0
         else:
-            self.magmin = args.magmin
+            self.mag_min = args.mag_min
             
-        if args.magmax is None:
-            self.magmax = 15
+        if args.mag_max is None:
+            self.mag_max = 15
         else:
-            self.magmax = args.magmax
+            self.mag_max = args.mag_max
             
         # Check if output folder exist
         if self.outputDir:
@@ -1146,13 +1143,12 @@ Notes on PIC catalogue creation:
                 print(f'Adding stellar  columns : {self.stellar}')
                 print(f'Adding variable columns : {self.variable}')
                 print(f'Adding quasar   columns : {self.quasar}')
-                print(f'\nStart Gaia DR3 query for magnitudes : {self.magmin} - {self.magmax}')
+                print(f'\nStart Gaia DR3 query for magnitudes : {self.mag_min} - {self.mag_max}')
 
             # Query stars within the FOV of each grid
             for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
-
-                df0 = sq.gaiaRegionQuery(self.raGrid[i], self.decGrid[i], radius=self.r,
-                                         maglim_min=self.magmin, maglim_max=self.magmax,
+                df0 = sq.gaiaQueryRegion(self.raGrid[i], self.decGrid[i], radius=self.r,
+                                         maglim_min=self.mag_min, maglim_max=self.mag_max,
                                          flag_stellar=self.stellar,
                                          flag_variable=self.variable,
                                          flag_quasar=self.quasar,
@@ -1161,41 +1157,51 @@ Notes on PIC catalogue creation:
                 # Concatenate catalogue
                 if i == 0: df = df0
                 else:      df = pd.concat([df, df0])
-        
+
             # Remove duplicate stars (from overlapping grid)
-            df = df.drop_duplicates(subset=['gaiaDR3'])
+            df = df.drop_duplicates(subset=['source_gaia_dr3'])
 
             if self.verbose > 1:
                 print(f'Number of objects in stellar catalogue: {df.shape[0]}')
 
-            # Replace missing Gaia colors assuming M0 dwarfs
+            # Replace missing Gaia colors
             if df.BP_RP.isna().sum() > 0:
-                df.BP_RP[df.BP_RP.isna()] = 2.0
+                if self.quasar:
+                    # Mean value from PLATO fields 
+                    df.BP_RP[df.BP_RP.isna()] = 0.6
+                else:
+                    # Assuming M0 dwarfs for stars
+                    df.BP_RP[df.BP_RP.isna()] = 2.0
 
             # Convert Gmag to Pmag
+            dex = df.columns.get_loc('Gmag')
             if self.quasar:
-                df = df.rename(columns={'Gmag': 'Pmag'})
+                df.insert(dex, 'Pmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
+                pass
             else:
-                df['Pmag']  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
-                df['PBmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
-                df['PRmag'] = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
+                Pmag  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
+                PBmag = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
+                PRmag = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
+                df.insert(dex,   'Pmag',  Pmag)
+                df.insert(dex+1, 'PBmag', PBmag)
+                df.insert(dex+2, 'PRmag', PRmag)
 
             # If requested, add bright stars not available in the Gaia catalogue (G > 2)
             # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}
             if self.bright:
-                Sirius  = {'gaiaDR3':'1', 'ra':101.2871667, 'dec':-16.7161167,
+                Sirius  = {'source_gaia_dr3':'1', 'ra':101.2871667, 'dec':-16.7161167,
                            'Pmag':  ut.passbandConversionV2P(-1.46, 9940),
                            'PBmag': ut.passbandConversionV2P(-1.46, 9940),
                            'PRmag': ut.passbandConversionV2P(-1.46, 9940)}
-                Canopus = {'gaiaDR3':'2', 'ra': 95.9879167, 'dec':-52.6956611,
+                Canopus = {'source_gaia_dr3':'2', 'ra': 95.9879167, 'dec':-52.6956611,
                            'Pmag':  ut.passbandConversionV2P(-0.72, 7400),
                            'PBmag': ut.passbandConversionV2P(-0.59, 7400),
                            'PRmag': ut.passbandConversionV2P(-0.96, 7400)}
-                epsCMa  = {'gaiaDR3':'3', 'ra':104.6564583, 'dec':-28.9720861,
+                epsCMa  = {'source_gaia_dr3':'3', 'ra':104.6564583, 'dec':-28.9720861,
                            'Pmag':  ut.passbandConversionV2P(1.50, 22900),
                            'PBmag': ut.passbandConversionV2P(1.29, 22900),
                            'PRmag': ut.passbandConversionV2P(1.59, 22900)}
-                gamVel  = {'gaiaDR3':'4', 'ra':122.383126, 'dec':-47.336586,
+                gamVel  = {'source_gaia_dr3':'4', 'ra':122.383126, 'dec':-47.336586,
                            'Pmag':  ut.passbandConversionV2P(1.78, 21500),
                            'PBmag': ut.passbandConversionV2P(1.58, 21500),
                            'PRmag': ut.passbandConversionV2P(1.85, 21500)}
@@ -1214,7 +1220,7 @@ Notes on PIC catalogue creation:
                 # Calculate angular distance [deg]
                 dOA = ut.radialDistance(self.raGroups[i], self.decGroups[i],
                                         df.ra.to_numpy(), df.dec.to_numpy())
-                df0 = df[dOA < 19]
+                df0 = df[dOA < 20]
 
                 # Select output filename
                 ofile = f'{self.filename}_group{i+1}.ftr'
@@ -1233,7 +1239,7 @@ Notes on PIC catalogue creation:
                 
             # Copy YAML to output
             ut.copyVizierInputYAML(self.field, self.outputDir)
-            platonium = os.getenv('PLATO_PROJECT_HOME')+'/python/platosim/platonium/platonium.py'
+            platonium = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
 
             # Query stars within the FOV of each grid
             for ccd in tqdm(range(1,5), bar_format=ut.tqdmBar()):
@@ -1241,7 +1247,7 @@ Notes on PIC catalogue creation:
                     os.system(f'python {platonium} {ccd} {group} 1 1 --fullframe ' +
                               f'-i {self.outputDir}/inputfile_vizier.yaml ' +
                               f'-o {self.outputDir} --nexp 1 -v 0 -w')
-
+                    
             if self.verbose > 1:
                 print(f'\nCombing catalogues into final PLATO {self.field} catalogue')
 
@@ -1261,10 +1267,10 @@ Notes on PIC catalogue creation:
             os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
             
             # Drop a few columns
-            df = df.drop(columns=['xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
+            df = df.drop(columns=['starID', 'flux', 'xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
 
             # Sort after gaia DR3
-            df = df.sort_values(by=['gaiaDR3'])
+            df = df.sort_values(by=['source_gaia_dr3'])
 
             # Fetch N-CAM group visibility
             N = df.shape[0]
@@ -1279,15 +1285,16 @@ Notes on PIC catalogue creation:
 
                 # Subtract star ID and count zeros = N-CAM visibility:
                 # Row with highest ncams value is the one we keep below
-                diff = np.array(dx.gaiaDR3).astype(int) - int(dx.gaiaDR3.iloc[0])
+                diff = np.array(dx.source_gaia_dr3).astype(int) - int(dx.source_gaia_dr3.iloc[0])
                 ncams[i] = np.count_nonzero(diff==0)
 
-            # Add column 
-            df['ncams'] = (ncams * 6).astype(int)
+            # Add column
+            dex = df.columns.get_loc('Pmag')
+            df.insert(dex, 'ncams', (ncams * 6).astype(int))
 
             # Drop dublicates and keep highest count
-            df = df.drop_duplicates(subset=['gaiaDR3'])
-
+            df = df.drop_duplicates(subset=['source_gaia_dr3'])
+            
             # Sort after ncams and Pmag
             df0 = df.sort_values(by=['ncams', 'Pmag'])
 
@@ -1331,8 +1338,8 @@ bad_group.add_argument('--pipe_field',  type=str, metavar='[SPF, NPF, LOPS2, LOP
 
 viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')
-viz_group.add_argument('--magmin', type=float, metavar='MAG',   help='Min magnitude to query (Default: 0 mag)')
-viz_group.add_argument('--magmax', type=float, metavar='MAG',   help='Max magnitude to query (Default: 15 mag)')
+viz_group.add_argument('--mag_min', type=float, metavar='MAG',  help='Min magnitude to query (Default: 0 mag)')
+viz_group.add_argument('--mag_max', type=float, metavar='MAG',  help='Max magnitude to query (Default: 15 mag)')
 viz_group.add_argument('--yale_stars',    action='store_true',  help='Flag to add the Yale bright stars catalogue')
 viz_group.add_argument('--gaia_stellar',  action='store_true',  help='Flag to add stellar parameters to catalogue')
 viz_group.add_argument('--gaia_variable', action='store_true',  help='Flag to add variabe parameters to catalogue')

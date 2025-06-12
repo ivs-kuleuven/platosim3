@@ -1019,8 +1019,8 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 
-def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
-                         cbarOrientation=None, cbarMap='rainbow', color='r',
+def drawStarsInSkyAitoff(raStars, decStars, column=None, skymapFile=None, color='r',
+                         cbarLabel=None, cbarOrientation=None, cbarMap='rainbow',
                          title=None, fs=20, figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
@@ -1092,35 +1092,45 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     # Add the sky projection ontop as transparent layer
     
     axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
-
-    # Change cbarMap if no magnitudes are provided
-
-    if magStars is None:
-        cbarMap = None
         
     # Plot the targets on the sky (autumn_r, rainbow)
 
-    if magStars is not None:
-        im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
-                         s=ms, cmap=cbarMap, zorder=3)
+    if column is not None:
+
+        if column.name == 'ncams':
+            # Fetch custom discrete colorbar used by matplotlib
+            sep = 1
+            cbins = np.arange(column.min(), column.max()+2, sep)
+            ticks = cbins - 0.5
+            norm  = discretizeColorbar(cbins=cbins, cmap=cbarMap)
+            im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=column,
+                             s=ms, cmap=cbarMap, norm=norm, zorder=3)
+            cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
+            cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax,
+                                ticks=ticks, boundaries=cbins, format='%1i')
+        else:
+            im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=column,
+                             s=ms, cmap=cbarMap, zorder=3)
+            
+            # Vertical or horizontal colorbar showing magnitudes
+            if cbarLabel is None:
+                cbarLabel = r'PLATO passband, $P$'            
+
+            if cbarOrientation == 'vertical':
+                cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
+                cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
+            else:
+                cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
+                cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
+
+        # Set colobar for all
+        cbar.set_label(cbarLabel, fontsize=fs)
+        cbar.ax.tick_params(labelsize=fs)
+        
     else:
         im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=color,
                          s=ms, zorder=3)
         
-    # Vertical or horizontal colorbar showing magnitudes
-
-    if magStars is not None:
-        if cbarOrientation == 'vertical':
-            cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
-            cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
-            cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-            cbar.ax.tick_params(labelsize=fs)
-        else:
-            cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
-            cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
-            cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-            cbar.ax.tick_params(labelsize=fs)
-
     # Change the tick labels so that they are 0->360, rather than -180->+180
     
     tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])

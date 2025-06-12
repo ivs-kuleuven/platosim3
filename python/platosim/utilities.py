@@ -1608,7 +1608,9 @@ def copyVizierInputYAML(field, odir):
             filedata = filedata.replace('IncludeCosmicsInSmearingMap:     yes',
                                         'IncludeCosmicsInSmearingMap:     no')
             filedata = filedata.replace('IncludeCosmicsInBiasMap:         yes',
-                                        'IncludeCosmicsInBiasMap:         no')
+                                        'IncludeCosmicsInBiasMap:         no') 
+            filedata = filedata.replace('IncludeStrayLight:             yes',
+                                        'IncludeStrayLight:             no')           
             filedata = filedata.replace('UseJitter:                       yes',
                                         'UseJitter:                       no')
             filedata = filedata.replace('IncludeAberrationCorrection:     yes',
