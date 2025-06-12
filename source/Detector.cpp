@@ -3549,6 +3549,7 @@ void Detector::writeBadPixelMapToHDF5()
 {
     arma::Mat<float> badPixelCCDMap =
         arma::conv_to<arma::Mat<float>>::from(badPixelMap);
+    badPixelCCDMap.transform([](double val) {return (val > 0.5) ? 0. : 1.; });
     hdf5File.writeArray("/BadPixelMap", "CCD", badPixelCCDMap);
 
     unsigned int subFieldLastPointRow = subFieldZeroPointRow + numRowsPixelMap;
@@ -3557,7 +3558,7 @@ void Detector::writeBadPixelMapToHDF5()
 
     arma::Mat<float> badPixelSubfieldMap =
         arma::conv_to<arma::Mat<float>>::from(
-                badPixelMap.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldLastPointRow - 1, subFieldLastPointColumn - 1));
+                badPixelCCDMap.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldLastPointRow - 1, subFieldLastPointColumn - 1));
 
     hdf5File.writeArray("/BadPixelMap", "Subfield", badPixelSubfieldMap);
 }
