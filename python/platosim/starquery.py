@@ -52,8 +52,7 @@ def _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar):
     """
 
     cols = {
-        'default':['gaia.designation',
-                   'gaia.source_id',
+        'default':['gaia.source_id',
                    'gaia.ra',
                    'gaia.dec',
                    'gaia.l',
@@ -66,14 +65,14 @@ def _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar):
                    'gaia.pmra', 'gaia.pmra_error',
                    'gaia.pmdec', 'gaia.pmdec_error',
                    'gaia.ruwe'],
-        'stellar':['gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
-                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
-                   'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
-                   'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
-                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
-                   'astro.spectraltype_esphs',
-                   'astro.evolstage_flame'],
+        'stellar':['gaia.mh_gspphot',    #'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
+                   'gaia.logg_gspphot',  #'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
+                   'gaia.teff_gspphot',  #'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
+                   'astro.radius_flame', #'astro.radius_flame_lower', 'astro.radius_flame_upper',
+                   'astro.mass_flame',   #'astro.mass_flame_lower',   'astro.mass_flame_upper',
+                   'astro.lum_flame',    #'astro.lum_flame_lower',    'astro.lum_flame_upper',
+                   'astro.spectraltype_esphs'],
+                   #'astro.evolstage_flame'],
         'variable':['gaia.phot_variable_flag',
                     'astro.classlabel_espels',
                     'astro.activityindex_espcs', 'astro.activityindex_espcs_uncertainty'],
@@ -184,52 +183,51 @@ def _submit_gaia_query(query, ofile=False):
 def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
 
     # Rename columns
+    if 'source_id' in df:
+        df = df.rename(columns={'source_id': 'source_gaia_dr3'})
+    elif 'SOURCE_ID' in df:
+        df = df.rename(columns={'SOURCE_ID': 'source_gaia_dr3'})
     df = df.rename(columns={
-        'designation': 'source_gaia',
-        'source_id': 'source_gaia_dr3',
         'phot_g_mean_mag': 'Gmag',
         'bp_rp': 'BP_RP',
         'ag_gspphot': 'Ag',
         'parallax': 'plx',
         'parallax_error': 'plx_err'})
 
-    # Remove "Gaia DR" string in designation
-    df.source_gaia = df.source_gaia.str[9:]
-    
     # Convert source ids to integers
-    df.source_gaia     = df.source_gaia.astype(np.int64)
     df.source_gaia_dr3 = df.source_gaia_dr3.astype(np.int64)
     
     # Change base on columns flag
-    
+   
     if flag_stellar:
         df = df.rename(columns={
             'mh_gspphot': 'mh',
-            'mh_gspphot_upper': 'mh_upp',
+            # 'mh_gspphot_lower': 'mh_low',
+            # 'mh_gspphot_upper': 'mh_upp',
             'logg_gspphot': 'logg',
-            'logg_gspphot_lower': 'logg_low',
-            'logg_gspphot_upper': 'logg_upp',
+            # 'logg_gspphot_lower': 'logg_low',
+            # 'logg_gspphot_upper': 'logg_upp',
             'teff_gspphot': 'Teff',
-            'teff_gspphot_lower': 'Teff_low',
-            'teff_gspphot_upper': 'Teff_upp',
+            # 'teff_gspphot_lower': 'Teff_low',
+            # 'teff_gspphot_upper': 'Teff_upp',
             'radius_flame': 'R',
-            'radius_flame_lower': 'R_low',
-            'radius_flame_upper': 'R_upp',
+            # 'radius_flame_lower': 'R_low',
+            # 'radius_flame_upper': 'R_upp',
             'mass_flame': 'M',
-            'mass_flame_lower': 'M_low',
-            'mass_flame_upper': 'M_upp',
+            # 'mass_flame_lower': 'M_low',
+            # 'mass_flame_upper': 'M_upp',
             'lum_flame': 'L',
-            'lum_flame_lower': 'L_low',
-            'lum_flame_upper': 'L_upp',
+            # 'lum_flame_lower': 'L_low',
+            # 'lum_flame_upper': 'L_upp',
             'spectraltype_esphs': 'spec',
-            'evolstage_flame': 'evol',
+            #'evolstage_flame': 'evol',
         })
     
         # Round Teff column
         df = df.fillna(-1)
-        df = df.astype({'Teff':int,
-                        'Teff_low':int,
-                        'Teff_upp':int})
+        df = df.astype({'Teff':int})#,
+                        #'Teff_low':int,
+                        #'Teff_upp':int})
         df = df.replace({-1:np.nan})
 
     if flag_variable:
@@ -515,7 +513,11 @@ def simbadQuery(star, radius=45, maglim=21):
 
 
 
-def gaiaQueryCone(alpha, delta, radius=1, maglim=21):
+def gaiaQueryCone(ra, dec, radius=1,
+                  mag_min=0, mag_max=21,
+                  flag_stellar=False,
+                  flag_variable=False,
+                  flag_quasar=False):
 
     """Query sky cone region using Gaia DR3.
 
@@ -530,51 +532,53 @@ def gaiaQueryCone(alpha, delta, radius=1, maglim=21):
         The Gaia DR2 ID of the star.
     """
 
-    # Gaia query job cone
+    # Fetch requested Gaia columns
+    columns = _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar)
 
+    # Construct query
     query = f"""SELECT TOP 100000000
-    DISTANCE( POINT({alpha},{delta}), POINT(ra,dec) )
-    AS dis, source_id, ra, dec,
-    phot_g_mean_mag, bp_rp,
-    parallax, parallax_error,
-    pmra, pmdec, ruwe,
-    teff_gspphot, logg_gspphot
-    FROM gaiadr3.gaia_source AS cat
-    WHERE 1=CONTAINS(POINT({alpha}, {delta}),
-    CIRCLE(cat.ra, cat.dec, {radius}))
-    AND cat.phot_g_mean_mag < {maglim}
+    DISTANCE(POINT(ra, dec), POINT({ra}, {dec}))
+    AS dis,{columns}
+    FROM gaiadr3.gaia_source AS gaia
+    JOIN gaiadr3.astrophysical_parameters AS astro
+      ON gaia.source_id = astro.source_id
+    WHERE 1=CONTAINS(
+      POINT(gaia.ra, gaia.dec),
+      CIRCLE({ra}, {dec}, {radius}))
+    AND gaia.phot_g_mean_mag < {mag_max}
     """
-
+    
     # Launch Gaia query
-    print(query)
-    job     = Gaia.launch_job(query)
+    job = None
+    counter = 0
+    counter_max = 50
+    while job is None:
+        try:
+            job = Gaia.launch_job(query)
+        except KeyboardInterrupt:
+            ut.errorcode('error', 'User stopped script..')
+        except:
+            ut.errorcode('warning', 'Query failed due to a socket.gaierror: [Errno -3] ' +
+                         'Temporary failure in name resolution.. Retrying in 10s ...')
+            counter += 1
+            if counter == counter_max:
+                ut.errorcode('error', f'Query failed after {counter_max} attempts..')
+            time.sleep(10)
+
     results = job.get_results()
     
     # Convert astropy results table into pandas df
     df = results.to_pandas()
 
-    # Rename columns
-    df = df.rename(columns={'SOURCE_ID': 'source_gaia_dr3',
-                            'phot_g_mean_mag': 'Gmag',
-                            'bp_rp': 'BP_RP',
-                            'parallax': 'plx',
-                            'parallax_error': 'plx_err',
-                            'teff_gspphot': 'Teff',
-                            'logg_gspphot': 'logg'})
-    
-    # Relocate distance column [arcsec]
-    df.dis = (df.dis-df.dis.iloc[0]) * 3600.
-    col = df.dis.values.tolist()
-    df  = df.drop(columns=['dis'])
-    df.insert(5, 'dis', col)
+    # Adjust data frame
+    df = _rename_columns(df, flag_stellar, flag_variable, flag_quasar)
 
-    #
-    #df = df.fillna(0)
-    #df = df.astype({'Teff':int})
-    
-    # Sort and return
-    
-    return df.sort_values(by=['dis'])
+    # Relocate distance column [arcsec]
+    df = df.sort_values(by=['dis'])
+    df.dis = np.abs(df.dis-df.dis.iloc[0]) * 3600.
+
+    # Reset index and return
+    return df.reset_index(drop=True)
 
 
 
@@ -713,7 +717,6 @@ def gaiaQueryRegion(ra, dec, radius=1,
           AND gaia.phot_g_mean_mag < {maglim_max}
         """
 
-    #df = _submit_gaia_query(query, ofile)
     # Submit job
     df = None
     counter = 0
