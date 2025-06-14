@@ -202,27 +202,39 @@ class Payload(object):
         """
         
         if self.odir:
-            filename = f"{self.odir}/{self.prefix}_ncam.data"
+
+            # Files with mission quarters
+
+            filename = f"{self.odir}/{self.prefix}_ncam_v1.data"
             if self.verbose > 1:
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, self.G, self.C, self.Q,
                             fcam=False, ofile=filename)
-
-            filename = f"{self.odir}/{self.prefix}_ncam_new.data"
-            if self.verbose > 1:
-                print(f"Creating HPC parameterization file  : {filename}")
-            sm.getParamFileNew(self.N, self.G, self.C,
-                               fcam=False, ofile=filename)
             
-            filename = f"{self.odir}/{self.prefix}_fcam.data"
+            filename = f"{self.odir}/{self.prefix}_fcam_v1.data"
             if self.verbose > 1:
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
                             fcam=True, ofile=filename)
 
+            # Files without mission quarters
+            
+            filename = f"{self.odir}/{self.prefix}_ncam_v2.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, self.G, self.C, None,
+                            fcam=False, ofile=filename)
+            
+            filename = f"{self.odir}/{self.prefix}_fcam_v2.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, range(5,6), range(1,3), None,
+                            fcam=True, ofile=filename)
+
+            
 
 
-
+            
     def createJobScript(self):
 
         """Function to create a job script to be used on the VSC.
