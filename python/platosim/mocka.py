@@ -840,31 +840,32 @@ def plot_lc_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,
     return fig, ax
 
 
-
-def plot_ft_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,5)):
+def ft_io_compact(path, star, batch, name, ID):
     
     # Choose simulation
     idir = f'{path}/{star}/{batch}'
     starID = f'{ID}'.zfill(9)
 
     # Fetch final ligth curve
-    #lc = LightCurve(f'{idir}/lightcurve/lc_{starID}.ftr', mode="final")
-    #df = lc.data()
-
+    lc = LightCurve(f'{idir}/{name}/lightcurve/lc_{starID}.ftr', mode="final")
+    df = lc.data()
+    df.time /= 86400
+    df.flux *= 1e3
+    
     # Load sim table
-    #dt = pd.read_feather(f'{idir}/table/table_{starID}.ftr')    
+    dt = pd.read_feather(f'{idir}/{name}/table/table_{starID}.ftr')    
 
     # Star with ampl [mma]
     star_with_mma_ampl = [
-        'puls_DAV_TIC033986466.txt',
-        'puls_DAV_TIC101014997.txt',
-        'puls_DAV_TIC164772507.txt',
-        'puls_DBV_TIC257459955.txt',
-        'puls_DOV_TIC035062562.txt',
+        'pulsations_DAV_TIC033986466.txt',
+        'pulsations_DAV_TIC101014997.txt',
+        'pulsations_DAV_TIC164772507.txt',
+        'pulsations_DBV_TIC257459955.txt',
+        'pulsations_DOV_TIC035062562.txt',
     ]
 
     # Fetch pulsation modes (freq [mhHz], ampl [ppt, mma])
-    pfile = f'{path}/{star}/varsource/pulsations/puls_{name}.txt' 
+    pfile = f'{path}/{star}/varsource/pulsations/pulsations_{name}.txt' 
     dp = pd.read_csv(pfile)
     dp.freq = ut.muhz2cpd(dp.freq)
     filename = Path(pfile).name
@@ -875,6 +876,7 @@ def plot_ft_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,
     # Fetch and amplitude frequency limits
     flim = pt.getAxesMinMax(x=dp.freq, percentage=10)
     alim = pt.getAxesMinMax(x=dp.ampl, percentage=10)
+    if flim[0] < 0: flim = [0, flim[1]]
     
     # Generate variable template
     dv = pd.DataFrame()
@@ -887,21 +889,75 @@ def plot_ft_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,
                                              fn=flim[1], 
                                              df=np.diff(dv.time)[0], 
                                              norm='amplitude') 
+
+    # Amplitude spectrum of varsource LC
+    df_freq, df_ampl = ns.astropyLombScargle(df.time, df.flux, 
+                                             f0=flim[0], 
+                                             fn=flim[1], 
+                                             df=np.diff(df.time)[0], 
+                                             norm='amplitude') 
+    
+    # Plot
+    title= (f'Star {dt.ID[0]}: G = {dt.mag[0]:.3f}; N-CAMs = {int(dt.shape[0]/8)}; ' +
+            f'SPR = {dt.SPR.mean()*100:.2f}\%; rOA = {dt.rOA.mean():.2f}')
+
+    return df_freq, df_ampl, dv_freq, dv_ampl, flim, alim, dt
+
+
+def plot_ft_io_compact(path, star, batch, name, ID, figsize=(9,5)):
+    
+    df_freq, df_ampl, dv_freq, dv_ampl, flim, alim, dt = ft_io_compact(path, star, batch, name, ID)
     
     # Plot
     fig, ax = plt.subplots(1,1, figsize=(9,5))
-    #     ax.plot(df_freq, df_ampl*2, '-', lw=0.3, c='k', label='Simulation')
-    if plot_input:
-        ax.plot(ut.cpd2muhz(dv_freq), dv_ampl*2, '-', lw=0.3, c='orange', label='Template')
-        ax.plot(ut.cpd2muhz(dp.freq), dp.ampl, 'o', ms=7, c='limegreen', mec='k', label='Input modes')
-    plt.title(f'{filename[5:-4]}')
+    ax.plot(ut.cpd2muhz(df_freq), df_ampl*2, '-', lw=1, c='k', label='Simulation')
+    ax.plot(ut.cpd2muhz(dv_freq), dv_ampl*2, '-', lw=0.3, c='orange', label='Template')
     ax.set_ylabel(r'Amplitude, $A$ [ppt]')
     ax.set_xlabel(r'Frequency, $\nu$ [$\mu$Hz]')
-    ax.legend()
+    ax.set_title(f'ID {dt.ID[0]}: ' +  
+                 r'$n_{\rm CAM} = $' + f'{int(dt.shape[0]/8)}, ' +
+                 r'$G = $' + f'{dt.mag[0]:.1f}, ' +
+                 f'SPR = {dt.SPR.mean()*100:.1f}\%, ' +
+                 r'$\vartheta_{\rm OA} = $' + f'{dt.rOA.mean():.2f}'+r'$^\circ$')
     ax.set_xlim(ut.cpd2muhz(flim[0]), ut.cpd2muhz(flim[1]))
     ax.set_ylim(0, alim[1])
+    ax.legend()
     plt.tight_layout()
     
+    return fig, ax
+
+
+def plot_ft_io_compact_all(path, star, batch, name, figsize=(15, 10)):
+
+    if star == 'WD':
+        N = 20
+    elif star == 'SDBV':
+        N = 12
+    n = int(N/4)
+    
+    fig = plt.figure(figsize=figsize)
+    fs = 9
+    
+    for i in tqdm(range(1,N+1), bar_format=ut.tqdmBar()):
+        df_freq, df_ampl, dv_freq, dv_ampl, flim, alim, dt = ft_io_compact(path, star, batch, name, i)
+        ax = fig.add_subplot(n,n,i)
+        ax.plot(ut.cpd2muhz(df_freq), df_ampl*2, '-', lw=1, c='k', label='Simulation')
+        ax.plot(ut.cpd2muhz(dv_freq), dv_ampl*2, '-', lw=0.3, c='orange', label='Template')
+        ax.set_title(f'ID {dt.ID[0]}\n' +  
+                     r'$n_{\rm CAM} = $' + f'{int(dt.shape[0]/8)}, ' +
+                     r'$G = $' + f'{dt.mag[0]:.1f}, ' +
+                     f'SPR = {dt.SPR.mean()*100:.1f}\%, ' +
+                     r'$\vartheta_{\rm OA} = $' + f'{dt.rOA.mean():.2f}'+r'$^\circ$', 
+                     fontsize=fs)
+        ax.set_xlim(ut.cpd2muhz(flim[0]), ut.cpd2muhz(flim[1]))
+        ax.set_ylim(0, alim[1]+0.15*alim[1])
+        plt.xticks(fontsize=fs)
+        plt.yticks(fontsize=fs)
+    fig.suptitle(f'{name}', size=15)
+    fig.text(0.5, 0.17, r'Frequency, $\nu$ [$\mu$Hz]', ha='center')
+    fig.text(-0.01, 0.5, r'Amplitude, $A$ [ppt]', va='center', rotation='vertical')
+    plt.tight_layout()
+
     return fig, ax
 
 #---------------------------------------------------------------
