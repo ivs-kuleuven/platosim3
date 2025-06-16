@@ -839,6 +839,44 @@ def mm2pixels(distanceMm, focalLength, plateScale):
 
 
 
+def cpd2muhz(freq):
+
+    """Convert cycles/day to muHz.
+
+    Parameters
+    ----------
+    freq : float, ndarray
+        Frequency [cpd]
+
+    Return
+    ------
+    freq : float, ndarray
+        Frequency [muHz]
+    """    
+    return 1e6/86400 * freq
+
+
+
+
+def muhz2cpd(freq):
+
+    """Convert muHz to cycles/day.
+
+    Parameters
+    ----------
+    freq : float, ndarray
+        Frequency [muHz]
+
+    Return
+    ------
+    freq : float, ndarray
+        Frequency [cpd]
+    """    
+    return 86400/1e6 * freq
+
+
+
+
 def ppt2mmag(flux):
 
     """Convert relative flux [ppt] to relative magnitude [mmag].
@@ -853,7 +891,7 @@ def ppt2mmag(flux):
     mag : ndarray
         Relative magnitude [mmag]
     """    
-    return - 2.5 * np.log10(flux/1e3 + 1) * 1e3
+    return 2.5 * np.log10(flux/1e3 + 1) * 1e3
 
 
 
@@ -873,7 +911,7 @@ def mmag2ppt(dmag):
     flux : ndarray
         Relative flux [ppt]
     """
-    return (10**(dmag / -2.5 / 1e3) - 1) * 1e3
+    return (10**(dmag / 2.5 / 1e3) - 1) * 1e3
 
 
 
