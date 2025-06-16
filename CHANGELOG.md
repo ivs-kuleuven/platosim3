@@ -10,15 +10,25 @@
 
 ### Fixed
 
-* Issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows). 
+* Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows). 
+*
 
 ### Changed
 
-* 
+* Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4. 
+* Chnaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
+* Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
+* Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
 
 ### Added
 
 * Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
+* Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
+* Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`]
+
+### Removed
+
+* Removed `inputfile_FCAM_required.yaml` as file was outdated. New strategy is to use Python to setup a F-CAM simulations using: `simulation.useFastCamera()`.
 
 
 <!-- 3.7.0 -->
@@ -26,28 +36,28 @@
 
 ### Fixed
 
-* Bugfix in varsource.py for using wrong time column
-* Bugfix in lightcurve.py of NSR functions
-* Bugfix a conflict in pyproject.toml
-* Fixed missing return value in ClosedLoopDetectorWithAnalyticNonGaussianPSF
-* Bugfix in simulation.py when dealing with F-Camera
-* Bugfix in lightcurve.py using 'single'
+* Bugfix in `varsource.py` for using wrong time column
+* Bugfix in `lightcurve.py` of NSR functions
+* Bugfix a conflict in `pyproject.toml`
+* Fixed missing return value in `ClosedLoopDetectorWithAnalyticNonGaussianPSF`
+* Bugfix in `simulation.py` when dealing with F-Camera
+* Bugfix in `lightcurve.py` using 'single'
 * Bugfix to varsim and varsource
 * Bugfix to platonium using verbosity level 1
 * Bugfix for fetching cadence in lightcurve.py
-* Bugfix for platonium.py and payload.py
+* Bugfix for `platonium.py` and `payload.py`
 * Bugfix for model selection in detrending algorithm
-* Bugfix of analysis script for PLATO-CS in platonium
+* Bugfix of analysis script for PLATO-CS in `platonium.py`
 * Bugfix of varsim's argparse string making it fail when consulting help
 * Bugfix for parsing argument ted_ampl in payload.py
 * Bugfix in Camera.cpp so that now star position has a value for every exposure
 * Bugfix of using seed correctly for stellar flares
-* Bugfix of varsim for mocka usage
-* Bugfix of LPV and bCep model in varsim.py
-* Bugfix in RR Lyrae and Cepheid model in varsource.py
-* Bugfix in simulation.py createStarCatalogFileFromPixelCoordinates() when dealing with quaternions.
-* Bugfix in getFlux in simfile.py, this output of this function was too low.
-* Bugfix in platonium.py setting --cadence and using sim.useNormalCamera()
+* Bugfix of `varsim` for mocka usage
+* Bugfix of LPV and bCep model in `varsim.py`
+* Bugfix in RR Lyrae and Cepheid model in `varsource.py`
+* Bugfix in `simulation.py` `createStarCatalogFileFromPixelCoordinates()` when dealing with quaternions.
+* Bugfix in `getFlux` in `simfile.py`, this output of this function was too low.
+* Bugfix in platonium.py setting `--cadence` and using `sim.useNormalCamera()`
 
 ### Changed
 
