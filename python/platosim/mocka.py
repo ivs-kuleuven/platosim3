@@ -17,16 +17,19 @@ from tqdm import tqdm
 from pathlib import Path
 import scipy
 import scipy.stats as ss
-
 import matplotlib.pyplot as plt
 from matplotlib import patches, ticker
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-
 # PlatoSim imports
+import platosim.plot            as pt
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
+from platosim.lightcurve   import LightCurve
+
+# Random number generator
+rng = ut.rng(12345)
 
 #---------------------------------------------------------------
 #  FUNCTIONS FOR NOTEBOOK: 1. Star catalogues
@@ -681,6 +684,7 @@ def plot_spectype_density(col1, col2, df0):
 #  FUNCTIONS FOR NOTEBOOK: 2. Variable Signals
 #---------------------------------------------------------------
 
+
 def fetch_lognorm_fit(ampl, show=False):
     grid = 1000
 
@@ -696,10 +700,213 @@ def fetch_lognorm_fit(ampl, show=False):
         
     return A_range, A_lognorm, A_param
 
+
 #---------------------------------------------------------------
-#  FUNCTIONS FOR NOTEBOOK: 4. Analysis
+#  FUNCTIONS FOR NOTEBOOK: 4. Simulation statistics
 #---------------------------------------------------------------
 
+def fetch_contaminants(path, star='GDOR', batch='affogato', old=False):
+    """Fetch the star IDs that has a SPR > 0.
+    """
+    files_modes = natsort.natsorted(glob.glob(f'{path}/{star}/{batch}/table/*'))
+    names_stars = [Path(files_modes[i]).stem[6:] for i in range(len(files_modes))]
+    path_table  = f'{path}/{star}/{batch}/table'
+    
+    ids = []
+    for i in tqdm(names_stars, bar_format=ut.tqdmBar()):
+        dt = pd.read_feather(f'{path_table}/table_{i}.ftr') 
+        if dt.SPR.iloc[0] > 0:
+            ids.append(int(i))
+    
+    # Save and return IDs
+    ids = np.array(ids)
+    print(f'Number of {star} stars contaminated: {len(ids)}')
+    np.savetxt(f'{path}/../../slurm/cluster_varlist_{star}.txt', ids, fmt=['%i'], header='ID')
+    
+    return ids
+
+
+def fetch_table(path, star='GDOR', batch='finals_affogato', old=False):
+    """Fetch a star's simulation tables and combine to a data frame.
+    """
+    df0 = pd.DataFrame()
+    files = natsort.natsorted(glob.glob(f'{path}/{star}/{batch}/table/*'))
+    
+    for f in tqdm(files, bar_format=ut.tqdmBar()):
+        dx = pd.read_feather(f)
+        df1 = pd.DataFrame({
+            'ID': [dx.ID.iloc[0]],
+            'gaiaDR3': [dx.gaiaDR3.iloc[0]],
+            'ra': [dx.ra.iloc[0]],
+            'dec': [dx.dec.iloc[0]],
+            'Pmag': [dx.mag.iloc[0]],
+            'rOA': [dx.rOA.mean()],
+            'SPR': [dx.SPR.mean()],
+            'ncon': [dx.ncon.iloc[0]],
+            'ncam': [int(dx.shape[0]/8)]})
+        df0 = pd.concat([df0, df1])
+        
+    return df0.sort_values(by=['ncam', 'Pmag']).dropna()
+
+
+def plot_ncam_hist(df, title=None):
+    """Plot a N-CAM visibility histogram.
+    """
+    # Total number of stars after cuts
+    fig, ax = plt.subplots(1,1, figsize=(8,5))
+    order = df.ncam.unique()
+    nstar = df.shape[0]
+    df.ncam.value_counts().loc[order].plot.bar(rot=45)
+    for p,i in zip(ax.patches, range(1, df.shape[0]+1)):
+        if i in [6, 12, 18, 24]:
+            dx = 0.97
+        else:
+            dx = 1
+        ax.annotate(str(p.get_height()), (p.get_x()*dx, p.get_height()*1.1))
+    if title is not None: ax.set_title(title)
+    ax.set_xlabel(r'N-CAM visibility, $n_{\rm CAM}$')
+    ax.set_ylabel('Star count')
+    ax.set_yscale('log')
+    ax.set_ylim(0, nstar/2)
+    plt.tight_layout()
+    plt.minorticks_off()
+    plt.show()
+
+
+def plot_lc_io(path, star, batch, ID,
+               plot_input=True, figsize=(9,5)):
+    
+    # Choose simulation
+    idir = f'{path}/{star}/{batch}'
+    starID = f'{ID}'.zfill(9)
+
+    # Fetch final ligth curve
+    lc = LightCurve(f'{idir}/lightcurve/lc_{starID}.ftr', mode="final")
+    df = lc.data()
+
+    # Load sim table
+    dt = pd.read_feather(f'{idir}/table/table_{starID}.ftr')
+
+    # PLOT FINAL LIGHT CURVE
+
+    fig, ax = lc.plot(flux_unit='ppt', median_filter=1, legend=False, figsize=figsize)
+        
+    # Create varsource from pulsations
+    if plot_input:
+        dx = pd.read_feather(f'{path}/{star}/varsource/pulsations/pulsations_{starID}_001.ftr')
+        dv = pd.DataFrame()
+        # Select correct power for signal creation
+        if star in ['GDOR', 'SPB']:
+            power = 2.2
+        else:
+            power = 1.0
+        # Create data frame
+        dv['time'] = df.time / 86400
+        dv['dmag'] = ns.timeSeriesFromFourier(dv.time, dx.freq, dx.ampl, dx.phase, power=power)
+        dv['flux'] = (10**(-0.4*dv.dmag) - 1) * 1e3
+        ax.plot(dv.time, dv.flux, '-', c='orange', lw=0.3)
+
+    ax.set_title(f'Star {int(starID)}: P = {dt.mag[0]:.3f}; NCAM = {int(dt.shape[0]/8)}; ' + 
+                 f'SPR = {dt.SPR.mean():.3f}; rOA = {dt.rOA.mean():.2f}');
+    return fig, ax
+
+
+def plot_lc_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,5)):
+
+    # Choose simulation
+    idir = f'{path}/{star}/{batch}/{name}'
+    starID = f'{ID}'.zfill(9)
+
+    # Fetch final ligth curve
+    lc = LightCurve(f'{idir}/lightcurve/lc_{starID}.ftr', mode="final")
+    df = lc.data()
+
+    # Fetch target catalogue
+    dt = pd.read_feather(f'{idir}/table/table_{starID}.ftr')
+
+    # PLOT FINAL LIGHT CURVE
+    
+    fig, ax = lc.plot(flux_unit='ppt', median_filter=1, legend=False, figsize=(9,5))
+    
+    # Create varsource from pulsations
+    if plot_input:
+        dv = pd.read_csv(f'{path}/{star}/varsource/varsource/varsource_WD_{name}.txt', sep=' ', names=['time', 'dmag'])
+        dv['time'] = dv.time / 86400
+        dv['flux'] = (10**(-0.4*dv.dmag) - 1) * 1e3
+        ax.plot(dv.time, dv.flux, '-', c='orange', lw=0.3)
+    
+    ax.set_title(f'Star {dt.ID[0]}: G = {dt.mag[0]:.3f}; N-CAMs = {int(dt.shape[0]/8)}; ' +
+                 f'SPR = {dt.SPR.mean()*100:.2f}\%; rOA = {dt.rOA.mean():.2f}')
+    return fig, ax
+
+
+
+def plot_ft_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,5)):
+    
+    # Choose simulation
+    idir = f'{path}/{star}/{batch}'
+    starID = f'{ID}'.zfill(9)
+
+    # Fetch final ligth curve
+    #lc = LightCurve(f'{idir}/lightcurve/lc_{starID}.ftr', mode="final")
+    #df = lc.data()
+
+    # Load sim table
+    #dt = pd.read_feather(f'{idir}/table/table_{starID}.ftr')    
+
+    # Star with ampl [mma]
+    star_with_mma_ampl = [
+        'puls_DAV_TIC033986466.txt',
+        'puls_DAV_TIC101014997.txt',
+        'puls_DAV_TIC164772507.txt',
+        'puls_DBV_TIC257459955.txt',
+        'puls_DOV_TIC035062562.txt',
+    ]
+
+    # Fetch pulsation modes (freq [mhHz], ampl [ppt, mma])
+    pfile = f'{path}/{star}/varsource/pulsations/puls_{name}.txt' 
+    dp = pd.read_csv(pfile)
+    dp.freq = ut.muhz2cpd(dp.freq)
+    filename = Path(pfile).name
+    if filename in star_with_mma_ampl:
+        dp['ampl'] = ut.mmag2ppt(dp.ampl)
+    dp['phase'] = rng.uniform(0, 2*np.pi, dp.shape[0])
+    
+    # Fetch and amplitude frequency limits
+    flim = pt.getAxesMinMax(x=dp.freq, percentage=10)
+    alim = pt.getAxesMinMax(x=dp.ampl, percentage=10)
+    
+    # Generate variable template
+    dv = pd.DataFrame()
+    dv['time'] = np.arange(0, 2*ut.year(), 25) / 86400
+    dv['flux'] = ns.timeSeriesFromFourier(dv.time, dp.freq, dp.ampl, dp.phase, power=1)
+
+    # Amplitude spectrum of varsource LC
+    dv_freq, dv_ampl = ns.astropyLombScargle(dv.time, dv.flux, 
+                                             f0=flim[0], 
+                                             fn=flim[1], 
+                                             df=np.diff(dv.time)[0], 
+                                             norm='amplitude') 
+    
+    # Plot
+    fig, ax = plt.subplots(1,1, figsize=(9,5))
+    #     ax.plot(df_freq, df_ampl*2, '-', lw=0.3, c='k', label='Simulation')
+    if plot_input:
+        ax.plot(ut.cpd2muhz(dv_freq), dv_ampl*2, '-', lw=0.3, c='orange', label='Template')
+        ax.plot(ut.cpd2muhz(dp.freq), dp.ampl, 'o', ms=7, c='limegreen', mec='k', label='Input modes')
+    plt.title(f'{filename[5:-4]}')
+    ax.set_ylabel(r'Amplitude, $A$ [ppt]')
+    ax.set_xlabel(r'Frequency, $\nu$ [$\mu$Hz]')
+    ax.legend()
+    ax.set_xlim(ut.cpd2muhz(flim[0]), ut.cpd2muhz(flim[1]))
+    ax.set_ylim(0, alim[1])
+    plt.tight_layout()
+    
+    return fig, ax
+
+#---------------------------------------------------------------
+#  FUNCTIONS FOR NOTEBOOK: 5. Analysis
+#---------------------------------------------------------------
 
 def create_timeseries(ids, idir, odir, power=2.2):
     
