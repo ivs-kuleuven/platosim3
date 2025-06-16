@@ -719,14 +719,14 @@ class Simulation(object):
           Total gain = 1 / (gainFFE * gainCCD) = 25 e-/ADU
         """
         
-        if performance == 'required':
+        if performance == "required":
             # CCD gain F/E side: (min, max) = (1.8, 2.5)
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.15")    # [microV/e-]
             self.__setitem__("CCD/Gain/RefValueRight", "2.15")    # [microV/e-]
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.0186")  # [ADU/microV]
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")  # [ADU/microV]
 
-        elif performance == 'designed':
+        elif performance in ["expected", "designed"]:
             # CCD gain F side (min, max) = (2.08, 2.28) -> 2.18 microV/e- 
             # CCD gain E side (min, max) = (2.04, 2.26) -> 2.15 microV/e-
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.18")
@@ -735,7 +735,7 @@ class Simulation(object):
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")
 
         else:
-            raise ValueError("Not valid entry! Use either 'required' or 'designed'")
+            raise ValueError("Not valid performance entry! Use either ['required', 'expected', 'designed']")
         
         return
 
@@ -779,14 +779,14 @@ class Simulation(object):
             darkStability = 5.0
             DSNU          = 15.0
 
-        elif performance == "designed":
+        elif performance in ["expected", "designed"]:
             readNoiseCCD  = ut.evalLinReg(times, np.array([23.2,   25.0]), timeFromBOL)
             darkCurrent   = ut.evalLinReg(times, np.array([ 0.544,  4.0]), timeFromBOL)
             darkStability = 0.7
             DSNU          = 13.0
             
         else:
-            raise ValueError("Not valid entry! Usage in ['required', 'designed']")
+            raise ValueError("Not valid performance entry! Use either ['required', 'expected', 'designed']")
 
         # Set all parameters from above
         
@@ -821,7 +821,7 @@ class Simulation(object):
         
         # If requested, select basic input parameters from MPD
 
-        if performance in ["required", "designed"]:
+        if performance in ["required", "expected", "designed"]:
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL)
 
