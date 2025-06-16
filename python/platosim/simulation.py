@@ -835,7 +835,7 @@ class Simulation(object):
         elif performance == 'expected':
             self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8752")
             self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8752")
-            # TODO No QE values for the "as designed" scenario in MPDB! We use "as designed":            
+            # TODO No QE values for the "as designed" scenario in MPDB! We use "as designed":
             self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6552")
 
         elif performance == 'designed':
@@ -891,24 +891,27 @@ class Simulation(object):
         # NOTE the 'as designed' tranmission efficiency is identical for both F-CAMs
         
         if passband == "blue":
+
+            # Parameters that are the same for all requirements
+            self.__setitem__("ObservingParameters/Fluxm0", "1.195e8")
             
             if performance == 'required':
                 self.__setitem__("Camera/ThroughputLambdaC",   "578")
                 self.__setitem__("Camera/ThroughputBandwidth", "145")
                 self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6745")
                 self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6549")
-                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8505")                
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8505")     
                 
             elif performance == 'expected':
                 self.__setitem__("Camera/ThroughputLambdaC",   "585")                
                 self.__setitem__("Camera/ThroughputBandwidth", "165")                
                 self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6566")
                 self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6566")
-                # TODO No QE values for the "as expected" scenario in MPDB! We use designed:                
+                # TODO No QE values for the "as expected" scenario in MPDB! We use designed:   
                 self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8986")
 
             elif performance == 'designed':
-                self.__setitem__("Camera/ThroughputLambdaC",   "600")                
+                self.__setitem__("Camera/ThroughputLambdaC",   "600")
                 self.__setitem__("Camera/ThroughputBandwidth", "200")
                 self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8578")
                 self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8578")
@@ -916,10 +919,11 @@ class Simulation(object):
                 
         elif passband == "red":
 
-            # NOTE These are the same for all requirements
+            # Parameters that are the same for all requirements
+            self.__setitem__("ObservingParameters/Fluxm0", "0.923e8")
             self.__setitem__("Camera/ThroughputLambdaC",   "833")                
             self.__setitem__("Camera/ThroughputBandwidth", "335")
-            
+           
             if performance == 'required':
                 self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6980")
                 self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6845")
