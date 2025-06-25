@@ -1012,32 +1012,33 @@ Notes on PIC catalogue creation:
         # Make a grid in azimuth and tilt angles and find the sky coordinates [deg]
 
         # Grid constants [deg]
-        r = 7.3                    # Radius of grid point search
-        a = 10.2                   # Distance between equidistant grid points
+        r = 2.80                   # Radius of grid point search
+        a = 3.95                   # Distance between equidistant grid points
         c = np.sqrt(2*a**2)        # Diagonal distance of grid points
         b = np.sqrt(a**2+(2*a)**2) # Semi-diagonal distance of grid points
-              
-        gridCC = [(-2*a, +2*a), (-1*a, +2*a), (0, +2*a), (+1*a, +2*a), (+2*a, +2*a),
-                  (-2*a, +1*a), (-1*a, +1*a), (0, +1*a), (+1*a, +1*a), (+2*a, +1*a),
-                  (-2*a, +0*a), (-1*a, +0*a), (0, +0*a), (+1*a, +0*a), (+2*a, +0*a),
-                  (-2*a, -1*a), (-1*a, -1*a), (0, -1*a), (+1*a, -1*a), (+2*a, -1*a),
-                  (-2*a, -2*a), (-1*a, -2*a), (0, -2*a), (+1*a, -2*a), (+2*a, -2*a)]
-        
-        gridEQ = [( -45.0, 2*c), ( -22.5, b), (  0, 2*a), ( 67.5, b), ( 45.5, 2*c),
-                  ( -67.5,   b), ( -45.0, c), (  0,   a), ( 45.0, c), ( 22.5,   b),
-                  ( -90.0, 2*a), ( -90.0, a), (  0,   0), ( 90.0, a), ( 90.0, 2*a),
-                  (-112.5,   b), (-135.0, c), (180,   a), (135.0, c), (112.5,   b), 
-                  (-135.0, 2*c), (-157.5, b), (180, 2*a), (157.5, b), (135.0, 2*c)]
+        n = 6                      # Half-grid points
+
+        # Create Cartesian grid
+        gridCC = []
+        for xx in range(-n, n+1):
+            for yy in range(-n, n+1):
+                # Cut-off cornors
+                if ((xx == -n and yy == -n) or (xx == -n and yy == -n+1) or (xx == -n+1 and yy == -n) or
+                    (xx == -n and yy == +n) or (xx == -n and yy == +n-1) or (xx == -n+1 and yy == +n) or 
+                    (xx == +n and yy == -n) or (xx == +n and yy == -n+1) or (xx == +n-1 and yy == -n) or
+                    (xx == +n and yy == +n) or (xx == +n and yy == +n-1) or (xx == +n-1 and yy == +n)):
+                    pass
+                else:
+                    gridCC.append((xx*a, yy*a))
 
         # Get grid points in sky coordinates [deg]   
-        x = np.zeros(len(gridEQ))
-        y = np.zeros(len(gridEQ))
-        for i in range(len(gridEQ)):
-            x[i], y[i] = rf.platformToTelescopePointingCoordinates(self.alpha,
-                                                                   self.delta,
-                                                                   self.kappa,
-                                                                   np.deg2rad(gridEQ[i][0]),
-                                                                   np.deg2rad(gridEQ[i][1]))
+        x = np.zeros(len(gridCC))
+        y = np.zeros(len(gridCC))
+        for i in range(len(gridCC)):
+            gridEQ = ut.cart2pol(gridCC[i][0], gridCC[i][1])
+            x[i], y[i] = rf.platformToTelescopePointingCoordinates(self.alpha, self.delta, self.kappa,
+                                                                   np.deg2rad(gridEQ[0]),
+                                                                   np.deg2rad(gridEQ[1]))
         self.raGrid  = np.rad2deg(x)
         self.decGrid = np.rad2deg(y)
 
@@ -1048,7 +1049,7 @@ Notes on PIC catalogue creation:
         # Plot grid used for query
         if self.plot:
             self.plotVizier()
-        
+
         
 
 
@@ -1138,7 +1139,9 @@ Notes on PIC catalogue creation:
         
         # Check if catalogue already exist
         starcat = Path(self.outputDir) / f'starcat_GaiaDR3_{self.field}_group1.ftr'
-        if not starcat.is_file():
+        if starcat.is_file():
+            errorcode('warning', 'Camera group output files already exists, skipping query')
+        else:
             if self.verbose > 1:
                 print(f'Adding stellar  columns : {self.stellar}')
                 print(f'Adding variable columns : {self.variable}')
@@ -1147,8 +1150,9 @@ Notes on PIC catalogue creation:
 
             # Query stars within the FOV of each grid
             for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
+                #print(self.raGrid[i], self.decGrid[i], self.r)
                 df0 = sq.gaiaQueryRegion(self.raGrid[i], self.decGrid[i], radius=self.r,
-                                         maglim_min=self.mag_min, maglim_max=self.mag_max,
+                                         mag_min=self.mag_min, mag_max=self.mag_max,
                                          flag_stellar=self.stellar,
                                          flag_variable=self.variable,
                                          flag_quasar=self.quasar,
@@ -1235,7 +1239,7 @@ Notes on PIC catalogue creation:
         # Run PLATOnium simulations to create final catalogue
         if self.flag_combine:
             if self.verbose > 1:
-                print(f'\nRunning PLATOnium find stars within the focal plane')
+                print(f'\nRunning PLATOnium to find stars within the focal plane')
                 
             # Copy YAML to output
             ut.copyVizierInputYAML(self.field, self.outputDir)
@@ -1247,9 +1251,9 @@ Notes on PIC catalogue creation:
                     os.system(f'python {platonium} {ccd} {group} 1 1 --fullframe ' +
                               f'-i {self.outputDir}/inputfile_vizier.yaml ' +
                               f'-o {self.outputDir} --nexp 1 -v 0 -w')
-                    
+
             if self.verbose > 1:
-                print(f'\nCombing catalogues into final PLATO {self.field} catalogue')
+                print(f'\nCombing catalogues into a final PLATO {self.field} catalogue')
 
             # Load full-frame stellar catalogues
             df = pd.DataFrame()

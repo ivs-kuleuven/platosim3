@@ -51,7 +51,6 @@ def setup():
 
 
 def latex():    
-    setup()
     # Check if LaTeX is installed
     if shutil.which('latex'):
         plt.rcParams['text.usetex'] = True
@@ -64,6 +63,7 @@ def setup_notebook(warning=True):
     latex()    
     if not warning:
         warnings.simplefilter("ignore")
+
         
 def setup_paper(warning=True):
     setup()

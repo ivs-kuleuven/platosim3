@@ -65,14 +65,14 @@ def _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar):
                    'gaia.pmra', 'gaia.pmra_error',
                    'gaia.pmdec', 'gaia.pmdec_error',
                    'gaia.ruwe'],
-        'stellar':['gaia.mh_gspphot',    #'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
-                   'gaia.logg_gspphot',  #'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
-                   'gaia.teff_gspphot',  #'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
-                   'astro.radius_flame', #'astro.radius_flame_lower', 'astro.radius_flame_upper',
-                   'astro.mass_flame',   #'astro.mass_flame_lower',   'astro.mass_flame_upper',
-                   'astro.lum_flame',    #'astro.lum_flame_lower',    'astro.lum_flame_upper',
-                   'astro.spectraltype_esphs'],
-                   #'astro.evolstage_flame'],
+        'stellar':['gaia.mh_gspphot',    'gaia.mh_gspphot_lower',    'gaia.mh_gspphot_upper',
+                   'gaia.logg_gspphot',  'gaia.logg_gspphot_lower',  'gaia.logg_gspphot_upper',
+                   'gaia.teff_gspphot',  'gaia.teff_gspphot_lower',  'gaia.teff_gspphot_upper',
+                   'astro.radius_flame', 'astro.radius_flame_lower', 'astro.radius_flame_upper',
+                   'astro.mass_flame',   'astro.mass_flame_lower',   'astro.mass_flame_upper',
+                   'astro.lum_flame',    'astro.lum_flame_lower',    'astro.lum_flame_upper',
+                   'astro.spectraltype_esphs',
+                   'astro.evolstage_flame'],
         'variable':['gaia.phot_variable_flag',
                     'astro.classlabel_espels',
                     'astro.activityindex_espcs', 'astro.activityindex_espcs_uncertainty'],
@@ -202,32 +202,30 @@ def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
     if flag_stellar:
         df = df.rename(columns={
             'mh_gspphot': 'mh',
-            # 'mh_gspphot_lower': 'mh_low',
-            # 'mh_gspphot_upper': 'mh_upp',
+            'mh_gspphot_lower': 'mh_low',
+            'mh_gspphot_upper': 'mh_upp',
             'logg_gspphot': 'logg',
-            # 'logg_gspphot_lower': 'logg_low',
-            # 'logg_gspphot_upper': 'logg_upp',
+            'logg_gspphot_lower': 'logg_low',
+            'logg_gspphot_upper': 'logg_upp',
             'teff_gspphot': 'Teff',
-            # 'teff_gspphot_lower': 'Teff_low',
-            # 'teff_gspphot_upper': 'Teff_upp',
+            'teff_gspphot_lower': 'Teff_low',
+            'teff_gspphot_upper': 'Teff_upp',
             'radius_flame': 'R',
-            # 'radius_flame_lower': 'R_low',
-            # 'radius_flame_upper': 'R_upp',
+            'radius_flame_lower': 'R_low',
+            'radius_flame_upper': 'R_upp',
             'mass_flame': 'M',
-            # 'mass_flame_lower': 'M_low',
-            # 'mass_flame_upper': 'M_upp',
+            'mass_flame_lower': 'M_low',
+            'mass_flame_upper': 'M_upp',
             'lum_flame': 'L',
-            # 'lum_flame_lower': 'L_low',
-            # 'lum_flame_upper': 'L_upp',
+            'lum_flame_lower': 'L_low',
+            'lum_flame_upper': 'L_upp',
             'spectraltype_esphs': 'spec',
-            #'evolstage_flame': 'evol',
+            'evolstage_flame': 'evol',
         })
     
         # Round Teff column
         df = df.fillna(-1)
-        df = df.astype({'Teff':int})#,
-                        #'Teff_low':int,
-                        #'Teff_upp':int})
+        df = df.astype({'Teff':int, 'Teff_low':int, 'Teff_upp':int})
         df = df.replace({-1:np.nan})
 
     if flag_variable:
@@ -262,72 +260,6 @@ def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
 #--------------------------------------------------------------#
 #                          FUNCTIONS                           #
 #--------------------------------------------------------------#
-
-
-def ticQuery(star, radius=2, Vmax=18, outFile=None):
-
-    """Query TIC catalog for stars around a given named source below a given V magnitude.
-
-    Parameters
-    ----------
-    offs : float, optional; <0>
-        Horizontal movement additional to default.
-    dig : int, optional; <0>
-        Number of decimals after the comma.
-    side : string, optional; {<'left'>, 'right'}
-        To choose the side of the y-axis notation.
-    omit_last : bool, optional; <False>
-        If True, the top y-axis-label is omitted.
-
-    Returns
-    -------
-    locs : list
-        List of y-tick locations.
-
-    Note
-    ----
-    This is kind of a non-satisfying hack, which should be handled more
-    properly. But it works. Functions to look at for a better implementation:
-    ax.ticklabel_format
-    ax.yaxis.major.formatter.set_offset_string
-    """
-
-    # Get the ticks
-    locs, _ = plt.yticks()
-
-    # Put the last entry into a string, ensuring it is in scientific notation
-    # E.g: 123456789 => '1.235e+08'
-    llocs = '%.3e' % locs[-1]
-
-    # Get the magnitude, hence the number after the 'e'
-    # E.g: '1.235e+08' => 8
-    yoff = int(str(llocs).split('e')[1])
-
-    # If omit_last, remove last entry
-    if omit_last:
-        slocs = locs[:-1]
-    else:
-        slocs = locs
-
-    # Set ticks to the requested precision
-    form = r'$%.' + str(dig) + 'f$'
-    plt.yticks(locs, list(map(lambda x: form % x, slocs / (10 ** yoff))))
-
-    # Define offset depending on the side
-    if side == 'left':
-        x_offs = -.18 - x_offs  # Default left: -0.18
-    elif side == 'right':
-        x_offs = 1 + x_offs  # Default right: 1.0
-
-    # Plot the exponent
-    plt.text(x_offs, y_offs, r'$\times10^{%i}$' % yoff, transform=
-    plt.gca().transAxes, verticalalignment='top')
-
-    # Return the locs
-    return locs
-
-
-
 
 
 def ticQuery(star, radius=2, Vmax=18, outFile=None):
@@ -417,11 +349,7 @@ def gaiaQuery(star):
     raise LookupError(f"No Gaia DR2 ID for {star} (probably a multiple star)")
 
 
-
-
-
-
-def simbadQuery(star, radius=45, maglim=21):
+def simbadQuery(star, radius=60, maglim=21):
 
     """Query Gaia for a named star and return the Gaia DR2 ID.
 
@@ -551,7 +479,7 @@ def gaiaQueryCone(ra, dec, radius=1,
     # Launch Gaia query
     job = None
     counter = 0
-    counter_max = 50
+    counter_max = 10
     while job is None:
         try:
             job = Gaia.launch_job(query)
@@ -593,7 +521,7 @@ def gaiaQueryID(source_id, ra, dec, radius=0.01,
     Parameters
     ----------
     source_id : int64, ndarray
-        Gaia DR3 source ID(s)
+=        Gaia DR3 source ID(s)
     ofile : str
         File name (without file extension) to be saved
 
@@ -646,7 +574,7 @@ def gaiaQueryID(source_id, ra, dec, radius=0.01,
 
 
 def gaiaQueryRegion(ra, dec, radius=1,
-                    maglim_min=0, maglim_max=17,
+                    mag_min=0, mag_max=17,
                     flag_stellar=False, flag_variable=False, flag_quasar=False,
                     ofile=False):
 
@@ -700,8 +628,8 @@ def gaiaQueryRegion(ra, dec, radius=1,
         WHERE 1=CONTAINS(
           POINT(gaia.ra, gaia.dec),
           CIRCLE({ra}, {dec}, {radius}))
-          AND gaia.phot_g_mean_mag > {maglim_min}
-          AND gaia.phot_g_mean_mag < {maglim_max}
+          AND gaia.phot_g_mean_mag > {mag_min}
+          AND gaia.phot_g_mean_mag < {mag_max}
           AND astro.classprob_dsc_combmod_quasar > 0.99
         """ # AND quasar.vari_best_class_name = AGN
     else:
@@ -713,10 +641,30 @@ def gaiaQueryRegion(ra, dec, radius=1,
         WHERE 1=CONTAINS(
           POINT(gaia.ra, gaia.dec),
           CIRCLE({ra}, {dec}, {radius}))
-          AND gaia.phot_g_mean_mag > {maglim_min}
-          AND gaia.phot_g_mean_mag < {maglim_max}
+          AND gaia.phot_g_mean_mag > {mag_min}
+          AND gaia.phot_g_mean_mag < {mag_max}
         """
 
+    # # Launch Gaia query
+    # job = None
+    # counter = 0
+    # counter_max = 10
+    # while job is None:
+    #     try:
+    #         job = Gaia.launch_job(query)
+    #     except KeyboardInterrupt:
+    #         ut.errorcode('error', 'User stopped script..')
+    #     except:
+    #         ut.errorcode('warning', 'Query failed due network error to Gaia database: Retrying in 10s..')
+    #         counter += 1
+    #         if counter == counter_max:
+    #             ut.errorcode('error', f'Query failed after {counter_max} attempts..')
+    #         time.sleep(10)
+    
+    # # Convert astropy results table into pandas df
+    # results = job.get_results()
+    # df = results.to_pandas()
+        
     # Submit job
     df = None
     counter = 0
@@ -727,8 +675,7 @@ def gaiaQueryRegion(ra, dec, radius=1,
         except KeyboardInterrupt:
             ut.errorcode('error', 'User stopped script..')
         except:
-            ut.errorcode('warning', 'Query failed due to a socket.gaierror: [Errno -3] ' +
-                         'Temporary failure in name resolution.. Retrying in 10s ...')
+            ut.errorcode('warning', 'Query failed due network error to Gaia database: Retrying in 10s..')
             counter += 1
             if counter == counter_max:
                 ut.errorcode('error', f'Query failed after {counter_max} attempts..')
