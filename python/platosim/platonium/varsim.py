@@ -912,8 +912,8 @@ class VarSim(object):
         wave_equi_b, flux_equi_b = ut.rebin3(wave_b, wave_star, flux_star)
 
         # Flux within passbands
-        flux_tran_a = flux_equi_a * tran_a
-        flux_tran_b = flux_equi_b * tran_b
+        flux_tran_a = flux_equi_a * tran_a * wave_equi_a
+        flux_tran_b = flux_equi_b * tran_b * wave_equi_b
 
         # Debug-------------------------------------------
         # plt.figure(figsize=(8,6))
@@ -1046,8 +1046,12 @@ class VarSim(object):
                 
         # Plot rsults
         if self.plot:
-            pt.plot_amplitude_spectrum(self.lc, numax=params_puls[0])
-
+            pt.plotGranOscAmplitudeSpectrum(self.lc, numax=params_puls[0])
+        
+        # Convert to relative flux [ppm -> pp1]
+        self.lc.gran = self.lc.gran / 1e6 + 1
+        self.lc.puls = self.lc.puls / 1e6 + 1
+            
 
     def solar_spots(self):
 
@@ -1089,7 +1093,7 @@ class VarSim(object):
             print(f'Inclination   : {params[9]:.3f} deg')
 
         # Store global variables
-        self.lc['spot'] = lc * 1e6
+        self.lc['spot'] = lc + 1
         self.df['B_V']       = params[0]
         self.df['logR_HK']   = params[1]
         self.df['AR_ARsun']  = params[2]
@@ -1104,8 +1108,7 @@ class VarSim(object):
         
         # Plot model
         if self.plot:
-            model.plot()
-            plt.show()
+            model.plot(); plt.show()
 
             
     def solar_flares(self):
@@ -1154,7 +1157,7 @@ class VarSim(object):
         lc, df = model.evaluate()
 
         # Store global variables
-        self.lc['flare']   = (lc - 1) * 1e6
+        self.lc['flare']   = lc
         self.df['R_flare'] = params[0]
         self.df['N_flare'] = params[1]
         
@@ -1298,10 +1301,10 @@ class VarSim(object):
                 print('Generating mock object from toy model')
             model.initToyModel([5, 30], [0.01, 0.03])
 
-        # Return model [mag -> ppm]
+        # Return model [mag -> pp1]
         mag = model.evaluate(plot=args.plot)
         self.lc['puls'] = ut.fromMagToFlux(mag)
-
+        
 
     def star_gdor(self):
 
@@ -1591,7 +1594,7 @@ class VarSim(object):
         
     def ldc(self):
 
-        """Compute the Limb Darkening (LD) coefficients.
+        """Compute the Limbm Darkening (LD) coefficients.
 
         This module uses the code: LDTk        
         """
@@ -1682,7 +1685,7 @@ class VarSim(object):
         - The time seperation between transit and occultation in the following is a
           first order approximation in "e" by integrating "dt/dF".
         """
-
+        
         # Stellar parameters
         time = self.time.to('d')
         Ms   = self.M.to('kg')
@@ -1778,7 +1781,6 @@ class VarSim(object):
             xi = 0.
             Tn = 0.
             dT = 0.
-
             
         # ORBITAL DYNAMICS
 
@@ -1796,10 +1798,10 @@ class VarSim(object):
         # Transit and occultation times: Winn (2014) Eq. 14, 15 & 16
         ep = x/(1 + e*np.sin(w)) / u.rad
         em = x/(1 - e*np.sin(w)) / u.rad
-        t_tra_tot = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 + k)**2 - b_tra**2)/np.sin(i) ) * ep
-        t_tra_ful = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 - k)**2 - b_tra**2)/np.sin(i) ) * ep
-        t_occ_tot = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 + k)**2 - b_occ**2)/np.sin(i) ) * em
-        t_occ_ful = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 - k)**2 - b_occ**2)/np.sin(i) ) * em
+        t_tra_tot = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 + k)**2 - b_tra**2)/np.sin(i)) * ep
+        t_tra_ful = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 - k)**2 - b_tra**2)/np.sin(i)) * ep
+        t_occ_tot = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 + k)**2 - b_occ**2)/np.sin(i)) * em
+        t_occ_ful = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 - k)**2 - b_occ**2)/np.sin(i)) * em
         tau_tra = (t_tra_tot - t_tra_ful)/2.
         tau_occ = (t_occ_tot - t_occ_ful)/2.
 
@@ -1819,6 +1821,12 @@ class VarSim(object):
         # Show parameters apce
         if self.verbose > 1:
             errorcode('module', '\nPlanet eclipse model')
+
+        # Calculate LD coefficients
+        self.ldc()
+
+        # Show parameters apce
+        if self.verbose > 1:
             print('')
             print("Planet name            : {}".format(args.planet))
             print("Planet mass            : {:.2f}".format(Mp.to('M_earth')))
@@ -1898,8 +1906,8 @@ class VarSim(object):
         #batman_params.t_secondary = 0.5
         
         # Initializes transit model and extract light curve [ppm]
-        model = batman.TransitModel(batman_params, self.time.value) #, transittype='secondary')
-        self.lc['tran'] = (model.light_curve(batman_params) - 1) * 1e6
+        model = batman.TransitModel(batman_params, self.time.value) #,transittype='secondary')
+        self.lc['tran'] = model.light_curve(batman_params)
 
         # True anomaly at each time: This will be used in our custom models later
         self.nu = model.get_true_anomaly()
@@ -1931,8 +1939,7 @@ class VarSim(object):
         """
 
         # TODO small fix until module is tested again!
-        lc_occu = np.zeros(len(self.time))
-        self.lc['occu'] = lc_occu.tolist()
+        self.lc['occu'] = np.ones(len(self.time))
         return
 
         
@@ -2049,9 +2056,7 @@ class VarSim(object):
         # Assign and calculate model
         model_beam.assignValue(params_beam)
         lc_beam, self.A_beam = model_beam.evaluate(self.time, self.nu)
-
-        # Combine models
-        self.lc['beam'] = lc_beam.tolist()
+        self.lc['beam'] = lc_beam / 1e6 + 1
 
 
     def planet_ellipsoidal(self):
@@ -2078,32 +2083,27 @@ class VarSim(object):
         # Assign and calculate model
         model_elli.assignValue(params_elli)
         lc_elli, self.A_elli = model_elli.evaluate(self.time, self.nu)
-
-        # Combine models
-        self.lc['elli'] = lc_elli.tolist()
+        self.lc['elli'] = lc_elli / 1e6 + 1
 
         
     def plot_phase_curve(self):
 
         # Plot exoplanet model
         if (self.time[-1] >= self.P.to('d') + self.t0.to('d')):
-            fig = plt.figure(figsize=(13, 10))
-            # Adjust times
-            lc_exo = self.lc['tran'] + self.lc['occu'] + self.lc['beam'] + self.lc['elli']
-            pt.plot_orbital_phase_curve(fig, self.time.value,
-                                        self.lc['tran'].to_numpy(),
-                                        self.lc['occu'].to_numpy(),
-                                        self.lc['beam'].to_numpy(),
-                                        self.lc['elli'].to_numpy(),
-                                        lc_exo.to_numpy(),
-                                        self.t0.to('d').value,
-                                        self.P.to('d').value,
-                                        self.dt_c.to('d').value,
-                                        self.t0_tra_cen.to('d').value,
-                                        self.t_tra_tot.to('d').value,
-                                        self.t0_occ_cen.to('d').value,
-                                        self.t_occ_tot.to('d').value,
-                                        self.A_beam, self.A_elli)
+            fig, ax = pt.plotOrbitalPhaseCurve(self.time.value,
+                                               self.lc['tran'].to_numpy(),
+                                               self.lc['occu'].to_numpy(),
+                                               self.lc['beam'].to_numpy(),
+                                               self.lc['elli'].to_numpy(),
+                                               self.t0.to('d').value,
+                                               self.P.to('d').value,
+                                               self.dt_c.to('d').value,
+                                               self.t0_tra_cen.to('d').value,
+                                               self.t_tra_tot.to('d').value,
+                                               self.t0_occ_cen.to('d').value,
+                                               self.t_occ_tot.to('d').value,
+                                               self.A_beam, self.A_elli)
+            plt.show()
             
         elif (self.time[-1] < self.P.to('d') + self.t0.to('d')):
             errorcode('warning',
@@ -2244,51 +2244,40 @@ class VarSim(object):
             args.spot is False and args.flare is False):
             self.star = 'constant'
 
-        # Combine all signals for solar-like stars
-        if (not self.star in stars and
-            not self.binary in binaries and
-            self.mocka_solar == True or
-            self.star in stars and args.puls):
+        # Combine all signals any other variable source
+        else:
+            # Empty array to store flux [pp1]
+            self.lc['flux'] = np.ones(len(self.lc.time))
 
-            # Granulation and pulsation are additive
-            self.lc['flux'] = np.zeros(len(self.lc.time))
-
-            if self.star in stars and args.puls:
-                self.lc.puls = (self.lc.puls - 1) * 1e6 
-
+            # Stellar variability
             if 'gran' in self.lc:
-                self.lc['flux'] += self.lc.gran
+                self.lc['flux'] += (self.lc.gran - 1)
             if 'puls' in self.lc:
-                self.lc['flux'] += self.lc.puls
+                self.lc['flux'] += (self.lc.puls - 1)
             if 'spot' in self.lc:
-                self.lc['flux'] += self.lc.spot
+                self.lc['flux'] += (self.lc.spot - 1)
             if 'flare' in self.lc:
-                self.lc['flux'] += self.lc.flare
+                self.lc['flux'] += (self.lc.flare - 1)
 
-            # Convert to relative flux to multiply with transits
-            self.lc['flux'] = self.lc['flux'] / 1e6 + 1 
-
-            # Combined planet signal
+            # Planet/binary variability
             if 'tran' in self.lc:
                 flux_planet = self.lc.tran
                 if 'occu' in self.lc:
-                    flux_planet += self.lc.occu
+                    flux_planet += (self.lc.occu - 1)
                 if 'beam' in self.lc:
-                    flux_planet += self.lc.beam
+                    flux_planet += (self.lc.beam - 1)
                 if 'elli' in self.lc:
-                    flux_planet += self.lc.elli
+                    flux_planet += (self.lc.elli - 1)
 
                 # Spots and transits are multiplicative
-                self.lc['flux'] *= (flux_planet / 1e6 + 1)
+                self.lc['flux'] *= flux_planet
 
-            # Final flux column [ppm]
-            self.lc.flux = (self.lc.flux - 1) * 1e6
-                
             # Plot combined light curve
-            if self.plot and self.star != 'constant':
-                fig, ax = pt.plot_final_lc(self.lc)
+            
+            if self.plot and self.lc.shape[1] > 3:
+                fig, ax = pt.plotVarsimLC(self.lc)
                 plt.show()
-                                            
+
         # SAVE DATA
 
         if self.ofile:
@@ -2297,9 +2286,9 @@ class VarSim(object):
             ofile_parameters = self.ofile.parents[0] / f'{self.ofile.stem}_parameters.ftr'
             ofile_components = self.ofile.parents[0] / f'{self.ofile.stem}_components.ftr'
             ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
-
-            # Convert to magnitude [mag]
-            df = self.lc.flux.to_numpy() / 1e6 + 1
+            
+            # Convert to magnitude [pp1 -> mag]
+            df = self.lc.flux.to_numpy()
             dm = - 2.5 * np.log10(df)            
 
             # Save light curve
@@ -2323,8 +2312,10 @@ class VarSim(object):
             
             # Save pulsation modes for MOCKA
             if args.puls == 'mocka':
-                try: self.dm
-                except AttributeError: return
+                try:
+                    self.dm
+                except AttributeError:
+                    return
                 else:
                     if self.verbose > 1:
                         print(f'Saving file : {ofile_pulsations}')                
@@ -2386,16 +2377,15 @@ class VarSim(object):
 
             # Solar-like stars
             elif args.star or args.star_params:
+                if args.gran and args.puls:
+                    v.solar_granosc()
                 if args.spot:
                     v.solar_spots()
                 if args.flare is not False:
                     v.solar_flares()
-                if args.gran and args.puls:
-                    v.solar_granosc()
                     
         # Include exoplanet
         if args.planet or args.planet_params:
-            v.ldc()
             v.planet_model()
             v.planet_transit()
             v.planet_occultation()
@@ -2493,7 +2483,7 @@ class VarSim(object):
         self.odir.mkdir(parents=True, exist_ok=True)
 
         # NOTE hard-coded VSC directory
-        vsc_scratch = f'/scratch/leuven/341/vsc34166/platosim/mocka/{starType}/varsource/{starDir}'
+        vsc_scratch = f'/scratch/leuven/341/vsc34166/platosim/{project}/{starType}/varsource/{starDir}'
         
         # Select target star
         df_i = df0.loc[self.starID-1]

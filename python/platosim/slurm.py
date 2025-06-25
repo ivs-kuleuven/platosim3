@@ -169,7 +169,7 @@ def getJobScript(ids, groups, cameras, quarters,
 
 
 
-def getParamFile(ids, groups, cameras, quarters=None, fcam=False, ofile=False):
+def getParamFile(ids, groups, cameras=None, quarters=None, fcam=False, ofile=False):
 
     """Function to create a job script to be used on the VSC.
 
@@ -200,7 +200,15 @@ def getParamFile(ids, groups, cameras, quarters=None, fcam=False, ofile=False):
         C = range(1,3)
 
     # Add rows in a loop
-    if quarters is None:
+
+    if cameras is None and quarters is None:
+        # Add rows in a loop
+        textfile = "id,group\n"
+        for idNo in ids:
+            for groupNo in groups:
+                textfile += f"{idNo},{groupNo}\n"
+    
+    elif quarters is None:
         # Add rows in a loop
         textfile = "id,group,camera\n"
         for idNo in ids:

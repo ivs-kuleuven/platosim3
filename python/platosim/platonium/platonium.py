@@ -412,138 +412,141 @@ class PLATOnium(object):
             self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)
 
         # SUBFIELD
-
-        def check_passband_magnitude(df):
-            """Utility to fetch correct magnitude name.
-            """
-            if 'PIC' in df:
-                self.colID = 'PIC'
-            elif 'gaiaDR3' in df:
-                self.colID = 'gaiaDR3'
-            elif 'source_gaia_dr3' in df:
-                self.colID = 'source_gaia_dr3'                
-            elif 'ID' in df:
-                # PlatoSim version: 3.5.3-19-g18d87597
-                self.colID = 'ID'
-            else:
-                errorcode('error', 'Cannot find ID identifier! ' + 
-                          'Usage in [ID, PIC, gaiaDR3, source_gaia_dr3]')
-        
-        # Fetch stars from custum catalogue
-        if self.starcatFile is not None:
-
-            # Read catalogue
-            # TODO Update colID to also incldue source_*
-            df = pd.read_feather(self.starcatFile)
             
-            # Check magnitude parsed
-            check_passband_magnitude(df)
-            
-            # Define data frames
-            self.targetNo = 0
-            self.df = df.loc[self.targetNo]
-            self.dc = df.iloc[1:]
-
-        # Fetch stars from the default setup
         else:
-            # Add sample name to use non-default catalogues
-            if self.sample is not None:
-                extra_str = self.sample
-            else:
-                extra_str = ''
 
-            # Fetch targets and contaminant files
-            try:
-                if self.field is None:
-                    catTarName = f'{self.inputDir}/starcat**{extra_str}**targets.ftr'
-                    catConName = f'{self.inputDir}/starcat**{extra_str}**contaminants.ftr'
+            def check_passband_magnitude(df):
+                """Utility to fetch correct magnitude name.
+                """
+                if 'PIC' in df:
+                    self.colID = 'PIC'
+                elif 'gaiaDR3' in df:
+                    self.colID = 'gaiaDR3'
+                elif 'source_gaia_dr3' in df:
+                    self.colID = 'source_gaia_dr3'                
+                elif 'ID' in df:
+                    # PlatoSim version: 3.5.3-19-g18d87597
+                    self.colID = 'ID'
                 else:
-                    catTarName = f'{self.inputDir}/starcat**{self.pointingField}**{extra_str}**targets.ftr'
-                    catConName = f'{self.inputDir}/starcat**{self.pointingField}**{extra_str}**contaminants.ftr'
-                self.catTarFile = glob.glob(catTarName)[0]
-                self.catConFile = glob.glob(catConName)[0]
-                df = pd.read_feather(self.catTarFile)
-                dc = pd.read_feather(self.catConFile)
-            except IndexError:
-                errorcode('error', f'Stellar {self.sample} catalogue do not exist!')
+                    errorcode('error', 'Cannot find ID identifier! ' + 
+                              'Usage in [ID, PIC, gaiaDR3, source_gaia_dr3]')
 
-            # Check if target and contaminant catalogues are consistent
-            if str(Path(self.catTarFile).stem[:-8]) != str(Path(self.catConFile).stem[:-13]):
-                errorcode('error', f'Target and contaminant catalogue does not match! ' +
-                          'Use --field to specify a LOP without altering the YAML.')
-            
-            # Check magnitude parsed
-            check_passband_magnitude(df)
-            
-            # Merge for full frame
-            self.dx = pd.concat([df, dc])
+            # Fetch stars from custum catalogue
+            if self.starcatFile is not None:
 
-            # Correct indicing and allow a specific star to be choosen
-            if self.targetNo == 0:
-                errorcode('error', 'Star ID indicing starts from 1 and not 0!')
-            elif self.picID is not None:
-                if 'gaiaDR3' in df or 'source_gaia_dr3' in df:
-                    errorcode('error', "Argument '--pic' is only valid for a PIC identifier!")
+                # Read catalogue
+                # TODO Update colID to also incldue source_*
+                df = pd.read_feather(self.starcatFile)
+
+                # Check magnitude parsed
+                check_passband_magnitude(df)
+
+                # Define data frames
+                self.targetNo = 0
+                self.df = df.loc[self.targetNo]
+                self.dc = df.iloc[1:]
+
+            # Fetch stars from the default setup
+            else:
+                # Add sample name to use non-default catalogues
+                if self.sample is not None:
+                    extra_str = self.sample
+                else:
+                    extra_str = ''
+
+                # Fetch targets and contaminant files
                 try:
-                    self.targetNo = np.where(df.PIC == self.picID)[0][0]
+                    if self.field is None:
+                        catTarName = f'{self.inputDir}/starcat**{extra_str}**targets.ftr'
+                        catConName = f'{self.inputDir}/starcat**{extra_str}**contaminants.ftr'
+                    else:
+                        catTarName = f'{self.inputDir}/starcat**{self.pointingField}**{extra_str}**targets.ftr'
+                        catConName = f'{self.inputDir}/starcat**{self.pointingField}**{extra_str}**contaminants.ftr'
                 except IndexError:
-                    errorcode('error', f'PIC {self.picID} star does not exist in catalogue:' +
-                              f'\n{self.catTarFile}')
-            else:
-                self.targetNo -= 1
+                    errorcode('error', f'Stellar catalogue "{self.sample}" does not exist!')
+                else:
+                    self.catTarFile = glob.glob(catTarName)[0]
+                    self.catConFile = glob.glob(catConName)[0]
+                    df = pd.read_feather(self.catTarFile)
+                    dc = pd.read_feather(self.catConFile)
 
-            # Select target star
-            self.df = df.iloc[self.targetNo]
-        
-        # Additional info for subfield simulations
-        if not self.fullFrame:
-            # If requested select only the target, else include contaminants
-            if not self.starcatFile:
+                # Check if target and contaminant catalogues are consistent
+                if str(Path(self.catTarFile).stem[:-8]) != str(Path(self.catConFile).stem[:-13]):
+                    errorcode('error', f'Target and contaminant catalogue does not match! ' +
+                              'Use --field to specify a LOP without altering the YAML.')
+
+                # Check magnitude parsed
+                check_passband_magnitude(df)
+
+                # Merge for full frame
+                self.dx = pd.concat([df, dc])
+
+                # Correct indicing and allow a specific star to be choosen
+                if self.targetNo == 0:
+                    errorcode('error', 'Star ID indicing starts from 1 and not 0!')
+                elif self.picID is not None:
+                    if 'gaiaDR3' in df or 'source_gaia_dr3' in df:
+                        errorcode('error', "Argument '--pic' is only valid for a PIC identifier!")
+                    try:
+                        self.targetNo = np.where(df.PIC == self.picID)[0][0]
+                    except IndexError:
+                        errorcode('error', f'PIC {self.picID} star does not exist in catalogue:' +
+                                  f'\n{self.catTarFile}')
+                else:
+                    self.targetNo -= 1
+
+                # Select target star
+                self.df = df.iloc[self.targetNo]
+
+            # Additional info for subfield simulations
+            if not self.fullFrame:
+                # If requested select only the target, else include contaminants
+                if not self.starcatFile:
+                    if self.noCon:
+                        self.dc = dc[dc[self.colID] == 0]
+                    else:
+                        self.dc = dc[dc[self.colID] == self.df[self.colID]]
+                        self.dc = self.dc.sort_values(by=['dis'])
+
+                # Check PLATO passbands
+                if not 'mag' in df:
+                    if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
+                        self.magPB = 'PBmag'
+                    elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
+                        self.magPB = 'PRmag'
+                    elif 'Pmag' in df:
+                        self.magPB = 'Pmag'
+                    else:
+                        errorcode('error', "No valid passband present in star catalogue! " +
+                                  "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
+
+                    # Change naming
+                    self.df = self.df.to_frame().T.rename(columns={self.magPB:'mag'}).squeeze()
+                    self.dc = self.dc.rename(columns={self.magPB:'mag'})
+
+                # If requested overwrite magnitude of target star
+                if self.mag is not None:
+                    self.df.mag = self.mag
+
+                # Number of contaminants
                 if self.noCon:
-                    self.dc = dc[dc[self.colID] == 0]
+                    self.numCon = 0
                 else:
-                    self.dc = dc[dc[self.colID] == self.df[self.colID]]
-                    self.dc = self.dc.sort_values(by=['dis'])
+                    # Limits for contaminants
+                    self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
+                    self.dc = self.dc[self.dc.dis < self.conDisLimit]
+                    self.dc = self.dc.reset_index(drop=True)
+                    self.numCon = self.dc.shape[0]
 
-            # Check PLATO passbands
-            if not 'mag' in df:
-                if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
-                    self.magPB = 'PBmag'
-                elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
-                    self.magPB = 'PRmag'
-                elif 'Pmag' in df:
-                    self.magPB = 'Pmag'
+                # Save star catalogue
+                self.ds = pd.DataFrame()
+                self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
+                self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
+                self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
+                if not self.noCon:
+                    self.ds['ids'] = np.arange(1, self.numCon+2)
                 else:
-                    errorcode('error', "No valid passband present in star catalogue! " +
-                              "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
-
-                # Change naming
-                self.df = self.df.to_frame().T.rename(columns={self.magPB:'mag'}).squeeze()
-                self.dc = self.dc.rename(columns={self.magPB:'mag'})
-
-            # If requested overwrite magnitude of target star
-            if self.mag is not None:
-                self.df.mag = self.mag
-                
-            # Number of contaminants
-            if self.noCon:
-                self.numCon = 0
-            else:
-                # Limits for contaminants
-                self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
-                self.dc = self.dc[self.dc.dis < self.conDisLimit]
-                self.dc = self.dc.reset_index(drop=True)
-                self.numCon = self.dc.shape[0]
-
-            # Save star catalogue
-            self.ds = pd.DataFrame()
-            self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
-            self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
-            self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
-            if not self.noCon:
-                self.ds['ids'] = np.arange(1, self.numCon+2)
-            else:
-                self.ds['ids'] = 1
+                    self.ds['ids'] = 1
 
         
     def init_sim(self):
@@ -565,10 +568,10 @@ class PLATOnium(object):
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
         # Print here 
-        if self.verbose > 1:
-            print('Loading source input catalogues:')
-            print(Path(self.catTarFile).name)
-            print(Path(self.catConFile).name, '\n')
+        # if self.verbose > 1:
+        #     print('Loading source input catalogues:')
+        #     print(Path(self.catTarFile).name)
+        #     print(Path(self.catConFile).name, '\n')
         
         # CONFIGURE TIMING
         
@@ -799,7 +802,7 @@ class PLATOnium(object):
                 sim["SubField/NumColumns"] = sim["CCDPositions/NumColumns"][0]
 
             # Control output requirements
-            sim["ControlHDF5Content/GroupByExposure"]    = False
+            sim["ControlHDF5Content/GroupByExposure"]    = True
             sim["ControlHDF5Content/WritePixelMaps"]     = True
             sim["ControlHDF5Content/WriteStarPositions"] = True
 

@@ -759,6 +759,23 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 #--------------------------------------------------------------#
 
 
+def massLuminosityRelation(R, Teff):
+
+    """Calculate mass using M-L relation.
+
+    Using the Teff in the mass-luminosity relation, one can find
+    the stellar mass for a main sequence dwarf star. Method valid
+    for (0.43 < M/Msun < 2)
+
+    Notes
+    -----
+    Reference from:
+    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+    """
+    return R**(1/2) * Teff/5777.
+
+
+
 def radialDistance(alpha1, delta1, alpha2, delta2):
 
     """Radial distance between two equatorial coordinates.
@@ -791,24 +808,22 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
 
 
 
+def cart2pol(x, y):
+    """Transformation from cartesian to polar coordinates.
 
+    Parameters
+    ----------
+    x,y : float, ndarray
+        Cartesian coordinates.
 
-def massLuminosityRelation(R, Teff):
-
-    """Calculate mass using M-L relation.
-
-    Using the Teff in the mass-luminosity relation, one can find
-    the stellar mass for a main sequence dwarf star. Method valid
-    for (0.43 < M/Msun < 2)
-
-    Notes
-    -----
-    Reference from:
-    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
-    """
-    return R**(1/2) * Teff/5777.
-
-
+    Return
+    ------
+    phi,rho : float, ndarray
+        Polar coordinates.
+    """    
+    phi = np.rad2deg(np.arctan2(y, x)) - 180
+    rho = np.sqrt(x**2 + y**2)
+    return (phi, rho)
 
 
 

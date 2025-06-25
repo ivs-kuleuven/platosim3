@@ -2897,7 +2897,7 @@ class LightCurve(object):
         star_ids = []
             
         # Loop over star simulated
-        
+
         for f in tqdm(self.folders(), bar_format=ut.tqdmBar()):
 
             # Fetch all files

@@ -3541,7 +3541,8 @@ class DopplerBeaming(funcFit.OneDFit):
         #RV    = K * (np.cos(w + nu) - e*np.cos(w))
         RV    = K * (np.cos(2*np.pi*phi + w) - e*np.cos(w))
 
-        # Final beaming effect [ppm]: Second term in Eq.1 from Sphorer (2017) but normalized
+        # Final beaming effect [ppm]
+        # Second term in Eq.1 from Sphorer+2017 but normalized
         y = 4 * alpha * RV/c.c * 1e6
 
         return y.value, A.value
