@@ -104,9 +104,11 @@ class PLATOnium(object):
         self.noAberrCorr   = args.no_aberr_corr
 
         self.maskUpdate = args.mask
-        self.clipWotan  = args.clip
         self.detrend    = args.detrend
         self.poly_deg   = args.poly_deg
+        self.clipWotan  = args.clip
+        self.clipSigma  = args.clip_sigma
+        self.clipWindow = args.clip_window
         self.stitch     = args.stitch
         self.plotPost   = args.check
 
@@ -259,7 +261,7 @@ class PLATOnium(object):
                                        server='plato')
 
         # Check parsing of detrending model
-        if not self.detrend in [None, 'poly', 'lowess', 'wotan']:
+        if not self.detrend in [None, 'poly', 'lowess', 'poly_lowess', 'lowess_theil', 'wotan']:
             errorcode('error', 'Not a valid detrending model!')
 
         # Check parsing of detrending model
@@ -277,6 +279,10 @@ class PLATOnium(object):
         if not isinstance(self.poly_deg, int):
             self.poly_deg = False
 
+        # Check clip wotan window
+        if self.clipWindow is None:
+            self.clipWindow = 0.5
+            
         # Monitor script speed
         self.tic  = datetime.datetime.now()
         self.tic0 = datetime.datetime.now()
@@ -1104,7 +1110,7 @@ class PLATOnium(object):
             title = f'{self.colID} {int(self.df[self.colID])} ({float(self.df.mag):.2f} mag)'
             clipPercentile    = 2
             imgScale          = "auto"
-            cmap              = 'magma' #'gist_stern'
+            cmap              = 'Blues_r'
             showGrid          = True
 
         # Check that if any stars are detected
@@ -1310,12 +1316,15 @@ class PLATOnium(object):
         #                     replace=True, plot=self.plotPost)
 
         # DETRENDING
+        
         if self.detrend is not None:
             if self.verbose > 1:
                 print(f'Running detrending model : {self.detrend}')
 
             # Perform detrending
-            lc.detrend(model=self.detrend, degree=self.poly_deg, replace=True,
+            lc.detrend(model=self.detrend,
+                       poly_degree=self.poly_deg,
+                       replace=True,
                        plot=self.plotPost)
 
             if self.verbose > 1:
@@ -1324,6 +1333,7 @@ class PLATOnium(object):
 
 
         # STITCH MASK-UPDATES
+        
         if self.stitch is not None and len(lc.mask_update_events()) > 1:
             if self.verbose > 1:
                 print(f'Running stitching  model : {self.stitch}')
@@ -1337,6 +1347,7 @@ class PLATOnium(object):
                 self.tic = datetime.datetime.now()
 
         # OUTLIER REJECTION
+        
         if self.clipWotan:
             if self.verbose > 1:
                 print('Running sigma-clip model : wotan')
@@ -1346,27 +1357,32 @@ class PLATOnium(object):
 
             # Auto select sigma from emperical tests
             # Cuts optimized for N-CAMs of 25s cadence
-            if self.df.mag <= 10:
-                sigma_upper = 5
-            elif self.df.mag > 10 and self.df.mag < 11:
-                sigma_upper = 4.5
+            if self.clipSigma is not None:
+                sigma_lower = sigma_upper = self.clipSigma
             else:
-                sigma_upper = 4
+                # Exoplanets (protect transits)
+                if self.detrend == 'wotan':
+                    sigma_lower = 10
+                # Eclipsing binaries (protect eclipses)
+                elif self.detrend == 'lowess':
+                    sigma_lower = 6
+                else:
+                    sigma_lower = sigma_upper
 
-            # Larger lower bound sigma to protect eclipses
-            if self.detrend == 'wotan':
-                sigma_lower = 10
-            else:
-                sigma_lower = sigma_upper
+                # Upper is less senitive to variation
+                if self.df.mag <= 10:
+                    sigma_upper = 5
+                elif self.df.mag > 10 and self.df.mag < 11:
+                    sigma_upper = 4.5
+                else:
+                    sigma_upper = 4
 
             # Perform sigma-clipping
-            try:
-                lc.clip(model='wotan',
-                       sigma_lower=sigma_lower, sigma_upper=sigma_upper,
-                        replace=True, plot=self.plotPost, flux_unit=flux_unit)
-            except:
-                pass
-
+            lc.clip(model='wotan',
+                    sigma_lower=sigma_lower, sigma_upper=sigma_upper,
+                    window=self.clipWindow, replace=True, plot=self.plotPost,
+                    flux_unit=flux_unit)
+            
             if self.verbose > 1:
                 self.tocWotanClip = datetime.datetime.now() - self.tic
                 self.tic = datetime.datetime.now()
@@ -2087,12 +2103,14 @@ sim_group.add_argument('--no_aberr_corr', action='store_true',       help='Flag 
 sim_group.add_argument('--jit_reuse',     action='store_true',       help='Flag to reuse an AOCS jitter file across all quarters')
 
 phot_group = parser.add_argument_group('PHOTOMETRY PARAMETERS')
-phot_group.add_argument('--mask',     metavar='DAY',  type=float, help='Option to overwrite the mask-update in inputfile [days]')
-phot_group.add_argument('--detrend',  metavar='NAME', type=str,   help='Name of detrending method to activate [poly, wotan]')
-phot_group.add_argument('--poly_deg', metavar='INT',  type=int,   help='Degree of polynomial of trend (use with --detrend poly)')
-phot_group.add_argument('--stitch',   metavar='NAME', type=str,   help='Name of stitching method to activate [lowess, median]')
-phot_group.add_argument('--clip',     action='store_true',        help='Flag to activate outlier rejection using Wotan (> 4 sigma)')
-phot_group.add_argument('--check',    action='store_true',        help='Flag to plot the requested post-processing steps')
+phot_group.add_argument('--mask',        metavar='DAY',  type=float,  help='Option to overwrite the mask-update in inputfile [days]')
+phot_group.add_argument('--detrend',     metavar='NAME', type=str,    help='Detrending method [poly, lowess, poly_lowess, lowess_theil, wotan]')
+phot_group.add_argument('--poly_deg',    metavar='INT',  type=int,    help='Degree of polynomial of trend (use with --detrend poly)')
+phot_group.add_argument('--stitch',      metavar='NAME', type=str,    help='Name of stitching method to activate [lowess, median]')
+phot_group.add_argument('--clip',        action='store_true',         help='Flag to activate outlier rejection')
+phot_group.add_argument('--clip_sigma',  metavar='FLOAT', type=float, help='MAD std to use for outlier rejection (Default: 4)')
+phot_group.add_argument('--clip_window', metavar='FLOAT', type=float, help='Window to use for outlier rejection (Default: 0.5 d)')
+phot_group.add_argument('--check',       action='store_true',         help='Flag to plot the requested post-processing steps')
 
 pip_group = parser.add_argument_group('PIPELINE PARAMETERS')
 pip_group.add_argument('--pipeline',      action='store_true',             help='Flag to activate proto-type pipeline')
