@@ -310,20 +310,23 @@ class LightCurve(object):
             starID = path.stem[:9]
 
         # Two options for storage
-        varpath_file = path / 'varsource' / f'varsource_{starID}.txt'
-        varpath_list = path / 'varsource' / starID / 'varsource_001.txt'            
-            
+        varpath_file0 = path / 'varsource' / f'varsource_{starID}.txt'
+        varpath_file1 = path / 'varsource' / starID / f'varsource_{starID}.txt'
+        varpath_file2 = path / 'varsource' / starID / 'varsource_001.txt'            
+
         # Check if file can be found
-        if varpath_file.is_file():
-            varpath = varpath_file
-        elif varpath_list.is_file():
-            varpath = varpath_list
+        if varpath_file0.is_file():
+            varpath = varpath_file0
+        elif varpath_file1.is_file():
+            varpath = varpath_file1
+        elif varpath_file2.is_file():
+            varpath = varpath_file2            
         else:
             return
 
         # Read file and add flux column
-        df = pd.read_csv(varpath, sep=' ', header=None, names=['time','mag'])
-        df['flux'] = ut.fromMagToFlux(df.mag)
+        df = pd.read_csv(varpath, sep=' ', header=None, names=['time', 'dmag'])
+        df['flux'] = ut.fromMagToFlux(df.dmag)
 
         return df
 
@@ -1002,15 +1005,21 @@ class LightCurve(object):
     def detrend(self,
                 column='flux',
                 model="poly",
-                degree=False,         # Model -> Polynomial
-                gradient=False,       # Model -> Polynomial
-                method="biweight",    # Model -> Wotan
-                window=3,             # Model -> Wotan
-                tbin=1/6,             # Model -> Wotan
-                mask=None,            # Model -> Wotan
                 segments=True,
                 replace=False,
-                plot=False):
+                plot=False,
+                # Model = Poly
+                poly_degree=False,
+                # Model = Lowess
+                lowess_frac=1/5,
+                # Model = Theil
+                theil_days=2,
+                # Model: Wotan
+                method="biweight",
+                window=3,
+                tbin=1/6,
+                mask=None,
+    ):
         """Detrend time series.
 
         This function can be used to detrend a time series using either 
@@ -1044,8 +1053,6 @@ class LightCurve(object):
         plot : bool
             Flag to activate dianostic plot of module
         """
-        # Check model
-        if model: model = 'poly'
         
         # Remove clipped NaNs
         self.df = self.df.dropna()
@@ -1083,11 +1090,12 @@ class LightCurve(object):
         
             # POLYNOMIAL MODEL
 
-            if model in ['poly', 'poly_lowess']:
-
+            #if model in ['poly', 'poly_lowess']:
+            if model == 'poly':
+                
                 # Use model selection if None
-                if degree:
-                    deg = degree
+                if poly_degree:
+                    degree = poly_degree
                 else:
                     df = pd.DataFrame()
                     df['x'] = time_i / 86400.
@@ -1101,28 +1109,30 @@ class LightCurve(object):
                     fit3 = sm.OLS.from_formula(formula=model3, data=df).fit()
                     fit4 = sm.OLS.from_formula(formula=model4, data=df).fit()
                     #---------------------------- Debugging
-                    # print(deg, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
+                    # print(degree, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
                     # print(fit1.summary())
                     # print(fit2.summary())
                     # print(fit3.summary())
                     #-------------------------------------
                     AIC_j = [fit1.aic, fit2.aic, fit3.aic, fit4.aic]
                     BIC_j = [fit1.bic, fit2.bic, fit3.bic, fit4.bic]
-                    deg = st.model_selection(AIC_j, BIC_j, show=False)
+                    degree = st.model_selection(AIC_j, BIC_j, show=False)
 
-                # Perform fit
-                if model == 'poly_lowess':
-                    binsize = 1
-                    tbin = binsize*3600    
-                    tdur = time_i.iloc[-1] - time_i.iloc[0]
-                    bins = int(tdur/tbin)
-                    flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins)
-                    time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
-                    lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/20)
-                    p = 1
-                    poly = np.polyfit(lowess[p:-p,0], lowess[p:-p,1], deg=deg)
-                else:
-                    poly = np.polyfit(time_i, flux_i, deg=deg)
+                poly = np.polyfit(time_i, flux_i, deg=degree)
+                    
+                # # Perform fit
+                # if model == 'poly_lowess':
+                #     binsize = 1
+                #     tbin = binsize*3600    
+                #     tdur = time_i.iloc[-1] - time_i.iloc[0]
+                #     bins = int(tdur/tbin)
+                #     flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins)
+                #     time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+                #     lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/20)
+                #     p = 1
+                #     poly = np.polyfit(lowess[p:-p,0], lowess[p:-p,1], deg=deg)
+                # else:
+                #     poly = np.polyfit(time_i, flux_i, deg=deg)
                 
                 # Trend of light curve
                 trend = np.polyval(poly, time_i)
@@ -1149,7 +1159,7 @@ class LightCurve(object):
                 #------------
 
                 # Lowess smoothing
-                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/5)
+                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=lowess_frac)
                 spline = make_interp_spline(time_bin, lowess[:,1], k=2)
                 trend  = spline(time_i)
                 flux_trend[dex[i]:dex[i+1]] = trend
@@ -1176,7 +1186,7 @@ class LightCurve(object):
             elif model == 'lowess_theil':
 
                 #------------ TODO integrate into bin method
-                binsize = 0.5
+                binsize = 1
                 tbin = binsize*3600    
                 tdur = time_i.iloc[-1] - time_i.iloc[0]
                 bins = int(tdur/tbin)
@@ -1185,10 +1195,11 @@ class LightCurve(object):
                 #------------
                 
                 # Lowess smoothing
-                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/10)
+                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=lowess_frac)
 
                 # Fit Theil–Sen median slope
-                p = 100 # Ignore start and end points 0.5h * 100 ~ 2 days
+                p = int(theil_days/(binsize/24)) # Ignore start and end points
+                print(p)
                 res_theil = theilslopes(lowess[:,1], time_bin, 0.90, method='separate')
                 res_lsq   = linregress(time_bin[p:-p], lowess[p:-p,1])
 
@@ -2502,7 +2513,7 @@ class LightCurve(object):
 
             # Apply long-term trend correction
             if detrend:
-                df = lc.detrend(model=detrend, degree=False, replace=True, plot=False)
+                df = lc.detrend(model=detrend, poly_degree=False, replace=True, plot=False)
 
             # TODO clean up usage of old L1 pipeline
             if i == 0:

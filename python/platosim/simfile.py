@@ -17,11 +17,12 @@ import os
 import h5py
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+import ipywidgets as widgets
+import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
-import ipywidgets as widgets
+import matplotlib.patheffects as patheffects
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.io import fits
 
 # PlatoSim functions
@@ -1921,8 +1922,8 @@ class SimFile (object):
             # Extract the indices of the proper mask
 
             exposureGroupName = "Exposure{0:07d}".format(exposureNrOfMaskUpdate)
-            rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
-            colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+            rowIndices = mask[starIDgroupName][exposureGroupName]["maskRowIndices"]
+            colIndices = mask[starIDgroupName][exposureGroupName]["maskColumnIndices"]
 
         # Else fetch all the indices for all mask updates
 
@@ -1942,8 +1943,6 @@ class SimFile (object):
                 exposureGroupName = "Exposure{0:07d}".format(exposureNrOfMaskUpdate[i])
                 rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
                 colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
-            rowIndices = np.array(rowIndices)
-            colIndices = np.array(colIndices)
 
         # Finito!
 
@@ -2048,7 +2047,8 @@ class SimFile (object):
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minMag=None, maxMag=None, showStarIDs=False, count='ADU',
                   tarMarkerSize=200, showMaskOfStarID=None,
-                  useTitle=False, showGrid=False, colorBar=True, colorMap="cubehelix",
+                  useTitle=False, showGrid=False,
+                  colorBar=True, colorMap="Blues_r",
                   origin="lower", fontSize=15, figsize=(8,8)):
 
         """Make a plot of the a requested image or the entire image cube in HDF5.
@@ -2177,7 +2177,7 @@ class SimFile (object):
         # Colorbar
         
         if colorBar:
-            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar = fig.colorbar(imagePlot, extend=None, shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
 
@@ -2213,7 +2213,7 @@ class SimFile (object):
             rowIndices, colIndices, _, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
-                                         edgecolor='royalblue', facecolor='none', hatch="/",
+                                         edgecolor='deeppink', facecolor='none', hatch="/",
                                          zorder=2)
                 ax.add_patch(rect)
         
@@ -2247,8 +2247,12 @@ class SimFile (object):
                 # Add magnitude label above star position
                 
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
-                    
+                    #ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
+                    ax.text(i-0.27, j+0.25, f'{m:.1f}', color='black', fontsize=16,
+                        path_effects=[patheffects.withStroke(linewidth=1,
+                                                             foreground='w',
+                                                             capstyle="round")])
+
             # Or hightligth all stars the same
             
             else:
@@ -2442,7 +2446,9 @@ class SimFile (object):
 
 
     
-    def showPSF(self, datasetName, rebinToPixels=False, normalizeHighestPixelValue=False, showPixelGrid=False, colorBar=True, 
+    def showPSF(self, datasetName, rebinToPixels=False,
+                normalizeHighestPixelValue=False,
+                showPixelGrid=False, colorBar=True, 
                 colorMap="gist_stern", useTitle=False, figsize=(7,6)):
 
         """Plot the requested PSF.
