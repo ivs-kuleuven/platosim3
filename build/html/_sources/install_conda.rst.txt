@@ -1,4 +1,4 @@
-For users (via Conda)
+For Users (via Conda)
 =====================
 
 To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we use `Jenkins <https://www.jenkins.io/>`_ to automatically build PlatoSim. Jenkins enables you to download the latest successfully built version of the :ref:`master or develop branch <install_source_brancing>`, or any specific version(s) of these. See :ref:`A word about Jenkins <install_conda_jenkins>` for more information. The flowchart below summarises the steps you have to take.

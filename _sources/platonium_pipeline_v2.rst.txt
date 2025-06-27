@@ -1,7 +1,8 @@
 Pipeline
 ========
 
-Welcome to the PLATO Ecosystem: A Docker wrapper for PlatoSim3 and the LESIA L1 pipeline. The following guide explains how to install, setup, and run the LESIA L1 pipeline as an integrated part of PLATOnium.
+Welcome to the PLATO Ecosystem: A Docker wrapper for PlatoSim3 and the LESIA L1 pipeline. The following guide explains how to install, setup, and run the LESIA L1 pipeline as an integrated part of PLATOnium. Courtesy goes to `Réza Samadi (LESIA) <https://lesia.obspm.fr/spip.php?page=recherche&recherche=Reza+Samadi>`_, who led the code development for the pipeline, and to `James McCormac (UW) <https://warwick.ac.uk/fac/sci/physics/research/astro/people/mccormac/>`_, who developed the Docker Ecosystem.
+ 
 
 
 
