@@ -48,7 +48,7 @@ The script ``picsim`` can query stars from the Long-duration Observation Phases 
 - South PLATO Field (SPF): :math:`\alpha = \ \ 86.79870508^{\circ}, \, \delta=-46.39594703^{\circ}, \,  \kappa=+10.0^{\circ}`
 - North PLATO Field (NPF): :math:`\alpha = 265.08002279^{\circ},    \, \delta=+39.5836954^{\circ},  \ \ \kappa=-10.0^{\circ}`
 
-These catalogues compose more than :math:`300\,000` PLATO targets from the samples (P1, P2, P4, and P5), of which more than :math:`8\,000\,000` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below illustrates all P1 sample stars from from the PIC 1.1.0 colour coded by their magnitude.
+These catalogues compose more than :math:`300,000` PLATO targets from the samples (P1, P2, P4, and P5), of which more than :math:`8,000,000` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below illustrates all P1 sample stars from from the PIC 1.1.0 colour coded by their magnitude.
 
 .. image:: ../figures/platonium_P1SampleAllsky.png
    :align: center
@@ -72,7 +72,7 @@ These catalogues compose more than :math:`300\,000` PLATO targets from the sampl
 * In the second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star.
 * In the last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2.
   
-Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packges, the stellar catalogues are saved to a binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``). The two seperate catalogues are for the targets (``starcat**_target.ftr``) and contaminants (``starcat**_contaminant.ftr``). A log file is likewise created with the settings you used to generate the catalogue (in case you forget).
+Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packages, the stellar catalogues are saved to a binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``). The two seperate catalogues are for the targets (``starcat**_target.ftr``) and contaminants (``starcat**_contaminant.ftr``). A log file is likewise created with the settings you used to generate the catalogue (in case you forget).
 
 .. note::
 
@@ -115,13 +115,14 @@ varsim
 
 **Generate variable source files**
 
-In order to help the process of generating variable input light curves for PlatoSim, as part of PLATonium the script ``varsim`` is made available. Given a star and an exoplent this script creates a synthetic stellar and exoplanet variability model directly inline with the cadence of your simulated observations. The script is developed around modelling:
+In order to help the process of generating variable input light curves for PlatoSim, as part of PLATOnium, the script ``varsim`` is made available. Given a star and an exoplent this script creates a synthetic stellar and exoplanet variability model directly inline with the cadence of your simulated observations. The script is developed around modelling:
 
-* Stellar spot modulations
 * Granulation noise
-* Convection driven oscillations (p-modes)
+* Solar-like oscillations (p-modes)
+* Stellar spot modulations
+* Stellar flares 
 * Exoplanet transits
-* Phase curve variations (due to Doppler beaming and ellisoidal distorsion)
+* Phase curve variations (due to occultation, Doppler beaming, and ellisoidal distorsion)
 
 The amplitude of each of these variable signals are derived using synthetic `PHOENIX <https://phoenix.astro.physik.uni-goettingen.de/>`_ spectra being convolved with the instrumental bandpass. The figure below shows an example of a generated noise-less light curve of a variable star with a Neptune-sized transiting planet. We refer the reader to the technical note `PLATO-PL-KUL-0020 <https://issues.cosmos.esa.int/platowiki/display/PPWS/Simulated+datasets?preview=%2F36548784%2F56427070%2FPLATO-KUL-PL-TN-0020_MultiQuarterCameraSimulation.pdf>`_ for a more detailed description.
 
