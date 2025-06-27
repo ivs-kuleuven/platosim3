@@ -10,7 +10,7 @@ To use PLATOnium we only have to add a few more packages to our Conda environmen
 - ``--with platonium``
 - ``--with platonium --with pipeline``
 
-The first add-on command is sufficient for running the :doc:`PLATOnium tutorials <platonium_overview>`. Only add-on the second command if you want to run the (experimental) setup between the PLATOnium toolkit and the :doc:`LESIA prototype pipeline <platonium_pipeline>`.
+The first add-on command is sufficient for running the :doc:`PLATOnium tutorials <platonium_overview>`. Only add-on the second command if you want to run the computational bridge between PLATOnium and the :doc:`LESIA L1 prototype pipeline <platonium_pipeline>`.
   
 **Script executeables**
 
@@ -22,7 +22,7 @@ Before you continue, verify that the following path variables are defined (prefe
    echo $PLATO_WORKDIR
    echo $PYTHONPATH
 
-PLATOnium consists of four command line scripts that needs to be copied to the ``bin`` directory of your Conda environment. If you are a user, make sure that ``PLATO_PROJECT_HOME`` points to your ``CONDA_PREFIX`` path. Now define the following path variable:
+PLATOnium consists of four command line scripts that needs to be copied to the ``bin`` directory of your Conda environment (if you want to access them globally on your system). If you are a user, make sure that ``PLATO_PROJECT_HOME`` points to your ``CONDA_PREFIX`` path. Now define the following path variable:
 
 .. code-block:: shell
 		
