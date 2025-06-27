@@ -3074,7 +3074,7 @@ def plotVarsimLC(lc, figsize=False):
     # Handle time units
     time = lc.time / 86400.
     colors = ['purple', 'royalblue', 'lightseagreen', 'limegreen',
-              'gold', 'tomato', 'deeppink']
+              'orange', 'tomato', 'deeppink']
 
     # Check for planet model
     if 'tran' in lc:
@@ -3090,7 +3090,7 @@ def plotVarsimLC(lc, figsize=False):
     
     # Auto adjust figure
     n = lc.shape[1] - 1
-    if not figsize: figsize = (9, 2*n)
+    if not figsize: figsize = (11, 2*n)
 
     # Start plotting
     fig, ax = plt.subplots(n, 1, figsize=figsize, sharex=True)
