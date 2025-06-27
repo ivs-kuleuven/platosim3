@@ -3015,10 +3015,20 @@ class LightCurve(object):
             if len(files) == 0:
                 # Record if a star do no have any data
                 try:
-                    star_ids.append(int(Path(f).stem))
+                    ID = int(Path(f).stem)
+                    star_ids.append(ID)
+                    data = {"ID": ID,
+                            "mag": np.nan,
+                            "rOA": np.nan,
+                            "ncon": np.nan,
+                            "SPR": np.nan,
+                            "ncam": np.nan,
+                            "NSR": np.nan}
+                    df1 = pd.DataFrame(data, index=[0])
+                    df0 = pd.concat([df0, df1])
                 except ValueError:
                     pass
-
+                
             else:
                 # Fetch light curve object
                 lcs = LightCurve(f, mode="multi")

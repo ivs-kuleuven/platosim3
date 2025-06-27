@@ -2230,7 +2230,7 @@ class SimFile (object):
             # Allow differentiating between a target and its contaminants
             
             if showStarPositions == 'PIC':
-
+                # TODO we should use the flux zero point of 20.78?
                 mag = -2.5*np.log10(flux) + 25
                 ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
                            edgecolor='k', linewidth=lw, zorder=4)
