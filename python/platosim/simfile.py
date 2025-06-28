@@ -2046,7 +2046,7 @@ class SimFile (object):
     def showImage(self, imageNr=False, imgScale="percentile", clip=5.0,
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minMag=None, maxMag=None, showStarIDs=False, count='ADU',
-                  tarMarkerSize=200, showMaskOfStarID=None,
+                  tarMarkerSize=150, showMaskOfStarID=None,
                   useTitle=False, showGrid=False,
                   colorBar=True, colorMap="Blues_r",
                   origin="lower", fontSize=15, figsize=(8,8)):
@@ -2225,7 +2225,7 @@ class SimFile (object):
                                                                    maxMag=maxMag)
             # Set linewidth of marker
 
-            lw = 0.08 * fontSize
+            lw = 0.055 * fontSize
             
             # Allow differentiating between a target and its contaminants
             
@@ -2248,9 +2248,9 @@ class SimFile (object):
                 
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
                     #ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
-                    ax.text(i-0.27, j+0.25, f'{m:.1f}', color='black', fontsize=16,
+                    ax.text(i-0.27, j+0.25, f'{m:.1f}', color='w', fontsize=14,
                         path_effects=[patheffects.withStroke(linewidth=1,
-                                                             foreground='w',
+                                                             foreground='k',
                                                              capstyle="round")])
 
             # Or hightligth all stars the same
