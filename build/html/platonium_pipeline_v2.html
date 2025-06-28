@@ -57,7 +57,7 @@
 <p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For users (via Conda)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
@@ -196,63 +196,2176 @@ command.</p>
 <hr></section>
 <section id="output-files">
 <span id="pipeline-output"></span><h2><em>Output files</em><a class="headerlink" href="#output-files" title="Permalink to this heading"></a></h2>
-<p>During a simulation, PLATOnium creates three folders called <code class="docutils literal notranslate"><span class="pre">reduced</span></code>, <code class="docutils literal notranslate"><span class="pre">microscan</span></code>, <code class="docutils literal notranslate"><span class="pre">P1</span></code> (or <code class="docutils literal notranslate"><span class="pre">P5</span></code> depending on sample parsed). By default during the run a lot of files are created and stored in <code class="docutils literal notranslate"><span class="pre">microscan</span></code> and <code class="docutils literal notranslate"><span class="pre">P1</span></code>, but at end simulation, the final files are stored into <code class="docutils literal notranslate"><span class="pre">reduced</span></code>. Note that these foder contains a tree of subfolders to keep each simulation isolated when running in parallel. A standard filename is used for each data product, e.g. the light curve file <code class="docutils literal notranslate"><span class="pre">000000001_Ncam1.1_Q1.ftr</span></code> refers to the star ID (<code class="docutils literal notranslate"><span class="pre">000000001</span></code>), the N-CAM camera-group no. and camera no. (<code class="docutils literal notranslate"><span class="pre">Ncam1.1</span></code>), and the quarter (<code class="docutils literal notranslate"><span class="pre">Q1</span></code>).</p>
-<p><strong>Unique files returned after a P1 sample run:</strong></p>
-<ul class="simple">
-<li><p>Final extracted P1 sample data with the following columns (<code class="docutils literal notranslate"><span class="pre">*.ftr</span></code>):</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">time</span></code>     : [second] Time points with zero-point at mission BOL</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">flux</span></code>     : [electron] Extracted flux</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cx</span></code>       : [pixel] X centroid pixel within 6x6 pixel subfield</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cy</span></code>       : [pixel] Y centroid pixel within 6x6 pixel subfield</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">bg</span></code>       : [electron] Background flux</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">flux_err</span></code> : [electron] Flux error</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cx_err</span></code>   : [pixel] X centroid pixel error</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cy_err</span></code>   : [pixel] Y centroid pixel error</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">bg_err</span></code>   : [electron] Background flux error</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">chi2</span></code>     : Chi-sqaured of PSF fit</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">iter</span></code>     : Iterations before convergecne for PSF fitting</p></li>
-</ul>
-</li>
-</ul>
-<p><strong>Unique files returned after a P5 sample run:</strong></p>
-<ul class="simple">
-<li><p>Final extracted P5 sample data with the following columns (<code class="docutils literal notranslate"><span class="pre">*.ftr</span></code>):</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">time</span></code>            : [second] Time points with zero-ponint at mission BOL</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">flux</span></code>            : [electron] Extracted and corrected flux</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">xc</span></code>              : [pixel] X centroid pixel within 6x6 pixel subfield</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">yc</span></code>              : [pixel] Y centroid pixel within 6x6 pixel subfield</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">flux_cor</span></code>        : [norm.] Flux model for jitter/drift correction</p></li>
-</ul>
-</li>
-<li><p>Mask-update file for each target star (Marchiori+2019; <code class="docutils literal notranslate"><span class="pre">*.fits</span></code>).</p></li>
-<li><p>Stellar Polution Ratio (SPR) information of target star as per Marchiori+2019 (<code class="docutils literal notranslate"><span class="pre">*.spr</span></code>).</p></li>
-</ul>
-<p><strong>Files indentical for P1 and P5 sample:</strong></p>
-<ul class="simple">
-<li><p>An overview table (in feather format) of the simulation (<code class="docutils literal notranslate"><span class="pre">*.table</span></code>):</p>
-<ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">ID</span></code>        : Star ID of nine digits</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">PIC</span></code>       : PIC name of target</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ra</span></code>        : [degree] ICRS Right Ascension</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">dec</span></code>       : [degree] ICRS Declination</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">mag</span></code>       : PALTO passband magnitude P</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">group</span></code>     : Camera-group ID</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">camera</span></code>    : Camera ID</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">quarter</span></code>   : Mission quarter number</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ccd</span></code>       : CCD ID for star (subfield) location</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">xCCD</span></code>      : [pixel] X centroid pixel coordinate of full frame CCD of first image</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">yCCD</span></code>      : [pixel] Y centroid pixel coordinate of full frame CCD of first image</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">rOA</span></code>       : [degree] Radial distance to optica axis</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">xFP</span></code>       : [millimeter] X focal plane coordinate of first image</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">yFP</span></code>       : [millimeter] Y focal plane coordinate of first image</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">ncon</span></code>      : Number of contaminants in subfield</p></li>
-</ul>
-</li>
-<li><p>Information about the PSF inversion (<code class="docutils literal notranslate"><span class="pre">*.invert</span></code>). For more information see: PLATO-PL-LESIA-TN-0069 and PLATO-PL-LESIA-TN-0070.</p></li>
-</ul>
-<hr></section>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title>Pipeline — PlatoSim 3.5.4 documentation</title>
+	<meta name="generator" content="LibreOffice 24.2.7.2 (Linux)"/>
+	<meta name="created" content="00:00:00"/>
+	<meta name="changed" content="2025-04-29T14:47:09.406743073"/>
+	<meta name="" content=""/>
+	<meta name="darkreader" content="50fdbc3306164260a530d7020a0157de"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+	<meta name="created" content="00:00:00">
+	<meta name="created" content="00:00:00">
+	<meta name="created" content="00:00:00">
+	<meta name="created" content="00:00:00">
+	<style type="text/css">
+		@page { size: 8.27in 11.69in; margin: 0.79in }
+		p { font-family: "Calcutta", sans-serif; line-height: 115%; margin-bottom: 0.1in; background: transparent; background: transparent }
+		h2 { font-family: "Calcutta", sans-serif; font-size: 18pt; font-weight: bold; margin-top: 0.14in; margin-bottom: 0.08in; background: transparent; background: transparent; page-break-after: avoid }
+		h3 { font-family: "Calcutta", sans-serif; font-size: 14pt; font-weight: bold; margin-top: 0.1in; margin-bottom: 0.08in; background: transparent; background: transparent; page-break-after: avoid }
+		h4 { font-family: "Calcutta", sans-serif; font-size: 12pt; font-weight: bold; margin-top: 0.08in; margin-bottom: 0.08in; background: transparent; background: transparent; page-break-after: avoid }
+		pre { margin-left: 0.1in; margin-right: 0.1in; margin-top: 0.1in; margin-bottom: 0.1in; background: transparent; background: transparent }
+		pre.western { font-family: "Liberation Mono", monospace; font-size: 10pt }
+		pre.cjk { font-family: "Noto Sans Mono CJK SC", monospace; font-size: 10pt }
+		pre.ctl { font-family: "Liberation Mono", monospace; font-size: 10pt }
+		td p { font-family: "Calcutta", sans-serif; orphans: 0; widows: 0; background: transparent; background: transparent }
+		th p { font-family: "Calcutta", sans-serif; font-weight: bold; text-align: center; orphans: 0; widows: 0; background: transparent; background: transparent }
+		code { font-family: "courier new", monospace }
+		em { font-style: italic }
+		a:link { color: #009568; text-decoration: underline }
+		a:visited { color: #009568; text-decoration: underline }
+	</style>
+</head>
+<body lang="en-US" link="#009568" vlink="#009568" dir="ltr">
+<form action="search.html">
+	<input type="hidden" name="check_keywords" value="yes"/>
+	<input type="hidden" name="area" value="default"/>
+</form>
+<div id="pipeline" dir="ltr"><p>
+	</p>
+		<p><font color="#3d3d3d">During a simulation, PLATOnium creates
+		three folders called </font><code><font color="#3d3d3d">reduced</font></code><font color="#3d3d3d">,
+		</font><code><font color="#3d3d3d">microscan</font></code><font color="#3d3d3d">,
+		</font><code><font color="#3d3d3d">P1</font></code><font color="#3d3d3d">
+		(or </font><code><font color="#3d3d3d">P5</font></code><font color="#3d3d3d">
+		depending on sample parsed). By default during the run a lot of
+		files are created and stored in </font><code><font color="#3d3d3d">microscan</font></code><font color="#3d3d3d">
+		and </font><code><font color="#3d3d3d">P1</font></code><font color="#3d3d3d">,
+		but at end simulation, the final files are stored into </font><code><font color="#3d3d3d">reduced</font></code><font color="#3d3d3d">.
+		Note that these foder contains a tree of subfolders to keep each
+		simulation isolated when running in parallel. All data products are
+		saved using the HDF5 format. A standard filename is used for each
+		data product, e.g. the light curve file:<br>
+		</font><code><font color="#3d3d3d">&lt;PLATOID&gt;_Ncam&lt;camera&gt;_Q&lt;quarter&gt;_LIGHTCURVE_L1A_IMAGETTE.hdf5</font></code>
+		(for P1 sample)<br>
+		</font><code><font color="#3d3d3d">&lt;PLATOID&gt;_Ncam&lt;camera&gt;_Q&lt;quarter&gt;_LIGHTCURVE_L1A.hdf5</font></code>      (for P5 sample). 
+		</p>
+		<p><font color="#3d3d3d">For a general overview of the on-board and
+		on-ground pipeline see PLATO Synopsis of on-board processing
+		algorithms (PLATO-LESIA-PDC-RP-0024, i2.8) and PLATO Synopsis of
+		on-ground processing algorithms (PLATO-LESIA-PDC-RP-0023, i1.6)
+		respectively. </font>
+		</p>
+		<p><br/>
+		</p>
+		<table width="100%" cellpadding="0" cellspacing="0">
+			<col width="88*"/>
+			<col width="111*"/>
+			<col width="57*"/>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p><b>Data
+					product name</b></p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p><b>Description</b></p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p><b>Main
+					documents</b></p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p><code><font color="#3d3d3d">LIGHTCURVE_L1A_IMAGETTE</font></code></p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p>Individual
+					L1 lightcurve generated with the PSF-fitting method from
+					imagette time-series. 
+					</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>PLATO-IRAP-PDC-DD-0056
+					(i1.3) and PLATO-IRAP-PDC-TN-0056 (i1.2)</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p><code><font color="#3d3d3d">LIGHTCURVE_L1A</font></code></p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p>Individual
+					lightcurve generated on-board with aperture mask and corrected
+					on-ground by the L1 pipeline</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>Marchiori
+					et al (2019), PLATO-LESIA-PDC-DD-0008 (i2.5),
+					PLATO-USP-PDC-DD-0001 (i1.0) and PLATO-LESIA-PDC-DD-0043 (i1.3)</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p>COB_OG</p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p>Center Of
+					Brightness (COB) time-series generated (on-ground) with the
+					PSF-fitting method.</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>PLATO-IRAP-PDC-DD-0056
+					(i1.3) and PLATO-IRAP-PDC-TN-0056 (i1.2) 
+					</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p>COB_L0</p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Center Of Brightness (COB) time-series generated on-board with
+					aperture mask.</p>
+					<p>
+
+					</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>PLATO-LESIA-PDC-DD-0008
+					(i2.5)</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p>SKYPOS_L1A</p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p>Sky
+					positions time-series inferred from the star COB time-series.</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>PLATO-UOL-PDC-DD-0007
+					(i1.9) and PLATO-LIRA-PDC-TN-0095 (i1.0)</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p>inverse_psf</p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Inverse PSF</p>
+					<p style="margin-bottom: 0.2in"><br/>
+
+					</p>
+					<p><br/>
+
+					</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>PLATO-LESIA-PDC-RP-0036
+					(i1.2), PLATO-LESIA-PDC-DD-0039 (i1.2), PLATO-LESIA-PDC-DD-0053
+					(i1.1)</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p>interpolated_psf</p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Interpolated PSF</p>
+					<p>
+					</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p>PLATO-LIRA-PDC-DD-0071
+					(i1.0)</p>
+				</td>
+			</tr>
+			<tr valign="top">
+				<td width="34%" style="border: none; padding: 0in"><p>target_star</p>
+				</td>
+				<td width="43%" style="border: none; padding: 0in"><p>Information
+					about the target star and its neighborhood stars</p>
+				</td>
+				<td width="22%" style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+			</tr>
+		</table>
+		<p><br/>
+		</p>
+		<h2>Ligthcurve data  product</h2>
+		<h3>Aperture-based lightcurve</h3>
+		<h4>Metadata</h4>
+		<p>These metadata are used for light curves produced using aperture
+		mask photometry i.e. produced on-board or for moderately saturated
+		stars. 
+		</p>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>WINDOW_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Id of the window</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PLATOID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PLATO ID of the target</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint64</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CAMERA_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>ID of the camera (1 to
+					26)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					ID of the CCD</p>
+					<ul>
+						<li><p style="margin-bottom: 0.2in">Top left: 1</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom left: 2</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom right: 3</p></li>
+						<li><p>Top right: 4</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_SIDE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Side of the CCD <br/>
+Left:
+					0 <br/>
+Right : 1</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>SAMPLING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Sampling of the flux
+					time-series (typical values 25s, 50s, 600s)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>FLUX_ORIGIN</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					origin of this flux</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>F_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					processing undergone by the flux 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>I_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Bit array giving the processing undergone by the imagette 
+					</p>
+					<p>Relevant if this flux comes from aperture photometry on
+					on-ground processed imagette</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>TARGET_STAR_MASK_TS</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Information about the
+					MASKs (nominal and extended) of a target as a function of time</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>TARGET_STAR_MASK_TS
+					Struct</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<h4>Data contain</h4>
+		<p>Description of a flux of a target at a given time 
+		</p>
+		<table width="680" cellpadding="2" cellspacing="0">
+			<col width="130"/>
+			<col width="323"/>
+			<col width="55"/>
+			<col width="157"/>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>BARYCENTRIC_TIME</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp (barycentric) when the flux (or the imagette if
+					on-ground imagette photometry) has been acquired onboard.</p>
+					<p>Expressed in Julian days since J2000_TIME_ORIGIN.</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>Julian day</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>ONBOARD_TIME</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp based on the on-board time when the flux (or the
+					imagette if on-ground imagette photometry) has been acquired
+					onboard.</p>
+					<p>This is the time of the beginning of the readout of the first
+					exposure (if several exposure have been used), expressed in
+					seconds since ON_BOARD_TIME=0.</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>FLUX</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Value of
+					the flux for this exposure time</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in">
+					<ul><li><p style="margin-bottom: 0.2in">ADU/exposure before gain
+						correction</p></li>
+						<li><p>e-/exposure after gain correction</p></li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>FLUX_VARIANCE</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Value of
+					the variance of the flux for @LongCadence exposures</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>ADU²
+					before gain correction <br/>
+Electrons² after gain correction</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>CHI2</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Chi2 of the
+					flux, generated by the PSF fitting algorithm</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>EXPOSURE_ERROR_ARRAY</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Bit mask of exposure in error for this flux.</p>
+					<p style="margin-bottom: 0.2in">Typically, the exposure error
+					flag is encoded on 2 bits for short cadence (2 exposures) and on
+					24 bits for long cadence (24 exposures) to encode which of the 2
+					or 24 exposures have been discarded during on-board averaging.</p>
+					<p style="margin-bottom: 0.2in">Bit value is True (i.e. 1) if an
+					outlier has been detected on the exposure.</p>
+					<p>Only relevant when using aperture mask photometry</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>BACKGROUND</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Level of
+					background for this flux</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>e-/exposure</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>SPR_TOT</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Stellar Pollution Ratio total as defined in Marchiori et al
+					(2019)</p>
+					<p>Only relevant when using aperture mask photometry</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>LTD_JIT_COR_MEAN_FACTOR</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Long-term drift and jitter noise correction factor</p>
+					<p>Only relevant when using aperture mask photometry</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>IMAGETTE_OUTLIERS_NB</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Number of
+					pixels flagged as outliers in imagette. Only relevant for flux
+					coming from photometry of imagette.</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>STATUS</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Status of
+					the measurement (See STATUS Definition)</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<p><br/>
+<br/>
+
+		</p>
+		<h3>PSF-based lightcurve  data  product</h3>
+		<h4><font color="#3d3d3d">Metadata</font></h4>
+		<p>These metadata are used for light curves produced on-ground,
+		i.e: using PSF photometry on imagette 
+		</p>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>WINDOW_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Id of the window</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PLATOID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PLATO ID of the target</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint64</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CAMERA_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>ID of the camera (1 to
+					26)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					ID of the CCD</p>
+					<ul>
+						<li><p style="margin-bottom: 0.2in">Top left: 1</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom left: 2</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom right: 3</p></li>
+						<li><p>Top right: 4</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_SIDE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Side of the CCD <br/>
+Left:
+					0 <br/>
+Right : 1</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>SAMPLING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Sampling of the flux
+					time-series (typical values 25s, 50s, 600s)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CONTAMINANTS_LIST 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					List of instance of the CONTAMINANTPFLUX structure.</p>
+					<p>Each instance gives some information related to a given
+					neighborhood star. Empty list if no contaminant stars.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>CONTAMINANTPFLUX struct
+					(Nc) <br/>
+Nc: Number of contaminants</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>FLUX_ORIGIN</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					origin of this flux 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>F_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					processing undergone by the flux 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>I_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					processing undergone by the imagette 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+		<h4>Data contain</h4>
+		<p>Description of a flux of a target at a given time 
+		</p>
+		<table width="680" cellpadding="2" cellspacing="0">
+			<col width="130"/>
+			<col width="323"/>
+			<col width="55"/>
+			<col width="157"/>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>BARYCENTRIC_TIME</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp (barycentric) when the flux (or the imagette if
+					on-ground imagette photometry) has been acquired onboard.</p>
+					<p>Expressed in Julian days since J2000_TIME_ORIGIN.</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>Julian day</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>ONBOARD_TIME</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp based on the on-board time when the flux (or the
+					imagette if on-ground imagette photometry) has been acquired
+					onboard.</p>
+					<p>This is the time of the beginning of the readout of the first
+					exposure (if several exposure have been used), expressed in
+					seconds since ON_BOARD_TIME=0.</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>FLUX</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Value of
+					the flux for this exposure time</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in">
+					<ul><li><p style="margin-bottom: 0.2in">ADU/exposure before gain
+						correction</p></li>
+						<li><p>e-/exposure after gain correction</p></li>
+					</ul>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>FLUX_VARIANCE</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Value of
+					the variance of the flux for @LongCadence exposures</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>ADU²
+					before gain correction <br/>
+Electrons² after gain correction</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>CHI2</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Chi2 of the
+					flux, generated by the PSF fitting algorithm</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>EXPOSURE_ERROR_ARRAY</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Bit mask of exposure in error for this flux.</p>
+					<p style="margin-bottom: 0.2in">Typically, the exposure error
+					flag is encoded on 2 bits for short cadence (2 exposures) and on
+					24 bits for long cadence (24 exposures) to encode which of the 2
+					or 24 exposures have been discarded during on-board averaging.</p>
+					<p style="margin-bottom: 0.2in">Bit value is True (i.e. 1) if an
+					outlier has been detected on the exposure.</p>
+					<p>Only relevant when using aperture mask photometry</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>BACKGROUND</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Level of
+					background for this flux</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>e-/exposure</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>SPR_TOT</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Stellar Pollution Ratio total as defined in Marchiori et al
+					(2019) 
+					</p>
+					<p>Only relevant when using aperture mask photometry</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>LTD_JIT_COR_MEAN_FACTOR</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Long-term drift and jitter noise correction factor</p>
+					<p>Only relevant when using aperture mask photometry</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>IMAGETTE_OUTLIERS_NB</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Number of
+					pixels flagged as outliers in imagette. Only relevant for flux
+					coming from photometry of imagette.</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="130" style="border: none; padding: 0in"><p>STATUS</p>
+				</td>
+				<td width="323" style="border: none; padding: 0in"><p>Status of
+					the measurement (See STATUS Definition)</p>
+				</td>
+				<td width="55" style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td width="157" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+		<h4>Contaminant lightcurve 
+		</h4>
+		<table width="680" cellpadding="2" cellspacing="0">
+			<col width="118"/>
+			<col width="437"/>
+			<col width="71"/>
+			<col width="38"/>
+			<tr>
+				<td width="118" style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td width="437" style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td width="71" style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td width="38" style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="118" style="border: none; padding: 0in"><p>FREE_AMPLITUDE</p>
+				</td>
+				<td width="437" style="border: none; padding: 0in"><p>Boolean
+					indicating if the contaminant amplitude is a free parameter of
+					the PSF fitting model</p>
+				</td>
+				<td width="71" style="border: none; padding: 0in"><p>bool</p>
+				</td>
+				<td width="38" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="118" style="border: none; padding: 0in"><p>FLUX_TS</p>
+				</td>
+				<td width="437" style="border: none; padding: 0in"><p>Flux time
+					series of the contaminant</p>
+				</td>
+				<td width="71" style="border: none; padding: 0in"><p>FLUX Struct</p>
+				</td>
+				<td width="38" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<h3><br/>
+		</h3>
+		<h2>Center Of Brightness (COB) data product</h2>
+		<h4>Metada</h4>
+		<p>Centre of Brightness of a single target metadata</p>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>WINDOW_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Id of the window</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PLATOID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PLATO ID of the target</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint64</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CAMERA_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>ID of the camera (1 to
+					26)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					ID of the CCD</p>
+					<ul>
+						<li><p style="margin-bottom: 0.2in">Top left: 1</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom left: 2</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom right: 3</p></li>
+						<li><p>Top right: 4</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_SIDE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Side of the CCD <br/>
+Left:
+					0 <br/>
+Right : 1</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>SAMPLING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Sampling of the COB
+					time-series (typical value 25s, 50s, 600s)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CONTAMINANTS_LIST 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					List of instance of the CONTAMINANTPCOB structure.</p>
+					<p>Each instance gives some information related to a given
+					neighborhood star. Empty list if no contaminant stars.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>CONTAMINANTPCOB struct
+					(Nc) <br/>
+Nc: Number of contaminants</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COB_ORIGIN</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					origin of this COB 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>C_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					processing undergone by the COB 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>I_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					processing undergone by the imagette, relevant if this COB comes
+					from aperture photometry on on-ground processed imagette</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+		<h4>Data contain</h4>
+		<p>Centre of Brightness of a single target for an exposure time 
+		</p>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>BARYCENTRIC_TIME</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp (barycentric) when the COB (or measurements to derive
+					the COB) has been acquired onboard.</p>
+					<p>Expressed in Julian days since J2000_TIME_ORIGIN (i.e.
+					ONBOARD_TIME=0).</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Julian day</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>ONBOARD_TIME</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp based on the on-board time when the COB (or
+					measurements to derive the COB) has been acquired onboard.</p>
+					<p>This is the time of the beginning of the readout of the first
+					exposure (if several exposure have been used), expressed in
+					seconds since ON_BOARD_TIME=0.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COB_X</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>COB X coordinates on
+					the CCD in the CCD-RF</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixels</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COB_Y</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>COB Y coordinates on
+					the CCD in the CCD-RF</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixels</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COB_VARIANCE_X</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Value of the variance
+					of the COB along X axis for @LongCadence exposures</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixels²</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COB_VARIANCE_Y</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Value of the variance
+					of the COB along Y axis for @LongCadence exposures</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixels²</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>EXPOSURE_ERROR_ARRAY</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Bit mask of exposure in error for this COB.</p>
+					<p style="margin-bottom: 0.2in">Typically, the exposure error
+					flag is encoded on 2 bits for short cadence (2 exposures) and on
+					24 bits for long cadence (24 exposures) to encode which of the 2
+					or 24 exposures have been discarded during on-board averaging.</p>
+					<p>Bit value is True (i.e. 1) if an outlier has been detected on
+					the exposure.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>BACKGROUND</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Level of background for
+					this COB</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>e-/exposure</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>IMAGETTE_OUTLIERS_NB</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Number of pixels
+					flagged as outliers in imagette. Only relevant for COB coming
+					from photometry of imagette.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>STATUS</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Status of the
+					measurement (See STATUS Definition)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<p>
+		</p>
+		<h4>Contaminant COB</h4>
+		<table width="680" cellpadding="2" cellspacing="0">
+			<col width="65"/>
+			<col width="387"/>
+			<col width="175"/>
+			<col width="38"/>
+			<tr>
+				<td width="65" style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td width="387" style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td width="175" style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td width="38" style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="65" style="border: none; padding: 0in"><p>FREE_COB</p>
+				</td>
+				<td width="387" style="border: none; padding: 0in"><p>Boolean
+					indicating if the contaminant COBis a free parameter of the PSF
+					fitting model</p>
+				</td>
+				<td width="175" style="border: none; padding: 0in"><p>bool</p>
+				</td>
+				<td width="38" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td width="65" style="border: none; padding: 0in"><p>COB_TS</p>
+				</td>
+				<td width="387" style="border: none; padding: 0in"><p>Centre of
+					brightness time series of the contaminant</p>
+				</td>
+				<td width="175" style="border: none; padding: 0in"><p>CENTRE_OF_BRIGHTNESS
+					Struct</p>
+				</td>
+				<td width="38" style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<h3><br/>
+		</h3>
+		<h2><a name="Datastructures-STATUSSTATUS(TBD)">
+		  </a>Measurement status</h2>
+		<p>
+		</p>
+		<table width="680" cellpadding="2" cellspacing="0">
+			<col width="68"/>
+			<col width="46"/>
+			<col width="94"/>
+			<col width="148"/>
+			<col width="306"/>
+			<tbody>
+				<tr>
+					<th width="68" style="border: none; padding: 0in"><p>Decimal
+						Value</p>
+					</th>
+					<th width="46" style="border: none; padding: 0in"><p>Bit order</p>
+					</th>
+					<th width="94" style="border: none; padding: 0in"><p>Bit value</p>
+					</th>
+					<th width="148" style="border: none; padding: 0in"><p>Name</p>
+					</th>
+					<th width="306" style="border: none; padding: 0in"><p>Description</p>
+					</th>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>0</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						0</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><pre class="western" style="margin-left: 0in; margin-right: 0in">VALID</pre>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Nominal
+						value (nothing to report)</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>1</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						0</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00000001</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p>INVALID</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Invalid
+						for any reasons</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>2</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						1</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00000010</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><pre class="western" style="margin-left: 0in; margin-right: 0in">MASK_CHANGED</pre>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Mask
+						changed</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>4</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						2</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00000100</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><pre class="western" style="margin-left: 0in; margin-right: 0in">ONG_LC_OUTLIERS</pre>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+						Outliers detected on-ground over light-curves (both for light
+						curves coming from on-board or light-curves coming from
+						photometry on imagettes).</p>
+						<p>Value considered as an outlier by the on-ground outlier
+						detection algorithm over light-curves (ONG-OUTLCCOR-010)</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>8</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						3</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00001000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><pre class="western" style="margin-left: 0in; margin-right: 0in">ONG_IMG_OUTLIERS</pre>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+						Outliers detected on-ground over imagettes.</p>
+						<p style="margin-bottom: 0.2in">Value considered as an outlier
+						by the on-ground outlier detection algorithm over imagettes
+						(ONG-OUTIMGCOR-010)</p>
+						<p style="margin-bottom: 0.2in">One or several outliers
+						detected in the imagettes from which the flux was extracted</p>
+						<p>The detection of one or several outliers in the imagettes
+						does not necessarily mean that the flux value extracted from
+						the imagette is invalid</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>16</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						4</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00010000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p>RW_OFFLOADING</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Measurement
+						acquired during a reaction wheel offloading</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>32</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						5</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						00100000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><pre class="western" style="margin-left: 0in; margin-right: 0in">ONB_LC_OUTLIERS</pre>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+						Outlier(s) detected and removed on-board</p>
+						<p style="margin-bottom: 0.2in">Relevant for 50s and 600s
+						light-curves computed on-board.</p>
+						<p>This flag does not necessarily mean that the flux value is
+						invalid</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>64</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						6</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						01000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>128</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						7</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000000
+						10000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>256</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						8</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000001
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>512</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						9</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000010
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>1024</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						10</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000100
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>2048</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						11</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00001000
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>4096</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						12</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00010000
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p><br/>
+
+						</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>8192</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						13</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00100000
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p>ERROR_BKG_MOD</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Computation
+						error for bkg model</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>16384</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						14</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>01000000
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p>ERROR_LTDJIT_CORR</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Computation
+						error for jitter and long term drif correction</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>32768</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						15</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>10000000
+						00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p>COMPUTATION_ERROR</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Computation
+						error value</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>65536</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						16</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000001
+						00000000 00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p>ERROR_GAIN_VARIATION</p>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Computation
+						error for gain variation</p>
+					</td>
+				</tr>
+				<tr>
+					<td width="68" style="border: none; padding: 0in"><p>131072</p>
+					</td>
+					<td width="46" style="border: none; padding: 0in"><p align="center">
+						17</p>
+					</td>
+					<td width="94" style="border: none; padding: 0in"><p>00000010
+						00000000 00000000</p>
+					</td>
+					<td width="148" style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+						<br/>
+<br/>
+
+						</p>
+						<pre class="western" style="margin-left: 0in; margin-right: 0in">MERGING_NO_VALID</pre>
+					</td>
+					<td width="306" style="border: none; padding: 0in"><p>Value not
+						valid after merging</p>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+		<p><br/>
+<br/>
+
+		</p>
+		<p><br/>
+		</p>
+		<h2>Sky positions data product</h2>
+		<h4>Metadata<font color="#3d3d3d"> </font>
+		</h4>
+		<p>Sky position of a single target metadata 
+		</p>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>WINDOW_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Id of the window</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PLATOID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PLATO ID of the target</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint64</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CAMERA_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>ID of the camera (1 to
+					26)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					ID of the CCD</p>
+					<ul>
+						<li><p style="margin-bottom: 0.2in">Top left: 1</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom left: 2</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom right: 3</p></li>
+						<li><p>Top right: 4</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>SAMPLING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Sampling of the
+					background model time-series (typical value 25s)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CONTAMINANTS_LIST 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					List of instance of the CONTAMINANTPCOB structure.</p>
+					<p>Each instance gives some information related to a given
+					neighborhood star. Empty list if no contaminant stars.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>CONTAMINANTPCOB struct
+					(Nc) <br/>
+Nc: Number of contaminants</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COB_ORIGIN</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>If relevant, bit array
+					giving the origin of the COB used to derive this sky position 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>C_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>If relevant, bit array
+					giving the processing undergone by the COB used to derive this
+					sky position 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>I_PROCESSING</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Bit array giving the
+					processing undergone by the imagette , relevant if this COB
+					comes from aperture photometry on on-ground processed imagette</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint16</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<h4>Data contain 
+		</h4>
+		<p>Sky position of a single target for an exposure time 
+		</p>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>BARYCENTRIC_TIME</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp (barycentric) when the sky position (or measurements
+					to derive the sky position) has been acquired onboard.</p>
+					<p>Expressed in Julian days since J2000_TIME_ORIGIN (i.e.
+					ONBOARD_TIME=0).</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Julian day</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>ONBOARD_TIME</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp based on the on-board time when the sky position (or
+					measurements to derive the sky position) has been acquired
+					onboard.</p>
+					<p>Expressed in Julian days since J2000_TIME_ORIGIN (i.e.
+					ONBOARD_TIME=0).</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>GCRS_RA</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>RA sky position of the
+					target in GCRS &nbsp;inferred from its measured CCD position</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>degrees</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>GCRS_DEC</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>DEC sky position of the
+					target in GCRS &nbsp;inferred from its measured CCD position</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>degrees</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>GCRS_DELTA_LONG</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Longitudinal&nbsp; displacement&nbsp; (tangential shift in the
+					Right Ascension direction) in the GCRS frame.</p>
+					<p style="margin-bottom: 0.2in">GCRS_DELTA_LONG = cos(Dec) * (
+					CCD_Ra - Sky_Ra), where:</p>
+					<ul type="square">
+						<li><p style="margin-bottom: 0.2in">CCD_Ra stands for the RA
+						position of the star in the GCRS derived on the basis of its
+						position on the CCD (CCD-&gt; boreshigh frame -&gt; GCRS
+						position).</p></li>
+					</ul>
+					<ul type="square">
+						<li><p>Sky_Ra stands for the expected theoretical RA star
+						position obtained from the position in the star catalogue (BCRS
+						position from catalogue -&gt; GCRS position).</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>arcseconds</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>GCRS_DELTA_LONG_ERR</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>1-σ uncertainty
+					associated with GCRS_DELTA_LONG</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>arcseconds</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>GCRS_DELTA_LAT</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Latitudinal displacement&nbsp; (tangential shift in the
+					Declination direction) in the GCRS frame.</p>
+					<p style="margin-bottom: 0.2in">GCRS_DELTA_LAT = (CCD_Dec -
+					Sky_Dec), where:</p>
+					<ul type="square">
+						<li><p style="margin-bottom: 0.2in">CCD_Dec stands for the DEC
+						position of the star in the GCRS derived on the basis of its
+						position on the CCD (CCD-&gt; boreshigh frame -&gt; GCRS
+						position).</p></li>
+					</ul>
+					<ul type="square">
+						<li><p>Sky_Dec stands for the expected theoretical DEC star
+						position obtained from the position in the star catalogue (BCRS
+						position from catalogue -&gt; GCRS position).</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>arcseconds</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>GCRS_DELTA_LAT_ERR</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>1-σ uncertainty
+					associated with GCRS_DELTA_LAT</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>arcseconds</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>STATUS</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Status of the
+					measurement (See STATUS Definition)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+		</table>
+		<p><br/>
+<br/>
+
+		</p>
+		<h2>PSF data product</h2>
+		<table cellpadding="2" cellspacing="2">
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<col width="0"/>
+			<tr>
+				<td style="border: none; padding: 0in"><p><br/>
+
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Description</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Type</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Unit</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PSF_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PSF ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PLATOID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PLATO ID of target</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint64</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>RESOLUTION</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Resolution as a
+					fraction of a pixel. Typical value: 128 (corresponding to a
+					resolution of 1/128th of a pixel)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32 <br/>
+128, 256,
+					512</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>PSF</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PSF, result of
+					inversion process</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double (M*M) <br/>
+M:
+					depending on PSF resolution</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>SIZE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>PSF size, i.e. physical
+					number of pixels on a side of the PSF array</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8, typically 6</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixel</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>B_SPLINE_RESOLUTION</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Resolution of the
+					B-Spline representation of the PSF. Typical value: 20
+					corresponding to a resolution of 1/20<sup>th</sup> of pixel (in
+					both the x and the y direction)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint32</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>B_SPLINE_COEFFICIENTS</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>B-Spline representation
+					of the PSF. The number of elements N in each direction depends
+					on B_SPLINE_RESOLUTION. <br/>
+For example, for an imagette of
+					6*6 pixels with a linear resolution of 1/20th of a pixel, you
+					will have 120 spline coefficients (in that particular
+					direction).</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double (N*N) <br/>
+N:
+					depending on the resolution of B-Splines representation of the
+					PSF.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>SPLINE_DEGREE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Degree of splines
+					(Typical value: 3 for cubic splines)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>KNOT_TYPE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Strategy to place the
+					knots within the PSF. Values: SIMPLE (0) or DIERCKX (1).
+					(Typical value: DIERCKX)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>BARYCENTRIC_TIME</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp (barycentric) when the imagette do derive PSF has been
+					acquired onboard.</p>
+					<p>Expressed in Julian days since J2000_TIME_ORIGIN (i.e.
+					ONBOARD_TIME=0).</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Julian day</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>ONBOARD_TIME</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Timestamp based on the on-board time when the imagette do derive
+					PSF has been acquired onboard.</p>
+					<p>Expressed in seconds since J2000_TIME_ORIGIN.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>second</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CENTER</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>x center and y center
+					of the PSF within the grid (6*6)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double (2)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixel</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>COVARIANCE</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Covariance matrix of
+					PSF enabling us to calculate the extent of the PSF in any
+					direction.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double (2*2)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixel²</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CAMERA_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>ID of the camera (1 to
+					26)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p>CCD_ID</p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					ID of the CCD</p>
+					<ul>
+						<li><p style="margin-bottom: 0.2in">Top left: 1</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom left: 2</p></li>
+						<li><p style="margin-bottom: 0.2in">Bottom right: 3</p></li>
+						<li><p>Top right: 4</p></li>
+					</ul>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">CCD_POSITION</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					CCD position of the target star using the CCD-RF</p>
+					<p style="margin-bottom: 0.2in">CCD_POSITION_X = <font color="#3d3c40">CCD_POSITION[0]</font></p>
+					<p><font color="#3d3c40">CCD_POSITION_Y = CCD_POSITION[1]</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double (2)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>pixel</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">FP_POSITION</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Position of the target star within the Focal Plane</p>
+					<p style="margin-bottom: 0.2in"><font color="#3d3c40">FP_POSITION</font>_X
+					= <font color="#3d3c40">FP_POSITION[0]</font></p>
+					<p><font color="#3d3c40">FP_POSITION_Y = FP_POSITION[1]</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double (2)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>mm</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">NORM</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p>The norm of the PSF
+					prior to normalisation. 
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>e-</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">REG_PARAMETER</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Non-dimensional version of the regularisation parameter used
+					when carrying out the wPRLS inversion.</p>
+					<p style="margin-bottom: 0.2in">Dividing this parameter by
+					(NORM/SIZE<sup>2</sup>)<sup>2</sup> produces the dimensional
+					version of the regularisation parameter that is used in the
+					inversion program.</p>
+					<p>
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">FIT_ERROR</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Data fit error from the
+					inversion process. This corresponds to the first term in the
+					cost function for the wPRLS inversion.</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">REG_ERROR</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p style="margin-bottom: 0.2in">
+					Regularisation penalty. This measures the degree to which the
+					inverted PSF is not regularised and corresponds to a normalised
+					version of the second term in the cost function for the wPRLS
+					inversion. 
+					</p>
+					</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>double</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>[-]</p>
+				</td>
+			</tr>
+			<tr>
+				<td style="border: none; padding: 0in"><p><font color="#3d3c40">STATUS</font></p>
+				</td>
+				<td style="border: none; padding: 0in"><p>Validation status of
+					PSF (see PSF_STATUS)</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>uint8</p>
+				</td>
+				<td style="border: none; padding: 0in"><p>&nbsp;[-]</p>
+				</td>
+			</tr>
+		</table>
+		</p>
+		</p>
+		</p>
+		</p>
+		</p>
+	</div>
+</div>
+</body>
+</html>
+</section>
 </section>
 
 
