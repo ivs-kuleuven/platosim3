@@ -24,7 +24,8 @@
 
 * Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
 * Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
-* Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`]
+* Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`].
+* Added new section about the output files of the PLATOnium-L1 pipeline setup, plus updated figures and text in PLATOnium tutorials.
 
 ### Removed
 
