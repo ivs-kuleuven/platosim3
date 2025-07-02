@@ -1340,11 +1340,17 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
         else:
             idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
             df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+
+        # Backward compatible
+        try:
+            ncam = df.ncam
+        except KeyError:
+            ncam = df.ncams
             
-        PF06 = df[df['ncams'] == 6]
-        PF12 = df[df['ncams'] == 12]
-        PF18 = df[df['ncams'] == 18]
-        PF24 = df[df['ncams'] == 24]
+        PF06 = df[ncam == 6]
+        PF12 = df[ncam == 12]
+        PF18 = df[ncam == 18]
+        PF24 = df[ncam == 24]
 
         starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame=system, unit='deg')
         starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame=system, unit='deg')
@@ -1400,7 +1406,7 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
             cbar.set_label(clabel)
 
     # Plot pointing of each camera group
-    
+
     if showGroups:
 
         # Show N-CAM groups
@@ -1409,36 +1415,21 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
                                                            np.deg2rad(kappa))
         camPointing = SkyCoord(np.rad2deg(raGroups)*u.deg,
                                np.rad2deg(decGroups)*u.deg,
-                               frame='icrs', unit='deg')  
+                               frame='icrs', unit='deg')
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
             ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=10, color=c,
                     mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
         
         # Plot pointing F-CAM group (i.e. platform pointing)
-        
         ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=20,
                 transform=ax.get_transform('world'), zorder=6)
-
 
     # Plot F-CAM FOV as cicle 
         
     if showFcamFOV:
-        
-        # ax.plot(PF.ra.deg, PF.dec.deg,  marker='.',
-        #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
-        #         transform=ax.get_transform(system), zorder=6)
-        ax.scatter(PF.ra.deg, PF.dec.deg, s=85e3, marker='o',
+        ax.scatter(PF.ra.deg, PF.dec.deg, s=13.2e4, marker='o',
                    edgecolor='magenta', facecolor='none', linewidth=2,
                    transform=ax.get_transform(system), zorder=6)
-        # ax.scatter(raGroups[3]*u.deg, decGroups[3]*u.deg, s=85e3, marker='o',
-        #            edgecolor='r', facecolor='none', linewidth=2,
-        #            transform=ax.get_transform(system), zorder=6)
-        # The problem with projecting shapes due to missing cos factor
-        # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
-        # https://github.com/astropy/regions/issues/76
-        # circle = patches.Circle((PF.ra.deg, PF.dec.deg), 18, fc='none', lw=2,
-        #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
-        #ax.add_patch()
 
     # Add-on's
     
@@ -2253,7 +2244,8 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     
 
 
-def plotNSRvsMagnitude(df, column=False,
+def plotNSRvsMagnitude(df,
+                       column=False,
                        residuals=False,
                        passband='P',
                        yscale="log",
