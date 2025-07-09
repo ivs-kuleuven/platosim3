@@ -1344,7 +1344,7 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
         # Backward compatible
         try:
             ncam = df.ncam
-        except KeyError:
+        except AttributeError:
             ncam = df.ncams
             
         PF06 = df[ncam == 6]

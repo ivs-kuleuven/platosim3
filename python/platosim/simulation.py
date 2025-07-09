@@ -1039,7 +1039,8 @@ class Simulation(object):
 
 
 
-    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=None):
+    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY,
+                                        normal=None, CCD=None):
 
         """Set subfield around stellar coordinates
 
@@ -1153,26 +1154,39 @@ class Simulation(object):
         # of the star, given a 4510x4510 CCD [colNumber, rowNumber]. The function below
         # also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
         
-        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY,
+        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX,
+                                                                    subfieldSizeY,
                                                                     raStar, decStar,
                                                                     raPlatform, decPlatform,
                                                                     solarPanelOrientation,
-                                                                    tiltTelescope, azimuthTelescope,
+                                                                    tiltTelescope,
+                                                                    azimuthTelescope,
                                                                     focalPlaneAngle,
                                                                     focalLength, pixelSize,
-                                                                    includeFieldDistortion, normalCamera,
+                                                                    includeFieldDistortion,
+                                                                    normalCamera,
                                                                     mappedDistortion,
                                                                     distortionCoefficients,
-                                                                    pathToPsfFile)
+                                                                    pathToPsfFile,
+                                                                    CCD)
 
         if ccdCode == None:
             return False
 
-        CCDSizeX         = rf.CCD[ccdCode]["Ncols"]
-        CCDSizeY         = rf.CCD[ccdCode]["Nrows"]
-        CCDOriginOffsetX = rf.CCD[ccdCode]["zeroPointXmm"]
-        CCDOriginOffsetY = rf.CCD[ccdCode]["zeroPointYmm"]
-        CCDOrientation   = rf.CCD[ccdCode]["angle"]
+        # Alter CCD geometry if requested
+        
+        if self["CCD/Position"] == "Custom":
+            CCDOriginOffsetX = self['CCD/OriginOffsetX']
+            CCDOriginOffsetY = self['CCD/OriginOffsetY']
+            CCDOrientation   = self['CCD/Orientation']
+            CCDSizeX         = self['CCD/NumColumns']
+            CCDSizeY         = self['CCD/NumRows']
+        else:
+            CCDOriginOffsetX = rf.CCD[ccdCode]["zeroPointXmm"]
+            CCDOriginOffsetY = rf.CCD[ccdCode]["zeroPointYmm"]
+            CCDOrientation   = rf.CCD[ccdCode]["angle"]
+            CCDSizeX         = rf.CCD[ccdCode]["Ncols"]
+            CCDSizeY         = rf.CCD[ccdCode]["Nrows"]
 
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
 

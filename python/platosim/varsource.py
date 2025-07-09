@@ -2664,6 +2664,15 @@ class SMBHB(object):
         return (c.G.cgs * self.M * self.P**2 / (4 * np.pi**2))**(1/3)     
 
 
+    def schwarzchild_radius(self):
+
+        """Schwarzchild radius of primary and secondary [cm].
+        """
+        RS1 = 2 * c.G.cgs * self.M / ((1 + self.q) * c.c.cgs**2)
+        RS2 = 2 * c.G.cgs * self.M * self.q / ((1 + self.q) * c.c.cgs**2)
+        return RS1, RS2
+
+    
     #---------------------------------------------------------------------------
     
     def calculate_eccentric_anomaly(self, M_A, e):
@@ -2784,50 +2793,6 @@ class SMBHB(object):
         return D1, D2
 
     #--------------------------------
-
-    def r_ISCO(self, M):
-        return 6 * c.G.cgs * M.cgs / c.c.cgs**2
-
-    def accretion_rate(self, M, radiative_efficiency=0.1):
-        return 2.26e-2 * (radiative_efficiency / 0.1)**-1 * (M.cgs/10**6) / ut.year()
-
-    def temp(self, r):
-        #M_g = M * 1.989e33  # g.
-        #sigma = 5.67e-5 # erg cm^-2s^-1K^-4
-        # power = 3 * G * M_g * accretion_rate(M) * (1 - np.sqrt(r_ISCO(M) / r)) / (8 * np.pi * r**3)
-        M = self.q * self.M.cgs / (1 + self.q)
-        a_rate = self.accretion_rate(M)
-        r_isco = self.r_ISCO(M)
-        power = 3 * c.G.cgs * M * a_rate * (1 - np.sqrt(r_isco/r)) / (8 * np.pi * r**3)
-        return (power.value / c.sigma_sb.cgs.value)**0.25 * u.K  
-
-
-    def planck_wavelength(self, wvl, T):
-        numerator   = (2 * c.h.cgs * c.c.cgs**2).value
-        exponent    = ((c.h.cgs * c.c.cgs) / (wvl.cgs * c.k_B.cgs * T)).value
-        denominator = (wvl.cgs.value**5) * (np.exp(exponent) - 1)
-        return (numerator / denominator) * u.cm
-
-    
-    def flux(self, r, wvl):
-        r_isco = self.r_ISCO(self.q * self.M.cgs / (1 + self.q))
-        flux = np.where(
-            (r_isco < r) & (r < 0.27 * self.a * self.q**0.3),
-            np.pi * self.planck_wavelength(wvl, self.temp(r)),
-            0
-        )
-        return flux.value
-
-    #--------------------------------
-
-    
-    def schwarzchild_radius(self):
-
-        """Schwarzchild radius of primary and secondary [cm].
-        """
-        RS1 = 2 * c.G.cgs * self.M / ((1 + self.q) * c.c.cgs**2)
-        RS2 = 2 * c.G.cgs * self.M * self.q / ((1 + self.q) * c.c.cgs**2)
-        return RS1, RS2
     
     
     def einstein_radius(self, phi1, phi2):
@@ -2880,150 +2845,114 @@ class SMBHB(object):
         """
         return (u**2 + 2) / (np.sqrt(u**2 + 4))
 
+
     #--------------------------------
+    
+    def r_ISCO(self, m):
+        return 6 * self.G * m / self.cc**2
 
-    def gravitational_lensing(self, z, t0, P, M1, M2, I, J, wvl=None):
+    def accretion_rate(self, m, radiative_efficiency=0.1):
+        return 2.26*10**-2 * (radiative_efficiency/0.1)**-1 * (m/10**6) / ut.year()
 
-        """Initialise model for gravitational lensing.        
+    def reduced_mass (self):
+        return self.q * self.M / (1 + self.q)
+        
+    def disc_temperature(self, q, r):
+        a_rate = self.accretion_rate(self.Mq)
+        r_isco = self.r_ISCO(self.Mq)
+        power = 3 * self.G * self.Mq * a_rate * (1 - np.sqrt(r_isco/r)) / (8 * np.pi * r**3)
+        return (power / self.sigma)**0.25  
+
+    def planck_wavelength(self, temp):
+        numerator   = 2 * self.h * self.cc**2
+        exponent    = (self.h * self.cc) / (self.wvl * self.k_B * temp)
+        denominator = (self.wvl**5) * (np.exp(exponent) - 1)
+        return numerator / denominator
+
+    def flux(self, r):
+        r_isco = self.r_ISCO(self.Mq)
+        condition1 = (r_isco < r) & (r < 0.27 * self.a * self.q**0.3)
+        condition2 = np.pi * self.planck_wavelength(self.disc_temperature(self.q, r))
+        return np.where(condition1, condition2, 0)
+    
+    def einstein_radius(self, t):
+        """Einstein radius of primary and secondary [cm].
+        """        
+        sin_phase_p = np.sin(2*np.pi * t/self.T)
+        sin_phase_s = np.sin(-np.pi + 2*np.pi * t/self.T)
+        RE_p = np.sqrt(2 * self.RS_p * self.a * np.cos(self.I) * sin_phase_p)
+        RE_s = np.sqrt(2 * self.RS_s * self.a * np.cos(self.I) * sin_phase_s)
+        return RE_p, RE_s
+
+    def position_uv(self, t):
+        """Complex components of u (projected  binary seperation) [RE]
         """
+        phi = 2 * np.pi * t / self.T
+        if 0 < t/self.T < 0.5:
+            phase = np.sqrt(np.cos(phi)**2 + np.sin(self.I)**2 * np.sin(phi)**2)
+            u_0 = self.a / self.einstein_radius(t)[0] * phase
+        else:
+            phase = np.sqrt(np.cos(-np.pi+phi)**2 + np.sin(self.I)**2 * np.sin(-np.pi+phi)**2)
+            u_0 = self.a / self.einstein_radius(t)[1] * phase
+        v_0 = np.arctan(np.sin(self.I) * np.tan(phi))
+        return u_0, v_0 
 
-        # Convert units
-        # self.z   = z
-        # self.t0  = t0.cgs
-        # self.T   = T.cgs
-        # self.M1  = M1.cgs
-        # self.M2  = M2.cgs
-        # self.w = w
-        # self.e = e
-                
-        self.z  = z
-        self.t0 = t0.cgs
-        self.P  = P.cgs
-        self.M1 = M1.cgs
-        self.M2 = M2.cgs
-        #self.q  = 0.1
-        #self.M  = (1e6 * u.M_sun).cgs
-        self.J  = np.pi / 4
-        self.I  = 0.005
-        # self.I   = I.to('rad').value
-        # self.J   = J.to('rad').value
+    def magnification_point_u(self, u):
+        """Dummy function to calculate finite source magnification.
+        """
+        return (u**2 + 2) / (np.sqrt(u**2 + 4))
 
-        # Constants
-        self.M = self.M1 + self.M2
-        self.q = self.M2 / self.M1
-        
-        # Orbital period in binary rest frame [s] 
-        self.T = self.period_observed()
-        
-        # Semi-major axis [m]        
-        self.a = self.semimajor_axis()
-        
-        # Schwarzchild radii (primary and secondary)
-        self.RS = self.schwarzchild_radius()
+    def disc_radius(self, u, v, u0, v0, r_E):
+        r_star  = np.sqrt(u0**2 + u**2 - 2 * u0 * u * np.cos(v - v0)) * r_E 
+        sin_phi = (u * np.sin(v) - u0 * np.sin(v0)) / np.sqrt((u * np.sin(v) - u0 * np.sin(v0))**2 + (u * np.cos(v) - u0 * np.cos(v0))**2)
+        phi = np.arcsin(sin_phi)
+        r = r_star * np.sqrt(np.cos(phi)**2 + np.sin(phi)**2 / (np.cos(np.pi/2 - self.J)**2))
+        return r, r_star, phi
 
-        # Maximum Einstein radius (primary and secondary)
-        RE1 = np.sqrt(2 * self.a * self.RS[0])
-        RE2 = np.sqrt(2 * self.a * self.RS[1])
-
-        # Print values
-        ut.errorcode('message', 'Model parameters:')
-        print(f'Orbital period in rest frame  : {self.P.to("yr"):.3f}')
-        print(f'Orbital period in obs. frame  : {self.T.to("yr"):.3f}')
-        print(f'Mass total (M1 + M2)          : {self.M.to("M_sun")/1e6:.4f} x 1e6')
-        print(f'Mass ratio (M2 / M1)          : {self.q:.4f}')
-        #print(f'Light ratio (L2 /(L1 + L2))   : {self.:.4f}')
-        print(f'Inclination of orbits         : {I.to("deg"):.2f}')
-        print(f'Inclination of mini-disc      : {J.to("deg"):.2f}')
-        #print(f'Argument of periapse          : {self.w:.2f}')
-        print(f'Semi-major axis of binaries   : {self.a.to("AU"):.2f}')
-        print(f'Schwarchild radius primary    : {self.RS[0].to("R_sun"):.2f}')
-        print(f'Schwarchild radius secondary  : {self.RS[1].to("R_sun"):.2f}')
-        print(f'Max Einstein radius primary   : {RE1.to("AU"):.2f}')
-        print(f'Max Einstein radius secondary : {RE2.to("AU"):.2f}')
-
-        
-        # # TODO under implementation
-        
-        # # Time and phases
-        # # T  = self.T.to('yr').value
-        # # t0 = self.t0.to('yr').value
-        # # time = np.linspace(0, T, 1000)
-        # # phi1 = 2 * np.pi * (time - t0) / T 
-        # # phi2 = phi1 - np.pi
-
-        # # In phase space
-        # T  = self.T.to('yr').value
-        # t0 = self.t0.to('yr').value
-        # time = np.linspace(0, 2.2, 1000)
-        # phi1 = np.linspace(1.92, 2.08, 1000)
-        # phi2 = np.linspace(0.92, 1.08, 1000)
-
-        # t0_yr = self.t0.to('yr').value
-        # P_yr = self.P.to('yr').value
-        # T_yr = self.T.to('yr').value
-
-        # # print( T_yr, t0_yr/T_yr, 2*np.pi*t0_yr/T_yr)
-        # # print( P_yr, t0_yr/P_yr, 2*np.pi*t0_yr/P_yr)
-        # # plt.figure()
-        # # plt.plot(phi1, np.ones_like(phi1))
-        # # plt.plot(phi2, np.ones_like(phi1))
-        # # plt.show()
-        
-        # # Grid to model mini-disc of secondary
-        # u_max, num1, num2 = 30, 1000, 100  
-        # u_array = np.linspace(0, u_max, num1)
-        # v_array = np.linspace(0, 2 * np.pi, num2)
-        # delta_u = u_max / num1
-        # delta_v = 2 * np.pi / num2
-        # u_grid, v_grid = np.meshgrid(u_array, v_array)
-
-        # # Prepare for iterations
-        # N = len(time)
-        # self.A = np.zeros(N)
-        
-        # for i in tqdm(range(N), bar_format=ut.tqdmBar()):
-
-        #     # Einstein radius (primary and secondary)
-        #     RE1, RE2 = self.einstein_radius(phi1[i], phi2[i])
-
-        #     # 
-        #     u0, v0 = self.position_uv(time[i], phi1[i], phi2[i], RE1, RE2)
-
-        #     # Model magnification
-        #     if wvl is None:
-        #         # Magnitfication of point source
-        #         self.A[i] = self.magnification_point(u0)
-        #     else:
-        #         # Magnification of finite source
-        #         radius = self.radius(u_grid, v_grid, u0, v0, RE1)
-        #         flux   = self.flux(radius, wvl)
-        #         A_ps_u = self.magnification_point_u(u_grid)
-        #         numer = np.sum(flux * A_ps_u * delta_u * delta_v)
-        #         denom = np.sum(flux * u_grid * delta_u * delta_v)
-        #         self.A[i] = numer / denom
-
-        # # Plot example
-        # if wvl is None:
-        #     lab = 'Point source'
-        # else:
-        #     lab = f'Finite source: \n {wvl.to("nm"):.0f}'
-        # plt.figure(figsize=(8,6))
-        # plt.plot(time, self.A, 'k-', label=lab)
-        # plt.xlabel('time [yr]')
-        # plt.ylabel(r'$\mathcal{M}$')
-        # plt.legend()
-        # #plt.xlim(0, P)
-        # plt.show()
-
-        # return self.A
+    def magnification_point(self, u): #point-source magnification
+        return (u ** 2 + 2) / (u * np.sqrt(u**2 + 4))
 
 
-    def lensing(self, t0, z, P, M, q, I, J, wvl_cm=550e-7,
+
+    def run_model(self, time, wvl, z, T, I, J, M, q, u_max=5, u_grid=300, v_grid=100):
+
+        # Grid for accretion disc 
+        u_array = np.linspace(0, u_max, u_grid)
+        delta_u = u_max / u_grid
+        v_array = np.linspace(0, 2 * np.pi, v_grid)
+        delta_v = 2 * np.pi / v_grid
+        u_grid, v_grid = np.meshgrid(u_array, v_array)
+
+        # Calculate self-lensing in phase
+        mag_e = []
+        mag_p = []
+
+        for t in tqdm(time, desc="Processing time steps"):
+            r_E = self.einstein_radius(t)[0]
+            u_0, v_0 = self.position_uv(t)
+            radius = self.disc_radius(u_grid, v_grid, u_0, v_0, r_E)[0]
+            flux_values = self.flux(radius)
+            M_point_u_values = self.magnification_point_u(u_grid)
+
+            numer = np.sum(flux_values * M_point_u_values * delta_u * delta_v)
+            denom = np.sum(flux_values * u_grid * delta_u * delta_v)
+            mag_e.append(numer / denom)
+
+        for t in time:
+            u_0, v_0 = self.position_uv(t)
+            mag_p.append(self.magnification_point(u_0))
+
+        return mag_p, mag_e
+
+
+
+    def lensing(self, t0, z, P, M, q, I, J, wvl,
                 u_max=10, u_grid=500, v_grid=500):
 
         from astropy import units as u
         from astropy import constants as c
 
+        # Convert to SI units
         self.z  = z
         self.q  = q
         self.M  = M.to('M_sun')
@@ -3031,7 +2960,8 @@ class SMBHB(object):
         self.P  = P.to('yr')
         self.I  = np.pi/2 * u.rad - I
         self.J  = J
-
+        self.wvl = wvl.to('cm')
+        
         # Orbital period in binary rest frame [s] 
         self.T = self.period_observed()
 
@@ -3064,143 +2994,36 @@ class SMBHB(object):
         N = 1000
         time = np.linspace(0, self.T.value, N)
         phase = time / self.T.value
-        t_dur = time[-1]
-
+        t_dur = self.time.to('yr').value[-1]
         
         #M_sun = 1.989e33   # [g]
         q = self.q
         M = (self.M/u.M_sun).value
-        M_g = (M * u.M_sun).cgs.value
         t0 = self.t0.to('yr').value
         T = self.T.to('yr').value
         P = self.P.value
         I = self.I.value
         J = self.J.value
-        #print(M, M_g, u.M_sun.cgs); exit()
-        # z  = 0 
-        # T  = 4
-        # print(M); exit()
-        # M  = 1e9
-        # q = 0.05
-        # I = np.deg2rad(3.5)
-        # J = np.pi / 8
-        # wvl_cm = 550e-7
-        # time = np.linspace(0, T, 1000)
 
+        #self.a = self.a.to('cm').value
+        self.M = (M * u.M_sun).cgs.value
+        self.T = self.T.to('yr').value
+        self.a = self.a.cgs.value
+        self.Mq = self.reduced_mass()
+        self.wvl = self.wvl.cgs.value
+        self.I = self.I.value
+        self.RS_p = self.RS[0].cgs.value
+        self.RS_s = self.RS[1].cgs.value
+        self.J = self.J.value
         
-        def r_ISCO(M):
-            return 6 * c.G.cgs.value * M_g / c.c.cgs.value**2 # in cm
-
-        def orbital_radius(M, P):
-            # Orbital period in binary rest frame [s]
-            T_s = P * ut.year()
-            a = ((c.G.cgs.value * M_g * T_s**2) / (4 * np.pi**2))**(1/3)
-            print( (a * u.cm).to('AU') ); exit()
-            return a
-
-        def accretion_rate(M, radiative_efficiency=0.1):
-            return 2.26 * 10**-2 * (radiative_efficiency / 0.1) **-1 * (M_g/10**6) / ut.year()
-
-        def Temp(q, r, M):
-            sigma = 5.67 * 10 **-5 # erg cm^-2s^-1K^-4
-            power = 3 * c.G.cgs.value * q * M_g / (1+q) * accretion_rate(q * M / (1 + q)) * (1 - np.sqrt(r_ISCO(q * M / (1 + q)) / r)) / (8 * np.pi * r**3)
-            return (power / sigma)**0.25  
-
-        def planck_wavelength(wavelength, T):
-            numerator = 2 * c.h.cgs.value * c.c.cgs.value**2
-            exponent = (c.h.cgs.value * c.c.cgs.value) / (wavelength * c.k_B.cgs.value * T)
-            denominator = (wavelength**5) * (np.exp(exponent) - 1)
-            return numerator / denominator
-
-        def flux(wavelength, r, q, M, T, z):
-            #P = T / (1 + z)
-            #a = orbital_radius(M, P)
-            r_isco = r_ISCO(q * M / (1 + q))
-            condition = (r_isco < r) & (r < 0.27 * self.a.value * q**0.3)
-            flux_values = np.where(
-                condition,
-                np.pi * planck_wavelength(wavelength, Temp(q, r, M)),
-                0
-            )
-            return flux_values
-
-        def einstein_radius(q, M, I, T, time, z):
-            #P = T / (1 + z)
-            #a = orbital_radius(M, P)
-
-            R_p = 2 * c.G.cgs.value * M_g / ((1 + q) * c.c.cgs.value**2)      # primary Schwarzchild in cm
-            R_s = 2 * c.G.cgs.value * M_g * q / ((1 + q) * c.c.cgs.value**2)  # primary Schwarzchild in cm
-
-            primary   = np.sqrt(2 * R_p * self.a.value * np.cos(I) * np.sin(2 * np.pi * time / T))          # in cm
-            secondary = np.sqrt(2 * R_s * self.a.value * np.cos(I) * np.sin(-np.pi + 2 * np.pi * time / T)) # in cm
-            return primary, secondary
-
-
-        def position_uv(q, M, I, T, time, z):
-            #P = T / (1 + z)
-            #a = orbital_radius(M, P)
-
-            if 0 < time / T < 0.5:
-                phase = np.sqrt(np.cos(2 * np.pi * time / T) ** 2 + (np.sin(I) ** 2) * np.sin(2 * np.pi * time / T) ** 2)
-                u_0 = (self.a.value * phase / einstein_radius(q, M, I, T, time, z)[0])
-
-            else:
-                phase = np.sqrt(np.cos(-np.pi + 2 * np.pi * time / T) ** 2 + np.sin(I) ** 2 * np.sin(-np.pi + 2 * np.pi * time / T) ** 2)
-                u_0 = (self.a.value * phase / einstein_radius(q, M, I, T, time, z)[1])
-
-            v_0 = np.arctan(np.sin(I) * np.tan(2 * np.pi * time / T))
-            return u_0, v_0 
-
+        self.G = c.G.cgs.value
+        self.cc = c.c.cgs.value
+        self.h = c.h.cgs.value
+        self.k_B = c.k_B.cgs.value
+        self.sigma = 5.67 * 10 **-5 # erg cm^-2s^-1K^-4
         
-        def M_point_u(u): #just a dummy function, not point-source magnification
-            return (u ** 2 + 2) / (np.sqrt(u**2 + 4))
-
-        def r(u, v, u_0, v_0, r_E, J):
-            r_star = np.sqrt(u_0 ** 2 + u ** 2 - 2 * u_0 * u * np.cos(v - v_0)) * r_E 
-            sin_phi = (u * np.sin(v) - u_0 * np.sin(v_0)) / np.sqrt((u * np.sin(v) - u_0 * np.sin(v_0)) ** 2 + (u * np.cos(v) - u_0 * np.cos(v_0)) ** 2)
-
-            phi = np.arcsin(sin_phi)
-
-            #return r_star * np.sqrt(np.cos(phi) ** 2 + np.sin(phi) ** 2 / (np.cos(np.pi / 2 - J) ** 2))
-            return r_star * np.sqrt(np.cos(phi) ** 2 + np.sin(phi) ** 2 / (np.cos(np.pi / 2 - J) ** 2)), r_star, phi
-
-        def M_point(u): #point-source magnification
-            return (u ** 2 + 2) / (u * np.sqrt(u**2 + 4))
-
-
-        def run_model(time, wvl_cm, z, T, I, J, M, q, u_max=5, u_grid=300, v_grid=100):
-
-            # Grid for accretion disc 
-            u_array = np.linspace(0, u_max, u_grid)
-            delta_u = u_max / u_grid
-            v_array = np.linspace(0, 2 * np.pi, v_grid)
-            delta_v = 2 * np.pi / v_grid
-            u_grid, v_grid = np.meshgrid(u_array, v_array)
-
-            # Calculate self-lensing in phase
-            mag_e = []
-            mag_p = []
-
-            for t in tqdm(time, bar_format=ut.tqdmBar()):
-                u_0, v_0 = position_uv(q, M, I, T, t, z)
-                r_E = einstein_radius(q, M, I, T, t, z)[0]
-
-                radius = r(u_grid, v_grid, u_0, v_0, r_E, J)[0]
-                flux_values = flux(wvl_cm, radius, q, M, T, z)
-                M_point_u_values = M_point_u(u_grid)
-
-                numer = np.sum(flux_values * M_point_u_values * delta_u * delta_v)
-                denom = np.sum(flux_values * u_grid * delta_u * delta_v)
-                mag_e.append(numer / denom)
-
-            for t in time:
-                u_0, v_0 = position_uv(q, M, I, T, t, z)
-                mag_p.append(M_point(u_0))
-
-            return mag_p, mag_e        
-
         # RUN MODEL
-        M_point, M_finite = run_model(time, wvl_cm, z, T, I, J, M, q, u_max, u_grid, v_grid)
+        M_point, M_finite = self.run_model(time, wvl, z, T, I, J, M, q, u_max, u_grid, v_grid)
 
         # Roll the phase array using t0
         p0 = t0 / T

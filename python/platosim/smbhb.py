@@ -37,7 +37,7 @@ rng = ut.rng(12345)
 #  FUNCTIONS FOR NOTEBOOK: 1. Star catalogues
 #---------------------------------------------------------------
 
-def fetch_gaia_info(df, NED=False):
+def fetch_gaia_info(df, mag_max=19, flag_stellar=False, NED=False):
     """Fetch Gaia info for each source in data frame.
     Use NASA/IPAC Extragalactic Database (NED).
     """
@@ -47,7 +47,7 @@ def fetch_gaia_info(df, NED=False):
             ra, dec = di.RA, di.Dec
         else:
             ra, dec = di.ra, di.dec
-        dx = sq.gaiaQueryCone(ra, dec, radius=0.001, mag_max=21)
+        dx = sq.gaiaQueryCone(ra, dec, radius=0.001, mag_max=mag_max, flag_stellar=flag_stellar)
         if dx.shape[0] > 1:
             dx = dx[dx.dis == 0]
         if i == 0:

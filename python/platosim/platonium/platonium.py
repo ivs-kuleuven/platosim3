@@ -573,17 +573,23 @@ class PLATOnium(object):
         timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-        # Print here 
-        # if self.verbose > 1:
-        #     print('Loading source input catalogues:')
-        #     print(Path(self.catTarFile).name)
-        #     print(Path(self.catConFile).name, '\n')
+        # Select the camera index [1, 26]
+        dex  = (self.group - 1) * 6 + self.camera - 1
+
+        # NOTE These functions set the correct CCD configuration and cadence!
+        #      and if requested also performance and time conditions
+        # NOTE Parameter "normal" is used in the subfield selection
+        if self.groupID == 'Fast':
+            self.normal = False
+            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
+        else:
+            self.normal = True
+            sim.useNormalCamera(self.performance, self.timeStart)
         
-        # CONFIGURE TIMING
+        # CONFIGURE OBSERVING PARAMETERS
         
         # Cadence of time series [s]
         # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
-        # NOTE sim.useNormalCameras() and sim.useFastCameras() overwrites cadenc!
         if self.cadence:
             sim['ObservingParameters/CycleTime'] = self.cadence
         else:
@@ -613,58 +619,6 @@ class PLATOnium(object):
             # NOTE Minimally a day is lost due to events of platform roll,
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1) * 86400 / self.cadence)
-
-        # PHOTOMETRY ALA MARCHIORI
-        
-        # The mask-update interval [days]
-        # The mask-update rate [event after N exposures]
-        if self.maskUpdate:
-            sim['Photometry/MaskUpdateInterval'] = self.maskUpdate
-            self.maskUpdateRate = round(self.maskUpdate * 86400 / self.cadence)
-        else:
-            self.maskUpdateRate = round(sim['Photometry/MaskUpdateInterval']
-                                        * 86400/self.cadence)
-
-        # CONFIGURE PAYLOAD
-        
-        if sim["Platform/Orientation/Source"] == "Quaternion":
-            print('Using Quaternion to setup platform!')
-
-        # Select PLATO pointing field from inputfile
-        alpha, delta, kappa = getPointingField(self.pointingField)
-        sim["Platform/Orientation/Angles/RAPointing"]  = alpha
-        sim["Platform/Orientation/Angles/DecPointing"] = delta
-
-        # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-        solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
-        sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
-
-        # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
-        # TODO for now it is not possible to use GroupID = Custom since this uses
-        #      the N-CAM readout and results in a negative exposure time (and error)
-        if self.groupID == 'Fast':
-            sim["Telescope/GroupID"] = 'Fast'
-        else:
-            sim["Telescope/GroupID"]      = 'Custom'
-            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
-
-
-        # CONFIGURE CAMERA
-        
-        # NOTE These functions set the correct CCD configuration and cadence!
-        #      and if requested also performance and time conditions
-        # NOTE Parameter "normal" is used in the subfield selection
-        if self.groupID == 'Fast':
-            normal = False
-            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
-        else:
-            normal = True
-            sim.useNormalCamera(self.performance, self.timeStart)
-
-        # Secure that user-defined cadence is used!
-        if self.cadence:
-            sim['ObservingParameters/CycleTime'] = self.cadence
             
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
@@ -674,68 +628,75 @@ class PLATOnium(object):
             sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
         elif self.magPB == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
-
-        # NOTE: adds option to turn off DKA
-        if self.noAberrCorr:
-            sim['Camera/IncludeAberrationCorrection'] = False
-        else:
-            sim['Camera/IncludeAberrationCorrection'] = True
-
-        # POINTING ERRORS
+            
+        # PHOTOMETRY ALA MARCHIORI
         
-        # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
-        # NOTE: Included if the file "instrumentPRE.txt" is available in the input folder
-        inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
-        if inputFilePRE.is_file():
-            PRE = np.loadtxt(inputFilePRE)
-            # Catch one dimentional arrays
-            try: PRE.shape[1]
-            except: PRE = np.array([PRE])
-            # Apply pointing errors
-            dex = np.where(PRE[:,0] == self.quarter)[0]
-            try: dex[0]
-            except:
-                errorcode('warning', 'Cannot apply pointing error model: ' +
-                          'no matching quarters in instrumentPRE.txt!')
+        # The mask-update interval [days] and rate [event after N exposures]
+        if self.maskUpdate:
+            sim['Photometry/MaskUpdateInterval'] = self.maskUpdate
+            self.maskUpdateRate = round(self.maskUpdate * 86400 / self.cadence)
+        else:
+            self.maskUpdateRate = round(sim['Photometry/MaskUpdateInterval']
+                                        * 86400/self.cadence)
+
+        # CONFIGURE PLATFORM
+
+        # Set the pointing of the platform using either ICRS coordinates or Quaternion
+        # NOTE: Included if "instrumentPLM.csv" is available in the input folder
+        inputFilePLM = self.inputDir.joinpath('instrumentPLM.csv')
+        inputFilePRE_csv = self.inputDir.joinpath('instrumentPRE.csv')
+        inputFilePRE_txt = self.inputDir.joinpath('instrumentPRE.txt')
+        if inputFilePLM.is_file():
+            PLM = pd.read_csv(inputFilePLM)
+            if PLM.shape[0] < self.quarter: 
+                errorcode('error', 'Cannot apply platform quaternion! ' +
+                          f'instrumentPLM.csv does not have {self.quarter} quarter rows..')
+            elif PLM.shape[1] != 4:
+                errorcode('error', 'Cannot apply platform quaternion! ' +
+                          'instrumentPLM.csv needs 4 unit quaternions [q0, qx, qy, qz]..')
             else:
                 if self.verbose > 1:
-                    print('Applying pointing errors     (PRE FromFile)')
-                sim["Platform/Orientation/Angles/RAPointing"]            += PRE[dex, 1][0]
-                sim["Platform/Orientation/Angles/DecPointing"]           += PRE[dex, 2][0]
-                sim["Platform/Orientation/Angles/SolarPanelOrientation"] += PRE[dex, 3][0]
-
-        # Absolute Pointing Error (APE) due to camera misalignments
-        # NOTE: Included if "instrumentAPE.txt" is available in the input
-        inputFileAPE = self.inputDir.joinpath('instrumentAPE.txt')
-        if inputFileAPE.is_file():
+                    print('Setting platform pointing    (PLM FromFile)')
+                quaternionPLM = PLM.iloc[self.quarter-1].tolist()
+                sim["Platform/Orientation/Source"] = 'Quaternion'
+                sim["Platform/Orientation/Quaternion/Components"] = quaternionPLM
+        else:
             if self.verbose > 1:
-                print('Applying camera misalignment (APE FromFile)')
-            APE = np.loadtxt(inputFileAPE)
-            dex = (self.group - 1) * 6 + self.camera - 1
-            sim["Telescope/TiltAngle"]    += APE[dex, 0]
-            sim["Telescope/AzimuthAngle"] += APE[dex, 1]
+                print(f'Applying platform pointing   (PLM to {self.pointingField})')           
+            # Select PLATO pointing field from inputfile
+            alpha, delta, kappa = getPointingField(self.pointingField)
+            sim["Platform/Orientation/Angles/RAPointing"]  = alpha
+            sim["Platform/Orientation/Angles/DecPointing"] = delta
+            # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
+            solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
+            sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
+            
+            # Include Pointing Repeatability Error (PRE) between consecutive quarters
+            if inputFilePRE_csv.is_file():
+                # TODO implement
+                pass
+            elif inputFilePRE_txt.is_file():
+                if self.verbose > 1:
+                    errorcode('warning', 'Deprecation alert for "instrumentPRE.txt"! ' +
+                              f'Use "payload" to generate a new file in csv format..')
+                PRE = np.loadtxt(inputFilePRE_txt)
+                # Catch one dimentional arrays
+                try: PRE.shape[1]
+                except: PRE = np.array([PRE])
+                # Apply pointing errors
+                index = np.where(PRE[:,0] == self.quarter)[0]
+                try: index[0]
+                except:
+                    errorcode('error', 'Cannot apply pointing error model! ' +
+                              f'instrumentPRE.txt does not contain quarter {self.quarter}..')
+                else:
+                    if self.verbose > 1:
+                        print('Applying pointing errors     (PRE FromFile)')
+                    sim["Platform/Orientation/Angles/RAPointing"]           += PRE[index, 1][0]
+                    sim["Platform/Orientation/Angles/DecPointing"]          += PRE[index, 2][0]
+                    sim["Platform/Orientation/Angles/SolarPanelOrientation"]+= PRE[index, 3][0]
 
-        # Thermo-Elastic Drift (TED)
-        # The camera(s) drift due to the thermal gradient of
-        # the interface between the camera and the optical bench.
-        # NOTE: Included if "instrumentTED.txt" is available in input
-        inputFileTED   = self.inputDir.joinpath('instrumentTED.txt')
-        inputFileTED_i = self.inputDir.joinpath(f'instrumentTED_group{self.group}.txt')
-        if inputFileTED.is_file() or inputFileTED_i.is_file():
-            sim["Telescope/UseDrift"]    = True
-            sim["Telescope/DriftSource"] = 'FromFile'
-            if inputFileTED.is_file():
-                sim["Telescope/DriftFileName"] = inputFileTED
-            elif inputFileTED_i.is_file():
-                sim["Telescope/DriftFileName"] = inputFileTED_i
-        if sim["Telescope/UseDrift"] and self.verbose > 1:
-            if sim["Telescope/DriftSource"] == 'FromFile':
-                source = 'FromFile'
-            else:
-                source = 'RedNoise'
-            print(f'Applying camera drift        (TED {source})')
-
-        # Attitude Orbit Control System (AOCS) jitter
+        # Attitude Orbit Control System (AOCS) jitter TODO update to csv
         # First check if file from payload is present
         # NOTE: Included if "instrumentACS.txt" is available in input
         inputFileAOCS = self.inputDir.joinpath('instrumentACS.txt')
@@ -744,7 +705,7 @@ class PLATOnium(object):
             sim["Platform/JitterSource"]   = 'FromFile'
             sim["Platform/JitterFileName"] = inputFileAOCS
 
-        # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters
+        # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters TODO update
         # NOTE: Not recommended but used for PLATO-KUL-PL-TN-0023
         elif self.reuseJitter:
             sim["Platform/UseJitter"]    = True
@@ -775,8 +736,188 @@ class PLATOnium(object):
             else:
                 source = 'RedNoise'
             print(f'Applying platform jitter     (ACS {source})')
+            
+        # CONFIGURE TELESCOPE
+            
+        # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
+        # TODO for now it is not possible to use GroupID = Custom for the F-CAMs since this
+        #      uses the N-CAM readout and results in a negative exposure time (and error)
+        if self.groupID == 'Fast':
+            sim["Telescope/GroupID"] = 'Fast'
+        else:
+            sim["Telescope/GroupID"]      = 'Custom'
+            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
+            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
 
-        # Thermal transients from data gaps
+        # Absolute Pointing Error (APE) due to camera misalignments
+        # NOTE: Included if "instrumentAPE.csv" is available in the input folder        
+        inputFileAPE = self.inputDir.joinpath('instrumentAPE.csv')
+        if inputFileAPE.is_file():
+            if self.verbose > 1:
+                print('Applying camera misalignment (APE FromFile)')
+            APE = pd.read_csv(inputFileAPE)
+            # In this approach we nudge the pointing of each camera
+            # NOTE: Included if "instrumentAPE.csv" is available in the input
+            if 'TiltAngle' in APE.columns:
+                if APE.shape != (26, 2): 
+                    errorcode('warning', 'Cannot apply camera misalignment (tilt, azimuth)! ' +
+                              f'instrumentAPE.csv needs to be shape (26, 2)..)')            
+                else:
+                    sim["Telescope/TiltAngle"]    += APE.TiltAngle.iloc[dex]
+                    sim["Telescope/AzimuthAngle"] += APE.AzimuthAngle.iloc[dex]
+            # In this approach we assume nominal camera tilt and azimuth and adjust
+            # platform pointing to get desired camera pointing (misalignment)
+            elif 'q0' in APE.columns:
+                if inputFilePLM.is_file():
+                    errorcode('warning', 'Platform pointing is overwritten by APE! ' +
+                              f'Consider removing the "instrumentPLM.csv" file..')
+                if APE.shape != (26, 4): 
+                    errorcode('warning', 'Cannot apply camera misalignment (quaternions)! ' +
+                              f'instrumentAPE.csv needs to be shape (26, 4)..')            
+                else:
+                    quaternionCAM = APE.iloc[self.quarter-1].tolist()
+                    alpha1, delta1, kappa1 = rf.platformAnglesFromQuaternion(quaternionCAM)
+                    # NOTE we need to account for that PRE has been included too
+                    alpha0 = False
+                    if inputFilePLM.is_file():
+                        alpha0, delta0, kappa0 = rf.platformAnglesFromQuaternion(quaternionPLM)
+                    elif inputFilePRE_csv.is_file() or inputFilePRE_txt.is_file():
+                        alpha0 = sim["Platform/Orientation/Angles/RAPointing"]
+                        delta0 = sim["Platform/Orientation/Angles/DecPointing"]
+                        kappa0 = sim["Platform/Orientation/Angles/SolarPanelOrientation"]
+                    if alpha0:
+                        alpha0 += (alpha0 - alpha1)
+                        delta0 += (delta0 - delta1)
+                        kappa0 += (kappa0 - kappa1)
+                        quaternionCAM = rf.platformQuaternionFromAngles(alpha0, delta0, kappa0)
+                    # Apply new camera pointing
+                    sim["Platform/Orientation/Source"] = 'Quaternion'
+                    sim["Platform/Orientation/Quaternion/Components"] = quaternionCAM
+
+        # Thermo-Elastic Drift (TED) due to thermal gradient across optical bench
+        # NOTE: Included if "instrumentTED.txt" is available in input
+        inputFileTED   = self.inputDir.joinpath('instrumentTED.txt')
+        inputFileTED_i = self.inputDir.joinpath(f'instrumentTED_group{self.group}.txt')
+        if inputFileTED.is_file() or inputFileTED_i.is_file():
+            sim["Telescope/UseDrift"]    = True
+            sim["Telescope/DriftSource"] = 'FromFile'
+            if inputFileTED.is_file():
+                sim["Telescope/DriftFileName"] = inputFileTED
+            elif inputFileTED_i.is_file():
+                sim["Telescope/DriftFileName"] = inputFileTED_i
+        if sim["Telescope/UseDrift"] and self.verbose > 1:
+            if sim["Telescope/DriftSource"] == 'FromFile':
+                source = 'FromFile'
+            else:
+                source = 'RedNoise'
+            print(f'Applying camera drift        (TED {source})')
+                    
+        # CONFIGURE CAMERA
+        
+        # NOTE: adds option to turn off DKA
+        if self.noAberrCorr:
+            sim['Camera/IncludeAberrationCorrection'] = False
+        else:
+            sim['Camera/IncludeAberrationCorrection'] = True
+
+        # Change constant parameters for CAMERA YAML block
+        inputFileCAM = self.inputDir.joinpath('instrumentCAM.csv')
+        if inputFileCAM.is_file():
+            if self.verbose > 1:
+                print('Applying camera parameters   (CAM FromFile)')
+            CAM = pd.read_csv(inputFileCAM)
+            if CAM.shape[0] != 26:
+                errorcode('warning', 'File "instrumentCAM.csv" needs 26 rows (one per camera)!')
+            else:            
+                if 'FocalLength' in CAM.columns:
+                    sim['Camera/FocalLength/Source'] = 'ConstantValue'
+                    sim['Camera/FocalLength/ConstantValue'] = CAM.FocalLength.iloc[dex] * 1e-3
+                if 'k1' in CAM.columns:
+                    coeff_normal = []
+                    coeff_normal.append(CAM.k1.iloc[dex])
+                    coeff_normal.append(CAM.k2.iloc[dex]) if 'k2' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.k3.iloc[dex]) if 'k3' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.q1.iloc[dex]) if 'q1' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.q2.iloc[dex]) if 'q2' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.p1.iloc[dex]) if 'p1' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.p2.iloc[dex]) if 'p2' in CAM.columns else coeff_normal.append(0.0)
+                    sim["Camera/IncludeFieldDistortion"] = True
+                    sim["Camera/FieldDistortion/Source"] = 'ConstantValue'
+                    sim["Camera/FieldDistortion/ConstantCoefficients"] = coeff_normal
+                if 'ik1' in CAM.columns:
+                    coeff_inverse = []
+                    coeff_inverse.append(CAM.ik1.iloc[dex])
+                    coeff_inverse.append(CAM.ik2.iloc[dex]) if 'ik2' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ik3.iloc[dex]) if 'ik3' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.iq1.iloc[dex]) if 'iq1' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.iq2.iloc[dex]) if 'iq2' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ip1.iloc[dex]) if 'ip1' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ip2.iloc[dex]) if 'ip2' in CAM.columns else coeff_inverse.append(0.0)
+                    sim["Camera/FieldDistortion/ConstantInverseCoefficients"] = coeff_inverse
+                else:
+                    errorcode('warning', 'No inverse distortion coefficients found in CAM! ' +
+                              'Using default values from YAML file..')
+                
+        # CONFIGURE CCD
+        
+        # Change constant parameters for CCD block
+        inputFileCCD = self.inputDir.joinpath('instrumentCCD.csv')
+        if inputFileCCD.is_file():
+            CCD = pd.read_csv(inputFileCCD)
+            if CCD.shape[0] != 104:
+                errorcode('warning', 'File "instrumentCCD.csv" needs 104 rows (one per CCD)!')
+            else:
+                if self.verbose > 1:
+                    print('Applying CCD parameters      (CCD FromFile)')
+                # Define CCD index [1, 104]
+                dexCCD = dex * 4
+
+                # sim["CCD/Position"] = 'Custom'
+                # if 'OriginOffsetX' in CCD.columns:
+                #     sim['CCD/OriginOffsetX'] = CCD.OriginOffsetX.iloc[dexCCD]
+                # if 'OriginOffsetX' in CCD.columns:
+                #     sim['CCD/OriginOffsetY'] = CCD.OriginOffsetY.iloc[dexCCD]
+                # if 'Orientation' in CCD.columns:
+                #     sim['CCD/Orientation'] = CCD.Orientation.iloc[dexCCD]
+
+                # Set CCD 
+                CCD = \
+                    {
+                        '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD],
+                                'angle': np.pi + CCD.Orientation.iloc[dexCCD]},
+                        '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD+1],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD+1],
+                                'angle': 3*np.pi/2 + CCD.Orientation.iloc[dexCCD+1]},
+                        '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD+2],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD+2],
+                                'angle': 0 + CCD.Orientation.iloc[dexCCD+2]},
+                        '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD+3],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD+3],
+                                'angle': np.pi/2 + CCD.Orientation.iloc[dexCCD+3]},
+                        '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD],
+                                'angle': np.pi + CCD.Orientation.iloc[dexCCD]},
+                        '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD+1],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD+1],
+                                'angle': 3*np.pi/2 + CCD.Orientation.iloc[dexCCD+1]},
+                        '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD+2],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD+2],
+                                'angle': 0 + CCD.Orientation.iloc[dexCCD+2]},
+                        '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
+                                'zeroPointXmm': CCD.OriginOffsetX.iloc[dexCCD+3],
+                                'zeroPointYmm': CCD.OriginOffsetY.iloc[dexCCD+3],
+                                'angle': np.pi/2 + CCD.Orientation.iloc[dexCCD+3]}
+                    }
+                    
+        # Thermal transients from data gaps TODO update
         # NOTE: Included if "instrumentGTT.txt" is available in input
         inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
         if inputFileGTT.is_file():
@@ -784,9 +925,35 @@ class PLATOnium(object):
             sim["CCD/TemperatureFileName"] = inputFileGTT
             if self.verbose > 1:
                 print('Applying thermal transients  (GTT FromFile)')
+                
+        # SUBFIELD SIMULATION
+        
+        if not self.fullFrame:
+
+            # Check for sources in subfield
+            self.check_observability(sim)
+            
+            # Create data frame for printing and saving
+            c = [self.colID, 'ra [deg]', 'dec [deg]', 'mag',
+                 'CCD', 'xCCD [pix]', 'yCCD [pix]',
+                 'rOA [deg]', 'xFP [mm]', 'yFP [mm]', 'Ncon']
+            d = {self.colID: [self.df[self.colID]], 'mag': [self.df['mag']],
+                 'ra [deg]': [self.df['ra']], 'dec [deg]': [self.df['dec']],
+                 'CCD': [self.ccdCode], 'xCCD [pix]': [self.xCCD], 'yCCD [pix]': [self.yCCD],
+                 'rOA [deg]': [self.rOA], 'xFP [mm]': [self.xFP], 'yFP [mm]': [self.yFP],
+                 'Ncon': self.numCon}
+            self.df0 = pd.DataFrame(d, columns=c)
+
+            # Print data frame
+            if self.verbose > 1:
+                print('\nInformation about stellar target')
+                print(self.df0)
+
+            return sim
 
         # FULL-FRAME SIMULATION
-        if self.fullFrame:
+        
+        else:
             # Turn off photometry
             sim['Photometry/IncludePhotometry'] = False
 
@@ -813,9 +980,11 @@ class PLATOnium(object):
             sim["ControlHDF5Content/WriteStarPositions"] = True
 
             return sim
+                    
 
-        # SUBFIELD SIMULATION
-        
+    
+    def check_observability(self, sim, CCD=None):
+
         # Try to set a subfield around the coordinates on one of the 4 CCDs of the camera.
         # This will fail (return = False) if visible by any of the 4 CCDs, i.e.:
         # 1) If the subfield is outside camera FOV; 
@@ -827,10 +996,11 @@ class PLATOnium(object):
         raTargetRad    = np.deg2rad(self.df['ra'])
         decTargetRad   = np.deg2rad(self.df['dec'])
         self.isOnCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
-                                                           numColSubfield, numRowSubfield)
+                                                           numColSubfield, numRowSubfield,
+                                                           CCD)
         if not self.isOnCCD:
             if self.verbose > 0:
-                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
+                message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) "+
                             'do not fall on any of the CCDs for ' +
                             f'{self.groupID} {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
@@ -855,17 +1025,27 @@ class PLATOnium(object):
             distortionCoefficients = None
 
         # Fetch info from YAML file since setting the subfied figure the inputfile
-        self.raPlatformDeg            = sim["Platform/Orientation/Angles/RAPointing"]
-        self.decPlatformDeg           = sim["Platform/Orientation/Angles/DecPointing"]
-        self.solarPanelOrientationDeg = sim["Platform/Orientation/Angles/SolarPanelOrientation"]
+        if sim["Platform/Orientation/Source"] == 'Quaternion':
+            q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
+            alpha, delta, kappa = rf.platformAnglesFromQuaternion(q_EQ2PLM)
+            alpha, delta, kappa = np.rad2deg(alpha), np.rad2deg(delta), np.rad2deg(kappa)
+        else:
+            alpha, delta, kappa = (sim["Platform/Orientation/Angles/RAPointing"],
+                                   sim["Platform/Orientation/Angles/DecPointing"],
+                                   sim["Platform/Orientation/Angles/SolarPanelOrientation"])
+        self.raPlatformDeg            = alpha 
+        self.decPlatformDeg           = delta
+        self.solarPanelOrientationDeg = kappa
         self.tiltTelescopeDeg         = sim["Telescope/TiltAngle"]
         self.azimuthTelescopeDeg      = sim["Telescope/AzimuthAngle"]
+
         # Transform to radians
         raPlatformRad            = np.deg2rad(self.raPlatformDeg)
         decPlatformRad           = np.deg2rad(self.decPlatformDeg)
         solarPanelOrientationRad = np.deg2rad(self.solarPanelOrientationDeg)
         tiltTelescopeRad         = np.deg2rad(self.tiltTelescopeDeg)
         azimuthTelescopeRad      = np.deg2rad(self.azimuthTelescopeDeg)
+
         # Hardware parameters
         pixelSize       = float(sim["CCD/PixelSize"])
         focalLength     = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0 # [m]->[mm]
@@ -878,6 +1058,7 @@ class PLATOnium(object):
                                            solarPanelOrientationRad,
                                            tiltTelescopeRad, azimuthTelescopeRad,
                                            focalPlaneAngle, focalLength)
+        
         # If requested, apply distortion
         if includeFieldDistortion in [True, "yes"]:
             if mappedDistortion:
@@ -890,18 +1071,19 @@ class PLATOnium(object):
                                                                     focalLength)
         # Store FP coordinates
         self.xFP, self.yFP = FP[0], FP[1]
+
         # Fetch CCD code and pixel coordinates (account for field distortion if included)
         infoCCD = rf.getCCDandPixelCoordinates(raTargetRad, decTargetRad,
                                                raPlatformRad, decPlatformRad,
                                                solarPanelOrientationRad,
                                                tiltTelescopeRad, azimuthTelescopeRad,
                                                focalPlaneAngle, focalLength, pixelSize,
-                                               includeFieldDistortion, normal=normal,
+                                               includeFieldDistortion, normal=self.normal,
                                                mappedDistortion=mappedDistortion,
                                                distortionCoefficients=distortionCoefficients,
                                                pathToPsfFile=pathToPsfFile)
         self.ccdCode, self.xCCD, self.yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
-
+        print(self.ccdCode, self.xCCD, self.yCCD)
         # Only continue if ccdCode is found
         if self.ccdCode:
             # Check if string is F-CAM
@@ -929,31 +1111,14 @@ class PLATOnium(object):
                 errorcode('warning', message)
             # Terminate script
             exit()
-
-        # Create data frame for printing and saving
-        c = [self.colID, 'ra [deg]', 'dec [deg]', 'mag',
-             'CCD', 'xCCD [pix]', 'yCCD [pix]',
-             'rOA [deg]', 'xFP [mm]', 'yFP [mm]', 'Ncon']
-        d = {self.colID: [self.df[self.colID]], 'mag': [self.df['mag']],
-             'ra [deg]': [self.df['ra']], 'dec [deg]': [self.df['dec']],
-             'CCD': [self.ccdCode], 'xCCD [pix]': [self.xCCD], 'yCCD [pix]': [self.yCCD],
-             'rOA [deg]': [self.rOA], 'xFP [mm]': [self.xFP], 'yFP [mm]': [self.yFP],
-             'Ncon': self.numCon}
-        self.df0 = pd.DataFrame(d, columns=c)
-
-        # Print data frame
-        if self.verbose > 1:
-            print('\nInformation about stellar target')
-            print(self.df0)
-
-        # Finito!
-        return sim
-
+        
+    
     
     def create_seeds(self, sim):
         """
         Module to select and load the random seeds.
         """
+
         # Initialise random number generator after user or clock
         if not self.seed:
             seed = 123456789
@@ -989,6 +1154,7 @@ class PLATOnium(object):
             sim["RandomSeeds/FlatFieldSeed"]    += rng.integers(1e9, size=1)[0]
             sim["RandomSeeds/CosmicSeed"]       += rng.integers(1e9, size=1)[0]
 
+
             
     def create_inputfiles(self, sim):
         """
@@ -996,6 +1162,7 @@ class PLATOnium(object):
         """
         
         # SAVE STELLAR CATALOGS AND TARGET LISTS
+        
         # Save catalog and load it into the inputfile
         self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'
         sim.createStarCatalogFile(self.ds.ra, self.ds.dec, self.ds.mag, self.ds.ids,
@@ -1011,6 +1178,7 @@ class PLATOnium(object):
             print(df1)
 
         # SAVE LIST OF VARIABLE SOURCES
+        
         # Automatically activate varsource (if the user forgets)
         if self.varSourceFile or self.varSourceList:
             sim['Sky/IncludeVariableSources'] = True
@@ -1040,6 +1208,7 @@ class PLATOnium(object):
                     errorcode('error', 'VariableSourceFile do not exist, check file path!')
 
         # SAVE PHOTOMETRY FILE
+        
         # NOTE if a user defined file name for the photometry file is parsed
         # then a photometry file list is created automatically
         if sim['Photometry/IncludePhotometry'] is True:
@@ -1050,6 +1219,7 @@ class PLATOnium(object):
             self.photometry = True
         else:
             self.photometry = False
+
 
             
     def show_subfield(self, sim):

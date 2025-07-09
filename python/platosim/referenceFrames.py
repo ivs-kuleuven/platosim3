@@ -1548,11 +1548,11 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-
 def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
                               tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize,
                               includeFieldDistortion, normal, mappedDistortion=False,
-                              distortionCoefficients=None, pathToPsfFile=None):
+                              distortionCoefficients=None, pathToPsfFile=None,
+                              customCCD=None):
 
     """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
@@ -1644,6 +1644,9 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
 
+    if customCCD:
+        CCD = customCCD
+    
     for ccdCode in ccdCodes:
 
         # Compute the position of the star in pixel coordinates, for the current CCD,
@@ -1652,14 +1655,14 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
         zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
         zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
         ccdAngle     = CCD[ccdCode]["angle"]
+        Nrows        = CCD[ccdCode]["Nrows"]
+        Ncols        = CCD[ccdCode]["Ncols"]
+        firstRow     = CCD[ccdCode]["firstRow"]
 
+        
         xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
-
-        Nrows = CCD[ccdCode]["Nrows"]
-        Ncols = CCD[ccdCode]["Ncols"]
-        firstRow = CCD[ccdCode]["firstRow"]
 
         if (xCCDpix < 0)      or (yCCDpix < firstRow): continue
         if (xCCDpix >= Ncols) or (yCCDpix >= Nrows):   continue

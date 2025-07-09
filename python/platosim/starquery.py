@@ -22,6 +22,7 @@ from xml.dom.minidom import parseString
 # PlatoSim standard
 import h5py
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io.votable  import parse
@@ -184,9 +185,9 @@ def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
 
     # Rename columns
     if 'source_id' in df:
-        df = df.rename(columns={'source_id': 'source_gaia_dr3'})
+        df = df.rename(columns={'source_id': 'gaiaDR3'})
     elif 'SOURCE_ID' in df:
-        df = df.rename(columns={'SOURCE_ID': 'source_gaia_dr3'})
+        df = df.rename(columns={'SOURCE_ID': 'gaiaDR3'})
     df = df.rename(columns={
         'phot_g_mean_mag': 'Gmag',
         'bp_rp': 'BP_RP',
@@ -195,7 +196,7 @@ def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
         'parallax_error': 'plx_err'})
 
     # Convert source ids to integers
-    df.source_gaia_dr3 = df.source_gaia_dr3.astype(np.int64)
+    df.gaiaDR3 = df.gaiaDR3.astype(np.int64)
     
     # Change base on columns flag
    
@@ -253,7 +254,7 @@ def _rename_columns(df, flag_stellar, flag_variable, flag_quasar):
         dex = df.columns.get_loc('z') + 1
         df.insert(dex, 'z_err', np.abs(df.z_upper - df.z_lower) / df.z)
         df.drop(['z_lower', 'z_upper'], axis=1, inplace=True)
-        
+
     return df
 
         
@@ -319,9 +320,7 @@ def ticQuery(star, radius=2, Vmax=18, outFile=None):
 
 
 
-
-
-def gaiaQuery(star):
+def gaiaQueryID(star):
 
     """Query Gaia for a named star and return the Gaia DR2 ID.
 
@@ -349,7 +348,8 @@ def gaiaQuery(star):
     raise LookupError(f"No Gaia DR2 ID for {star} (probably a multiple star)")
 
 
-def simbadQuery(star, radius=60, maglim=21):
+
+def simbadQuery(source, radius=60, mag_max=21):
 
     """Query Gaia for a named star and return the Gaia DR2 ID.
 
@@ -364,22 +364,58 @@ def simbadQuery(star, radius=60, maglim=21):
         The Gaia DR2 ID of the star.
     """
 
-    # Qucik check that target star exist
-    result_table = Simbad.query_objectids(star)
-    if result_table is None:
-        raise LookupError(f"No Simbad results for {star} (probably not a star)")
-
     # Fetch the equatorial coordinates
     Simbad.reset_votable_fields()
     Simbad.remove_votable_fields('coordinates')
-    Simbad.add_votable_fields('ra(:;A;ICRS;J2000)', 'dec(:;D;ICRS;2000)')
-    table = Simbad.query_object(star, wildcard=False)
-    coord = SkyCoord(ra=['{}h{}m{}s'.format(*ra.split(':')) for ra in table['RA___A_ICRS_J2000']], 
-                     dec=['{}d{}m{}s'.format(*dec.split(':')) for dec in table['DEC___D_ICRS_2000']],
-                     frame='icrs', equinox='J2000')
-    raStar  = coord.ra.degree[0]
-    decStar = coord.dec.degree[0]
+    simbad = Simbad()
 
+    # We add the main type and all types that have historically been attributed to the object
+    Simbad.add_votable_fields('ra(:;A;ICRS;J2000)', 'dec(:;D;ICRS;2000)', 'otype')
+
+    # Launch query
+    # table = None
+    # counter = 0
+    # counter_max = 10
+    # while table is None:
+    try:
+        table = Simbad.query_object(source, wildcard=False)
+    except KeyboardInterrupt:
+        ut.errorcode('error', 'User stopped script..')
+    except:
+        table = None
+        # ut.errorcode('warning', 'Query failed: Retrying in 1s..')
+        # counter += 1
+        # if counter == counter_max:
+        #     ut.errorcode('warning', f'Skipping source..')
+        # time.sleep(1)
+
+    # Select column
+    if table is None:
+        df = pd.DataFrame(np.nan, index=[0], columns=['source', 'ra', 'dec', 'otype'])
+    else:
+        try:
+            df = table.to_pandas()
+        except:
+            df = pd.DataFrame(np.nan, index=[0], columns=['source', 'ra', 'dec', 'otype'])
+        else:
+            df = df.rename(columns={'MAIN_ID':'source',
+                                    'RA___A_ICRS_J2000':'ra',
+                                    'DEC___D_ICRS_2000':'dec',
+                                    'OTYPE':'otype'})
+            df = df.drop(columns=['SCRIPT_NUMBER_ID'])
+        # coord = SkyCoord(ra=['{}h{}m{}s'.format(*df.ra.split(':'))
+        #                      for df.ra in table['RA___A_ICRS_J2000']], 
+        #                  dec=['{}d{}m{}s'.format(*df.dec.split(':'))
+        #                       or df.dec in table['DEC___D_ICRS_2000']],
+        #                  frame='icrs', equinox='J2000')
+        # df.ra  = coord.ra.degree[0]
+        # df.dec = coord.dec.degree[0]
+
+    return df
+
+
+
+def gaiaQuery():
     # Convert radius to from arcsec to deg
     radius /= 3600.
 
@@ -415,7 +451,6 @@ def simbadQuery(star, radius=60, maglim=21):
                             'parallax_error': 'plxe',
                             'teff_gspphot': 'teff',
                             'logg_gspphot': 'logg'})
-
     
     # Make sure that target is the first entry    
     # for row in result_table:
@@ -438,6 +473,65 @@ def simbadQuery(star, radius=60, maglim=21):
     return df.sort_values(by=['dis'])
 
 
+
+def gaiaQueryID(source_id, ra, dec, radius=0.01,
+                flag_stellar=False, flag_variable=False, flag_quasar=False,
+                ofile=False):
+
+    """Function to query a target using it's Gaia DR3 ID.
+    
+    Parameters
+    ----------
+    source_id : int64, ndarray
+=        Gaia DR3 source ID(s)
+    ofile : str
+        File name (without file extension) to be saved
+
+    Return
+    ------
+    Data frame with information c.f. the columns of 'colname'.
+
+    TODO update function to be dependent only on IDs!
+    """
+
+    # Fetch requested Gaia columns
+    columns = _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar)
+    
+    # Construct query cone
+    if flag_quasar:
+        query = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        JOIN gaiadr3.qso_candidates AS quasar
+          ON gaia.source_id = quasar.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+        """
+    else:
+        query = f"""SELECT
+        {columns}
+        FROM gaiadr3.gaia_source AS gaia
+        JOIN gaiadr3.astrophysical_parameters AS astro
+          ON gaia.source_id = astro.source_id
+        WHERE 1=CONTAINS(
+          POINT(gaia.ra, gaia.dec),
+          CIRCLE({ra}, {dec}, {radius}))
+        """
+        
+    # Submit job
+    df = _submit_gaia_query(query, ofile)
+
+    # Adjust data frame
+    df = _rename_columns(df, flag_stellar, flag_variable, flag_quasar)
+
+    # Order after magnitude
+    df = df.sort_values(by=['Gmag'])
+    
+    # Reset index and return
+    return df.reset_index(drop=True)
 
 
 
@@ -510,72 +604,11 @@ def gaiaQueryCone(ra, dec, radius=1,
 
 
 
-
-
-def gaiaQueryID(source_id, ra, dec, radius=0.01,
-                flag_stellar=False, flag_variable=False, flag_quasar=False,
-                ofile=False):
-
-    """Function to query a target using it's Gaia DR3 ID.
-    
-    Parameters
-    ----------
-    source_id : int64, ndarray
-=        Gaia DR3 source ID(s)
-    ofile : str
-        File name (without file extension) to be saved
-
-    Return
-    ------
-    Data frame with information c.f. the columns of 'colname'.
-
-    TODO update function to be dependent only on IDs!
-    """
-
-    # Fetch requested Gaia columns
-    columns = _fetch_gaia_columns(flag_stellar, flag_variable, flag_quasar)
-    
-    # Construct query cone
-    if flag_quasar:
-        query = f"""SELECT
-        {columns}
-        FROM gaiadr3.gaia_source AS gaia
-        JOIN gaiadr3.astrophysical_parameters AS astro
-          ON gaia.source_id = astro.source_id
-        JOIN gaiadr3.qso_candidates AS quasar
-          ON gaia.source_id = quasar.source_id
-        WHERE 1=CONTAINS(
-          POINT(gaia.ra, gaia.dec),
-          CIRCLE({ra}, {dec}, {radius}))
-        """
-    else:
-        query = f"""SELECT
-        {columns}
-        FROM gaiadr3.gaia_source AS gaia
-        JOIN gaiadr3.astrophysical_parameters AS astro
-          ON gaia.source_id = astro.source_id
-        WHERE 1=CONTAINS(
-          POINT(gaia.ra, gaia.dec),
-          CIRCLE({ra}, {dec}, {radius}))
-        """
-        
-    # Submit job
-    df = _submit_gaia_query(query, ofile)
-
-    # Adjust data frame
-    df = _rename_columns(df, flag_stellar, flag_variable, flag_quasar)
-
-    # Order after magnitude
-    df = df.sort_values(by=['Gmag'])
-    
-    # Reset index and return
-    return df.reset_index(drop=True)
-
-
-
 def gaiaQueryRegion(ra, dec, radius=1,
                     mag_min=0, mag_max=17,
-                    flag_stellar=False, flag_variable=False, flag_quasar=False,
+                    flag_stellar=False,
+                    flag_variable=False,
+                    flag_quasar=False,
                     ofile=False):
 
     """Function to query a circular sky region from Gaia DR3.
