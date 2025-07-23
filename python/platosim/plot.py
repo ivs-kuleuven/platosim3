@@ -484,7 +484,7 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
-def drawStarInFocalPlane(sim, raStar, decStar):
+def drawStarInFocalPlane(sim, raStar, decStar, ccd=None):
 
     """Draw a star given by the equatorial coordinates in the focal plane.
 
@@ -538,7 +538,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raStar, decStar, raPlatform,
                                                  decPlatform, solarPanelOrientation,
                                                  tiltTelescope, azimuthTelescope,
-                                                 focalPlaneAngle, focalLength)
+                                                 focalPlaneAngle, focalLength, ccd)
 
     if includeFieldDistortion:
         if isMapped:
@@ -556,18 +556,19 @@ def drawStarInFocalPlane(sim, raStar, decStar):
                                                        focalPlaneAngle, focalLength,
                                                        pixelSize, includeFieldDistortion,
                                                        normal, isMapped,
-                                                       distortionCoefficients, pathToPsfFile)
+                                                       distortionCoefficients,
+                                                       pathToPsfFile, ccd)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
     else:
-        drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize)
+        drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize, ccd)
 
 
 
 
 
-def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
+def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize, ccd=None):
 
     """Plot a pixel from a particular CCD in the focal plane. 
 
@@ -591,12 +592,14 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     None
     """
 
+    if ccd is None: ccd = rf.CCD()
+
     # Compute the position of the star in pixel coordinates, for the current CCD, 
     # disregarding the physical extend of the CCD
 
-    zeroPointXmm = rf.CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = rf.CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = rf.CCD[ccdCode]["angle"]
+    zeroPointXmm = ccd[ccdCode]["zeroPointXmm"]
+    zeroPointYmm = ccd[ccdCode]["zeroPointYmm"]
+    ccdAngle     = ccd[ccdCode]["angle"]
 
     xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
                                                    zeroPointXmm, zeroPointYmm, ccdAngle)

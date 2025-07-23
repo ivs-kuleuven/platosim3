@@ -1313,8 +1313,6 @@ Notes on PIC catalogue creation:
             
             # Sort data frame (add N-CAM visibility)
             if self.fcam:
-                # Sort after gaia DR3
-                df = df.sort_values(by=['gaiaDR3'])
                 # Sort after ncams and Pmag
                 df = df.sort_values(by=['Pmag'])                
             else:
