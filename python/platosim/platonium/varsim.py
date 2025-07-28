@@ -890,8 +890,8 @@ class VarSim(object):
 
         # Fetch passbands
         N = 10000
-        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True,n=N)
-        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True,n=N)
+        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True, n=N)
+        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True, n=N)
 
         # Fetch stellar spectrum
         wave_star = self.wvl_star / 10 # [AA -> nm]
