@@ -892,16 +892,32 @@ class PLATOnium(object):
         # CONFIGURE CCD
         
         # Change constant parameters for CCD block
-        inputFileCCD = self.inputDir.joinpath('instrumentCCD.txt')
-        if inputFileCCD.is_file():            
-            ccd = np.loadtxt(inputFileCCD)
-            if ccd.shape != (104, 13):
-                errorcode('warning', 'File "instrumentCCD.txt" needs dimention (231, 13)!')
+        inputFileCCD = self.inputDir.joinpath('instrumentCCD.csv')
+        if inputFileCCD.is_file():
+            # Units [mm, mm, deg]
+            CCD = pd.read_csv(inputFileCCD)
+            if CCD.shape != (104, 3):
+                errorcode('warning', 'File "instrumentCCD.csv" needs dimention (104, 3)!')
             else:
                 if self.verbose > 1:
                     print('Applying CCD positions       (CCD FromFile)')
-                sim["CCDPositions/UsePositionsFromFile"] = True
-                sim['CCDPositions/PositionsFileName']    = inputFileCCD
+                OriginOffsetX = []
+                OriginOffsetY = []
+                Orientation   = sim['CCDPositions/Orientation'] 
+                # Add small offset to orientations
+                for i in [dex, dex+1, dex+2, dex+3]:
+                    ccd = CCD.iloc[i]
+                    OriginOffsetX.append(ccd.OriginOffsetX)
+                    OriginOffsetY.append(ccd.OriginOffsetY)
+                    Orientation[i-dex] += ccd.Orientation
+                sim["CCDPositions/OriginOffsetX"] = OriginOffsetX
+                sim["CCDPositions/OriginOffsetY"] = OriginOffsetY
+                sim["CCDPositions/Orientation"]   = Orientation
+
+        
+        # TODO Allow to include default TXT file "cl2bCcds.txt"
+        #sim["CCDPositions/UsePositionsFromFile"] = True
+        #sim['CCDPositions/PositionsFileName']    = inputFileCCD
                 
         # Thermal gain transients due to data gaps
         # NOTE Included if "instrumentGTT.txt" is available in input
