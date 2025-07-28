@@ -1580,7 +1580,7 @@ def getCCDandPixelCoordinates(raStar, decStar,
                               focalPlaneAngle, focalLength, pixelSize,
                               includeFieldDistortion, normal,
                               mappedDistortion=False, distortionCoefficients=None,
-                              pathToPsfFile=None, ccd=None):
+                              pathToPsfFile=None, ccd=None, returnFPA=False):
 
     """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
@@ -1702,11 +1702,17 @@ def getCCDandPixelCoordinates(raStar, decStar,
         if (xCCDpix >= Ncols) or (yCCDpix >= Nrows):   continue
 
         # If we arrive here, we found a CCD on which the star is located
-        return ccdCode, xCCDpix, yCCDpix
+        if returnFPA:
+            return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
+        else:
+            return ccdCode, xCCDpix, yCCDpix
 
     # If we arrive here, the star does not fall on any CCD
 
-    return None, None, None
+    if returnFPA:
+        return None, None, None, None, None
+    else:
+        return None, None, None
 
 
 
@@ -1861,7 +1867,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
                                        focalPlaneAngle, focalLength, pixelSize,
                                        includeFieldDistortion, normal,
                                        mappedDistortion=False, distortionCoefficients=None,
-                                       pathToPsfFile=None, ccd=None):
+                                       pathToPsfFile=None, ccd=None, returnFPA=False):
 
     """Calculate location of subfield around equatorial coordinates.
 
@@ -1948,22 +1954,33 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
 
-    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar,
-                                                          raPlatform, decPlatform,
-                                                          solarPanelOrientation,
-                                                          tiltTelescope, azimuthTelescope,
-                                                          focalPlaneAngle, focalLength,
-                                                          pixelSize,
-                                                          includeFieldDistortion,
-                                                          normal,
-                                                          mappedDistortion,
-                                                          distortionCoefficients,
-                                                          pathToPsfFile, ccd)
+    data = getCCDandPixelCoordinates(raStar, decStar,
+                                     raPlatform, decPlatform,
+                                     solarPanelOrientation,
+                                     tiltTelescope, azimuthTelescope,
+                                     focalPlaneAngle, focalLength,
+                                     pixelSize,
+                                     includeFieldDistortion,
+                                     normal,
+                                     mappedDistortion,
+                                     distortionCoefficients,
+                                     pathToPsfFile, ccd,
+                                     returnFPA=returnFPA)
 
     # If the CCD code is None, the star does not fall on any ccd
 
-    if ccdCode is None:
-        return None, None, None
+    if data[0] is None:
+        if returnFPA:
+            return None, None, None, None, None
+        else:
+            return None, None, None
+    else:
+        ccdCode = data[0]
+        xCCDpix = data[1]
+        yCCDpix = data[2]
+        if returnFPA:
+            xFPmm = data[3]
+            yFPmm = data[4]
 
     # If the star does fall on a CCD, check if it's not too close to the edge
     # for the subfield to be completely on the CCD.
@@ -1982,7 +1999,10 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
 
     # That's it!
 
-    return ccdCode, xCCDpix, yCCDpix
+    if returnFPA:
+        return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
+    else:
+        return ccdCode, xCCDpix, yCCDpix
 
 
 

@@ -892,53 +892,16 @@ class PLATOnium(object):
         # CONFIGURE CCD
         
         # Change constant parameters for CCD block
-        inputFileCCD = self.inputDir.joinpath('instrumentCCD.csv')
-        if inputFileCCD.is_file():
-            ccd = pd.read_csv(inputFileCCD)
-            if ccd.shape != (104, 3):
-                errorcode('warning', 'File "instrumentCCD.csv" needs 104 rows (one per CCD)!')
+        inputFileCCD = self.inputDir.joinpath('instrumentCCD.txt')
+        if inputFileCCD.is_file():            
+            ccd = np.loadtxt(inputFileCCD)
+            if ccd.shape != (104, 13):
+                errorcode('warning', 'File "instrumentCCD.txt" needs dimention (231, 13)!')
             else:
                 if self.verbose > 1:
-                    print('Applying CCD parameters      (CCD FromFile)')
-                # Define CCD index [1, 104]
-                dexCCD = dex * 4
-                self.customCCD = \
-                    {
-                        '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD],
-                                'angle': np.pi + ccd.Orientation.iloc[dexCCD]},
-                        '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD+1],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD+1],
-                                'angle': 3*np.pi/2 + ccd.Orientation.iloc[dexCCD+1]},
-                        '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD+2],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD+2],
-                                'angle': 0 + ccd.Orientation.iloc[dexCCD+2]},
-                        '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD+3],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD+3],
-                                'angle': np.pi/2 + ccd.Orientation.iloc[dexCCD+3]},
-                        '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD],
-                                'angle': np.pi + ccd.Orientation.iloc[dexCCD]},
-                        '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD+1],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD+1],
-                                'angle': 3*np.pi/2 + ccd.Orientation.iloc[dexCCD+1]},
-                        '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD+2],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD+2],
-                                'angle': 0 + ccd.Orientation.iloc[dexCCD+2]},
-                        '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255,
-                                'zeroPointXmm': ccd.OriginOffsetX.iloc[dexCCD+3],
-                                'zeroPointYmm': ccd.OriginOffsetY.iloc[dexCCD+3],
-                                'angle': np.pi/2 + ccd.Orientation.iloc[dexCCD+3]}
-                    }
-        else:
-            self.customCCD = None
+                    print('Applying CCD positions       (CCD FromFile)')
+                sim["CCDPositions/UsePositionsFromFile"] = True
+                sim['CCDPositions/PositionsFileName']    = inputFileCCD
                 
         # Thermal gain transients due to data gaps
         # NOTE Included if "instrumentGTT.txt" is available in input
@@ -1023,11 +986,10 @@ class PLATOnium(object):
         # 2) If the subfield falls in a CCD gap;
         # 3) If the subfield is too large to entirely fit on a CCD.
         # If successful, the CCD and subfield parameters is sets in the 'sim' object.        
-        infoCCD = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
-                                                      numColSubfield, numRowSubfield,
-                                                      normal=self.normal, ccd=self.customCCD,
-                                                      returnInfo=True)
-        if infoCCD[0] == None:
+        info = sim.setSubfieldAroundSkyCoordinates(raTargetRad, decTargetRad,
+                                                   numColSubfield, numRowSubfield,
+                                                   normal=self.normal, returnInfo=True)
+        if info[0] == None:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) "+
                             'do not fall on any of the CCDs for ' +
@@ -1037,10 +999,12 @@ class PLATOnium(object):
             exit()
         else:
             self.isOnCCD = True
-            self.ccdCode = infoCCD[0]
-            self.xCCD    = infoCCD[1]
-            self.yCCD    = infoCCD[2]
-        
+            self.ccdCode = info[0]
+            self.xCCD    = info[1]
+            self.yCCD    = info[2]
+            self.xFP     = info[3]
+            self.yFP     = info[4]
+
         # Only continue if ccdCode is found
         if self.ccdCode:
             # Check if string is F-CAM
@@ -1056,103 +1020,8 @@ class PLATOnium(object):
             # Terminate script
             exit()
 
-        # FETCH FOCAL PLANE COORDINATES
-            
-        # If the PSF is MappedFromFile we need to include mapped field distortion
-        if sim["PSF/Model"] == "MappedFromFile":
-            includeFieldDistortion = True
-            mappedDistortion       = True
-            pathToPsfFile          = sim["PSF/MappedFromFile/Filename"]
-            distortionCoefficients = None
-        elif sim["Camera/IncludeFieldDistortion"] in [True, "yes"]:
-            includeFieldDistortion = True
-            mappedDistortion       = False
-            pathToPsfFile          = None
-            distortionCoefficients = sim["Camera/FieldDistortion/ConstantCoefficients"]
-        else:
-            includeFieldDistortion = False
-            mappedDistortion       = False
-            pathToPsfFile          = None
-            distortionCoefficients = None
-
-        # Fetch info from YAML file since setting the subfied figure the inputfile
-        if sim["Platform/Orientation/Source"] == 'Quaternion':
-            q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
-            alpha, delta, kappa = rf.platformAnglesFromQuaternion(q_EQ2PLM)
-            alpha, delta, kappa = np.rad2deg(alpha), np.rad2deg(delta), np.rad2deg(kappa)
-        else:
-            alpha, delta, kappa = (sim["Platform/Orientation/Angles/RAPointing"],
-                                   sim["Platform/Orientation/Angles/DecPointing"],
-                                   sim["Platform/Orientation/Angles/SolarPanelOrientation"])
-        self.raPlatformDeg            = alpha 
-        self.decPlatformDeg           = delta
-        self.solarPanelOrientationDeg = kappa
-        self.tiltTelescopeDeg         = sim["Telescope/TiltAngle"]
-        self.azimuthTelescopeDeg      = sim["Telescope/AzimuthAngle"]
-
-        # Transform to radians
-        raPlatformRad            = np.deg2rad(self.raPlatformDeg)
-        decPlatformRad           = np.deg2rad(self.decPlatformDeg)
-        solarPanelOrientationRad = np.deg2rad(self.solarPanelOrientationDeg)
-        tiltTelescopeRad         = np.deg2rad(self.tiltTelescopeDeg)
-        azimuthTelescopeRad      = np.deg2rad(self.azimuthTelescopeDeg)
-
-        # Hardware parameters
-        pixelSize       = float(sim["CCD/PixelSize"])
-        focalLength     = float(sim["Camera/FocalLength/ConstantValue"]) * 1000.0 # [m]->[mm]
-        focalPlaneAngle = np.deg2rad(float(sim["Camera/FocalPlaneOrientation/ConstantValue"]))
-
-        # FIXME We use this for now to generate a star catalogue from pixel positions.
-        # The issue for now is that the "setSubfield.." does not include the subfield
-        # stars within the small subfield. This is not understood, hence, this is a easy
-        # (but dirty) fix of the issue for now. Should be updated later!
-        if self.customCCD:
-            alphaRad = np.deg2rad(self.ds.ra.to_numpy())
-            deltaRad = np.deg2rad(self.ds.dec.to_numpy())
-            N = len(alphaRad)
-            self.xCCDstars = np.zeros(N)
-            self.yCCDstars = np.zeros(N)
-            for i in range(N):
-                infoCCD = rf.getCCDandPixelCoordinates(alphaRad[i], deltaRad[i],
-                                                       raPlatformRad, decPlatformRad,
-                                                       solarPanelOrientationRad,
-                                                       tiltTelescopeRad, azimuthTelescopeRad,
-                                                       focalPlaneAngle, focalLength,
-                                                       pixelSize,
-                                                       includeFieldDistortion,
-                                                       normal=self.normal,
-                                                       mappedDistortion=mappedDistortion,
-                                                       distortionCoefficients=distortionCoefficients,
-                                                       pathToPsfFile=pathToPsfFile,
-                                                       ccd=self.customCCD)
-                self.xCCDstars[i] = infoCCD[1]
-                self.yCCDstars[i] = infoCCD[2]
-
-        # Fetch focal plane coordinates [mm]                
-        # Undistorted FP coordinates
-        FP = rf.skyToFocalPlaneCoordinates(raTargetRad, decTargetRad,
-                                           raPlatformRad, decPlatformRad,
-                                           solarPanelOrientationRad,
-                                           tiltTelescopeRad, azimuthTelescopeRad,
-                                           focalPlaneAngle, focalLength)
-
-        
-        # If requested, apply distortion
-        if includeFieldDistortion in [True, "yes"]:
-            if mappedDistortion:
-                FP = rf.mappedUndistortedToDistortedFocalPlaneCoordinates(FP[0], FP[1],
-                                                                          pathToPsfFile,
-                                                                          focalLength)
-            else:
-                FP = rf.undistortedToDistortedFocalPlaneCoordinates(FP[0], FP[1],
-                                                                    distortionCoefficients,
-                                                                    focalLength)
-        # Store FP coordinates
-        self.xFP, self.yFP = FP[0], FP[1]
-
-        # CHECK GNOMONIC RADIAL DISTANCE
-        
-        # Calculate radial distance of coordinate away from OA        
+        # Gnomonic radial distance of coordinate away from OA
+        focalLength = float(sim["Camera/FocalLength/ConstantValue"]) * 1e3 # [m]->[mm]
         self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
                                                                        focalLength))
         # TODO make rOA limit dependent on SimFile
@@ -1218,18 +1087,8 @@ class PLATOnium(object):
 
         # Save catalog and load it into the inputfile
         self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'
-
-        # FIXME this solution is not desired since the 'setSubfield..' should have done so!
-        if self.customCCD:
-            row = self.yCCDstars
-            col = self.xCCDstars
-            mag = self.ds.mag.to_numpy()
-            ID  = self.ds.ids
-            sim.createStarCatalogFileFromPixelCoordinates(row, col, mag, ID,
-                                                          self.starCatalogFile)
-        else:
-            sim.createStarCatalogFile(self.ds.ra, self.ds.dec, self.ds.mag, self.ds.ids,
-                                          self.starCatalogFile)
+        sim.createStarCatalogFile(self.ds.ra, self.ds.dec, self.ds.mag, self.ds.ids,
+                                  self.starCatalogFile)
 
         # Print catalogue
         if self.verbose > 1 and not self.fullFrame:
@@ -1310,21 +1169,28 @@ class PLATOnium(object):
         # Add photometric mask to plot if available
         if sim['Photometry/IncludePhotometry']: mask = 1
         else: mask = None
-
+            
         # Run simulation for first image cadence
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
         f = sim.run(removeOutputFile=self.overwrite)
-
+        
         # Plot star in CCD focal plane
+        # Fetch info from YAML file since setting the subfied figure the inputfile
+        if sim["Platform/Orientation/Source"] == 'Quaternion':
+            q_EQ2PLM = sim["Platform/Orientation/Quaternion/Components"]
+            alpha, delta, kappa = rf.platformAnglesFromQuaternion(q_EQ2PLM)
+            alpha, delta, kappa = np.rad2deg(alpha), np.rad2deg(delta), np.rad2deg(kappa)
+        else:
+            alpha, delta, kappa = (sim["Platform/Orientation/Angles/RAPointing"],
+                                   sim["Platform/Orientation/Angles/DecPointing"],
+                                   sim["Platform/Orientation/Angles/SolarPanelOrientation"])
         # TODO plot do not work for F-CAM yet!
         if not self.fullFrame and not self.groupID == 'Fast':
             fig = plt.figure(figsize=(12,10))
             drawStarInCCDfocalPlane(fig, sim,
                                     self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
-                                    self.df0['CCD'][0], self.group,
-                                    self.raPlatformDeg, self.decPlatformDeg,
-                                    self.solarPanelOrientationDeg)
+                                    self.df0['CCD'][0], self.group, alpha, delta, kappa)
 
         # Show subfield for first cadence
         if self.fullFrame:
