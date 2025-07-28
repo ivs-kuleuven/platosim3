@@ -1053,7 +1053,8 @@ class Simulation(object):
 
     def setSubfieldAroundSkyCoordinates(self, raStar, decStar,
                                         subfieldSizeX, subfieldSizeY,
-                                        normal=None, ccd=None, returnInfo=False):
+                                        normal=None, ccd=None,
+                                        returnInfo=False):
 
         """Set subfield around stellar coordinates
 
@@ -1167,7 +1168,7 @@ class Simulation(object):
 
         if ccd is None: ccd = rf.CCD()
         
-        ccdCode, xCCD, yCCD = rf.calculateSubfieldAroundCoordinates(
+        data = rf.calculateSubfieldAroundCoordinates(
             subfieldSizeX, subfieldSizeY,
             raStar, decStar,
             alpha, delta, kappa,
@@ -1175,14 +1176,22 @@ class Simulation(object):
             focalPlaneAngle, focalLength, pixelSize,
             includeFieldDistortion, normalCamera,
             mappedDistortion, distortionCoefficients,
-            pathToPsfFile, ccd=ccd,
+            pathToPsfFile, ccd=ccd, returnFPA=returnInfo,
         )
-        if ccdCode == None:
+        
+        if data[0] == None:
             if returnInfo:
                 return None, None, None, None, None
             else:
                 return False
-            
+        else:
+            ccdCode = data[0]
+            xCCD    = data[1]
+            yCCD    = data[2]
+            if returnInfo:
+                xFP = data[3]
+                yFP = data[4]
+
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
         self["CCD/Position"] = str(ccdCode)
@@ -1206,8 +1215,6 @@ class Simulation(object):
             self["CCD/NumColumns"]    = CCDSizeX
             self["CCD/NumRows"]       = CCDSizeY
 
-
-            
         self["Telescope/AzimuthAngle"] = np.rad2deg(azimTelescope)
         self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
 
@@ -1238,7 +1245,7 @@ class Simulation(object):
         # That's it
         
         if returnInfo:
-            return ccdCode, xCCD, yCCD
+            return ccdCode, xCCD, yCCD, xFP, yFP
         else:
             return True
 
