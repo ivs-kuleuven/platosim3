@@ -1360,6 +1360,14 @@ class PLATOnium(object):
             if self.clipSigma is not None:
                 sigma_lower = sigma_upper = self.clipSigma
             else:
+                # Upper is less senitive to variation
+                if self.df.mag <= 10:
+                    sigma_upper = 5
+                elif self.df.mag > 10 and self.df.mag < 11:
+                    sigma_upper = 4.5
+                else:
+                    sigma_upper = 4
+                
                 # Exoplanets (protect transits)
                 if self.detrend == 'wotan':
                     sigma_lower = 10
@@ -1368,14 +1376,6 @@ class PLATOnium(object):
                     sigma_lower = 6
                 else:
                     sigma_lower = sigma_upper
-
-                # Upper is less senitive to variation
-                if self.df.mag <= 10:
-                    sigma_upper = 5
-                elif self.df.mag > 10 and self.df.mag < 11:
-                    sigma_upper = 4.5
-                else:
-                    sigma_upper = 4
 
             # Perform sigma-clipping
             lc.clip(model='wotan',
