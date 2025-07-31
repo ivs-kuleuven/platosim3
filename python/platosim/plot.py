@@ -36,7 +36,10 @@ import astropy.units as u
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
-if os.getlogin() == 'nicholas':
+
+# Update plots
+import getpass
+if getpass.getuser() == 'nicholas':
     from platosim.matplotlibrc import setup_paper; setup_paper()
 else:
     from platosim.matplotlibrc import setup; setup()
