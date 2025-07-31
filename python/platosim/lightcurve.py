@@ -325,7 +325,7 @@ class LightCurve(object):
             return
 
         # Read file and add flux column
-        df = pd.read_csv(varpath, sep=' ', header=None, names=['time', 'dmag'])
+        df = pd.read_csv(varpath, delimiter=r"\s+", header=None, names=['time', 'dmag'])
         df['flux'] = ut.fromMagToFlux(df.dmag)
 
         return df
