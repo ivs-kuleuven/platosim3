@@ -890,8 +890,8 @@ class VarSim(object):
 
         # Fetch passbands
         N = 10000
-        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True,n=N)
-        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True,n=N)
+        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True, n=N)
+        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True, n=N)
 
         # Fetch stellar spectrum
         wave_star = self.wvl_star / 10 # [AA -> nm]
@@ -1594,7 +1594,7 @@ class VarSim(object):
         
     def ldc(self):
 
-        """Compute the Limbm Darkening (LD) coefficients.
+        """Compute the Limb Darkening (LD) coefficients.
 
         This module uses the code: LDTk        
         """
@@ -1917,7 +1917,8 @@ class VarSim(object):
 
         # Print to bash
         if self.verbose > 1:
-            print(f"Mid-transit depth  : {np.abs(np.min(self.lc.tran)):.1f} ppm")
+            depth = np.abs(np.min((self.lc.tran-1)*1e6))
+            print(f"Mid-transit depth  : {depth:.1f} ppm")
 
 
     def planet_occultation(self):
@@ -2273,11 +2274,9 @@ class VarSim(object):
                 self.lc['flux'] *= flux_planet
 
             # Plot combined light curve
-            
-            if self.plot and self.lc.shape[1] > 3:
-                fig, ax = pt.plotVarsimLC(self.lc)
-                plt.show()
-
+            fig, ax = pt.plotVarsimLC(self.lc)
+            if self.plot and self.lc.shape[1] > 3: plt.show()
+                
         # SAVE DATA
 
         if self.ofile:
@@ -2286,12 +2285,11 @@ class VarSim(object):
             ofile_parameters = self.ofile.parents[0] / f'{self.ofile.stem}_parameters.ftr'
             ofile_components = self.ofile.parents[0] / f'{self.ofile.stem}_components.ftr'
             ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
+            ofile_lightcurve = self.ofile.parents[0] / f'{self.ofile.stem}_lightcurve.png'
             
-            # Convert to magnitude [pp1 -> mag]
+            # Save light curve [pp1 -> mag]
             df = self.lc.flux.to_numpy()
-            dm = - 2.5 * np.log10(df)            
-
-            # Save light curve
+            dm = - 2.5 * np.log10(df)                        
             if self.verbose > 1:
                 print(f'Saving file : {self.ofile}')
             data = np.transpose([self.lc['time'], dm])
@@ -2321,7 +2319,12 @@ class VarSim(object):
                         print(f'Saving file : {ofile_pulsations}')                
                     self.dm.to_feather(ofile_pulsations)
 
+            # Save final plot
+            if self.verbose > 1:
+                print(f'Saving file : {ofile_parameters}')            
+            fig.savefig(ofile_lightcurve, bbox_inches='tight', dpi=300)
 
+            
     #--------------------------------------------------------------#
     #                         SOFTWARE MODES                       #
     #--------------------------------------------------------------#

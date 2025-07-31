@@ -325,7 +325,7 @@ class LightCurve(object):
             return
 
         # Read file and add flux column
-        df = pd.read_csv(varpath, sep=' ', header=None, names=['time', 'dmag'])
+        df = pd.read_csv(varpath, delimiter=r"\s+", header=None, names=['time', 'dmag'])
         df['flux'] = ut.fromMagToFlux(df.dmag)
 
         return df
@@ -2429,6 +2429,7 @@ class LightCurve(object):
     def merge(self,
               quarter=False,
               flux_normalise=False,
+              flux_contamination=False,
               flux_group_mean=False,
               flux_offset=False,
               flux_err=False,
@@ -2482,7 +2483,7 @@ class LightCurve(object):
         ncam   = 0
         flag   = 0
         star   = Path(files[0]).stem[:9]
-        
+
         # Loop over each group and camera
         if verbose:
             print(f'Processing star ID {star}')
@@ -2496,7 +2497,7 @@ class LightCurve(object):
 
             # Fetch light curve object            
             lc = LightCurve(files[i])
-                
+            
             # Fetch obs info
             G, C, Q = lc.obs()
 
@@ -2511,6 +2512,11 @@ class LightCurve(object):
             if flux_normalise:
                 df.flux /= df.flux.median()
 
+            # Correct amplitude suppresion from stellar contamination
+            if flux_contamination:
+                SPR = lc.star().SPR.values[0]
+                df.flux = (df.flux - 1) * (1 + SPR)
+                
             # Apply long-term trend correction
             if detrend:
                 df = lc.detrend(model=detrend, poly_degree=False, replace=True, plot=False)
@@ -2551,7 +2557,7 @@ class LightCurve(object):
         if binsize:
             # Save number of data points in each time bin
             tdur = df0.time.iloc[-1] - df0.time.iloc[0]
-            tbin = binsize*3600
+            tbin = binsize # [s]
             bins = int(tdur/tbin)
             # Perform binning
             if verbose:
@@ -2618,7 +2624,7 @@ class LightCurve(object):
         if verbose:
             print('Done!')
             print('-'*ll)
-            
+
         return LightCurve(df0, mode="multi", path=self.path)
 
     
@@ -3015,10 +3021,20 @@ class LightCurve(object):
             if len(files) == 0:
                 # Record if a star do no have any data
                 try:
-                    star_ids.append(int(Path(f).stem))
+                    ID = int(Path(f).stem)
+                    star_ids.append(ID)
+                    data = {"ID": ID,
+                            "mag": np.nan,
+                            "rOA": np.nan,
+                            "ncon": np.nan,
+                            "SPR": np.nan,
+                            "ncam": np.nan,
+                            "NSR": np.nan}
+                    df1 = pd.DataFrame(data, index=[0])
+                    df0 = pd.concat([df0, df1])
                 except ValueError:
                     pass
-
+                
             else:
                 # Fetch light curve object
                 lcs = LightCurve(f, mode="multi")
