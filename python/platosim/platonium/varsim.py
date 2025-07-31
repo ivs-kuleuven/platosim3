@@ -1594,7 +1594,7 @@ class VarSim(object):
         
     def ldc(self):
 
-        """Compute the Limbm Darkening (LD) coefficients.
+        """Compute the Limb Darkening (LD) coefficients.
 
         This module uses the code: LDTk        
         """
