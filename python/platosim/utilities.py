@@ -436,10 +436,19 @@ def votable2pandas(votable):
     """
 
     table = votable.get_first_table().to_table(use_names_over_ids=True)
-
     return table.to_pandas()
 
-    
+
+def pdWeightedAverage(df, value, weight):
+
+    """Function to calculate a weighted average
+    """    
+
+    val = df[value]
+    wt  = df[weight]
+    return (val * wt).sum() / wt.sum()
+
+
 #--------------------------------------------------------------#
 #                       NUMPY OPERATIONS                       #
 #--------------------------------------------------------------#
