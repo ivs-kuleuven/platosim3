@@ -214,7 +214,7 @@ class PLATOnium(object):
             errorcode('error', 'Use {-i, --project, --yaml} to locate the inputfile!')
 
         # Check if the inputfile.yaml exists
-        if not self.inputFile.is_file():
+        if not self.inputFile.is_file() and not self.inputFile.is_symlink():
             errorcode('error', 'File inputfile.yaml do not exist! ' +
                       'Alternamtively use {-i, --yaml}')
 
@@ -406,7 +406,7 @@ class PLATOnium(object):
             # Get pointing field from YAML and load stellar catalogue
             starcatName = f'starcat**_{self.pointingField}_group{self.group}.ftr'
             starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
-            if not starcat.is_file():
+            if not starcat.is_file() and not starcat.is_symlink():
                 errorcode('error', 'No star catalogue found in the project input directory!')
             self.dx = pd.read_feather(starcat)
 
@@ -903,17 +903,17 @@ class PLATOnium(object):
                     print('Applying CCD positions       (CCD FromFile)')
                 OriginOffsetX = []
                 OriginOffsetY = []
-                Orientation   = sim['CCDPositions/Orientation'] 
+                Orientation   = sim['CCDPositions/Orientation']
                 # Add small offset to orientations
-                for i in [dex, dex+1, dex+2, dex+3]:
+                dexCam = 4 * dex
+                for i in [dexCam, dexCam+1, dexCam+2, dexCam+3]:
                     ccd = CCD.iloc[i]
                     OriginOffsetX.append(ccd.OriginOffsetX)
                     OriginOffsetY.append(ccd.OriginOffsetY)
-                    Orientation[i-dex] += ccd.Orientation
+                    Orientation[i-dexCam] += ccd.Orientation
                 sim["CCDPositions/OriginOffsetX"] = OriginOffsetX
                 sim["CCDPositions/OriginOffsetY"] = OriginOffsetY
                 sim["CCDPositions/Orientation"]   = Orientation
-
         
         # TODO Allow to include default TXT file "cl2bCcds.txt"
         #sim["CCDPositions/UsePositionsFromFile"] = True
