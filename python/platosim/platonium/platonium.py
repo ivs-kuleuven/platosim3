@@ -996,6 +996,7 @@ class PLATOnium(object):
         """
         
         # SAVE STELLAR CATALOGS AND TARGET LISTS
+        
         # Save catalog and load it into the inputfile
         self.starCatalogFile = f'{self.outputDir}/{self.outputFileName}.cat'
         sim.createStarCatalogFile(self.ds.ra, self.ds.dec, self.ds.mag, self.ds.ids,
@@ -1011,6 +1012,7 @@ class PLATOnium(object):
             print(df1)
 
         # SAVE LIST OF VARIABLE SOURCES
+        
         # Automatically activate varsource (if the user forgets)
         if self.varSourceFile or self.varSourceList:
             sim['Sky/IncludeVariableSources'] = True
@@ -1040,6 +1042,7 @@ class PLATOnium(object):
                     errorcode('error', 'VariableSourceFile do not exist, check file path!')
 
         # SAVE PHOTOMETRY FILE
+        
         # NOTE if a user defined file name for the photometry file is parsed
         # then a photometry file list is created automatically
         if sim['Photometry/IncludePhotometry'] is True:

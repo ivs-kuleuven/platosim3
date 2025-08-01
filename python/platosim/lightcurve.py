@@ -373,10 +373,11 @@ class LightCurve(object):
         # Fetch all zip files and sort them using natsort
         string = f"{path}/{prefix}**_{G}**{C}**{Q}**{N}.{suffix}"
         files = natsort.natsorted(glob.glob(string))
-        
+
         # Check if any file was found
         if error and len(files) == 0:
-            errorcode('error', f'No files found with suffix {suffix}!')
+            errorcode('error', f'No files found with suffix {suffix}! ' +
+                      f'Check path: {self.filename}')
             
         return files
 
@@ -2432,9 +2433,9 @@ class LightCurve(object):
               flux_contamination=False,
               flux_group_mean=False,
               flux_offset=False,
-              flux_err=False,
+              flux_error=False,
               detrend=False,
-              clip=False,
+              clip_sigma=None,
               binsize=None,
               verbose=True,
               files=None,
@@ -2483,7 +2484,7 @@ class LightCurve(object):
         ncam   = 0
         flag   = 0
         star   = Path(files[0]).stem[:9]
-
+        
         # Loop over each group and camera
         if verbose:
             print(f'Processing star ID {star}')
@@ -2542,17 +2543,17 @@ class LightCurve(object):
                 # Contatinate data frames
                 df0 = pd.concat([df0, df1])
 
-        # Sort after logic structure and reset indices
+        # Remove potential NaNs from binning
+        df0 = df0.dropna()
+
+        # Cadence [h]
+        dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
+
+        # Sort data after time stamps
         if verbose:
             print('Sorting data after timings')
-        df0 = df0.sort_values(by=["time"])
-        df0 = df0.reset_index(drop=True)
-        
-        # If requested mean fluxes from same group (i.e. same time stamp)
-        if flux_group_mean:
-            if verbose: print('Averaging data from same camera group')
-            df0 = df0.groupby('time').mean().reset_index()
-                                
+        df0 = df0.sort_values(by="time")
+
         # Bin data 
         if binsize:
             # Save number of data points in each time bin
@@ -2565,24 +2566,25 @@ class LightCurve(object):
             flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
-            
-        # Remove potential NaNs from binning
-        df0 = df0.dropna()
+            # Remove potential NaNs from binning
+            df0 = df0.dropna()
 
+        # If requested mean fluxes from same group (i.e. same time stamp)
+        if flux_group_mean:
+            if verbose:
+                print('Averaging data from same camera group')
+            # flux_weight = ut.pdWeightedAverage(df0, 'flux', 'flux_err')
+            # df0 = df0.groupby('time').apply(flux_weight)
+            # print(df0)
+            df0 = df0.groupby('time').mean().reset_index()
+                                                            
         # Perform signma clipping
-        if clip:
+        if clip_sigma:
             if verbose: print('Removing outliers')
-
-            # Perform extra sigma clipping to remove outliers
-            if clip <= 10: sigma = 5
-            elif clip > 10 and clip < 11: sigma = 4.5
-            else: sigma = 4
-
-            # Perform clipping
+            # Use light curve object for clipping
             lc  = LightCurve(df0, mode="multi", path=self.path)
-            df0 = lc.clip(model='wotan', sigma_lower=sigma, sigma_upper=sigma, replace=True)
-            
-            # Remove NaNs from sigma clipping
+            df0 = lc.clip(model='wotan', sigma_lower=clip_sigma, sigma_upper=clip_sigma, replace=True)
+            # Remove potential NaNs
             df0 = df0.dropna()
         
         # Flux offset correction
@@ -2590,30 +2592,31 @@ class LightCurve(object):
             if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')
             flux_offset = df0.flux.median() - 1
             df0.flux   -= flux_offset        
-            
+
         # Add flux errors
-        if flux_err:
-            if verbose: print(f'Calculating flux errors')
+        if flux_error:
+            if verbose:
+                print(f'Calculating flux errors')
             s = df0.flux.to_numpy() - 1
-            N_short = round(1/binsize)
-            N_long  = round(10*24/binsize)
+            N_short = round(1 / dt)
+            N_long  = round(10 * 24 / dt)
             s_std0  = generic_filter(s,      np.std,  N_short)
             s_std   = generic_filter(s_std0, np.mean, N_long)
             df0['flux_err'] = s_std
             #------------------------ Debugging
-            # t = df0.time
-            # plt.figure(figsize=(9,6))
-            # plt.plot(t, s_std0, 'k-', linewidth=1.0, label=r'$\sigma_i$')
-            # plt.plot(t, s_std,  'r-', linewidth=1.2, label=r'$\mu_i(\sigma_i)$')
-            # plt.axhline(0, linestyle=':', color='k')
-            # plt.xlabel(r'Time [days]')
-            # plt.ylabel(r'Relative uncertainty')
-            # plt.legend(loc='best', ncol=1)
-            # plt.xlim(t.iloc[0], t.iloc[-1])
-            # plt.tight_layout()
-            # plt.show()
+            t = df0.time / 86400
+            plt.figure(figsize=(9,6))
+            plt.plot(t, s_std0, 'k-', linewidth=1.0, label=r'$\sigma_i$')
+            plt.plot(t, s_std,  'r-', linewidth=1.2, label=r'$\mu_i(\sigma_i)$')
+            plt.axhline(0, linestyle=':', color='k')
+            plt.xlabel(r'Time [days]')
+            plt.ylabel(r'Relative uncertainty')
+            plt.legend(loc='best', ncol=1)
+            plt.xlim(t.iloc[0], t.iloc[-1])
+            plt.tight_layout()
+            plt.show()
             #------------------------ Debugging
-                
+                            
         # If requested save output file
         if ofile:
             if verbose: print('Saving light curve')
@@ -2622,7 +2625,6 @@ class LightCurve(object):
             os.system(f'chmod 755 {ofile}')
             
         if verbose:
-            print('Done!')
             print('-'*ll)
 
         return LightCurve(df0, mode="multi", path=self.path)
