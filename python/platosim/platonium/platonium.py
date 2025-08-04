@@ -1753,6 +1753,7 @@ class PLATOnium(object):
                 pass
             else:
                 df1['SPR'] = np.mean(mask[5])
+                df1['NSR'] = np.mean(mask[4])
 
         # Save simulation table
         df1.to_feather(filename)
