@@ -87,7 +87,7 @@ class LightCurve(object):
 
         # Read either a single file or multiple files
         self.mode = mode
-        self.base = base                
+        self.base = base
         if path:
             self.path = Path(path)
         else:
@@ -299,7 +299,9 @@ class LightCurve(object):
         """
 
         # Check if path or file is parsed
-        if self.mode == 'final':
+        if not self.path:
+            return None
+        elif self.mode == 'final':
             path   = self.path.parents[1]
             starID = self.filename.stem[-9:]
         elif self.path.is_dir():
@@ -862,699 +864,6 @@ class LightCurve(object):
         return indices
 
     
-    def gaps(self, filename, replace=False, plot=False):
-
-        """Introduce gaps due to downtime and quarters.
-        
-        Parse "instrumentGAP.tab" file produced by "payload.py".
-        """
-        
-        self.df['flux_gaps'] = self.df.flux
-        
-        # Open file with gaps timings
-        dg = pd.read_feather(filename)
-        dg = dg.sort_values('t0').reset_index(drop=True)
-
-        # Find start and end of each gap and replace with NaN
-        for i in range(dg.shape[0]):
-            t0 = dg.t0.iloc[i]
-            t1 = dg.t0.iloc[i] + dg.td.iloc[i]
-            dex0 = ut.findNearestIndex(self.df.time, t0)
-            dex1 = ut.findNearestIndex(self.df.time, t1)
-            self.df.flux_gaps[dex0:dex1] = np.nan
-        
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_gaps
-            self.df.drop(columns=['flux_gaps'], inplace=True)
-
-        return self.df
-
-    
-    def correct_gain(self, temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
-                     replace=False, plot=False):
-
-        """Correct for gain variations due to thermal changes.
-        """
-        
-        # Compute the gain time series
-        gainCCD = gainCCD + gainStability * (temp - tempNominal)
-        gain = 1 / (gainCCD * gainFEE)
-        
-        # Correct for gain changes
-        a = tdur * 2
-        flux = self.df.flux.to_numpy()
-        delta_gain = 1 + a * (gain[0] - gain)
-        flux_gain = flux * delta_gain
-        flux_corr = (flux + flux_gain) / 2
-        
-        # flux0 = self.df.flux.to_numpy()
-        # flux  = flux0 / np.median(flux0[:100000])
-        # flux_gain =  gain[0] / gain
-        # # TODO max flux should be median of 1000 point from peak
-        # A_flux = flux.max() - np.median(flux[:100000])
-        # A_gain = flux_gain.max() - flux_gain.min()
-        # flux_gain = (flux_gain - 1) * A_flux/A_gain + 1
-        # # Correct flux
-        # flux_corr = flux + flux_gain - 1
-        # time = self.time(unit='d')
-        # flux_median = median_filter(flux_corr, 144)
-        # print(tdur)
-        # print(A_flux, A_gain, A_flux/A_gain)
-        # fig, ax = plt.subplots(2, 1, figsize=(9,6), sharex=True)
-        # # Plot simulation and trend
-        # ax[0].plot(time, flux,      '.', c='k',         ms=1, alpha=0.2, label='Before')
-        # ax[0].plot(time, flux_gain, '.', c='limegreen', ms=1, alpha=0.2, label='Gain flux')
-        # ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        # ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-        # # Plot detrend and median
-        # ax[1].plot(time, flux_corr,   '.', c='k', ms=1.0, alpha=0.2, label="After")
-        # ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5,    label="1h median")
-        # ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        # ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-        # ax[0].set_title('Gain correction')
-        # ax[1].set_xlabel('Time [days]')
-        # ax[0].legend(ncol=2, markerscale=5, loc='upper right')
-        # ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
-        # plt.tight_layout(h_pad=0.1, w_pad=1)
-        # plt.show()
-        
-        # Convert into ppm
-        self.df['flux_gain'] = flux_gain
-        self.df['flux_corr'] = flux_corr
-
-        # Plot dianostic
-        if plot: self.plot_correct_gain(self.df)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_corr
-            self.df.drop(columns=['flux_gain', 'flux_corr'], inplace=True)
-
-        return self.df
-        
-    
-    def plot_correct_gain(self, df, column='flux', figsize=(9,6)):
-
-        """Plot a detrended light curve and make a O-C plot.
-        """
-
-        # Remove NaNs from copy
-        #df = df.dropna()
-
-        # Unit conversions
-        time = df.time / 86400.
-        flux = df.flux / 1e3
-        flux_gain = median_filter(df.flux_gain/1e3, 24) # [ppt] 10min filter
-        flux_corr = df.flux_corr / 1e3
-        flux_med  = median_filter(flux_corr, 144)
-        
-        # Start plotting        
-        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
-
-        # Plot simulation and trend
-        ax[0].plot(time, flux,      '.', c='k',         ms=1,  alpha=0.2, label='Before')
-        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=.2, alpha=1.0, label='Gain median')
-        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-        
-        # Plot detrend and median
-        ax[1].plot(time, flux_corr, '.', c='k', ms=1.0, alpha=0.2, label="After")
-        ax[1].plot(time, flux_med,  '-', c='royalblue', lw=0.5,    label="1h median")
-        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-
-        # If any plot mask-update events
-        if self.mask_updates.any():
-            ncol = 3
-            self.axes_mask_updates(ax[0], time)
-            self.axes_mask_updates(ax[1], time)
-        else:
-            ncol = 2
-            
-        # Layout
-        ax[0].set_title('Gain correction')
-        ax[1].set_xlabel('Time [days]')
-        ax[0].legend(ncol=ncol, markerscale=5, loc='upper right')
-        ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
-        plt.tight_layout(h_pad=0.1, w_pad=1)
-        plt.show()
-
-        return fig, ax
-
-    
-    def detrend(self,
-                column='flux',
-                model="poly",
-                segments=True,
-                replace=False,
-                plot=False,
-                # Model = Poly
-                poly_degree=False,
-                # Model = Lowess
-                lowess_frac=1/5,
-                # Model = Theil
-                theil_days=2,
-                # Model: Wotan
-                method="biweight",
-                window=3,
-                tbin=1/6,
-                mask=None,
-    ):
-        """Detrend time series.
-
-        This function can be used to detrend a time series using either 
-        a simply polynomial model or the Wotan module specialized for
-        exoplanet transit vetting.
-
-        NOTE: Wotan removes stellar variability (spots modulation, pulsations,
-              and granulation) so another module is needed to preserve these.
-
-        Parameters
-        ----------
-        model : wotan, poly
-            Which model to be used for detrending
-        degree : int (False)
-            Degree of the polynomial fit (poly parameter)
-            If False a model coparison between 1-3 degree is performed
-        gradient : bool
-            Flag to remove a flat gradient of the flux (poly parameter)
-        method : str
-            Method to be used by Wotan (wotan parameter)
-        window : float
-            Window size to be used for detrending [days] (wotan parameter)
-        tbin : float
-            Time duration to bin data before running Wotan (for speed)
-        mask : bool, float
-            List with [period, duration, t0] to mask out periodic signal [all in days]
-        segments : bool
-            Flag to perform detrending on mask-update segments
-        replace : bool
-            Flag to replace 'flux' column in df with 'flux_detrend' column
-        plot : bool
-            Flag to activate dianostic plot of module
-        """
-        
-        # Remove clipped NaNs
-        self.df = self.df.dropna()
-        time = self.df.time
-        flux = self.df[column]
-
-        # Detrend in segments
-        if self.mask_updates.any():
-            dex = self.flux_indices()
-        else:
-            dex = self.time_indices()
-
-        # Full range if no mask updates
-        if not segments:
-            dex = [dex[0], dex[-1]]
-            
-        # Prepare arrays to store light curve
-        flux_detrend = np.zeros_like(time)
-        flux_trend   = np.zeros_like(time)
-
-        # Check if transits should be masked TODO check
-        if mask and model == 'wotan':
-            mask = wotan.transit_mask(time=time,
-                                      period=mask[0]*c.day,
-                                      duration=mask[1]*c.day,
-                                      T0=mask[2]*c.day)
-        
-        # Loop over mask-update segments
-        
-        for i in range(len(dex)-1):
-
-            # Fetch segment
-            time_i = time[dex[i]:dex[i+1]]
-            flux_i = flux[dex[i]:dex[i+1]]
-        
-            # POLYNOMIAL MODEL
-
-            #if model in ['poly', 'poly_lowess']:
-            if model == 'poly':
-                
-                # Use model selection if None
-                if poly_degree:
-                    degree = poly_degree
-                else:
-                    df = pd.DataFrame()
-                    df['x'] = time_i / 86400.
-                    df['y'] = flux_i
-                    model1 = 'y ~ x'
-                    model2 = 'y ~ x + I(x**2)'
-                    model3 = 'y ~ x + I(x**2) + I(x**3)'
-                    model4 = 'y ~ x + I(x**2) + I(x**3) + I(x**4)'
-                    fit1 = sm.OLS.from_formula(formula=model1, data=df).fit()
-                    fit2 = sm.OLS.from_formula(formula=model2, data=df).fit()
-                    fit3 = sm.OLS.from_formula(formula=model3, data=df).fit()
-                    fit4 = sm.OLS.from_formula(formula=model4, data=df).fit()
-                    #---------------------------- Debugging
-                    # print(degree, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
-                    # print(fit1.summary())
-                    # print(fit2.summary())
-                    # print(fit3.summary())
-                    #-------------------------------------
-                    AIC_j = [fit1.aic, fit2.aic, fit3.aic, fit4.aic]
-                    BIC_j = [fit1.bic, fit2.bic, fit3.bic, fit4.bic]
-                    degree = st.model_selection(AIC_j, BIC_j, show=False)
-
-                poly = np.polyfit(time_i, flux_i, deg=degree)
-                    
-                # # Perform fit
-                # if model == 'poly_lowess':
-                #     binsize = 1
-                #     tbin = binsize*3600    
-                #     tdur = time_i.iloc[-1] - time_i.iloc[0]
-                #     bins = int(tdur/tbin)
-                #     flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins)
-                #     time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
-                #     lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/20)
-                #     p = 1
-                #     poly = np.polyfit(lowess[p:-p,0], lowess[p:-p,1], deg=deg)
-                # else:
-                #     poly = np.polyfit(time_i, flux_i, deg=deg)
-                
-                # Trend of light curve
-                trend = np.polyval(poly, time_i)
-                flux_trend[dex[i]:dex[i+1]] = trend
-
-                # Detrended flux
-                if column == 'flux_stitch':
-                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
-                else:
-                    detrend = flux_i / trend
-                flux_detrend[dex[i]:dex[i+1]] = detrend
-
-            # LOWESS MODEL
-
-            elif model == 'lowess':
-
-                #------------ TODO integrate into bin method
-                binsize = 1
-                tbin = binsize*3600    
-                tdur = time_i.iloc[-1] - time_i.iloc[0]
-                bins = int(tdur/tbin)
-                flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins=bins)
-                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
-                #------------
-
-                # Lowess smoothing
-                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=lowess_frac)
-                spline = make_interp_spline(time_bin, lowess[:,1], k=2)
-                trend  = spline(time_i)
-                flux_trend[dex[i]:dex[i+1]] = trend
-
-                # Detrended flux
-                if column == 'flux_stitch':
-                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
-                else:
-                    detrend = flux_i / trend
-                flux_detrend[dex[i]:dex[i+1]] = detrend
-                
-                #-------------- debug
-                # plt.figure()
-                # plt.plot(time_i, flux_i, 'k.')
-                # plt.plot(time_bin, flux_bin, 'b.')
-                # plt.plot(lowess[:,0], lowess[:,1], 'r-')
-                # plt.xlim(time_i.iloc[0], time_i.iloc[-1])
-                # plt.show()
-                # exit()
-                #-------------- debug
-
-            # LOWESS MODEL
-
-            elif model == 'lowess_theil':
-
-                #------------ TODO integrate into bin method
-                binsize = 1
-                tbin = binsize*3600    
-                tdur = time_i.iloc[-1] - time_i.iloc[0]
-                bins = int(tdur/tbin)
-                flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins=bins)
-                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
-                #------------
-                
-                # Lowess smoothing
-                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=lowess_frac)
-
-                # Fit Theil–Sen median slope
-                p = int(theil_days/(binsize/24)) # Ignore start and end points
-                print(p)
-                res_theil = theilslopes(lowess[:,1], time_bin, 0.90, method='separate')
-                res_lsq   = linregress(time_bin[p:-p], lowess[p:-p,1])
-
-                # Trend of light curve (rebin to original cadence)
-                trend = res_lsq[0] * time_i + res_lsq[1]
-                flux_trend[dex[i]:dex[i+1]] = trend
-
-                # Detrended flux
-                if column == 'flux_stitch':
-                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
-                else:
-                    detrend = flux_i / trend
-                flux_detrend[dex[i]:dex[i+1]] = detrend
-                
-                #-------------- debug
-                # plt.figure()
-                # plt.plot(time_i, flux_i, 'k.')
-                # plt.plot(time_bin, flux_bin, 'b.')
-                # plt.plot(lowess[:,0], lowess[:,1], 'r-')
-                # plt.plot(time_bin[p], lowess[p,1], 'y*')
-                # plt.plot(time_bin[-p], lowess[-p,1], 'y*')
-                # plt.plot(time_i, trend, 'w--')
-                # plt.xlim(time_i.iloc[0], time_i.iloc[-1])
-                # plt.show()
-                #-------------- debug
-                
-            # WOTAN MODEL
-        
-            elif model == "wotan":
-
-                # Bin data per 10min for robust detrending
-                tday_i = time_i / 86400.
-                tdur = tday_i.iloc[-1] - tday_i.iloc[0]
-                bins = int(tdur/tbin)
-                flux_bin, time_bin, _ = binned_statistic(tday_i, flux_i, 'median', bins=bins)
-                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
-
-                # Perform detrending [Wotan needs time units in days!]
-                _, trend = wotan.flatten(time_bin,
-                                         flux_bin,
-                                         method=method,
-                                         window_length=window,
-                                         edge_cutoff=0.0,
-                                         return_trend=True,
-                                         robust=True,
-                                         mask=mask)
-
-                # Interpolate back to original cadence
-                spline_trend = make_interp_spline(time_bin*86400, trend, k=1)
-                flux_detrend[dex[i]:dex[i+1]] = flux_i / spline_trend(time_i)
-                flux_trend[dex[i]:dex[i+1]]   = spline_trend(time_i)
-                                
-        # PROLOGUE
-        
-        # Convert into ppm
-        self.df['flux_trend']   = flux_trend
-        self.df['flux_detrend'] = flux_detrend                
-            
-        # Plot dianostic
-        if plot: self.plot_detrend(self.df, column)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_detrend
-            self.df.drop(columns=['flux_trend', 'flux_detrend'], inplace=True)
-
-        # Finito!
-        return self.df
-    
-        
-    def stitch(self, method='lowess', column='flux', gapsize=0.1, segment=5,
-               replace=False, plot=False):
-
-        """Function to stitct a light curve.
-
-        This function corrects for all jumps that may occur due to interruption
-        of the image acquisition. It uses the "time_gapsize" parameters to set
-        the limit for when something is a time series gap. It uses the median
-        flux value on either side of the gap to correct each flux "chunk".
-
-        Parameters
-        ----------
-        column : str
-            Which flux column to stitch
-        gapsize : float
-            Duration for which a gap in the time series is detected [unit as time]
-        """
-
-        # Deep copy of data frame
-        self.df['flux_stitch'] = self.df[column]
-
-        # Find flux jumps
-        if self.mask_updates.any():
-            dex = self.flux_indices()
-        else:
-            dex = self.time_indices()
-
-        # Convert unit [days -> number of exposures]
-        segment = int(segment * 86400 / self.cadence)
-            
-        # Move the data chunk when a jump
-
-        if len(dex) > 2:
-        
-            for i,j in zip(dex[1:-1], dex[1:]):
-
-                # Fetch data segments before and after jump
-                df_b = self.df.iloc[i-segment-1:i-1]
-                df_a = self.df.iloc[i:i+segment]
-                
-                if method == 'lowess':
-
-                    #------------ TODO integrate into bin method
-                    # To be used for 25s cadence
-                    # binsize = 0.5
-                    
-                    # time = df_b.time
-                    # flux = df_b.flux_stitch
-                    # tdur = time.iloc[-1] - time.iloc[0]
-                    # tbin = binsize*3600
-                    # bins = int(tdur/tbin)
-                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
-                    # time = time[:-1] + np.diff(time)[0]/2.
-                    # df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
-
-                    # time = df_a.time
-                    # flux = df_a.flux_stitch
-                    # tdur = time.iloc[-1] - time.iloc[0]
-                    # tbin = binsize*3600
-                    # bins = int(tdur/tbin)
-                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
-                    # time = time[:-1] + np.diff(time)[0]/2.
-                    # df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
-                    #-------------
-                    
-                    # Lowess smoothing
-                    lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
-                    lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
-
-                    # Fit Theil–Sen median slope
-                    res_b = theilslopes(lowess_b[:,1], df_b.time, 0.90, method='separate')
-                    res_a = theilslopes(lowess_a[:,1], df_a.time, 0.90, method='separate')
-                    lsq_res_b = linregress(df_b.time, lowess_b[:,1])
-                    lsq_res_a = linregress(df_a.time, lowess_a[:,1])
-
-                    # Evaluate slope in 
-                    flux_b = lsq_res_b[0] * df_b.time.iloc[-1] + lsq_res_b[1]
-                    flux_a = lsq_res_a[0] * df_a.time.iloc[0]  + lsq_res_a[1]
-                    flux_jump = flux_b - flux_a                    
-                    #-------------- debug
-                    # plt.figure()
-                    # plt.plot(self.df.time, self.df.flux_stitch, 'k.')
-                    # plt.plot(df_b.time, df_b.flux_stitch, 'b.')
-                    # plt.plot(df_a.time, df_a.flux_stitch, 'm.')
-                    # plt.plot(lowess_b[:,0], lowess_b[:,1], 'r-')
-                    # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
-                    # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
-                    # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
-                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'w--')
-                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'w--')
-                    # plt.title(f'Flux jump: {flux_jump}')
-                    # df = self.df.loc[i-segment*2:i+segment*2]
-                    # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
-                    # plt.show()
-                    #-------------- debug
-
-                    
-                elif method == 'median':
-                    
-                    # Use median value on either side to stitch
-                    flux_b = np.median(df_b.flux_stitch)
-                    flux_a = np.median(df_a.flux_stitch)
-                    flux_jump = flux_b - flux_a
-
-                    
-                # Use smaller data chunk if rate of change is large
-                elif method == 'gradient':
-
-                    # Rate of change for data chunks before and after each gap
-                    diff_chunk_before = np.abs(flux_chunk_before.iloc[0] /
-                                               flux_chunk_before.iloc[-1])
-                    diff_chunk_after  = np.abs(flux_chunk_after.iloc[0] /
-                                               flux_chunk_after.iloc[-1])
-
-                    # Index for smaller fraction of chunk before and after each gap
-                    d = 10
-                    dex_frac_before = int(len(flux_chunk_before)/d)
-                    dex_frac_after  = int(len(flux_chunk_after)/d)
-
-                    # Smaller fractions of each data chunk before and after each gap
-                    diff_frac_before = np.abs(flux_chunk_before.iloc[0] /
-                                              flux_chunk_before.iloc[dex_frac_before])
-                    diff_frac_after  = np.abs(flux_chunk_after.iloc[0] /
-                                              flux_chunk_after.iloc[dex_frac_after])
-
-                    # If rate of change is large
-                    if diff_chunk_before > 10 * diff_frac_before:
-                        flux_chunk_before = flux_chunk_before.iloc[dex_frac_before:]
-                    if diff_chunk_after > 10 * diff_frac_after:
-                        flux_chunk_after = flux_chunk_after.iloc[:dex_frac_after]
-
-                    # Use median value on either side to stitch
-                    flux_median_before = np.median(flux_chunk_before)
-                    flux_median_after  = np.median(flux_chunk_after)
-                    flux_jump = flux_median_before - flux_median_after
-                        
-                # Correct each flux chunk
-                self.df.flux_stitch.iloc[i:] += flux_jump
-
-            # Recenter data after median value
-            #self.df.flux_stitch -= self.df.flux_stitch.median()
-            
-        # Plot if requested
-        if plot:
-            self.plot_stitch(self.df, column=column)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_stitch
-            self.df.drop(columns=['flux_stitch'], inplace=True)
-            
-        return self.df
-
-    
-    def clip(self, column='flux', model="scipy",
-             sigma_lower=4, sigma_upper=4, window=0.5,
-             plot=False, replace=False, flux_unit='e/s'):
-
-        """Sigma clipping of light curve.
-        """
-                
-        # Sigma clipping methods
-        
-        if model == 'scipy':
-            self.df['flux_clip'] = stats.sigma_clip(self.df[column],
-                                                    sigma_lower=sigma_lower,
-                                                    sigma_upper=sigma_upper)
-            
-        elif model == 'wotan':
-            self.df['flux_clip'] = wotan.slide_clip(self.df.time.to_numpy(),
-                                                    self.df[column].to_numpy(),
-                                                    window_length=window*c.day,
-                                                    low=sigma_lower,
-                                                    high=sigma_upper,
-                                                    method='mad',     # {std, mad}
-                                                    center='median')  # {mean, median}
-                    
-        # Plot if requested
-        if plot:
-            self.plot_clip(self.df, column=column, flux_unit=flux_unit)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_clip
-            self.df.drop(columns=['flux_clip'], inplace=True)
-
-        return self.df
-
-
-    def plot_frequency_performance(self,
-                                   ASD_binning_factor=10,
-                                   freq_break=20e-6,
-                                   min_freq=3e-6,
-                                   max_freq=40e-3,
-                                   residual_noise_floor=0.68e-6,
-                                   random_noise_level=3.0e-6,
-                                   residual_noise_top=50e-6,
-                                   figsize=(10,7),
-                                   output_file='mission_performance_asd.png'):
-
-        mean_lc = self.flux()
-        freq, psd = ns.compute_double_sided_PSD(mean_lc, time_interval=25)
-
-        def rebin1d(array, n):
-            nr = int(float(array.shape[0]) / float(n))
-            return (np.reshape(array, (n, nr))).sum(1)
-        
-
-        fig = plt.figure(figsize=figsize)
-
-        # plot the ASD
-        plt.plot(freq, psd, 'gray', alpha=0.5)
-
-        # plot binned ASD
-        p = int(freq.size / ASD_binning_factor)
-        num = rebin1d(freq[0:p*ASD_binning_factor], p) / ASD_binning_factor
-        binned = rebin1d(psd[0:p*ASD_binning_factor], p) / ASD_binning_factor
-
-        plt.plot(num[1:], binned[1:], 'black',  lw=2)
-
-        # residual error line
-        plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
-                   colors='red', linestyles='-')
-        # random noise line
-        plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
-                   colors='magenta', linestyles='-')
-        # slope line from residual to random top level
-        x_values = np.linspace(min_freq, freq_break, 2)
-        y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
-        plt.plot(x_values, y_values, color='red', linestyle='-')
-
-        # dashed  guide lines
-        plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
-                   linestyles='dashed', colors='blue')
-        plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
-                   linestyles='dashed', colors='blue')
-        plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
-                   linestyles='dashed', colors='blue')
-        plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
-                   linestyles='dashed', colors='blue')
-        plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
-                   linestyles='dashed', colors='blue')
-
-        # texts
-        freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
-        top_text = f'{int(residual_noise_top*1e6)}' + freq_units
-        plt.text(x=min_freq, y=residual_noise_top*1.25,
-                 s=top_text,
-                 ha='center')
-        random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
-        plt.text(x=5e-4, y=random_noise_level*1.25,
-                 s=random_noise_text,
-                 ha='center')
-        residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + freq_units
-        plt.text(x=5e-4, y=residual_noise_floor*1.25,
-                 s=residual_error_text,
-                 ha='center')
-
-        plt.xscale('log')
-        plt.yscale('log')
-
-        ymin = np.min(psd)
-        ymax = np.max(psd)
-        if ymin < 1e-7: ymin = 1e-7
-        if ymax < 1e-4: ymax = 1e-4
-        plt.xlim(1e-6, 1e-1)
-        plt.ylim(ymin, ymax)
-
-        # modify x tick points
-        ticks = [1e-6, min_freq, 1e-5, freq_break,
-                 1e-4, 1e-3, 1e-2, max_freq, 1e-1]
-        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
-                  str(int(freq_break*1e6)) + '$\mu$Hz',
-                  '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
-                  str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
-        plt.xticks(ticks=ticks, labels=labels)
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
-        plt.tight_layout()
-
-        return fig
-
-        #plt.savefig(output_file, dpi=150)
-    
     #--------------------------------------------------------------#
     #                         PLOT MODULES                         #   
     #--------------------------------------------------------------#
@@ -2028,7 +1337,374 @@ class LightCurve(object):
         
         return fig, ax
 
+
+    def plot_frequency_performance(self,
+                                   ASD_binning_factor=10,
+                                   freq_break=20e-6,
+                                   min_freq=3e-6,
+                                   max_freq=40e-3,
+                                   residual_noise_floor=0.68e-6,
+                                   random_noise_level=3.0e-6,
+                                   residual_noise_top=50e-6,
+                                   figsize=(10,7),
+                                   output_file='mission_performance_asd.png'):
+
+        mean_lc = self.flux()
+        freq, psd = ns.compute_double_sided_PSD(mean_lc, time_interval=25)
+
+        def rebin1d(array, n):
+            nr = int(float(array.shape[0]) / float(n))
+            return (np.reshape(array, (n, nr))).sum(1)
+        
+
+        fig = plt.figure(figsize=figsize)
+
+        # plot the ASD
+        plt.plot(freq, psd, 'gray', alpha=0.5)
+
+        # plot binned ASD
+        p = int(freq.size / ASD_binning_factor)
+        num = rebin1d(freq[0:p*ASD_binning_factor], p) / ASD_binning_factor
+        binned = rebin1d(psd[0:p*ASD_binning_factor], p) / ASD_binning_factor
+
+        plt.plot(num[1:], binned[1:], 'black',  lw=2)
+
+        # residual error line
+        plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
+                   colors='red', linestyles='-')
+        # random noise line
+        plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
+                   colors='magenta', linestyles='-')
+        # slope line from residual to random top level
+        x_values = np.linspace(min_freq, freq_break, 2)
+        y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
+        plt.plot(x_values, y_values, color='red', linestyle='-')
+
+        # dashed  guide lines
+        plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
+                   linestyles='dashed', colors='blue')
+        plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
+                   linestyles='dashed', colors='blue')
+        plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
+                   linestyles='dashed', colors='blue')
+        plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
+                   linestyles='dashed', colors='blue')
+        plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
+                   linestyles='dashed', colors='blue')
+
+        # texts
+        freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
+        top_text = f'{int(residual_noise_top*1e6)}' + freq_units
+        plt.text(x=min_freq, y=residual_noise_top*1.25,
+                 s=top_text,
+                 ha='center')
+        random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
+        plt.text(x=5e-4, y=random_noise_level*1.25,
+                 s=random_noise_text,
+                 ha='center')
+        residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + freq_units
+        plt.text(x=5e-4, y=residual_noise_floor*1.25,
+                 s=residual_error_text,
+                 ha='center')
+
+        plt.xscale('log')
+        plt.yscale('log')
+
+        ymin = np.min(psd)
+        ymax = np.max(psd)
+        if ymin < 1e-7: ymin = 1e-7
+        if ymax < 1e-4: ymax = 1e-4
+        plt.xlim(1e-6, 1e-1)
+        plt.ylim(ymin, ymax)
+
+        # modify x tick points
+        ticks = [1e-6, min_freq, 1e-5, freq_break,
+                 1e-4, 1e-3, 1e-2, max_freq, 1e-1]
+        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
+                  str(int(freq_break*1e6)) + '$\mu$Hz',
+                  '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
+                  str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
+        plt.xticks(ticks=ticks, labels=labels)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
+        plt.tight_layout()
+
+        return fig
+
     
+    #--------------------------------------------------------------#
+    #                        POST-PROCESSING                       #
+    #--------------------------------------------------------------#
+
+        
+    def detrend(self,
+                column='flux',
+                model="poly",
+                segments=True,
+                replace=False,
+                plot=False,
+                # Model = Poly
+                poly_degree=False,
+                # Model = Lowess
+                lowess_frac=1/5,
+                # Model = Theil
+                theil_days=2,
+                # Model: Wotan
+                method="biweight",
+                window=3,
+                tbin=1/6,
+                mask=None,
+    ):
+        """Detrend time series.
+
+        This function can be used to detrend a time series using either 
+        a simply polynomial model or the Wotan module specialized for
+        exoplanet transit vetting.
+
+        NOTE: Wotan removes stellar variability (spots modulation, pulsations,
+              and granulation) so another module is needed to preserve these.
+
+        Parameters
+        ----------
+        model : wotan, poly
+            Which model to be used for detrending
+        degree : int (False)
+            Degree of the polynomial fit (poly parameter)
+            If False a model coparison between 1-3 degree is performed
+        gradient : bool
+            Flag to remove a flat gradient of the flux (poly parameter)
+        method : str
+            Method to be used by Wotan (wotan parameter)
+        window : float
+            Window size to be used for detrending [days] (wotan parameter)
+        tbin : float
+            Time duration to bin data before running Wotan (for speed)
+        mask : bool, float
+            List with [period, duration, t0] to mask out periodic signal [all in days]
+        segments : bool
+            Flag to perform detrending on mask-update segments
+        replace : bool
+            Flag to replace 'flux' column in df with 'flux_detrend' column
+        plot : bool
+            Flag to activate dianostic plot of module
+        """
+        
+        # Remove clipped NaNs
+        self.df = self.df.dropna()
+        time = self.df.time
+        flux = self.df[column]
+
+        # Detrend in segments
+        if self.mask_updates.any():
+            dex = self.flux_indices()
+        else:
+            dex = self.time_indices()
+
+        # Full range if no mask updates
+        if not segments:
+            dex = [dex[0], dex[-1]]
+            
+        # Prepare arrays to store light curve
+        flux_detrend = np.zeros_like(time)
+        flux_trend   = np.zeros_like(time)
+
+        # Check if transits should be masked TODO check
+        if mask and model == 'wotan':
+            mask = wotan.transit_mask(time=time,
+                                      period=mask[0]*c.day,
+                                      duration=mask[1]*c.day,
+                                      T0=mask[2]*c.day)
+        
+        # Loop over mask-update segments
+        
+        for i in range(len(dex)-1):
+
+            # Fetch segment
+            time_i = time[dex[i]:dex[i+1]]
+            flux_i = flux[dex[i]:dex[i+1]]
+        
+            # POLYNOMIAL MODEL
+
+            #if model in ['poly', 'poly_lowess']:
+            if model == 'poly':
+                
+                # Use model selection if None
+                if poly_degree:
+                    degree = poly_degree
+                else:
+                    df = pd.DataFrame()
+                    df['x'] = time_i / 86400.
+                    df['y'] = flux_i
+                    model1 = 'y ~ x'
+                    model2 = 'y ~ x + I(x**2)'
+                    model3 = 'y ~ x + I(x**2) + I(x**3)'
+                    model4 = 'y ~ x + I(x**2) + I(x**3) + I(x**4)'
+                    fit1 = sm.OLS.from_formula(formula=model1, data=df).fit()
+                    fit2 = sm.OLS.from_formula(formula=model2, data=df).fit()
+                    fit3 = sm.OLS.from_formula(formula=model3, data=df).fit()
+                    fit4 = sm.OLS.from_formula(formula=model4, data=df).fit()
+                    #---------------------------- Debugging
+                    # print(degree, fit1.rsquared, fit2.rsquared, fit3.rsquared, dt) 
+                    # print(fit1.summary())
+                    # print(fit2.summary())
+                    # print(fit3.summary())
+                    #-------------------------------------
+                    AIC_j = [fit1.aic, fit2.aic, fit3.aic, fit4.aic]
+                    BIC_j = [fit1.bic, fit2.bic, fit3.bic, fit4.bic]
+                    degree = st.model_selection(AIC_j, BIC_j, show=False)
+
+                poly = np.polyfit(time_i, flux_i, deg=degree)
+                    
+                # # Perform fit
+                # if model == 'poly_lowess':
+                #     binsize = 1
+                #     tbin = binsize*3600    
+                #     tdur = time_i.iloc[-1] - time_i.iloc[0]
+                #     bins = int(tdur/tbin)
+                #     flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins)
+                #     time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+                #     lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=1/20)
+                #     p = 1
+                #     poly = np.polyfit(lowess[p:-p,0], lowess[p:-p,1], deg=deg)
+                # else:
+                #     poly = np.polyfit(time_i, flux_i, deg=deg)
+                
+                # Trend of light curve
+                trend = np.polyval(poly, time_i)
+                flux_trend[dex[i]:dex[i+1]] = trend
+
+                # Detrended flux
+                if column == 'flux_stitch':
+                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
+                else:
+                    detrend = flux_i / trend
+                flux_detrend[dex[i]:dex[i+1]] = detrend
+
+            # LOWESS MODEL
+
+            elif model == 'lowess':
+
+                #------------ TODO integrate into bin method
+                binsize = 1
+                tbin = binsize*3600    
+                tdur = time_i.iloc[-1] - time_i.iloc[0]
+                bins = int(tdur/tbin)
+                flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins=bins)
+                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+                #------------
+
+                # Lowess smoothing
+                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=lowess_frac)
+                spline = make_interp_spline(time_bin, lowess[:,1], k=2)
+                trend  = spline(time_i)
+                flux_trend[dex[i]:dex[i+1]] = trend
+
+                # Detrended flux
+                if column == 'flux_stitch':
+                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
+                else:
+                    detrend = flux_i / trend
+                flux_detrend[dex[i]:dex[i+1]] = detrend
+                
+                #-------------- debug
+                # plt.figure()
+                # plt.plot(time_i, flux_i, 'k.')
+                # plt.plot(time_bin, flux_bin, 'b.')
+                # plt.plot(lowess[:,0], lowess[:,1], 'r-')
+                # plt.xlim(time_i.iloc[0], time_i.iloc[-1])
+                # plt.show()
+                # exit()
+                #-------------- debug
+
+            # LOWESS MODEL
+
+            elif model == 'lowess_theil':
+
+                #------------ TODO integrate into bin method
+                binsize = 1
+                tbin = binsize*3600    
+                tdur = time_i.iloc[-1] - time_i.iloc[0]
+                bins = int(tdur/tbin)
+                flux_bin, time_bin, _ = binned_statistic(time_i, flux_i, 'median', bins=bins)
+                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+                #------------
+                
+                # Lowess smoothing
+                lowess = sm.nonparametric.lowess(flux_bin, time_bin, frac=lowess_frac)
+
+                # Fit Theil–Sen median slope
+                p = int(theil_days/(binsize/24)) # Ignore start and end points
+                print(p)
+                res_theil = theilslopes(lowess[:,1], time_bin, 0.90, method='separate')
+                res_lsq   = linregress(time_bin[p:-p], lowess[p:-p,1])
+
+                # Trend of light curve (rebin to original cadence)
+                trend = res_lsq[0] * time_i + res_lsq[1]
+                flux_trend[dex[i]:dex[i+1]] = trend
+
+                # Detrended flux
+                if column == 'flux_stitch':
+                    detrend = (flux_i/1e3 + 1) / (trend/1e3 + 1)
+                else:
+                    detrend = flux_i / trend
+                flux_detrend[dex[i]:dex[i+1]] = detrend
+                
+                #-------------- debug
+                # plt.figure()
+                # plt.plot(time_i, flux_i, 'k.')
+                # plt.plot(time_bin, flux_bin, 'b.')
+                # plt.plot(lowess[:,0], lowess[:,1], 'r-')
+                # plt.plot(time_bin[p], lowess[p,1], 'y*')
+                # plt.plot(time_bin[-p], lowess[-p,1], 'y*')
+                # plt.plot(time_i, trend, 'w--')
+                # plt.xlim(time_i.iloc[0], time_i.iloc[-1])
+                # plt.show()
+                #-------------- debug
+                
+            # WOTAN MODEL
+        
+            elif model == "wotan":
+
+                # Bin data per 10min for robust detrending
+                tday_i = time_i / 86400.
+                tdur = tday_i.iloc[-1] - tday_i.iloc[0]
+                bins = int(tdur/tbin)
+                flux_bin, time_bin, _ = binned_statistic(tday_i, flux_i, 'median', bins=bins)
+                time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
+
+                # Perform detrending [Wotan needs time units in days!]
+                _, trend = wotan.flatten(time_bin,
+                                         flux_bin,
+                                         method=method,
+                                         window_length=window,
+                                         edge_cutoff=0.0,
+                                         return_trend=True,
+                                         robust=True,
+                                         mask=mask)
+
+                # Interpolate back to original cadence
+                spline_trend = make_interp_spline(time_bin*86400, trend, k=1)
+                flux_detrend[dex[i]:dex[i+1]] = flux_i / spline_trend(time_i)
+                flux_trend[dex[i]:dex[i+1]]   = spline_trend(time_i)
+                                
+        # PROLOGUE
+        
+        # Convert into ppm
+        self.df['flux_trend']   = flux_trend
+        self.df['flux_detrend'] = flux_detrend                
+            
+        # Plot dianostic
+        if plot: self.plot_detrend(self.df, column)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_detrend
+            self.df.drop(columns=['flux_trend', 'flux_detrend'], inplace=True)
+
+        # Finito!
+        return self.df
+
+
     def plot_detrend(self, df, column='flux', plot_oc=True, figsize=(9,7)):
 
         """Plot a detrended light curve and make a O-C plot.
@@ -2129,7 +1805,153 @@ class LightCurve(object):
         plt.show()
         
         return fig, ax
+    
+    #--------------------------------------------------------------#
+    
+    def stitch(self,
+               method='lowess',
+               column='flux',
+               gapsize=0.1,
+               segment=5,
+               replace=False,
+               plot=False
+    ):
+        """Function to stitct a light curve.
+
+        This function corrects for all jumps that may occur due to interruption
+        of the image acquisition. It uses the "time_gapsize" parameters to set
+        the limit for when something is a time series gap. It uses the median
+        flux value on either side of the gap to correct each flux "chunk".
+
+        Use smaller data chunk if rate of change is large
+        Parameters
+        ----------
+        column : str
+            Which flux column to stitch
+        gapsize : float
+            Duration for which a gap in the time series is detected [unit as time]
+        """
+
+        # Deep copy of data frame
+        self.df['flux_stitch'] = self.df[column]
+
+        # Find flux jumps
+        if self.mask_updates.any():
+            dex = self.flux_indices()
+        else:
+            dex = self.time_indices()
+
+        # Convert unit [days -> number of exposures]
+        segment = int(segment * 86400 / self.cadence)
+            
+        # Move the data chunk when a jump
+
+        if len(dex) > 2:
         
+            for i,j in zip(dex[1:-1], dex[1:]):
+
+                # Fetch data segments before and after jump
+                df_b = self.df.iloc[i-segment-1:i-1]
+                df_a = self.df.iloc[i:i+segment]
+                
+                if method == 'lowess':
+                    #------------ TODO integrate into bin method
+                    # To be used for 25s cadence
+                    # binsize = 0.5
+                    # time = df_b.time
+                    # flux = df_b.flux_stitch
+                    # tdur = time.iloc[-1] - time.iloc[0]
+                    # tbin = binsize*3600
+                    # bins = int(tdur/tbin)
+                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    # time = time[:-1] + np.diff(time)[0]/2.
+                    # df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    # time = df_a.time
+                    # flux = df_a.flux_stitch
+                    # tdur = time.iloc[-1] - time.iloc[0]
+                    # tbin = binsize*3600
+                    # bins = int(tdur/tbin)
+                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    # time = time[:-1] + np.diff(time)[0]/2.
+                    # df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    #-------------
+                    # Lowess smoothing
+                    lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
+                    lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
+                    # Fit Theil–Sen median slope
+                    res_b = theilslopes(lowess_b[:,1], df_b.time, 0.90, method='separate')
+                    res_a = theilslopes(lowess_a[:,1], df_a.time, 0.90, method='separate')
+                    lsq_res_b = linregress(df_b.time, lowess_b[:,1])
+                    lsq_res_a = linregress(df_a.time, lowess_a[:,1])
+                    # Evaluate slope in 
+                    flux_b = lsq_res_b[0] * df_b.time.iloc[-1] + lsq_res_b[1]
+                    flux_a = lsq_res_a[0] * df_a.time.iloc[0]  + lsq_res_a[1]
+                    flux_jump = flux_b - flux_a                    
+                    #-------------- debug
+                    # plt.figure()
+                    # plt.plot(self.df.time, self.df.flux_stitch, 'k.')
+                    # plt.plot(df_b.time, df_b.flux_stitch, 'b.')
+                    # plt.plot(df_a.time, df_a.flux_stitch, 'm.')
+                    # plt.plot(lowess_b[:,0], lowess_b[:,1], 'r-')
+                    # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
+                    # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
+                    # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
+                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'w--')
+                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'w--')
+                    # plt.title(f'Flux jump: {flux_jump}')
+                    # df = self.df.loc[i-segment*2:i+segment*2]
+                    # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
+                    # plt.show()
+                    #-------------- debug
+                    
+                elif method == 'median':
+                    # Use median value on either side to stitch
+                    flux_b = np.median(df_b.flux_stitch)
+                    flux_a = np.median(df_a.flux_stitch)
+                    flux_jump = flux_b - flux_a
+
+                elif method == 'gradient':
+                    # Rate of change for data chunks before and after each gap
+                    diff_chunk_before = np.abs(flux_chunk_before.iloc[0] /
+                                               flux_chunk_before.iloc[-1])
+                    diff_chunk_after  = np.abs(flux_chunk_after.iloc[0] /
+                                               flux_chunk_after.iloc[-1])
+                    # Index for smaller fraction of chunk before and after each gap
+                    d = 10
+                    dex_frac_before = int(len(flux_chunk_before)/d)
+                    dex_frac_after  = int(len(flux_chunk_after)/d)
+                    # Smaller fractions of each data chunk before and after each gap
+                    diff_frac_before = np.abs(flux_chunk_before.iloc[0] /
+                                              flux_chunk_before.iloc[dex_frac_before])
+                    diff_frac_after  = np.abs(flux_chunk_after.iloc[0] /
+                                              flux_chunk_after.iloc[dex_frac_after])
+                    # If rate of change is large
+                    if diff_chunk_before > 10 * diff_frac_before:
+                        flux_chunk_before = flux_chunk_before.iloc[dex_frac_before:]
+                    if diff_chunk_after > 10 * diff_frac_after:
+                        flux_chunk_after = flux_chunk_after.iloc[:dex_frac_after]
+                    # Use median value on either side to stitch
+                    flux_median_before = np.median(flux_chunk_before)
+                    flux_median_after  = np.median(flux_chunk_after)
+                    flux_jump = flux_median_before - flux_median_after
+                        
+                # Correct each flux chunk
+                self.df.flux_stitch.iloc[i:] += flux_jump
+
+            # Recenter data after median value
+            #self.df.flux_stitch -= self.df.flux_stitch.median()
+            
+        # Plot if requested
+        if plot:
+            self.plot_stitch(self.df, column=column)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_stitch
+            self.df.drop(columns=['flux_stitch'], inplace=True)
+            
+        return self.df
+
 
     def plot_stitch(self, df, column='flux', medfilt=144, figsize=(9,8)):
 
@@ -2211,6 +2033,51 @@ class LightCurve(object):
         plt.show()
         
         return fig, ax
+    
+    #--------------------------------------------------------------#
+    
+    def clip(self,
+             # Default params:
+             column='flux',
+             flux_unit='e/s',             
+             model="scipy",
+             sigma_lower=4,
+             sigma_upper=4,
+             # Wotan params:
+             window=0.5,
+             # Other params:
+             plot=False,
+             replace=False
+    ):
+        """Function to perform sigma clipping of a light curve.
+
+        This
+        """
+        
+        # Sigma clipping methods
+        if model == 'scipy':
+            self.df['flux_clip'] = stats.sigma_clip(self.df[column],
+                                                    sigma_lower=sigma_lower,
+                                                    sigma_upper=sigma_upper)
+        elif model == 'wotan':
+            self.df['flux_clip'] = wotan.slide_clip(self.df.time.to_numpy(),
+                                                    self.df[column].to_numpy(),
+                                                    window_length=window*c.day,
+                                                    low=sigma_lower,
+                                                    high=sigma_upper,
+                                                    method='mad',     # {std, mad}
+                                                    center='median')  # {mean, median}
+                    
+        # Plot if requested
+        if plot:
+            self.plot_clip(self.df, column=column, flux_unit=flux_unit)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_clip
+            self.df.drop(columns=['flux_clip'], inplace=True)
+        
+        return self.df
 
 
     def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,10)):
@@ -2311,6 +2178,153 @@ class LightCurve(object):
         # Finito!        
         return fig, ax
 
+    #--------------------------------------------------------------#
+
+    def gaps(self, filename, replace=False, plot=False):
+
+        """Introduce gaps due to downtime and quarters.
+        
+        Parse "instrumentGAP.tab" file produced by "payload.py".
+        """
+        
+        self.df['flux_gaps'] = self.df.flux
+        
+        # Open file with gaps timings
+        dg = pd.read_feather(filename)
+        dg = dg.sort_values('t0').reset_index(drop=True)
+
+        # Find start and end of each gap and replace with NaN
+        for i in range(dg.shape[0]):
+            t0 = dg.t0.iloc[i]
+            t1 = dg.t0.iloc[i] + dg.td.iloc[i]
+            dex0 = ut.findNearestIndex(self.df.time, t0)
+            dex1 = ut.findNearestIndex(self.df.time, t1)
+            self.df.flux_gaps[dex0:dex1] = np.nan
+        
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_gaps
+            self.df.drop(columns=['flux_gaps'], inplace=True)
+
+        return self.df
+
+    
+    def correct_gain(self, temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
+                     replace=False, plot=False):
+
+        """Correct for gain variations due to thermal changes.
+        """
+        
+        # Compute the gain time series
+        gainCCD = gainCCD + gainStability * (temp - tempNominal)
+        gain = 1 / (gainCCD * gainFEE)
+        
+        # Correct for gain changes
+        a = tdur * 2
+        flux = self.df.flux.to_numpy()
+        delta_gain = 1 + a * (gain[0] - gain)
+        flux_gain = flux * delta_gain
+        flux_corr = (flux + flux_gain) / 2
+        
+        # flux0 = self.df.flux.to_numpy()
+        # flux  = flux0 / np.median(flux0[:100000])
+        # flux_gain =  gain[0] / gain
+        # # TODO max flux should be median of 1000 point from peak
+        # A_flux = flux.max() - np.median(flux[:100000])
+        # A_gain = flux_gain.max() - flux_gain.min()
+        # flux_gain = (flux_gain - 1) * A_flux/A_gain + 1
+        # # Correct flux
+        # flux_corr = flux + flux_gain - 1
+        # time = self.time(unit='d')
+        # flux_median = median_filter(flux_corr, 144)
+        # print(tdur)
+        # print(A_flux, A_gain, A_flux/A_gain)
+        # fig, ax = plt.subplots(2, 1, figsize=(9,6), sharex=True)
+        # # Plot simulation and trend
+        # ax[0].plot(time, flux,      '.', c='k',         ms=1, alpha=0.2, label='Before')
+        # ax[0].plot(time, flux_gain, '.', c='limegreen', ms=1, alpha=0.2, label='Gain flux')
+        # ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        # ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+        # # Plot detrend and median
+        # ax[1].plot(time, flux_corr,   '.', c='k', ms=1.0, alpha=0.2, label="After")
+        # ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5,    label="1h median")
+        # ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        # ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+        # ax[0].set_title('Gain correction')
+        # ax[1].set_xlabel('Time [days]')
+        # ax[0].legend(ncol=2, markerscale=5, loc='upper right')
+        # ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
+        # plt.tight_layout(h_pad=0.1, w_pad=1)
+        # plt.show()
+        
+        # Convert into ppm
+        self.df['flux_gain'] = flux_gain
+        self.df['flux_corr'] = flux_corr
+
+        # Plot dianostic
+        if plot: self.plot_correct_gain(self.df)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_corr
+            self.df.drop(columns=['flux_gain', 'flux_corr'], inplace=True)
+
+        return self.df
+        
+    
+    def plot_correct_gain(self, df, column='flux', figsize=(9,6)):
+
+        """Plot a detrended light curve and make a O-C plot.
+        """
+
+        # Remove NaNs from copy
+        #df = df.dropna()
+
+        # Unit conversions
+        time = df.time / 86400.
+        flux = df.flux / 1e3
+        flux_gain = median_filter(df.flux_gain/1e3, 24) # [ppt] 10min filter
+        flux_corr = df.flux_corr / 1e3
+        flux_med  = median_filter(flux_corr, 144)
+        
+        # Start plotting        
+        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
+
+        # Plot simulation and trend
+        ax[0].plot(time, flux,      '.', c='k',         ms=1,  alpha=0.2, label='Before')
+        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=.2, alpha=1.0, label='Gain median')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+        
+        # Plot detrend and median
+        ax[1].plot(time, flux_corr, '.', c='k', ms=1.0, alpha=0.2, label="After")
+        ax[1].plot(time, flux_med,  '-', c='royalblue', lw=0.5,    label="1h median")
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+
+        # If any plot mask-update events
+        if self.mask_updates.any():
+            ncol = 3
+            self.axes_mask_updates(ax[0], time)
+            self.axes_mask_updates(ax[1], time)
+        else:
+            ncol = 2
+            
+        # Layout
+        ax[0].set_title('Gain correction')
+        ax[1].set_xlabel('Time [days]')
+        ax[0].legend(ncol=ncol, markerscale=5, loc='upper right')
+        ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
+        plt.tight_layout(h_pad=0.1, w_pad=1)
+        plt.show()
+
+        return fig, ax
+
+    #--------------------------------------------------------------#
+    #                      STELLAR CATALOGUE                       #
+    #--------------------------------------------------------------#
+
+
     
     #==============================================================#
     #                      MULTI CAMERA/QUARTER                    #
@@ -2383,7 +2397,7 @@ class LightCurve(object):
 
             time = time[~np.isnan(flux)]
             flux = flux[~np.isnan(flux)]
-
+            
             if suffix == 'hdf5':
                 flux /= 1e3
             
@@ -2402,14 +2416,19 @@ class LightCurve(object):
 
         # Plot quarter marks
         if len(quarters) > 1:
-            ymax = np.max(flux_max)
-            ypos = ymax + ymax * ax.margins()[1]/3
+            ax2 = ax.twiny()
+            quarters = []
+            position = []
             for q in np.unique(Q)[:]:
-                time_Q = q*ut.quarter()
-                xpos = time_Q - 50
-                if q > 9: xpos -= 10
-                ax.text(xpos, ypos, f'Q{q}', fontsize=16, zorder=10)
-                ax.axvline(x=time_Q-1/2, c='k', linestyle='--', lw=0.5, zorder=2)
+                time_Q = q * ut.quarter() - 1/2
+                xpos = time_Q - 1/2*ut.quarter()
+                quarters.append(q)
+                position.append(xpos)
+                if q != np.unique(Q)[-1]:
+                    ax.axvline(x=time_Q, c='k', linestyle='--', lw=0.5, zorder=2)
+            ax2.set_xticks(position)
+            ax2.set_xticklabels([f'Q{q}' for q in quarters])
+            ax2.set_xlim(self.time_limit(quarters))
             ax.set_xlim(self.time_limit(quarters))
         else:
             ax.set_xlim(time.iloc[0], time.iloc[-1])
