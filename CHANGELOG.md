@@ -1,7 +1,14 @@
 # Changelog for PlatoSim
 
-<!-- ?.?.? -->
-<!-- ***** -->
+Checklist to update for a future release:
+
+* Check that Conda installation of PlatoSim works (`master` and `develop` branch)
+* Check that test harness returns only `Success` statements
+* Check Python package installation `poetry install --with sphinx`    in a fresh Conda environment
+* Check Python package installation `poetry install --with platonium` in a fresh Conda environment
+* Update the "version" in the file `pyproject.toml`
+* Check all for a successful run of all Jupyter notebooks in `docs/tutorials` (runs with `poetry install` package management)
+
 
 ## Upcoming release
 
@@ -34,6 +41,8 @@
 
 <!-- 3.7.0 -->
 <!-- ***** -->
+
+## 27/03/2025: 3.7.0
 
 ### Fixed
 
