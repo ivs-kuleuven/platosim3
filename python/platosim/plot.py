@@ -1266,7 +1266,8 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
                  # Setting with colorbar
                  c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
                  # Seeting for add-ons
-                 ncamStars=False, showGroups=False, showFcamFOV=False,
+                 ncamStars=False, ncamMap='PIC', showGalactic=False, 
+                 showGroups=False, showFcamFOV=False,
                  # General settings
                  showLegend=False, title=None, fs=20, figsize=(9,9)):
 
@@ -1349,8 +1350,12 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
             df = ncamStars
         else:
             idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-            df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
-
+            if ncamMap == 'PIC':
+                df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+            elif ncamMap == 'PLATO-CS':
+                df = pd.read_feather(f'{idir}/starcat_PlatoCS_NCAM_{pointingField}.ftr')
+                df = df.loc[::5]
+            
         # Backward compatible
         try:
             ncam = df.ncam
@@ -1383,11 +1388,20 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     
         # Plot PIC1.1.0 stars after N-CAM visibility
         ax.plot(x06, y06, '.', c='skyblue',     transform=tax, ms=ms, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=tax, ms=ms, zorder=2)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=tax, ms=ms, zorder=3)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=tax, ms=ms, zorder=4)
-    
-    # # Plot stars and add legend scaled to the stellar magnitudes
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=tax, ms=ms, zorder=1)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=tax, ms=ms, zorder=1)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=tax, ms=ms, zorder=1)
+
+    # Plot transparent layer of Galactic footprint
+
+    if showGalactic:
+        # Convert to galactic coordinates
+        starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
+        starPF = starPF.transform_to('galactic')
+        ax.scatter(starPF.l.deg, starPF.b.deg, transform=ax.get_transform('world'),
+                   s=2, alpha=0.01, marker='.', c='k', ec='none', zorder=2)
+        
+    # Plot stars and add legend scaled to the stellar magnitudes
     
     if magStars is not None and len(magStars) > 0:
         maxMarkerSize = 30
@@ -1457,8 +1471,8 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
 
     # Add-on's
     
-    ax.scalebar((0.05, 0.05), 10 * u.deg).label()
-    ax.compass(0.95, 0.05, 0.1)
+    ax.scalebar((0.03, 0.03), 10 * u.deg).label()
+    ax.compass(0.97, 0.03, 0.1)
     ax.grid(color='gray')
     
     # Settings
@@ -1466,9 +1480,13 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     if showLegend and showGroups:
         ax.legend(loc='upper right')    
     if title is not None:
-        ax.set_title(title, fontsize=fs+2, pad=10)        
-    ax.set_xlabel('RA',  fontsize=fs)
-    ax.set_ylabel('Dec', fontsize=fs)
+        ax.set_title(title, fontsize=fs+2, pad=10)
+    if system == 'icrs':        
+        xlab, ylab = 'RA', 'Dec'
+    elif system == 'galactic':
+        xlab, ylab = r'Longitude, $l$', 'Latitude, $b$'
+    ax.set_xlabel(xlab, fontsize=fs)
+    ax.set_ylabel(ylab, fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
     ax.tick_params(axis='both', labelsize=fs)
