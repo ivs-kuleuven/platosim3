@@ -1,4 +1,9 @@
-# PlatoSim3 configuration file
+# PlatoSim3 configuration file for the N-CAM and "as required" BOL performance.
+# To change the performance and usage of F-CAMs we recommend using our Python interface:
+# N-CAM : simulation.useNormalCamera(performance=False, timeFromBOL=0)
+# N-CAMb: simulation.useFastCamera(passband="blue", performance=False, timeFromBOL=0)
+# N-CAMr: simulation.useFastCamera(passband="red",  performance=False, timeFromBOL=0)
+# We provide a NOTE for parameters that are different F-CAMs. 
 ---
 
 General:
@@ -9,10 +14,10 @@ General:
 ObservingParameters:
 
     MissionDuration:                 4.5             # Total duration of the mission [yr], relevant for BOL->EOL degradation
-    NumExposures:                    1               # Number of exposures
+    NumExposures:                    10              # Number of exposures
     BeginExposureNr:                 0               # Sequential number of first exposure (useful for slurm parallellisation)
     CycleTime:                       25              # Image cycle time (exposure + readout before next exposure starts)[s]
-    Fluxm0:                          1.00179e8       # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]
+    Fluxm0:                          1.00179e8       # Photon flux of a P=0 G2V-star [phot/s/m^2/nm]. NOTE Different for F-CAMs
     StarCatalogFile:                 inputfiles/starcatalog.txt
 
     
@@ -20,7 +25,7 @@ Sky:
 
     SkyBackground:                                   # Sky background (Built-in Zodiacal + Galactic, excl. transmission efficiency)
       UseConstantSkyBackground:      yes             # If true, every pixel sees the same background, otherwise the background gets calculated ones for every pixel
-      BackgroundValue:               -1              # Sky background value. Set negative to compute. [phot/pix/s]
+      BackgroundValue:               -1              # Sky background value. Set negative to compute. [phot/pix/s]. NOTE Dependent on central passband wavelength 
     IncludeVariableSources:          no              # Include time series of variable stars or not
     VariableSourceList:              inputfiles/varsource.txt  # Ascii file: Col 1: star ID, Col 2: path of time series file
     IncludeCosmicsInSubField:        yes             # Whether or not to include cosmics in the subfield on the CCD
@@ -30,15 +35,20 @@ Sky:
       CosmicHitRate:                 10              # Cosmic hit rate [events / cm^2 / s]
       TrailLength:                   [0, 15]         # Boundaries of uniform distribution for the length of the cosmic trails [pixels]
       Intensity:                     [2500., 2000., 30.] # Location, scale>0, and shape of the skew-Normal distribution for the total number of e- in a cosmic hit [e-]
+    StrayLight:
+      IncludeStrayLight:             yes             # Include stray light [yes, no]
+      FilePath:                      inputfiles/Plato_straylight_example_index_2574.csv
+      PstRadiancePath:               inputfiles/pst.hdf5
+      Time0:                         20260718T015614
 
-      
+
 Platform:
 
     Orientation:
       Source:                        Angles          # Should be either "Angles" or "Quaternion" 
       Angles:
-        RAPointing:                  208.6988            # Platform (not telescope) right ascension pointing coordinate   [deg]
-        DecPointing:                -16.7981            # Platform (not telescope) declination pointing coordinate       [deg]
+        RAPointing:                  86.8            # Platform (not telescope) right ascension pointing coordinate   [deg]
+        DecPointing:                -46.4            # Platform (not telescope) declination pointing coordinate       [deg]
         SolarPanelOrientation:       -8.5            # Spacecraft roll angle to determine the solar panel orientation [deg]
       Quaternion:                                    # Unit quaternion to transform from the equatorial to the platfrom reference frame
         Components:                  [0.28799417562029345, -0.6861914144641562, 0.6254816331711222, 0.23446412111462545]   
@@ -51,12 +61,7 @@ Platform:
     JitterTimeScale:                 250.            # Timescale of RedNoise jitter [s]
     JitterFileName:                  inputfiles/jitter.txt
 
-StrayLight:
-    IncludeStraylight:               True
-    FilePath:                        inputfiles/Plato_straylight_example_index_2574.csv
-    PstRadiancePath:                 inputfiles/pst.hdf5
-    Time0:                           20260718T015614
-
+    
 Telescope:
 
     GroupID:                         Custom          # Camera groups: {1, 2, 3, 4, Fast, Custom}
@@ -64,8 +69,8 @@ Telescope:
     TiltAngle:                       0.0             # Tilt    angle of camera on the platform [deg] -> GroupID = Custom
     LightCollectingArea:             113.1           # Effective light collecting area of a camera [cm^2]
     TransmissionEfficiency:
-        BOL:                         0.8135          # Beginning of Life (BOL) value: [0, 1]
-        EOL:                         0.7945          # End       of Life (EOL) value: [0, 1]
+        BOL:                         0.8125          # Beginning of Life (BOL) value: [0, 1]
+        EOL:                         0.7941          # End       of Life (EOL) value: [0, 1]
     UseDrift:                        no              # Include Thermo-Elastic Drift (TED): {yes, no}.
     DriftSource:                     FromRedNoise    # TED model: {FromFile, FromRedNoise}
     DriftYawRms:                     2.0             # RMS of RedNoise TED in yaw   [arcsec]
@@ -86,8 +91,8 @@ Camera:
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
         ConstantValue:               0.24752         # Used in case Source is ConstantValue (from ZEMAX model) [m]
         FromFile:                    inputfiles/focallength.txt # Used in case Source is FromFile: time [s] & focalLenght [m]
-    ThroughputBandwidth:             532             # FWHM [nm]. Is different for fast cams than for normal cams.
-    ThroughputLambdaC:               550             # Central wavelength of the throughput passband [nm]
+    ThroughputBandwidth:             500             # Bandwidth of the PLATO passband [nm]. NOTE Different for F-CAMs
+    ThroughputLambdaC:               750             # Central wavelength of  passband [nm]. NOTE Different for F-CAMs
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
@@ -140,7 +145,7 @@ FEE:
     NominalOperatingTemperature:     210.15          # Nominal operating temperature of the FEE [K]
     Temperature:                     Nominal         # Temperature fixed at the nominal operating temperature
     TemperatureFileName:             inputfiles/feeTemperature.txt
-    ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs)
+    ReadoutNoise:                    32.0            # Readout noise for the FEE [e-/pixel] (same for both ADCs). NOTE Different for F-CAMs
     Gain:
         RefValueLeft:                0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (25 e-/ADU))
         RefValueRight:               0.0222          # [ADU/microV] (1 / (Total gain) = FFE gain * CCD gain = 1 / (25 e-/ADU))
@@ -154,31 +159,31 @@ FEE:
         DecaySpeed:                  0.755           # Speed of the exponential decay function describing over-/undershoot
         DecayRate:                   1.277           # Rate of the exponential decay function describing over-/undershoot
         Range:                       5               # How far will in the readout register will pixels be affected by a signal change?
-    IncludeOverAndUnderShoot:        no              # Whether or not the over-/undershoot should be applied (for fast cameras only)
+    IncludeOverAndUnderShoot:        no              # Whether or not the over-/undershoot should be applied. NOTE Only applicable for F-CAMs
 
 
 CCD:
 
     Position:                        Custom          # One of [1, 2, 3, 4, Custom]
                                                      # (use Custom to specify the CCD position parameters yourself)
-    OriginOffsetX:                   0               # X offset of CCD origin from center of focal plane [mm]
-    OriginOffsetY:                   0               # Y offset of CCD origin from center of focal plane [mm]
-    Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg] - use when CCDPosition = Custom
-    NumColumns:                      4510            # Number of columns on the CCD [pixels]                   - use when CCDPosition = Custom
-    NumRows:                         4510            # Number of rows on the CCD [pixels] (including non-exposed ones) - use when CCDPosition = Custom
-    FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixels]
+    OriginOffsetX:                   0               # X offset of CCD origin from center of focal plane [mm]       -> Position = Custom
+    OriginOffsetY:                   0               # Y offset of CCD origin from center of focal plane [mm]       -> Position = Custom
+    Orientation:                     0               # Orientation of CCD w.r.t. focal plane orientation [deg]      -> Position = Custom
+    NumColumns:                      4510            # Number of columns on the CCD [pixel]                         -> Position = Custom
+    NumRows:                         4510            # Number of rows    on the CCD [pixel] (incl non-exposed ones) -> Position = Custom
+    FirstRowExposed:                 0               # The index of the first row that is exposed to light [pixel]
     TimeShift:                       0.0             # Extra time shift of the first exposure. Autoset when Position is in [1,2,3,4]. [s]
     PixelSize:                       18              # [micron]
     BFE:                                             # Brighter-fatter effect
         CoefficientsFileName:        inputfiles/a_bfe.hdf5  # File with the BFE coefficients, calculated by P. Astier
     Gain:
-        RefValueLeft:                2.14            # F side of CCD [microV/e-]
-        RefValueRight:               2.21            # E side of CCD [microV/e-]
+        RefValueLeft:                2.15            # F side of CCD [microV/e-]
+        RefValueRight:               2.15            # E side of CCD [microV/e-]
         Stability:                   -0.001          # [microV/e-/K]
         AllowedDifference:           15.0            # Difference in gain between both CCD halves [%]
         Nonlinearity:                [0.0, -0.0042789409, 0.0000002365] # Output signal [ADU] = Bias + I + a0 + a1 * I + a2 * I^2,  I=input signal [ADU]
     QuantumEfficiency:
-        MeanQuantumEfficiency:       0.6218          # Mean quantum efficiency
+        MeanQuantumEfficiency:       0.6267          # Mean quantum efficiency [0, 1]. NOTE Different for F-CAMs
         MeanAngleDependency:         1.01            # Mean (over all pixels) of the relative efficiency due to the angle dependency of the  QE
     FullWellSaturation:              900000          # [e-/pixel]
     DigitalSaturation:               65535           # [ADU/pixel] -> 16 bit CCD
@@ -199,8 +204,8 @@ CCD:
     Polarization:
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
-        ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
-        MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
+        ParticulateContaminationEfficiency: 0.980   # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.960   # Throughput efficiency due to molecular   contamination
     DarkSignal:
       DarkCurrent:                   1.2             # Dark current [e-/s]
       DSNU:                          15.0            # Dark signal non-uniformity [%]

@@ -719,14 +719,14 @@ class Simulation(object):
           Total gain = 1 / (gainFFE * gainCCD) = 25 e-/ADU
         """
         
-        if performance == 'required':
+        if performance == "required":
             # CCD gain F/E side: (min, max) = (1.8, 2.5)
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.15")    # [microV/e-]
             self.__setitem__("CCD/Gain/RefValueRight", "2.15")    # [microV/e-]
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.0186")  # [ADU/microV]
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")  # [ADU/microV]
 
-        elif performance == 'designed':
+        elif performance in ["expected", "designed"]:
             # CCD gain F side (min, max) = (2.08, 2.28) -> 2.18 microV/e- 
             # CCD gain E side (min, max) = (2.04, 2.26) -> 2.15 microV/e-
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.18")
@@ -735,7 +735,7 @@ class Simulation(object):
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")
 
         else:
-            raise ValueError("Not valid entry! Use either 'required' or 'designed'")
+            raise ValueError("Not valid performance entry! Use either ['required', 'expected', 'designed']")
         
         return
 
@@ -779,14 +779,14 @@ class Simulation(object):
             darkStability = 5.0
             DSNU          = 15.0
 
-        elif performance == "designed":
+        elif performance in ["expected", "designed"]:
             readNoiseCCD  = ut.evalLinReg(times, np.array([23.2,   25.0]), timeFromBOL)
             darkCurrent   = ut.evalLinReg(times, np.array([ 0.544,  4.0]), timeFromBOL)
             darkStability = 0.7
             DSNU          = 13.0
             
         else:
-            raise ValueError("Not valid entry! Usage in ['required', 'designed']")
+            raise ValueError("Not valid performance entry! Use either ['required', 'expected', 'designed']")
 
         # Set all parameters from above
         
@@ -814,12 +814,35 @@ class Simulation(object):
         self.__setitem__("CCD/NumRows",                   "4510")
         self.__setitem__("ObservingParameters/CycleTime", "25")
 
+        # NOTE These are the same for all requirements
+
+        self.__setitem__("Camera/ThroughputLambdaC",   "750")        
+        self.__setitem__("Camera/ThroughputBandwidth", "500")
+        
         # If requested, select basic input parameters from MPD
 
-        if performance in ["required", "designed"]:
+        if performance in ["required", "expected", "designed"]:
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL)
+
+        # Other wavelength dependent parameters
             
+        if performance == 'required':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8125")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7941")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6267")
+
+        elif performance == 'expected':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8752")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8752")
+            # TODO No QE values for the "as designed" scenario in MPDB! We use "as designed":
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6552")
+
+        elif performance == 'designed':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8700")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8700")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6552")
+     
         return
 
 
@@ -854,8 +877,8 @@ class Simulation(object):
         self.__setitem__("CCD/NumColumns",                "4510")
         self.__setitem__("CCD/NumRows",                   "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
-        
-        # If requested, select basic input parameters from MPDB
+
+        # If requested, set parameters that are independent of the filter
         
         if performance in ["required", "designed"]:
 
@@ -863,31 +886,63 @@ class Simulation(object):
             
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL, camera="Fast")
-            
+        
         # Select time and wavelength dependent parameters
-
-        if performance == 'required':
-            self.__setitem__("Telescope/TransmissionEfficiency/BOL", "0.6915")  # 0.8135 x 0.85
-            self.__setitem__("Telescope/TransmissionEfficiency/EOL", "0.6753")  # 0.7945 x 0.85
+        # NOTE the 'as designed' tranmission efficiency is identical for both F-CAMs
         
         if passband == "blue":
-            self.__setitem__("Camera/ThroughputBandwidth",                  "165")
-            self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
 
-            if performance == 'designed':
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "0.79")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "0.77")
+            # Parameters that are the same for all requirements
+            self.__setitem__("ObservingParameters/Fluxm0", "1.195e8")
+            
+            if performance == 'required':
+                self.__setitem__("Camera/ThroughputLambdaC",   "578")
+                self.__setitem__("Camera/ThroughputBandwidth", "145")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6745")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6549")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8505")     
+                
+            elif performance == 'expected':
+                self.__setitem__("Camera/ThroughputLambdaC",   "585")                
+                self.__setitem__("Camera/ThroughputBandwidth", "165")                
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6566")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6566")
+                # TODO No QE values for the "as expected" scenario in MPDB! We use designed:   
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8986")
 
-        if passband == "red":
-            self.__setitem__("Camera/ThroughputBandwidth",                  "335")
-            self.__setitem__("Camera/ThroughputLambdaC",                    "832")
-            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
+            elif performance == 'designed':
+                self.__setitem__("Camera/ThroughputLambdaC",   "600")
+                self.__setitem__("Camera/ThroughputBandwidth", "200")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8578")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8578")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8986")
+                
+        elif passband == "red":
 
-            if performance == 'designed':
-                self.__setitem__("Telescope/TransmissionEfficiency/BOL", "0.81")
-                self.__setitem__("Telescope/TransmissionEfficiency/EOL", "0.80")
+            # Parameters that are the same for all requirements
+            self.__setitem__("ObservingParameters/Fluxm0", "0.923e8")
+            self.__setitem__("Camera/ThroughputLambdaC",   "833")                
+            self.__setitem__("Camera/ThroughputBandwidth", "335")
+           
+            if performance == 'required':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6980")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6845")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.5184")
 
+            elif performance == 'expected':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7266")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7266")
+                # TODO No QE values for the "as expected" scenario in MPDB! We use designed:
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.5344")
+                
+            elif performance == 'designed':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8604")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8604")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.5344")
+
+        else:
+            errorcode('warning', 'Wrong passband name, use either "blue" or "red"!')    
+            
         return
 
 
@@ -1579,6 +1634,7 @@ class Simulation(object):
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]    # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]  # [pixels]
+        numBiasPrescanRows = self["SubField/NumBiasPrescanRows"]       # [pixels]
 
         # Both detector halves are read out simultaneously
         # -> columns read out by the FEE:
@@ -1586,7 +1642,7 @@ class Simulation(object):
         # 		- serial pre-scan
         # 		- (serial over-scan)
 
-        numColumnsReadout = numColumns / 2 + numColumnsBiasMap # + numRowsSerialOverScan
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows
 
         # How many rows will be actually read out by the FEE?
         # 	- nominal mode: image area + parallel over-scan

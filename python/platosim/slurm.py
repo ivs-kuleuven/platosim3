@@ -169,7 +169,7 @@ def getJobScript(ids, groups, cameras, quarters,
 
 
 
-def getParamFile(ids, groups, cameras, quarters, fcam=False, ofile=False):
+def getParamFile(ids, groups, cameras=None, quarters=None, fcam=False, ofile=False):
 
     """Function to create a job script to be used on the VSC.
 
@@ -200,68 +200,35 @@ def getParamFile(ids, groups, cameras, quarters, fcam=False, ofile=False):
         C = range(1,3)
 
     # Add rows in a loop
-    textfile = "id,group,camera,quarter\n"
-    for idNo in ids:
-        for groupNo in groups:
-            for cameraNo in cameras:
-                for quarterNo in quarters:
-                    textfile += f"{idNo},{groupNo},{cameraNo},{quarterNo}\n"
 
+    if cameras is None and quarters is None:
+        # Add rows in a loop
+        textfile = "id,group\n"
+        for idNo in ids:
+            for groupNo in groups:
+                textfile += f"{idNo},{groupNo}\n"
+    
+    elif quarters is None:
+        # Add rows in a loop
+        textfile = "id,group,camera\n"
+        for idNo in ids:
+            for groupNo in groups:
+                for cameraNo in cameras:
+                    textfile += f"{idNo},{groupNo},{cameraNo}\n"
+    else:
+        textfile = "id,group,camera,quarter\n"
+        for idNo in ids:
+            for groupNo in groups:
+                for cameraNo in cameras:
+                    for quarterNo in quarters:
+                        textfile += f"{idNo},{groupNo},{cameraNo},{quarterNo}\n"
+                    
     # Save textfile for worker
     if ofile:
         with open(ofile, "w") as ofile:
             ofile.write(dedent(textfile).strip())
 
     return textfile
-
-
-
-
-
-def getParamFileNew(ids, groups, cameras, fcam=False, ofile=False):
-
-    """Function to create a job script to be used on the VSC.
-
-    Parameters
-    ----------
-    ids : range()
-        Python range function with IDs (stars or CCDs)
-    groups : range()
-        Python range function with camera group IDs {1, 2, 3, 4}
-    cameras : range()
-        Python range function with camera IDs {1, 2, 3, 4, 5, 6}
-    quarters : range()
-        Python range function with mission quarters {1, 2, ...}
-    fcam : bool
-        Flag to produce a file for the two F-CAMs instead
-    ofile : string
-        Absolute path to the output ascii file saved
-
-    Returns
-    -------
-    textfile : string
-        A string containing the requested parameter space
-    """
-
-    # Check if F-CAM is requested -> Group 5
-    if fcam:
-        G = range(5,6)
-        C = range(1,3)
-
-    # Add rows in a loop
-    textfile = "id,group,camera\n"
-    for idNo in ids:
-        for groupNo in groups:
-            for cameraNo in cameras:
-                textfile += f"{idNo},{groupNo},{cameraNo}\n"
-
-    # Save textfile for worker
-    if ofile:
-        with open(ofile, "w") as ofile:
-            ofile.write(dedent(textfile).strip())
-
-    return textfile
-
 
 
 

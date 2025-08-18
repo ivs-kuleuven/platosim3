@@ -759,6 +759,23 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 #--------------------------------------------------------------#
 
 
+def massLuminosityRelation(R, Teff):
+
+    """Calculate mass using M-L relation.
+
+    Using the Teff in the mass-luminosity relation, one can find
+    the stellar mass for a main sequence dwarf star. Method valid
+    for (0.43 < M/Msun < 2)
+
+    Notes
+    -----
+    Reference from:
+    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+    """
+    return R**(1/2) * Teff/5777.
+
+
+
 def radialDistance(alpha1, delta1, alpha2, delta2):
 
     """Radial distance between two equatorial coordinates.
@@ -790,23 +807,23 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
     return np.rad2deg(np.arccos(cosR))
 
 
-    
 
+def cart2pol(x, y):
+    """Transformation from cartesian to polar coordinates.
 
-def massLuminosityRelation(R, Teff):
+    Parameters
+    ----------
+    x,y : float, ndarray
+        Cartesian coordinates.
 
-    """Calculate mass using M-L relation.
-
-    Using the Teff in the mass-luminosity relation, one can find
-    the stellar mass for a main sequence dwarf star. Method valid
-    for (0.43 < M/Msun < 2)
-
-    Notes
-    -----
-    Reference from:
-    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
-    """
-    return R**(1/2) * Teff/5777.
+    Return
+    ------
+    phi,rho : float, ndarray
+        Polar coordinates.
+    """    
+    phi = np.rad2deg(np.arctan2(y, x)) - 180
+    rho = np.sqrt(x**2 + y**2)
+    return (phi, rho)
 
 
 
@@ -833,45 +850,83 @@ def mm2pixels(distanceMm, focalLength, plateScale):
                       plateScale * c.degree / c.arcsec)
     return distancePixels
 
-    
-#--------------------------------------------------------------#
-#                        PLATO SPECIFIC                        #
-#--------------------------------------------------------------#
 
 
-def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
-                throughputBandwidth=400, transmissionEfficiency=0.76,
-                lightCollectingArea=0.01131, quantumEfficiency=0.87):
 
-    """Compute the stellar flux given the instrumental characteristics.
+
+def cpd2muhz(freq):
+
+    """Convert cycles/day to muHz.
 
     Parameters
     ----------
-    Vmag : float
-        Johnson-Cousin V magnitude
-    exposureTime : float
-        Exposure time (without the readout) [s]
-    fluxm0 : float
-        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
-    throughputBandwidth : float 
-        Throughput FWHM value in the passband [nm]
-    transmissionEfficiency : 
-        Transmission efficiency in the passband [0, 1]
-    lightCollectingArea : float
-        The aperture of the cameras [m^2]
-    quantumEfficiency : float
-        Quantum efficiency of the detector [0, 1]
+    freq : float, ndarray
+        Frequency [cpd]
 
     Return
     ------
+    freq : float, ndarray
+        Frequency [muHz]
+    """    
+    return 1e6/86400 * freq
+
+
+
+
+def muhz2cpd(freq):
+
+    """Convert muHz to cycles/day.
+
+    Parameters
+    ----------
+    freq : float, ndarray
+        Frequency [muHz]
+
+    Return
+    ------
+    freq : float, ndarray
+        Frequency [cpd]
+    """    
+    return 86400/1e6 * freq
+
+
+
+
+def ppt2mmag(flux):
+
+    """Convert relative flux [ppt] to relative magnitude [mmag].
+
+    Parameters
+    ----------
     flux : float
-        Instrumental stellar flux [e-/exposure]
+        Input flux [ppt]
+
+    Return
+    ------
+    mag : ndarray
+        Relative magnitude [mmag]
+    """    
+    return 2.5 * np.log10(flux/1e3 + 1) * 1e3
+
+
+
+
+
+def mmag2ppt(dmag):
+
+    """Convert relative magnitude [mmag] to relative flux [ppt].
+
+    Parameters
+    ----------
+    dmag : float
+        Input magnitude [mmag]
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux [ppt]
     """
-
-    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
-                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-
-    return photonFlux * quantumEfficiency
+    return (10**(dmag / 2.5 / 1e3) - 1) * 1e3
 
 
 
@@ -922,6 +977,7 @@ def fromMagToRelativeFlux(mag, norm=1e6):
 
 
 
+
 def normFlux(flux, norm=1e3):
 
     """Convert magnitude to relative flux
@@ -942,6 +998,44 @@ def normFlux(flux, norm=1e3):
     return (flux / np.nanmedian(flux) - 1) * norm
 
 
+#--------------------------------------------------------------#
+#                        PLATO SPECIFIC                        #
+#--------------------------------------------------------------#
+
+
+def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
+                throughputBandwidth=400, transmissionEfficiency=0.76,
+                lightCollectingArea=0.01131, quantumEfficiency=0.87):
+
+    """Compute the stellar flux given the instrumental characteristics.
+
+    Parameters
+    ----------
+    Vmag : float
+        Johnson-Cousin V magnitude
+    exposureTime : float
+        Exposure time (without the readout) [s]
+    fluxm0 : float
+        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
+    throughputBandwidth : float 
+        Throughput FWHM value in the passband [nm]
+    transmissionEfficiency : 
+        Transmission efficiency in the passband [0, 1]
+    lightCollectingArea : float
+        The aperture of the cameras [m^2]
+    quantumEfficiency : float
+        Quantum efficiency of the detector [0, 1]
+
+    Return
+    ------
+    flux : float
+        Instrumental stellar flux [e-/exposure]
+    """
+
+    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
+                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
+
+    return photonFlux * quantumEfficiency
 
 
 
@@ -1567,7 +1661,9 @@ def copyVizierInputYAML(field, odir):
             filedata = filedata.replace('IncludeCosmicsInSmearingMap:     yes',
                                         'IncludeCosmicsInSmearingMap:     no')
             filedata = filedata.replace('IncludeCosmicsInBiasMap:         yes',
-                                        'IncludeCosmicsInBiasMap:         no')
+                                        'IncludeCosmicsInBiasMap:         no') 
+            filedata = filedata.replace('IncludeStrayLight:             yes',
+                                        'IncludeStrayLight:             no')           
             filedata = filedata.replace('UseJitter:                       yes',
                                         'UseJitter:                       no')
             filedata = filedata.replace('IncludeAberrationCorrection:     yes',
