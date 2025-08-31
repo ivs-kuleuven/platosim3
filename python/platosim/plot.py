@@ -1340,6 +1340,11 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     ax = plt.axes(projection=f'{view} degrees zoom', center=PF,
                   radius=f'{fovSize} deg', rotate='180 deg')
     tax = ax.get_transform('world')
+
+
+    # ax.text(340, 670, 'LOPS2', horizontalalignment='center', verticalalignment='center', fontsize=17)
+    # plt.plot()
+    # exit()
     
     # Plot N-CAM visibility flower
 
