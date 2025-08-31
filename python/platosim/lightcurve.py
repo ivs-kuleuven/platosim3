@@ -16,6 +16,7 @@ import sys
 import glob
 import math
 import shutil
+import datetime
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -87,7 +88,7 @@ class LightCurve(object):
 
         # Read either a single file or multiple files
         self.mode = mode
-        self.base = base                
+        self.base = base
         if path:
             self.path = Path(path)
         else:
@@ -299,7 +300,9 @@ class LightCurve(object):
         """
 
         # Check if path or file is parsed
-        if self.mode == 'final':
+        if not self.path:
+            return None
+        elif self.mode == 'final':
             path   = self.path.parents[1]
             starID = self.filename.stem[-9:]
         elif self.path.is_dir():
@@ -373,10 +376,11 @@ class LightCurve(object):
         # Fetch all zip files and sort them using natsort
         string = f"{path}/{prefix}**_{G}**{C}**{Q}**{N}.{suffix}"
         files = natsort.natsorted(glob.glob(string))
-        
+
         # Check if any file was found
         if error and len(files) == 0:
-            errorcode('error', f'No files found with suffix {suffix}!')
+            errorcode('error', f'No files found with suffix {suffix}! ' +
+                      f'Check path: {self.filename}')
             
         return files
 
@@ -483,12 +487,14 @@ class LightCurve(object):
         - PLATOnium + LESIA on-board   : [flux, flux_err, bg, bg_err, flux_cor]
         """
         
-        if   unit == "e/s":  flux = self.df[column]
-        elif unit == "norm": flux = self.df[column]/np.median(self.df[column])
-        elif unit == "ppp":  flux = ut.normalize(self.df[column], factor=1)
-        elif unit == "ppt":  flux = ut.normalize(self.df[column], factor=1e3)
-        elif unit == "ppm":  flux = ut.normalize(self.df[column], factor=1e6)
-        else: errorcode("error", "No such flux unit! Availble option: [e/s, norm, ppp, ppt, ppm]")
+        flux0 = self.df[column]
+        if   unit == "e/s":  flux = flux0
+        elif unit == "norm": flux = flux0 / np.median(flux0)
+        elif unit == "ppp":  flux = ut.normalize(flux0, factor=1)
+        elif unit == "ppt":  flux = ut.normalize(flux0, factor=1e3)
+        elif unit == "ppm":  flux = ut.normalize(flux0, factor=1e6)
+        else: errorcode("error", "No such flux unit! Availble option: " +
+                        "[e/s, norm, ppp, ppt, ppm]")
         
         return flux
 
@@ -861,147 +867,570 @@ class LightCurve(object):
         return indices
 
     
-    def gaps(self, filename, replace=False, plot=False):
+    #--------------------------------------------------------------#
+    #                         PLOT MODULES                         #   
+    #--------------------------------------------------------------#
 
-        """Introduce gaps due to downtime and quarters.
-        
-        Parse "instrumentGAP.tab" file produced by "payload.py".
+
+    def time_limit(self, quarters):
+
+        """Adjust time limits in plot.
         """
-        
-        self.df['flux_gaps'] = self.df.flux
-        
-        # Open file with gaps timings
-        dg = pd.read_feather(filename)
-        dg = dg.sort_values('t0').reset_index(drop=True)
 
-        # Find start and end of each gap and replace with NaN
-        for i in range(dg.shape[0]):
-            t0 = dg.t0.iloc[i]
-            t1 = dg.t0.iloc[i] + dg.td.iloc[i]
-            dex0 = ut.findNearestIndex(self.df.time, t0)
-            dex1 = ut.findNearestIndex(self.df.time, t1)
-            self.df.flux_gaps[dex0:dex1] = np.nan
-        
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_gaps
-            self.df.drop(columns=['flux_gaps'], inplace=True)
+        tmin = (min(quarters) - 1) * ut.quarter()
+        tmax = (max(quarters)    ) * ut.quarter()
 
-        return self.df
+        return tmin, tmax
 
     
-    def correct_gain(self, temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
-                     replace=False, plot=False):
+    def axes_mask_updates(self, ax, time, label=None):
 
-        """Correct for gain variations due to thermal changes.
-        """
-        
-        # Compute the gain time series
-        gainCCD = gainCCD + gainStability * (temp - tempNominal)
-        gain = 1 / (gainCCD * gainFEE)
-        
-        # Correct for gain changes
-        a = tdur * 2
-        flux = self.df.flux.to_numpy()
-        delta_gain = 1 + a * (gain[0] - gain)
-        flux_gain = flux * delta_gain
-        flux_corr = (flux + flux_gain) / 2
-        
-        # flux0 = self.df.flux.to_numpy()
-        # flux  = flux0 / np.median(flux0[:100000])
-        # flux_gain =  gain[0] / gain
-        # # TODO max flux should be median of 1000 point from peak
-        # A_flux = flux.max() - np.median(flux[:100000])
-        # A_gain = flux_gain.max() - flux_gain.min()
-        # flux_gain = (flux_gain - 1) * A_flux/A_gain + 1
-        # # Correct flux
-        # flux_corr = flux + flux_gain - 1
-        # time = self.time(unit='d')
-        # flux_median = median_filter(flux_corr, 144)
-        # print(tdur)
-        # print(A_flux, A_gain, A_flux/A_gain)
-        # fig, ax = plt.subplots(2, 1, figsize=(9,6), sharex=True)
-        # # Plot simulation and trend
-        # ax[0].plot(time, flux,      '.', c='k',         ms=1, alpha=0.2, label='Before')
-        # ax[0].plot(time, flux_gain, '.', c='limegreen', ms=1, alpha=0.2, label='Gain flux')
-        # ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        # ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-        # # Plot detrend and median
-        # ax[1].plot(time, flux_corr,   '.', c='k', ms=1.0, alpha=0.2, label="After")
-        # ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5,    label="1h median")
-        # ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        # ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-        # ax[0].set_title('Gain correction')
-        # ax[1].set_xlabel('Time [days]')
-        # ax[0].legend(ncol=2, markerscale=5, loc='upper right')
-        # ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
-        # plt.tight_layout(h_pad=0.1, w_pad=1)
-        # plt.show()
-        
-        # Convert into ppm
-        self.df['flux_gain'] = flux_gain
-        self.df['flux_corr'] = flux_corr
+        """Add mask update lines to plot.
 
-        # Plot dianostic
-        if plot: self.plot_correct_gain(self.df)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_corr
-            self.df.drop(columns=['flux_gain', 'flux_corr'], inplace=True)
-
-        return self.df
-        
-    
-    def plot_correct_gain(self, df, column='flux', figsize=(9,6)):
-
-        """Plot a detrended light curve and make a O-C plot.
+        This is a small utility that takes an axes object, time points
+        from a time series, and the mask-updates given in the same unit
+        of time as the time points, and then plots vertical lines for
+        every mask-update and quarter marks.
         """
 
-        # Remove NaNs from copy
-        #df = df.dropna()
-
-        # Unit conversions
-        time = df.time / 86400.
-        flux = df.flux / 1e3
-        flux_gain = median_filter(df.flux_gain/1e3, 24) # [ppt] 10min filter
-        flux_corr = df.flux_corr / 1e3
-        flux_med  = median_filter(flux_corr, 144)
+        updates = self.mask_updates[1:] - self.mask_updates[0]
         
-        # Start plotting        
-        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
+        for i in updates:
+            if i == updates[0]:
+                ax.axvline(x=time.iloc[i], c='k', linestyle=':', lw=1, label=label)
+            else:
+                ax.axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
 
-        # Plot simulation and trend
-        ax[0].plot(time, flux,      '.', c='k',         ms=1,  alpha=0.2, label='Before')
-        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=.2, alpha=1.0, label='Gain median')
-        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
-        
-        # Plot detrend and median
-        ax[1].plot(time, flux_corr, '.', c='k', ms=1.0, alpha=0.2, label="After")
-        ax[1].plot(time, flux_med,  '-', c='royalblue', lw=0.5,    label="1h median")
-        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
 
-        # If any plot mask-update events
-        if self.mask_updates.any():
-            ncol = 3
-            self.axes_mask_updates(ax[0], time)
-            self.axes_mask_updates(ax[1], time)
-        else:
-            ncol = 2
-            
-        # Layout
-        ax[0].set_title('Gain correction')
-        ax[1].set_xlabel('Time [days]')
-        ax[0].legend(ncol=ncol, markerscale=5, loc='upper right')
-        ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
-        plt.tight_layout(h_pad=0.1, w_pad=1)
-        plt.show()
+    def axes_quarter_marks(self, ax, time, label=None):
+
+        """Add mission quarter lines to plot.
+        """
+
+        # Plot quarters
+        quarters = np.arange(0, time[-1], 90)
+        for Q in quarters:
+            if Q == 0:
+                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label=label)
+            else:
+                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
+
+
+    def plot_varsource(self, figsize=(9,8)):
+
+        """Plot the noise-less light curve.
+        """
+
+        # Fetch variable source
+        df = self.varsource()
+
+        # Plot varsim plot
+        fig, ax = pt.plot_final_lc(df, figsize=figsize)
 
         return fig, ax
 
     
+    def plot(self, time_unit="d", flux_unit="e/s", flux_error=False, 
+             median_filter=False, binsize=False, input_model=False,
+             legend=True, alpha=0.2, figsize=(9,5)):
+
+        """Plot a simulated light curve.
+
+        Parameters
+        ----------
+        time_unit : str
+            Unit of time in [s, h, d]
+        flux_unit : str
+            Unit of flux in [e/s, norm, ppp, ppt, ppm]
+        flux_error : bool
+            Show flux errorbars if True
+        median_filter : int
+            Parse an integer to compute/show median filter of data [hours]
+        binsize : int
+            Parse an integer to compute/show binned data [hours]
+        input_model : bool
+            Show variable input model [True, False]
+        legend : bool
+            Show the legend [True, False]
+        alpha : float
+            Alpha transparency of data points
+        figsize : tuple
+            Matplotlib figsize object (width, height)
+
+        Returns
+        -------
+        fig, ax : matplotlib axes
+        """
+        
+        # Label for flux
+        if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
+        elif flux_unit == "norm": ylab = "Flux [norm-one]"
+        elif flux_unit == "ppp":  ylab = "Flux [norm-zero]"
+        elif flux_unit == "ppt":  ylab = "Flux [ppt]"
+        elif flux_unit == "ppm":  ylab = "Flux [ppm]"
+        else: errorcode("error", "No such flux unit!")
+
+        # Catch invalid option
+        if input_model and flux_unit == 'e/s':        
+            errorcode('error', 'Flux unit is not valid when comparing to input model! ' +
+                      'Use either [norm, ppp, ppt, ppm]')
+
+        # Remove NaNs being outliers
+        self.df = self.df.dropna()        
+            
+        # Time array
+        time = self.time(unit=time_unit)
+        
+        # Try fetching obs info
+        group, camera, quarter = self.obs()
+
+        # Original data
+        if type(group) is int:
+            flux = self.flux(unit=flux_unit)
+            lab = f"N-CAM {group}.{camera} Q{quarter}"
+
+        # Altered data (e.g. merged)
+        else:
+            lab = "Merged data"
+            if flux_unit == 'e/s':
+                errorcode('error', 'Unit not valid for merged data! '+
+                          'Use either [norm, ppp, ppt, ppm]')
+            elif flux_unit == 'norm':
+                flux = self.flux(unit='e/s')
+            elif flux_unit == 'ppp':
+                flux = self.flux(unit='e/s') - 1
+            elif flux_unit == 'ppt':
+                flux = (self.flux(unit='e/s') - 1) * 1e3
+            elif flux_unit == 'ppm':
+                flux = (self.flux(unit='e/s') - 1) * 1e6
+
+        # Start plotting
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        
+        # Plot the input variable source
+        if flux_error:
+            #flux_err = self.flux(column="flux_err", unit=flux_unit)
+            if flux_unit in ['e/s', 'norm', 'ppp']:
+                flux_err = self.df.flux_err
+            elif flux_unit == 'ppt':
+                flux_err = self.df.flux_err * 1e3
+            elif flux_unit == 'ppm':
+                flux_err = self.df.flux_err * 1e6
+            ax.errorbar(time, flux, yerr=flux_err,
+                        fmt=".", color='k', ecolor='darkgray', alpha=alpha,
+                        elinewidth=1, capsize=0, label=lab, zorder=1)
+        else:
+            ax.plot(time, flux, 'k.', ms=self.ms, alpha=alpha, label=lab, zorder=1)
+
+        # Plot a median filter [unit of hours]
+        if median_filter:
+            if type(median_filter) is float:
+                label = f'{median_filter:.3f}h median'
+            else:
+                label = f'{median_filter}h median'
+            flux_med = self.flux_med(unit=flux_unit)
+            ax.plot(time, flux_med, '-', c='royalblue', lw=0.5, label=label, zorder=2)
+
+        # Plot binned mean points [unit of days]
+        if binsize:            
+            if type(binsize) is float:
+                label = f'{binsize:.3f}h bins'
+            else:
+                label = f'{binsize}h bins'
+            df = self.bin(binsize=binsize, time_unit=time_unit, flux_unit=flux_unit)
+            ax.plot(df["time"], df["flux"], 'o', c='r', ms=8, mec='k',
+                    label=label, zorder=3)
+
+        # Show input model if requested
+        if input_model:
+            dv = self.varsource()
+            if dv is not None:
+                if   flux_unit == 'ppp': dv.flux -= 1
+                elif flux_unit == 'ppt': dv.flux = (dv.flux - 1) * 1e3
+                elif flux_unit == 'ppm': dv.flux = (dv.flux - 1) * 1e6
+                ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
+            
+        # If any plot mask-update events
+        if self.mask_updates.any():
+            updates = self.mask_updates * self.cadence / c.day
+            for update in updates[1:]:
+                if update == updates[-1]:
+                   ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
+                else:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+
+        # Set legend
+        if legend:
+            ax.legend(loc='upper right', ncols=4)
+            # Adjust y padding for legend
+            try:
+                ampl_model = dv.flux.max() - dv.flux.min()
+                ampl_flux  = flux.max() - flux.min()
+                if ampl_model > ampl_flux:
+                    F = dv.flux
+                    pad = 1.35
+                else:
+                    F = flux
+                    pad = 1.1
+            except:
+                F = flux
+                pad = 1.1
+            ymin, ymax = pt.getAxesMinMax(y=F, percentage=5)
+            ax.set_ylim(ymin, ymax*pad)
+            
+        # Settings
+        ax.ticklabel_format(useOffset=False)
+        ax.set_xlim(time.iloc[0], time.iloc[-1])
+        ax.set_xlabel(f'Time [{time_unit}]')
+        ax.set_ylabel(ylab)
+        plt.tight_layout()
+                
+        return fig, ax
+    
+
+    def plot_oc2(self, time_unit="d", flux_unit="e/s", flux_error=False, 
+                 mfilter=False, binsize=False, input_model=False,
+                 legend=True, alpha=0.2, figsize=(9,5)):
+
+        """Plot a simulated light curve.
+
+        Parameters
+        ----------
+        time_unit : str
+            Unit of time in [s, h, d]
+        flux_unit : str
+            Unit of flux in [e/s, norm, ppp, ppt, ppm]
+        flux_error : bool
+            Show flux errorbars if True
+        median_filter : int
+            Parse an integer to compute/show median filter of data [hours]
+        binsize : int
+            Parse an integer to compute/show binned data [hours]
+        input_model : bool
+            Show variable input model [True, False]
+        legend : bool
+            Show the legend [True, False]
+        alpha : float
+            Alpha transparency of data points
+        figsize : tuple
+            Matplotlib figsize object (width, height)
+
+        Returns
+        -------
+        fig, ax : matplotlib axes
+        """
+        
+        # Label for flux
+        if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
+        elif flux_unit == "norm": ylab = "Flux [norm-one]"
+        elif flux_unit == "ppp":  ylab = "Flux [norm-zero]"
+        elif flux_unit == "ppt":  ylab = "Flux [ppt]"
+        elif flux_unit == "ppm":  ylab = "Flux [ppm]"
+        else: errorcode("error", "No such flux unit!")
+
+        # Catch invalid option
+        if input_model and flux_unit == 'e/s':        
+            errorcode('error', 'Flux unit is not valid when comparing to input model! ' +
+                      'Use either [norm, ppp, ppt, ppm]')
+
+        # Remove NaNs being outliers
+        self.df = self.df.dropna()        
+            
+        # Time array
+        time = self.time(unit=time_unit)
+        
+        # Try fetching obs info
+        group, camera, quarter = self.obs()
+
+        # Original data
+        if type(group) is np.int:
+            flux = self.flux(unit=flux_unit)
+            lab = f"N-CAM {group}.{camera} Q{quarter}"
+
+        # Altered data (e.g. merged)
+        else:
+            lab = "Merged data"
+            if flux_unit == 'e/s':
+                errorcode('error', 'Unit not valid for merged data! '+
+                          'Use either [norm, ppp, ppt, ppm]')
+            elif flux_unit == 'norm':
+                flux = self.flux(unit='e/s')
+            elif flux_unit == 'ppp':
+                flux = self.flux(unit='e/s') - 1
+            elif flux_unit == 'ppt':
+                flux = (self.flux(unit='e/s') - 1) * 1e3
+            elif flux_unit == 'ppm':
+                flux = (self.flux(unit='e/s') - 1) * 1e6
+
+        # Show input model if requested
+        if input_model:
+            dv = self.varsource()
+            if dv is not None:
+                if   flux_unit == 'ppp': dv.flux -= 1
+                elif flux_unit == 'ppt': dv.flux = (dv.flux - 1) * 1e3
+                elif flux_unit == 'ppm': dv.flux = (dv.flux - 1) * 1e6
+                #ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
+
+        spline = make_interp_spline(dv.time/86400., dv.flux, k=1)
+        flux_var = spline(time)
+        flux = flux - flux_var
+        print(ut.rootMeanSquare(flux))
+        
+        # Start plotting
+
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        
+        # Plot the input variable source
+        if flux_error:
+            flux_err = self.flux(column="flux_err", unit=flux_unit)
+            ax.errorbar(time, flux, yerr=flux_err, fmt=".", color='k', ecolor='darkgray',
+                        elinewidth=1, capsize=0, alpha=alpha, label=lab, zorder=1)
+        else:
+            ax.plot(time, flux, 'k.', ms=self.ms, alpha=alpha, label=lab, zorder=1)
+
+        # Plot a median filter [unit of hours]
+        if mfilter:
+            if type(mfilter) is float:
+                label = f'{mfilter:.3f}h median'
+            else:
+                label = f'{mfilter}h median'
+            cadence = np.diff(time)[0]
+            carbox = int(mfilter/cadence)
+            flux_med = median_filter(flux, carbox)
+            ax.plot(time, flux_med, '-', c='royalblue', lw=0.5, label=label, zorder=2)
+            ax.axhline(y=0, c='orange', linestyle='--', lw=1.5)
+                        
+        # If any plot mask-update events
+        if self.mask_updates.any():
+            updates = self.mask_updates * self.cadence / c.day
+            for update in updates[1:]:
+                if update == updates[-1]:
+                   ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
+                else:
+                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
+
+        # Set legend
+        if legend:
+            ax.legend(loc='upper right', ncols=4)
+            
+        # Settings
+        ax.set_xlim(time.iloc[0], time.iloc[-1])
+        ax.set_xlabel(f'Time [{time_unit}]')
+        ax.set_ylabel(ylab)
+        plt.tight_layout()
+                
+        return fig, ax
+
+
+    def plot_oc(self, time_unit="d", figsize=(9,6)):
+
+        """Plot Observed-Calculated (O-C) diagram.
+
+        Parameters
+        ----------
+        time_unit : str
+            String specifying the desired time unit [s, h, d]
+        figsize : list
+            Matplotlib figsize object.
+
+        Retrun
+        ------
+        fig, ax : matplotlib axes objects.
+        """
+
+        # Get varsource light curve
+        lc = self.varsource()
+        itime = lc["time"] / c.day
+        try: iflux = lc["comb"]
+        except: iflux = lc["sum"]
+        
+        # Sorten simulation
+        oflux = self.flux(unit="ppm")
+        mflux = self.flux_med(unit="ppm")
+        
+        # Handle time column
+        time = self.time(unit=time_unit)
+
+        # Start figure
+        
+        fig, ax = plt.subplots(2, 1, figsize=figsize)
+
+        # Plot simulation, median, and input
+        ax[0].plot(time,  oflux, '.', c='k', ms=self.ms, alpha=0.2, label='Corrected data')
+        ax[0].plot(time,  mflux, '-', c='royalblue', lw=0.5,         label='1h median')
+        ax[0].plot(itime, iflux, '-', c='m',         lw=0.5,         label='Input signal')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].legend(ncol=3, loc="center",  bbox_to_anchor=(0.5, 1.1))
+
+        # Plot median vs. input
+        ax[1].plot(time,  mflux, '-', c='royalblue', lw=0.5)
+        ax[1].plot(itime, iflux, '-', c='m',         lw=0.5)
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+
+        # Labels
+        ax[1].set_xlabel('Time [days]')
+        fig.text(0.005, 0.5, 'Flux [ppm]', va='center', rotation='vertical')
+
+        # Layout
+        ax[0].set_xticklabels([])
+        plt.tight_layout(h_pad=0.2, w_pad=1)
+        
+        return fig, ax
+
+
+    def plot_centroid(self, time_unit="d", cen_unit="pix", figsize=(12,6)):
+
+        """Plot barycentric light curve.
+
+        This function plots the barycentric coordinates (i.e. inter-pixel movement)
+        of a target star.
+
+        Parameters
+        ----------
+        time_unit : str
+            String specifying the desired time unit [s, h, d]
+        cen_unit : str
+            String specifying the desired centroid unit [pix, rel, cen, mm]   
+        figsize : list
+            Matplotlib figsize object.
+
+        Retrun
+        ------
+        fig, ax : matplotlib axes objects.
+        """
+        
+        # Unit for centroid labels
+        if   cen_unit == "pix": lab_unit = "[pixel]" 
+        elif cen_unit == "rel": lab_unit = "- Mean [pixel]" 
+        elif cen_unit == "cen": lab_unit = "- Center [pixel]"
+        elif cen_unit == "mm":  lab_unit = "[mm]" 
+        else:
+            errorcode("error", "No such centroid unit! Availble option: [pix, rel, cen, mm]")
+
+        # Convert to days
+        time = self.time(unit=time_unit)
+        
+        # Fetch centroid positions
+        xcen = self.xcen(unit=cen_unit)
+        ycen = self.ycen(unit=cen_unit)
+        
+        # Create matplotlib object 
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        
+        # Plot the input variable source
+        ax.plot(time, xcen, 'b-', alpha=0.7, label="x centroid")
+        ax.plot(time, ycen, 'r-', alpha=0.7, label="y centroid")
+
+        # Settings
+        ax.set_xlim(time.iloc[0], time.iloc[-1])
+        #ax.set_ylim(ycen.iloc[0], ycen.iloc[-1])
+        ax.set_xlabel(f'Time - BOL [day]')
+        ax.set_ylabel(f'Centroid {lab_unit}')
+        ax.legend(loc='best')
+        
+        return fig, ax
+
+
+    def plot_frequency_performance(self,
+                                   ASD_binning_factor=10,
+                                   freq_break=20e-6,
+                                   min_freq=3e-6,
+                                   max_freq=40e-3,
+                                   residual_noise_floor=0.68e-6,
+                                   random_noise_level=3.0e-6,
+                                   residual_noise_top=50e-6,
+                                   figsize=(10,7),
+                                   output_file='mission_performance_asd.png'):
+
+        mean_lc = self.flux()
+        freq, psd = ns.compute_double_sided_PSD(mean_lc, time_interval=25)
+
+        def rebin1d(array, n):
+            nr = int(float(array.shape[0]) / float(n))
+            return (np.reshape(array, (n, nr))).sum(1)
+        
+
+        fig = plt.figure(figsize=figsize)
+
+        # plot the ASD
+        plt.plot(freq, psd, 'gray', alpha=0.5)
+
+        # plot binned ASD
+        p = int(freq.size / ASD_binning_factor)
+        num = rebin1d(freq[0:p*ASD_binning_factor], p) / ASD_binning_factor
+        binned = rebin1d(psd[0:p*ASD_binning_factor], p) / ASD_binning_factor
+
+        plt.plot(num[1:], binned[1:], 'black',  lw=2)
+
+        # residual error line
+        plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
+                   colors='red', linestyles='-')
+        # random noise line
+        plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
+                   colors='magenta', linestyles='-')
+        # slope line from residual to random top level
+        x_values = np.linspace(min_freq, freq_break, 2)
+        y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
+        plt.plot(x_values, y_values, color='red', linestyle='-')
+
+        # dashed  guide lines
+        plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
+                   linestyles='dashed', colors='blue')
+        plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
+                   linestyles='dashed', colors='blue')
+        plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
+                   linestyles='dashed', colors='blue')
+        plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
+                   linestyles='dashed', colors='blue')
+        plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
+                   linestyles='dashed', colors='blue')
+
+        # texts
+        freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
+        top_text = f'{int(residual_noise_top*1e6)}' + freq_units
+        plt.text(x=min_freq, y=residual_noise_top*1.25,
+                 s=top_text,
+                 ha='center')
+        random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
+        plt.text(x=5e-4, y=random_noise_level*1.25,
+                 s=random_noise_text,
+                 ha='center')
+        residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + freq_units
+        plt.text(x=5e-4, y=residual_noise_floor*1.25,
+                 s=residual_error_text,
+                 ha='center')
+
+        plt.xscale('log')
+        plt.yscale('log')
+
+        ymin = np.min(psd)
+        ymax = np.max(psd)
+        if ymin < 1e-7: ymin = 1e-7
+        if ymax < 1e-4: ymax = 1e-4
+        plt.xlim(1e-6, 1e-1)
+        plt.ylim(ymin, ymax)
+
+        # modify x tick points
+        ticks = [1e-6, min_freq, 1e-5, freq_break,
+                 1e-4, 1e-3, 1e-2, max_freq, 1e-1]
+        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
+                  str(int(freq_break*1e6)) + '$\mu$Hz',
+                  '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
+                  str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
+        plt.xticks(ticks=ticks, labels=labels)
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
+        plt.tight_layout()
+
+        return fig
+
+    
+    #--------------------------------------------------------------#
+    #                        POST-PROCESSING                       #
+    #--------------------------------------------------------------#
+
+        
     def detrend(self,
                 column='flux',
                 model="poly",
@@ -1268,766 +1697,8 @@ class LightCurve(object):
 
         # Finito!
         return self.df
-    
-        
-    def stitch(self, method='lowess', column='flux', gapsize=0.1, segment=5,
-               replace=False, plot=False):
 
-        """Function to stitct a light curve.
 
-        This function corrects for all jumps that may occur due to interruption
-        of the image acquisition. It uses the "time_gapsize" parameters to set
-        the limit for when something is a time series gap. It uses the median
-        flux value on either side of the gap to correct each flux "chunk".
-
-        Parameters
-        ----------
-        column : str
-            Which flux column to stitch
-        gapsize : float
-            Duration for which a gap in the time series is detected [unit as time]
-        """
-
-        # Deep copy of data frame
-        self.df['flux_stitch'] = self.df[column]
-
-        # Find flux jumps
-        if self.mask_updates.any():
-            dex = self.flux_indices()
-        else:
-            dex = self.time_indices()
-
-        # Convert unit [days -> number of exposures]
-        segment = int(segment * 86400 / self.cadence)
-            
-        # Move the data chunk when a jump
-
-        if len(dex) > 2:
-        
-            for i,j in zip(dex[1:-1], dex[1:]):
-
-                # Fetch data segments before and after jump
-                df_b = self.df.iloc[i-segment-1:i-1]
-                df_a = self.df.iloc[i:i+segment]
-                
-                if method == 'lowess':
-
-                    #------------ TODO integrate into bin method
-                    # To be used for 25s cadence
-                    # binsize = 0.5
-                    
-                    # time = df_b.time
-                    # flux = df_b.flux_stitch
-                    # tdur = time.iloc[-1] - time.iloc[0]
-                    # tbin = binsize*3600
-                    # bins = int(tdur/tbin)
-                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
-                    # time = time[:-1] + np.diff(time)[0]/2.
-                    # df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
-
-                    # time = df_a.time
-                    # flux = df_a.flux_stitch
-                    # tdur = time.iloc[-1] - time.iloc[0]
-                    # tbin = binsize*3600
-                    # bins = int(tdur/tbin)
-                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
-                    # time = time[:-1] + np.diff(time)[0]/2.
-                    # df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
-                    #-------------
-                    
-                    # Lowess smoothing
-                    lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
-                    lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
-
-                    # Fit Theil–Sen median slope
-                    res_b = theilslopes(lowess_b[:,1], df_b.time, 0.90, method='separate')
-                    res_a = theilslopes(lowess_a[:,1], df_a.time, 0.90, method='separate')
-                    lsq_res_b = linregress(df_b.time, lowess_b[:,1])
-                    lsq_res_a = linregress(df_a.time, lowess_a[:,1])
-
-                    # Evaluate slope in 
-                    flux_b = lsq_res_b[0] * df_b.time.iloc[-1] + lsq_res_b[1]
-                    flux_a = lsq_res_a[0] * df_a.time.iloc[0]  + lsq_res_a[1]
-                    flux_jump = flux_b - flux_a                    
-                    #-------------- debug
-                    # plt.figure()
-                    # plt.plot(self.df.time, self.df.flux_stitch, 'k.')
-                    # plt.plot(df_b.time, df_b.flux_stitch, 'b.')
-                    # plt.plot(df_a.time, df_a.flux_stitch, 'm.')
-                    # plt.plot(lowess_b[:,0], lowess_b[:,1], 'r-')
-                    # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
-                    # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
-                    # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
-                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'w--')
-                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'w--')
-                    # plt.title(f'Flux jump: {flux_jump}')
-                    # df = self.df.loc[i-segment*2:i+segment*2]
-                    # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
-                    # plt.show()
-                    #-------------- debug
-
-                    
-                elif method == 'median':
-                    
-                    # Use median value on either side to stitch
-                    flux_b = np.median(df_b.flux_stitch)
-                    flux_a = np.median(df_a.flux_stitch)
-                    flux_jump = flux_b - flux_a
-
-                    
-                # Use smaller data chunk if rate of change is large
-                elif method == 'gradient':
-
-                    # Rate of change for data chunks before and after each gap
-                    diff_chunk_before = np.abs(flux_chunk_before.iloc[0] /
-                                               flux_chunk_before.iloc[-1])
-                    diff_chunk_after  = np.abs(flux_chunk_after.iloc[0] /
-                                               flux_chunk_after.iloc[-1])
-
-                    # Index for smaller fraction of chunk before and after each gap
-                    d = 10
-                    dex_frac_before = int(len(flux_chunk_before)/d)
-                    dex_frac_after  = int(len(flux_chunk_after)/d)
-
-                    # Smaller fractions of each data chunk before and after each gap
-                    diff_frac_before = np.abs(flux_chunk_before.iloc[0] /
-                                              flux_chunk_before.iloc[dex_frac_before])
-                    diff_frac_after  = np.abs(flux_chunk_after.iloc[0] /
-                                              flux_chunk_after.iloc[dex_frac_after])
-
-                    # If rate of change is large
-                    if diff_chunk_before > 10 * diff_frac_before:
-                        flux_chunk_before = flux_chunk_before.iloc[dex_frac_before:]
-                    if diff_chunk_after > 10 * diff_frac_after:
-                        flux_chunk_after = flux_chunk_after.iloc[:dex_frac_after]
-
-                    # Use median value on either side to stitch
-                    flux_median_before = np.median(flux_chunk_before)
-                    flux_median_after  = np.median(flux_chunk_after)
-                    flux_jump = flux_median_before - flux_median_after
-                        
-                # Correct each flux chunk
-                self.df.flux_stitch.iloc[i:] += flux_jump
-
-            # Recenter data after median value
-            #self.df.flux_stitch -= self.df.flux_stitch.median()
-            
-        # Plot if requested
-        if plot:
-            self.plot_stitch(self.df, column=column)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_stitch
-            self.df.drop(columns=['flux_stitch'], inplace=True)
-            
-        return self.df
-
-    
-    def clip(self, column='flux', model="scipy",
-             sigma_lower=4, sigma_upper=4, window=0.5,
-             plot=False, replace=False, flux_unit='e/s'):
-
-        """Sigma clipping of light curve.
-        """
-                
-        # Sigma clipping methods
-        
-        if model == 'scipy':
-            self.df['flux_clip'] = stats.sigma_clip(self.df[column],
-                                                    sigma_lower=sigma_lower,
-                                                    sigma_upper=sigma_upper)
-            
-        elif model == 'wotan':
-            self.df['flux_clip'] = wotan.slide_clip(self.df.time.to_numpy(),
-                                                    self.df[column].to_numpy(),
-                                                    window_length=window*c.day,
-                                                    low=sigma_lower,
-                                                    high=sigma_upper,
-                                                    method='mad',     # {std, mad}
-                                                    center='median')  # {mean, median}
-                    
-        # Plot if requested
-        if plot:
-            self.plot_clip(self.df, column=column, flux_unit=flux_unit)
-
-        # Overwrite flux column        
-        if replace:
-            self.df.flux = self.df.flux_clip
-            self.df.drop(columns=['flux_clip'], inplace=True)
-
-        return self.df
-
-
-    def plot_frequency_performance(self,
-                                   ASD_binning_factor=10,
-                                   freq_break=20e-6,
-                                   min_freq=3e-6,
-                                   max_freq=40e-3,
-                                   residual_noise_floor=0.68e-6,
-                                   random_noise_level=3.0e-6,
-                                   residual_noise_top=50e-6,
-                                   figsize=(10,7),
-                                   output_file='mission_performance_asd.png'):
-
-        mean_lc = self.flux()
-        freq, psd = ns.compute_double_sided_PSD(mean_lc, time_interval=25)
-
-        def rebin1d(array, n):
-            nr = int(float(array.shape[0]) / float(n))
-            return (np.reshape(array, (n, nr))).sum(1)
-        
-
-        fig = plt.figure(figsize=figsize)
-
-        # plot the ASD
-        plt.plot(freq, psd, 'gray', alpha=0.5)
-
-        # plot binned ASD
-        p = int(freq.size / ASD_binning_factor)
-        num = rebin1d(freq[0:p*ASD_binning_factor], p) / ASD_binning_factor
-        binned = rebin1d(psd[0:p*ASD_binning_factor], p) / ASD_binning_factor
-
-        plt.plot(num[1:], binned[1:], 'black',  lw=2)
-
-        # residual error line
-        plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
-                   colors='red', linestyles='-')
-        # random noise line
-        plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
-                   colors='magenta', linestyles='-')
-        # slope line from residual to random top level
-        x_values = np.linspace(min_freq, freq_break, 2)
-        y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
-        plt.plot(x_values, y_values, color='red', linestyle='-')
-
-        # dashed  guide lines
-        plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
-                   linestyles='dashed', colors='blue')
-        plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
-                   linestyles='dashed', colors='blue')
-        plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
-                   linestyles='dashed', colors='blue')
-        plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
-                   linestyles='dashed', colors='blue')
-        plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
-                   linestyles='dashed', colors='blue')
-
-        # texts
-        freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
-        top_text = f'{int(residual_noise_top*1e6)}' + freq_units
-        plt.text(x=min_freq, y=residual_noise_top*1.25,
-                 s=top_text,
-                 ha='center')
-        random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
-        plt.text(x=5e-4, y=random_noise_level*1.25,
-                 s=random_noise_text,
-                 ha='center')
-        residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + freq_units
-        plt.text(x=5e-4, y=residual_noise_floor*1.25,
-                 s=residual_error_text,
-                 ha='center')
-
-        plt.xscale('log')
-        plt.yscale('log')
-
-        ymin = np.min(psd)
-        ymax = np.max(psd)
-        if ymin < 1e-7: ymin = 1e-7
-        if ymax < 1e-4: ymax = 1e-4
-        plt.xlim(1e-6, 1e-1)
-        plt.ylim(ymin, ymax)
-
-        # modify x tick points
-        ticks = [1e-6, min_freq, 1e-5, freq_break,
-                 1e-4, 1e-3, 1e-2, max_freq, 1e-1]
-        labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
-                  str(int(freq_break*1e6)) + '$\mu$Hz',
-                  '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
-                  str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
-        plt.xticks(ticks=ticks, labels=labels)
-        plt.xlabel('Frequency (Hz)')
-        plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
-        plt.tight_layout()
-
-        return fig
-
-        #plt.savefig(output_file, dpi=150)
-    
-    #--------------------------------------------------------------#
-    #                         PLOT MODULES                         #   
-    #--------------------------------------------------------------#
-
-
-    def time_limit(self, quarters):
-
-        """Adjust time limits in plot.
-        """
-
-        tmin = (min(quarters) - 1) * ut.quarter()
-        tmax = (max(quarters)    ) * ut.quarter()
-
-        return tmin, tmax
-
-    
-    def axes_mask_updates(self, ax, time, label=None):
-
-        """Add mask update lines to plot.
-
-        This is a small utility that takes an axes object, time points
-        from a time series, and the mask-updates given in the same unit
-        of time as the time points, and then plots vertical lines for
-        every mask-update and quarter marks.
-        """
-
-        updates = self.mask_updates[1:] - self.mask_updates[0]
-        
-        for i in updates:
-            if i == updates[0]:
-                ax.axvline(x=time.iloc[i], c='k', linestyle=':', lw=1, label=label)
-            else:
-                ax.axvline(x=time.iloc[i], c='k', linestyle=':', lw=1)
-
-
-    def axes_quarter_marks(self, ax, time, label=None):
-
-        """Add mission quarter lines to plot.
-        """
-
-        # Plot quarters
-        quarters = np.arange(0, time[-1], 90)
-        for Q in quarters:
-            if Q == 0:
-                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1, label=label)
-            else:
-                ax.axvline(x=Q, c='darkgray', linestyle='-.', linewidth=1)
-
-
-    def plot_varsource(self, figsize=(9,8)):
-
-        """Plot the noise-less light curve.
-        """
-
-        # Fetch variable source
-        df = self.varsource()
-
-        # Plot varsim plot
-        fig, ax = pt.plot_final_lc(df, figsize=figsize)
-
-        return fig, ax
-
-    
-    def plot(self, time_unit="d", flux_unit="e/s", flux_error=False, 
-             median_filter=False, binsize=False, input_model=False,
-             legend=True, alpha=0.2, figsize=(9,5)):
-
-        """Plot a simulated light curve.
-
-        Parameters
-        ----------
-        time_unit : str
-            Unit of time in [s, h, d]
-        flux_unit : str
-            Unit of flux in [e/s, norm, ppp, ppt, ppm]
-        flux_error : bool
-            Show flux errorbars if True
-        median_filter : int
-            Parse an integer to compute/show median filter of data [hours]
-        binsize : int
-            Parse an integer to compute/show binned data [hours]
-        input_model : bool
-            Show variable input model [True, False]
-        legend : bool
-            Show the legend [True, False]
-        alpha : float
-            Alpha transparency of data points
-        figsize : tuple
-            Matplotlib figsize object (width, height)
-
-        Returns
-        -------
-        fig, ax : matplotlib axes
-        """
-        
-        # Label for flux
-        if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
-        elif flux_unit == "norm": ylab = "Flux [norm-one]"
-        elif flux_unit == "ppp":  ylab = "Flux [norm-zero]"
-        elif flux_unit == "ppt":  ylab = "Flux [ppt]"
-        elif flux_unit == "ppm":  ylab = "Flux [ppm]"
-        else: errorcode("error", "No such flux unit!")
-
-        # Catch invalid option
-        if input_model and flux_unit == 'e/s':        
-            errorcode('error', 'Flux unit is not valid when comparing to input model! ' +
-                      'Use either [norm, ppp, ppt, ppm]')
-
-        # Remove NaNs being outliers
-        self.df = self.df.dropna()        
-            
-        # Time array
-        time = self.time(unit=time_unit)
-        
-        # Try fetching obs info
-        group, camera, quarter = self.obs()
-
-        # Original data
-        if type(group) is int:
-            flux = self.flux(unit=flux_unit)
-            lab = f"N-CAM {group}.{camera} Q{quarter}"
-
-        # Altered data (e.g. merged)
-        else:
-            lab = "Merged data"
-            if flux_unit == 'e/s':
-                errorcode('error', 'Unit not valid for merged data! '+
-                          'Use either [norm, ppp, ppt, ppm]')
-            elif flux_unit == 'norm':
-                flux = self.flux(unit='e/s')
-            elif flux_unit == 'ppp':
-                flux = self.flux(unit='e/s') - 1
-            elif flux_unit == 'ppt':
-                flux = (self.flux(unit='e/s') - 1) * 1e3
-            elif flux_unit == 'ppm':
-                flux = (self.flux(unit='e/s') - 1) * 1e6
-
-        # Start plotting
-
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
-        # Plot the input variable source
-        if flux_error:
-            flux_err = self.flux(column="flux_err", unit=flux_unit)
-            ax.errorbar(time, flux, yerr=np.abs(flux_err),
-                        fmt=".", color='k', ecolor='darkgray', alpha=alpha,
-                        elinewidth=1, capsize=0, label=lab, zorder=1)
-        else:
-            ax.plot(time, flux, 'k.', ms=self.ms, alpha=alpha, label=lab, zorder=1)
-
-        # Plot a median filter [unit of hours]
-        if median_filter:
-            if type(median_filter) is float:
-                label = f'{median_filter:.3f}h bins'
-            else:
-                label = f'{median_filter}h bins'
-            flux_med = self.flux_med(unit=flux_unit)
-            ax.plot(time, flux_med, '-', c='royalblue', lw=0.5, label=label, zorder=2)
-
-        # Plot binned mean points [unit of days]
-        if binsize:            
-            if type(binsize) is float:
-                label = f'{binsize:.3f}h bins'
-            else:
-                label = f'{binsize}h bins'
-            df = self.bin(binsize=binsize, time_unit=time_unit, flux_unit=flux_unit)
-            ax.plot(df["time"], df["flux"], 'o', c='r', ms=8, mec='k',
-                    label=label, zorder=3)
-
-        # Show input model if requested
-        if input_model:
-            dv = self.varsource()
-            if dv is not None:
-                if   flux_unit == 'ppp': dv.flux -= 1
-                elif flux_unit == 'ppt': dv.flux = (dv.flux - 1) * 1e3
-                elif flux_unit == 'ppm': dv.flux = (dv.flux - 1) * 1e6
-                ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
-            
-        # If any plot mask-update events
-        if self.mask_updates.any():
-            updates = self.mask_updates * self.cadence / c.day
-            for update in updates[1:]:
-                if update == updates[-1]:
-                   ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
-                else:
-                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
-
-        # Set legend
-        if legend:
-            ax.legend(loc='upper right', ncols=4)
-            # Adjust y padding for legend
-            try:
-                ampl_model = dv.flux.max() - dv.flux.min()
-                ampl_flux  = flux.max() - flux.min()
-                if ampl_model > ampl_flux:
-                    F = dv.flux
-                    pad = 1.35
-                else:
-                    F = flux
-                    pad = 1.1
-            except:
-                F = flux
-                pad = 1.1
-            ymin, ymax = pt.getAxesMinMax(y=F, percentage=5)
-            ax.set_ylim(ymin, ymax*pad)
-            
-        # Settings
-        ax.ticklabel_format(useOffset=False)
-        ax.set_xlim(time.iloc[0], time.iloc[-1])
-        ax.set_xlabel(f'Time [{time_unit}]')
-        ax.set_ylabel(ylab)
-        plt.tight_layout()
-                
-        return fig, ax
-    
-
-    def plot_oc2(self, time_unit="d", flux_unit="e/s", flux_error=False, 
-                 mfilter=False, binsize=False, input_model=False,
-                 legend=True, alpha=0.2, figsize=(9,5)):
-
-        """Plot a simulated light curve.
-
-        Parameters
-        ----------
-        time_unit : str
-            Unit of time in [s, h, d]
-        flux_unit : str
-            Unit of flux in [e/s, norm, ppp, ppt, ppm]
-        flux_error : bool
-            Show flux errorbars if True
-        median_filter : int
-            Parse an integer to compute/show median filter of data [hours]
-        binsize : int
-            Parse an integer to compute/show binned data [hours]
-        input_model : bool
-            Show variable input model [True, False]
-        legend : bool
-            Show the legend [True, False]
-        alpha : float
-            Alpha transparency of data points
-        figsize : tuple
-            Matplotlib figsize object (width, height)
-
-        Returns
-        -------
-        fig, ax : matplotlib axes
-        """
-        
-        # Label for flux
-        if   flux_unit == "e/s":  ylab = r"Flux [e$^-$ s$^{-1}$]"
-        elif flux_unit == "norm": ylab = "Flux [norm-one]"
-        elif flux_unit == "ppp":  ylab = "Flux [norm-zero]"
-        elif flux_unit == "ppt":  ylab = "Flux [ppt]"
-        elif flux_unit == "ppm":  ylab = "Flux [ppm]"
-        else: errorcode("error", "No such flux unit!")
-
-        # Catch invalid option
-        if input_model and flux_unit == 'e/s':        
-            errorcode('error', 'Flux unit is not valid when comparing to input model! ' +
-                      'Use either [norm, ppp, ppt, ppm]')
-
-        # Remove NaNs being outliers
-        self.df = self.df.dropna()        
-            
-        # Time array
-        time = self.time(unit=time_unit)
-        
-        # Try fetching obs info
-        group, camera, quarter = self.obs()
-
-        # Original data
-        if type(group) is np.int:
-            flux = self.flux(unit=flux_unit)
-            lab = f"N-CAM {group}.{camera} Q{quarter}"
-
-        # Altered data (e.g. merged)
-        else:
-            lab = "Merged data"
-            if flux_unit == 'e/s':
-                errorcode('error', 'Unit not valid for merged data! '+
-                          'Use either [norm, ppp, ppt, ppm]')
-            elif flux_unit == 'norm':
-                flux = self.flux(unit='e/s')
-            elif flux_unit == 'ppp':
-                flux = self.flux(unit='e/s') - 1
-            elif flux_unit == 'ppt':
-                flux = (self.flux(unit='e/s') - 1) * 1e3
-            elif flux_unit == 'ppm':
-                flux = (self.flux(unit='e/s') - 1) * 1e6
-
-        # Show input model if requested
-        if input_model:
-            dv = self.varsource()
-            if dv is not None:
-                if   flux_unit == 'ppp': dv.flux -= 1
-                elif flux_unit == 'ppt': dv.flux = (dv.flux - 1) * 1e3
-                elif flux_unit == 'ppm': dv.flux = (dv.flux - 1) * 1e6
-                #ax.plot(dv.time/86400, dv.flux, '-', c='orange', lw=0.5, label='Input model')
-
-        spline = make_interp_spline(dv.time/86400., dv.flux, k=1)
-        flux_var = spline(time)
-        flux = flux - flux_var
-        print(ut.rootMeanSquare(flux))
-        
-        # Start plotting
-
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
-        # Plot the input variable source
-        if flux_error:
-            flux_err = self.flux(column="flux_err", unit=flux_unit)
-            ax.errorbar(time, flux, yerr=flux_err, fmt=".", color='k', ecolor='darkgray',
-                        elinewidth=1, capsize=0, alpha=alpha, label=lab, zorder=1)
-        else:
-            ax.plot(time, flux, 'k.', ms=self.ms, alpha=alpha, label=lab, zorder=1)
-
-        # Plot a median filter [unit of hours]
-        if mfilter:
-            if type(mfilter) is float:
-                label = f'{mfilter:.3f}h median'
-            else:
-                label = f'{mfilter}h median'
-            cadence = np.diff(time)[0]
-            carbox = int(mfilter/cadence)
-            flux_med = median_filter(flux, carbox)
-            ax.plot(time, flux_med, '-', c='royalblue', lw=0.5, label=label, zorder=2)
-            ax.axhline(y=0, c='orange', linestyle='--', lw=1.5)
-                        
-        # If any plot mask-update events
-        if self.mask_updates.any():
-            updates = self.mask_updates * self.cadence / c.day
-            for update in updates[1:]:
-                if update == updates[-1]:
-                   ax.axvline(x=update, c='k', linestyle=':', lw=1, label='Mask updates')
-                else:
-                    ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
-
-        # Set legend
-        if legend:
-            ax.legend(loc='upper right', ncols=4)
-            # Adjust y padding for legend
-            # try:
-            #     ampl_model = dv.flux.max() - dv.flux.min()
-            #     ampl_flux  = flux.max() - flux.min()
-            #     if ampl_model > ampl_flux:
-            #         F = dv.flux
-            #         pad = 1.35
-            #     else:
-            #         F = flux
-            #         pad = 1.1
-            # except:
-            #     F = flux
-            #     pad = 1.1
-            # ymin, ymax = pt.getAxesMinMax(y=F, percentage=5)
-            # ax.set_ylim(ymin, ymax*pad)
-            
-        # Settings
-        ax.set_xlim(time.iloc[0], time.iloc[-1])
-        ax.set_xlabel(f'Time [{time_unit}]')
-        ax.set_ylabel(ylab)
-        plt.tight_layout()
-                
-        return fig, ax
-
-
-    def plot_oc(self, time_unit="d", figsize=(9,6)):
-
-        """Plot Observed-Calculated (O-C) diagram.
-
-        Parameters
-        ----------
-        time_unit : str
-            String specifying the desired time unit [s, h, d]
-        figsize : list
-            Matplotlib figsize object.
-
-        Retrun
-        ------
-        fig, ax : matplotlib axes objects.
-        """
-
-        # Get varsource light curve
-        lc = self.varsource()
-        itime = lc["time"] / c.day
-        try: iflux = lc["comb"]
-        except: iflux = lc["sum"]
-        
-        # Sorten simulation
-        oflux = self.flux(unit="ppm")
-        mflux = self.flux_med(unit="ppm")
-        
-        # Handle time column
-        time = self.time(unit=time_unit)
-
-        # Start figure
-        
-        fig, ax = plt.subplots(2, 1, figsize=figsize)
-
-        # Plot simulation, median, and input
-        ax[0].plot(time,  oflux, '.', c='k', ms=self.ms, alpha=0.2, label='Corrected data')
-        ax[0].plot(time,  mflux, '-', c='royalblue', lw=0.5,         label='1h median')
-        ax[0].plot(itime, iflux, '-', c='m',         lw=0.5,         label='Input signal')
-        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[0].legend(ncol=3, loc="center",  bbox_to_anchor=(0.5, 1.1))
-
-        # Plot median vs. input
-        ax[1].plot(time,  mflux, '-', c='royalblue', lw=0.5)
-        ax[1].plot(itime, iflux, '-', c='m',         lw=0.5)
-        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
-
-        # Labels
-        ax[1].set_xlabel('Time [days]')
-        fig.text(0.005, 0.5, 'Flux [ppm]', va='center', rotation='vertical')
-
-        # Layout
-        ax[0].set_xticklabels([])
-        plt.tight_layout(h_pad=0.2, w_pad=1)
-        
-        return fig, ax
-
-
-    def plot_centroid(self, time_unit="d", cen_unit="pix", figsize=(12,6)):
-
-        """Plot barycentric light curve.
-
-        This function plots the barycentric coordinates (i.e. inter-pixel movement)
-        of a target star.
-
-        Parameters
-        ----------
-        time_unit : str
-            String specifying the desired time unit [s, h, d]
-        cen_unit : str
-            String specifying the desired centroid unit [pix, rel, cen, mm]   
-        figsize : list
-            Matplotlib figsize object.
-
-        Retrun
-        ------
-        fig, ax : matplotlib axes objects.
-        """
-        
-        # Unit for centroid labels
-        if   cen_unit == "pix": lab_unit = "[pixel]" 
-        elif cen_unit == "rel": lab_unit = "- Mean [pixel]" 
-        elif cen_unit == "cen": lab_unit = "- Center [pixel]"
-        elif cen_unit == "mm":  lab_unit = "[mm]" 
-        else:
-            errorcode("error", "No such centroid unit! Availble option: [pix, rel, cen, mm]")
-
-        # Convert to days
-        time = self.time(unit=time_unit)
-        
-        # Fetch centroid positions
-        xcen = self.xcen(unit=cen_unit)
-        ycen = self.ycen(unit=cen_unit)
-        
-        # Create matplotlib object 
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
-        
-        # Plot the input variable source
-        ax.plot(time, xcen, 'b-', alpha=0.7, label="x centroid")
-        ax.plot(time, ycen, 'r-', alpha=0.7, label="y centroid")
-
-        # Settings
-        ax.set_xlim(time.iloc[0], time.iloc[-1])
-        #ax.set_ylim(ycen.iloc[0], ycen.iloc[-1])
-        ax.set_xlabel(f'Time - BOL [day]')
-        ax.set_ylabel(f'Centroid {lab_unit}')
-        ax.legend(loc='best')
-        
-        return fig, ax
-
-    
     def plot_detrend(self, df, column='flux', plot_oc=True, figsize=(9,7)):
 
         """Plot a detrended light curve and make a O-C plot.
@@ -2128,7 +1799,153 @@ class LightCurve(object):
         plt.show()
         
         return fig, ax
+    
+    #--------------------------------------------------------------#
+    
+    def stitch(self,
+               method='lowess',
+               column='flux',
+               gapsize=0.1,
+               segment=5,
+               replace=False,
+               plot=False
+    ):
+        """Function to stitct a light curve.
+
+        This function corrects for all jumps that may occur due to interruption
+        of the image acquisition. It uses the "time_gapsize" parameters to set
+        the limit for when something is a time series gap. It uses the median
+        flux value on either side of the gap to correct each flux "chunk".
+
+        Use smaller data chunk if rate of change is large
+        Parameters
+        ----------
+        column : str
+            Which flux column to stitch
+        gapsize : float
+            Duration for which a gap in the time series is detected [unit as time]
+        """
+
+        # Deep copy of data frame
+        self.df['flux_stitch'] = self.df[column]
+
+        # Find flux jumps
+        if self.mask_updates.any():
+            dex = self.flux_indices()
+        else:
+            dex = self.time_indices()
+
+        # Convert unit [days -> number of exposures]
+        segment = int(segment * 86400 / self.cadence)
+            
+        # Move the data chunk when a jump
+
+        if len(dex) > 2:
         
+            for i,j in zip(dex[1:-1], dex[1:]):
+
+                # Fetch data segments before and after jump
+                df_b = self.df.iloc[i-segment-1:i-1]
+                df_a = self.df.iloc[i:i+segment]
+                
+                if method == 'lowess':
+                    #------------ TODO integrate into bin method
+                    # To be used for 25s cadence
+                    # binsize = 0.5
+                    # time = df_b.time
+                    # flux = df_b.flux_stitch
+                    # tdur = time.iloc[-1] - time.iloc[0]
+                    # tbin = binsize*3600
+                    # bins = int(tdur/tbin)
+                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    # time = time[:-1] + np.diff(time)[0]/2.
+                    # df_b = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    # time = df_a.time
+                    # flux = df_a.flux_stitch
+                    # tdur = time.iloc[-1] - time.iloc[0]
+                    # tbin = binsize*3600
+                    # bins = int(tdur/tbin)
+                    # flux, time, _ = binned_statistic(time, flux, 'median', bins=bins)
+                    # time = time[:-1] + np.diff(time)[0]/2.
+                    # df_a = pd.DataFrame({'time':time, 'flux_stitch':flux})
+                    #-------------
+                    # Lowess smoothing
+                    lowess_b = sm.nonparametric.lowess(df_b.flux_stitch, df_b.time, frac=1/3)
+                    lowess_a = sm.nonparametric.lowess(df_a.flux_stitch, df_a.time, frac=1/3)
+                    # Fit Theil–Sen median slope
+                    res_b = theilslopes(lowess_b[:,1], df_b.time, 0.90, method='separate')
+                    res_a = theilslopes(lowess_a[:,1], df_a.time, 0.90, method='separate')
+                    lsq_res_b = linregress(df_b.time, lowess_b[:,1])
+                    lsq_res_a = linregress(df_a.time, lowess_a[:,1])
+                    # Evaluate slope in 
+                    flux_b = lsq_res_b[0] * df_b.time.iloc[-1] + lsq_res_b[1]
+                    flux_a = lsq_res_a[0] * df_a.time.iloc[0]  + lsq_res_a[1]
+                    flux_jump = flux_b - flux_a                    
+                    #-------------- debug
+                    # plt.figure()
+                    # plt.plot(self.df.time, self.df.flux_stitch, 'k.')
+                    # plt.plot(df_b.time, df_b.flux_stitch, 'b.')
+                    # plt.plot(df_a.time, df_a.flux_stitch, 'm.')
+                    # plt.plot(lowess_b[:,0], lowess_b[:,1], 'r-')
+                    # plt.plot(lowess_a[:,0], lowess_a[:,1], 'g-')
+                    # plt.plot(lowess_b[-1,0], lowess_b[-1,1], 'y*')
+                    # plt.plot(lowess_a[0,0],  lowess_a[0,1],  'y*')
+                    # plt.plot(df_b.time, lsq_res_b[0] * df_b.time + lsq_res_b[1], 'w--')
+                    # plt.plot(df_a.time, lsq_res_a[0] * df_a.time + lsq_res_a[1], 'w--')
+                    # plt.title(f'Flux jump: {flux_jump}')
+                    # df = self.df.loc[i-segment*2:i+segment*2]
+                    # plt.xlim(df.time.iloc[0], df.time.iloc[-1])
+                    # plt.show()
+                    #-------------- debug
+                    
+                elif method == 'median':
+                    # Use median value on either side to stitch
+                    flux_b = np.median(df_b.flux_stitch)
+                    flux_a = np.median(df_a.flux_stitch)
+                    flux_jump = flux_b - flux_a
+
+                elif method == 'gradient':
+                    # Rate of change for data chunks before and after each gap
+                    diff_chunk_before = np.abs(flux_chunk_before.iloc[0] /
+                                               flux_chunk_before.iloc[-1])
+                    diff_chunk_after  = np.abs(flux_chunk_after.iloc[0] /
+                                               flux_chunk_after.iloc[-1])
+                    # Index for smaller fraction of chunk before and after each gap
+                    d = 10
+                    dex_frac_before = int(len(flux_chunk_before)/d)
+                    dex_frac_after  = int(len(flux_chunk_after)/d)
+                    # Smaller fractions of each data chunk before and after each gap
+                    diff_frac_before = np.abs(flux_chunk_before.iloc[0] /
+                                              flux_chunk_before.iloc[dex_frac_before])
+                    diff_frac_after  = np.abs(flux_chunk_after.iloc[0] /
+                                              flux_chunk_after.iloc[dex_frac_after])
+                    # If rate of change is large
+                    if diff_chunk_before > 10 * diff_frac_before:
+                        flux_chunk_before = flux_chunk_before.iloc[dex_frac_before:]
+                    if diff_chunk_after > 10 * diff_frac_after:
+                        flux_chunk_after = flux_chunk_after.iloc[:dex_frac_after]
+                    # Use median value on either side to stitch
+                    flux_median_before = np.median(flux_chunk_before)
+                    flux_median_after  = np.median(flux_chunk_after)
+                    flux_jump = flux_median_before - flux_median_after
+                        
+                # Correct each flux chunk
+                self.df.flux_stitch.iloc[i:] += flux_jump
+
+            # Recenter data after median value
+            #self.df.flux_stitch -= self.df.flux_stitch.median()
+            
+        # Plot if requested
+        if plot:
+            self.plot_stitch(self.df, column=column)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_stitch
+            self.df.drop(columns=['flux_stitch'], inplace=True)
+            
+        return self.df
+
 
     def plot_stitch(self, df, column='flux', medfilt=144, figsize=(9,8)):
 
@@ -2210,6 +2027,51 @@ class LightCurve(object):
         plt.show()
         
         return fig, ax
+    
+    #--------------------------------------------------------------#
+    
+    def clip(self,
+             # Default params:
+             column='flux',
+             flux_unit='e/s',             
+             model="scipy",
+             sigma_lower=4,
+             sigma_upper=4,
+             # Wotan params:
+             window=0.5,
+             # Other params:
+             plot=False,
+             replace=False
+    ):
+        """Function to perform sigma clipping of a light curve.
+
+        This
+        """
+        
+        # Sigma clipping methods
+        if model == 'scipy':
+            self.df['flux_clip'] = stats.sigma_clip(self.df[column],
+                                                    sigma_lower=sigma_lower,
+                                                    sigma_upper=sigma_upper)
+        elif model == 'wotan':
+            self.df['flux_clip'] = wotan.slide_clip(self.df.time.to_numpy(),
+                                                    self.df[column].to_numpy(),
+                                                    window_length=window*c.day,
+                                                    low=sigma_lower,
+                                                    high=sigma_upper,
+                                                    method='mad',     # {std, mad}
+                                                    center='median')  # {mean, median}
+                    
+        # Plot if requested
+        if plot:
+            self.plot_clip(self.df, column=column, flux_unit=flux_unit)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_clip
+            self.df.drop(columns=['flux_clip'], inplace=True)
+        
+        return self.df
 
 
     def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,10)):
@@ -2310,6 +2172,198 @@ class LightCurve(object):
         # Finito!        
         return fig, ax
 
+    #--------------------------------------------------------------#
+
+    def flux_error(self,
+                   # Default params:
+                   column='flux',
+                   flux_unit='norm',             
+                   short_filter=1,
+                   long_filter=10,
+                   # Other params:
+                   plot=False,
+    ):
+
+        # Remove clipped NaNs
+        self.df = self.df.dropna()
+        time = self.df.time
+        flux = self.df[column]
+
+        # Cadence [h]
+        dt = (time.iloc[1] - time.iloc[0]) / 3600
+
+        # Find flux errors
+        s = self.df.flux.to_numpy() - 1
+        N_short = round(short_filter / dt)
+        N_long  = round(long_filter * 24 / dt)
+        s_std0  = generic_filter(np.abs(s), np.std,  N_short)
+        s_std   = generic_filter(s_std0,    np.mean, N_long)
+        self.df['flux_err'] = s_std
+
+        # Plot if requested
+        if plot:
+            # DEBUG -----------------------------------
+            # t = self.df.time / 86400
+            # plt.figure(figsize=(9,6))
+            # plt.plot(t, s_std0, 'k-', linewidth=1.0, label=r'$\sigma_i$')
+            # plt.plot(t, s_std,  'r-', linewidth=1.2, label=r'$\mu_i(\sigma_i)$')
+            # plt.axhline(0, linestyle=':', color='k')
+            # plt.xlabel(r'Time [days]')
+            # plt.ylabel(r'Relative uncertainty')
+            # plt.legend(loc='best', ncol=1)
+            # plt.xlim(t.iloc[0], t.iloc[-1])
+            # plt.tight_layout()
+            # plt.show()
+            # DEBUG -----------------------------------
+            self.plot(input_model=True, flux_unit=flux_unit, flux_error=True,
+                      median_filter=1, alpha=0.2, figsize=(9,6))
+            plt.show()
+        
+        return self.df
+
+
+    
+    
+    def gaps(self, filename, replace=False, plot=False):
+
+        """Introduce gaps due to downtime and quarters.
+        
+        Parse "instrumentGAP.tab" file produced by "payload.py".
+        """
+        
+        self.df['flux_gaps'] = self.df.flux
+        
+        # Open file with gaps timings
+        dg = pd.read_feather(filename)
+        dg = dg.sort_values('t0').reset_index(drop=True)
+
+        # Find start and end of each gap and replace with NaN
+        for i in range(dg.shape[0]):
+            t0 = dg.t0.iloc[i]
+            t1 = dg.t0.iloc[i] + dg.td.iloc[i]
+            dex0 = ut.findNearestIndex(self.df.time, t0)
+            dex1 = ut.findNearestIndex(self.df.time, t1)
+            self.df.flux_gaps[dex0:dex1] = np.nan
+        
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_gaps
+            self.df.drop(columns=['flux_gaps'], inplace=True)
+
+        return self.df
+
+    
+    def correct_gain(self, temp, tdur, tempNominal, gainCCD, gainFEE, gainStability,
+                     replace=False, plot=False):
+
+        """Correct for gain variations due to thermal changes.
+        """
+        
+        # Compute the gain time series
+        gainCCD = gainCCD + gainStability * (temp - tempNominal)
+        gain = 1 / (gainCCD * gainFEE)
+        
+        # Correct for gain changes
+        a = tdur * 2
+        flux = self.df.flux.to_numpy()
+        delta_gain = 1 + a * (gain[0] - gain)
+        flux_gain = flux * delta_gain
+        flux_corr = (flux + flux_gain) / 2
+        
+        # flux0 = self.df.flux.to_numpy()
+        # flux  = flux0 / np.median(flux0[:100000])
+        # flux_gain =  gain[0] / gain
+        # # TODO max flux should be median of 1000 point from peak
+        # A_flux = flux.max() - np.median(flux[:100000])
+        # A_gain = flux_gain.max() - flux_gain.min()
+        # flux_gain = (flux_gain - 1) * A_flux/A_gain + 1
+        # # Correct flux
+        # flux_corr = flux + flux_gain - 1
+        # time = self.time(unit='d')
+        # flux_median = median_filter(flux_corr, 144)
+        # print(tdur)
+        # print(A_flux, A_gain, A_flux/A_gain)
+        # fig, ax = plt.subplots(2, 1, figsize=(9,6), sharex=True)
+        # # Plot simulation and trend
+        # ax[0].plot(time, flux,      '.', c='k',         ms=1, alpha=0.2, label='Before')
+        # ax[0].plot(time, flux_gain, '.', c='limegreen', ms=1, alpha=0.2, label='Gain flux')
+        # ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        # ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+        # # Plot detrend and median
+        # ax[1].plot(time, flux_corr,   '.', c='k', ms=1.0, alpha=0.2, label="After")
+        # ax[1].plot(time, flux_median, '-', c='royalblue', lw=0.5,    label="1h median")
+        # ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        # ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+        # ax[0].set_title('Gain correction')
+        # ax[1].set_xlabel('Time [days]')
+        # ax[0].legend(ncol=2, markerscale=5, loc='upper right')
+        # ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
+        # plt.tight_layout(h_pad=0.1, w_pad=1)
+        # plt.show()
+        
+        # Convert into ppm
+        self.df['flux_gain'] = flux_gain
+        self.df['flux_corr'] = flux_corr
+
+        # Plot dianostic
+        if plot: self.plot_correct_gain(self.df)
+
+        # Overwrite flux column        
+        if replace:
+            self.df.flux = self.df.flux_corr
+            self.df.drop(columns=['flux_gain', 'flux_corr'], inplace=True)
+
+        return self.df
+        
+    
+    def plot_correct_gain(self, df, column='flux', figsize=(9,6)):
+
+        """Plot a detrended light curve and make a O-C plot.
+        """
+
+        # Remove NaNs from copy
+        #df = df.dropna()
+
+        # Unit conversions
+        time = df.time / 86400.
+        flux = df.flux / 1e3
+        flux_gain = median_filter(df.flux_gain/1e3, 24) # [ppt] 10min filter
+        flux_corr = df.flux_corr / 1e3
+        flux_med  = median_filter(flux_corr, 144)
+        
+        # Start plotting        
+        fig, ax = plt.subplots(2, 1, figsize=figsize, sharex=True)
+
+        # Plot simulation and trend
+        ax[0].plot(time, flux,      '.', c='k',         ms=1,  alpha=0.2, label='Before')
+        ax[0].plot(time, flux_gain, '-', c='limegreen', lw=.2, alpha=1.0, label='Gain median')
+        ax[0].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[0].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+        
+        # Plot detrend and median
+        ax[1].plot(time, flux_corr, '.', c='k', ms=1.0, alpha=0.2, label="After")
+        ax[1].plot(time, flux_med,  '-', c='royalblue', lw=0.5,    label="1h median")
+        ax[1].set_xlim(time.iloc[0], time.iloc[-1])
+        ax[1].set_ylabel(r'Flux [ke$^-$ s$^{-1}$]')
+
+        # If any plot mask-update events
+        if self.mask_updates.any():
+            ncol = 3
+            self.axes_mask_updates(ax[0], time)
+            self.axes_mask_updates(ax[1], time)
+        else:
+            ncol = 2
+            
+        # Layout
+        ax[0].set_title('Gain correction')
+        ax[1].set_xlabel('Time [days]')
+        ax[0].legend(ncol=ncol, markerscale=5, loc='upper right')
+        ax[1].legend(ncol=2,    markerscale=5, loc='upper right')
+        plt.tight_layout(h_pad=0.1, w_pad=1)
+        plt.show()
+
+        return fig, ax
+
     
     #==============================================================#
     #                      MULTI CAMERA/QUARTER                    #
@@ -2382,7 +2436,7 @@ class LightCurve(object):
 
             time = time[~np.isnan(flux)]
             flux = flux[~np.isnan(flux)]
-
+            
             if suffix == 'hdf5':
                 flux /= 1e3
             
@@ -2401,14 +2455,19 @@ class LightCurve(object):
 
         # Plot quarter marks
         if len(quarters) > 1:
-            ymax = np.max(flux_max)
-            ypos = ymax + ymax * ax.margins()[1]/3
+            ax2 = ax.twiny()
+            quarters = []
+            position = []
             for q in np.unique(Q)[:]:
-                time_Q = q*ut.quarter()
-                xpos = time_Q - 50
-                if q > 9: xpos -= 10
-                ax.text(xpos, ypos, f'Q{q}', fontsize=16, zorder=10)
-                ax.axvline(x=time_Q-1/2, c='k', linestyle='--', lw=0.5, zorder=2)
+                time_Q = q * ut.quarter() - 1/2
+                xpos = time_Q - 1/2*ut.quarter()
+                quarters.append(q)
+                position.append(xpos)
+                if q != np.unique(Q)[-1]:
+                    ax.axvline(x=time_Q, c='k', linestyle='--', lw=0.5, zorder=2)
+            ax2.set_xticks(position)
+            ax2.set_xticklabels([f'Q{q}' for q in quarters])
+            ax2.set_xlim(self.time_limit(quarters))
             ax.set_xlim(self.time_limit(quarters))
         else:
             ax.set_xlim(time.iloc[0], time.iloc[-1])
@@ -2432,9 +2491,9 @@ class LightCurve(object):
               flux_contamination=False,
               flux_group_mean=False,
               flux_offset=False,
-              flux_err=False,
+              flux_error=False,
               detrend=False,
-              clip=False,
+              clip_sigma=None,
               binsize=None,
               verbose=True,
               files=None,
@@ -2471,7 +2530,10 @@ class LightCurve(object):
             Instance of the LightCurve class to be used to extract data.
         """
 
-       # Open a pandas data frame and write to it
+        # Monitor script execution time
+        tic = datetime.datetime.now()
+        
+        # Open a pandas data frame and write to it
         df0 = pd.DataFrame()
         df1 = pd.DataFrame()
         ll = 55
@@ -2483,7 +2545,7 @@ class LightCurve(object):
         ncam   = 0
         flag   = 0
         star   = Path(files[0]).stem[:9]
-
+        
         # Loop over each group and camera
         if verbose:
             print(f'Processing star ID {star}')
@@ -2542,17 +2604,252 @@ class LightCurve(object):
                 # Contatinate data frames
                 df0 = pd.concat([df0, df1])
 
-        # Sort after logic structure and reset indices
+        # Remove potential NaNs from binning
+        df0 = df0.dropna()
+
+        # Cadence [h]
+        dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
+
+        # Sort data after time stamps
         if verbose:
             print('Sorting data after timings')
-        df0 = df0.sort_values(by=["time"])
-        df0 = df0.reset_index(drop=True)
+        df0 = df0.sort_values(by="time")
+
+        # Mean fluxes from same group (i.e. same time stamp)
+        if flux_group_mean:
+            if verbose:
+                print('Averaging data from same camera group')
+            df0 = df0.groupby('time').mean().reset_index()
+                                                                    
+        # Bin data 
+        if binsize:
+            # Save number of data points in each time bin
+            tdur = df0.time.iloc[-1] - df0.time.iloc[0]
+            tbin = binsize # [s]
+            bins = int(tdur/tbin)
+            # Perform binning
+            if verbose:
+                print(f'Binning data per {binsize}s')
+            flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
+            time = time[:-1] + np.diff(time)[0]/2.
+            df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
+            # Remove potential NaNs from binning
+            df0 = df0.dropna()
+
+        # Perform signma clipping
+        if clip_sigma:
+            if verbose: print('Removing outliers')
+            # Use light curve object for clipping
+            lc  = LightCurve(df0, mode="multi", path=self.path)
+            df0 = lc.clip(model='wotan', sigma_lower=clip_sigma, sigma_upper=clip_sigma,
+                          replace=True)
+            # Remove potential NaNs
+            df0 = df0.dropna()
+            
+        # Flux offset correction
+        if flux_offset:
+            if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')
+            flux_offset = df0.flux.median() - 1
+            df0.flux   -= flux_offset        
+
+        # Add flux errors
+        if flux_error:
+            if verbose:
+                print(f'Calculating flux errors')
+            s = df0.flux.to_numpy() - 1
+            N_short = round(1 / dt)
+            N_long  = round(10 * 24 / dt)
+            s_std0  = generic_filter(s,      np.std,  N_short)
+            s_std   = generic_filter(s_std0, np.mean, N_long)
+            df0['flux_err'] = s_std
+            # DEBUG -----------------------------------
+            # t = df0.time / 86400
+            # plt.figure(figsize=(9,6))
+            # plt.plot(t, s_std0, 'k-', linewidth=1.0, label=r'$\sigma_i$')
+            # plt.plot(t, s_std,  'r-', linewidth=1.2, label=r'$\mu_i(\sigma_i)$')
+            # plt.axhline(0, linestyle=':', color='k')
+            # plt.xlabel(r'Time [days]')
+            # plt.ylabel(r'Relative uncertainty')
+            # plt.legend(loc='best', ncol=1)
+            # plt.xlim(t.iloc[0], t.iloc[-1])
+            # plt.tight_layout()
+            # plt.show()
+            # DEBUG -----------------------------------
+                            
+        # If requested save output file
+        if ofile:
+            if verbose: print('Saving light curve')
+            df0.reset_index(drop=True, inplace=True)
+            df0.to_feather(ofile)
+            os.system(f'chmod 755 {ofile}')
+            
+        if verbose:
+            toc = datetime.datetime.now()
+            print(f'Total execution time: {toc-tic} [h:mm:ss]')
+            print('-'*ll)
+
+        return LightCurve(df0, mode="multi", path=self.path)
+
+
+
+
+    def merge2(self,
+               quarter=False,
+               flux_normalise=False,
+               flux_contamination=False,
+               flux_group_mean=False,
+               flux_offset=False,
+               flux_error=False,
+               detrend=False,
+               clip_sigma=None,
+               binsize=None,
+               verbose=True,
+               files=None,
+               ofile=None,
+               suffix="ftr"):
+        """Merge light curves from a single star.
+
+        Function to merge multi-cameras and multi-quarter light curves into
+        a single pandas data frame. If requested each of light curve can be
+        detrended prior to the merge and as default Wotan detrending is used.
+        This package is good for planet transit searches, however, not so 
+        much for preserving the stellar signal.
+
+        Parameters
+        ----------
+        quarter : int
+            Mission quarter number.
+        detrend : bool
+            Whether or not detrending should be applied before merge.
+        clip : bool
+            Whether or not sigma-clipping should be applied before merge.
+        ofile : str
+            Obsolute path to output file.
+        flux_group_mean : bool
+            Whether or not to mean measurements from the same camera (i.e. identical times).
+        suffix : str
+            Suffix of simulations (either 'hdf5' or 'ftr').
+
+        Return
+        ------
+        <ofile>.ftr : pdarray
+            Output feather file with merged data if requested.
+        lc : class object
+            Instance of the LightCurve class to be used to extract data.
+        """
+
+       # Open a pandas data frame and write to it
+        df0 = pd.DataFrame()
+        df1 = pd.DataFrame()
+        ll = 55
         
+        # Fetch all zip files
+        if not files:
+            files = self.files(suffix)
+        nfiles = len(files)
+        ncam   = 0
+        flag   = 0
+        star   = Path(files[0]).stem[:9]
+        
+        # Loop over each group and camera
+        if verbose:
+            print(f'Processing star ID {star}')
+            print('-'*ll)
+            print(f'Merging {nfiles} light curves')
+            bar = tqdm(range(nfiles), bar_format=ut.tqdmBar())
+        else:
+            bar = range(nfiles)
+            
+        for i in bar:
+
+            # Fetch light curve object            
+            lc = LightCurve(files[i])
+            
+            # Fetch obs info
+            G, C, Q = lc.obs()
+
+            # Select quarter
+            if Q == quarter:
+                ncam += 1
+
+            # Create initial data frame and save to it
+            df = lc.data()
+
+            # Cadence [h]
+            dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
+
+            # Normalise if requested
+            if flux_normalise:
+                df.flux /= df.flux.median()
+
+            # Correct amplitude suppresion from stellar contamination
+            if flux_contamination:
+                SPR = lc.star().SPR.values[0]
+                df.flux = (df.flux - 1) * (1 + SPR)
+
+            # Apply long-term trend correction
+            if detrend:
+                df = lc.detrend(model=detrend, poly_degree=False, replace=True, plot=False)
+
+            # Perform signma clipping
+            if clip_sigma:
+                df = lc.clip(model='wotan', sigma_lower=clip_sigma, sigma_upper=clip_sigma,
+                             plot=False, replace=True)
+
+            # Add flux errors
+            if flux_error:
+                df = lc.flux_error(flux_unit='norm')
+                
+            # TODO clean up usage of old L1 pipeline
+            if i == 0:
+                df0['time'] = df.time
+                df0['flux'] = df.flux
+                if 'flux_err'     in df: df0['flux_err']     = df.flux_err
+                if 'flux_cor'     in df: df0['flux_cor']     = df.flux_cor
+                if 'flux_trend'   in df: df0['flux_trend']   = df.flux_trend
+                if 'flux_detrend' in df: df0['flux_detrend'] = df.flux_detrend
+                if 'flux_clip'    in df: df0['flux_clip']    = df.flux_clip
+            else:
+                df1['time'] = df.time
+                df1['flux'] = df.flux
+                if 'flux_err'     in df: df1['flux_err']     = df.flux_err
+                if 'flux_cor'     in df: df1['flux_cor']     = df.flux_cor
+                if 'flux_trend'   in df: df1['flux_trend']   = df.flux_trend
+                if 'flux_detrend' in df: df1['flux_detrend'] = df.flux_detrend
+                if 'flux_clip'    in df: df1['flux_clip']    = df.flux_clip
+                # Contatinate data frames
+                df0 = pd.concat([df0, df1])
+
+        # Remove potential NaNs from binning
+        df0 = df0.dropna()
+
+        # Cadence [h]
+        dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
+
+        # Sort data after time stamps
+        if verbose:
+            print('Sorting data after timings')
+        df0 = df0.sort_values(by="time")
+
         # If requested mean fluxes from same group (i.e. same time stamp)
         if flux_group_mean:
-            if verbose: print('Averaging data from same camera group')
-            df0 = df0.groupby('time').mean().reset_index()
-                                
+            if flux_error:
+                if verbose:
+                    print('Averaging data from same camera group with weights')
+                dx0 = df0.groupby('time')
+                flux_weight = ut.pdWeightedAverage(dx0, 'flux', 'flux_err')
+                df0 = dx0.apply(flux_weight) 
+                print(flux_weight)
+                plt.figure()
+                plt.plot(df0.time, flux)
+                plt.show()
+                
+                df0 = df0.groupby('time').apply(flux_weight)
+            else:
+                if verbose:
+                    print('Averaging data from same camera group without weights')
+                df0 = df0.groupby('time').mean().reset_index()
+        
         # Bin data 
         if binsize:
             # Save number of data points in each time bin
@@ -2565,55 +2862,15 @@ class LightCurve(object):
             flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
             time = time[:-1] + np.diff(time)[0]/2.
             df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
-            
-        # Remove potential NaNs from binning
-        df0 = df0.dropna()
-
-        # Perform signma clipping
-        if clip:
-            if verbose: print('Removing outliers')
-
-            # Perform extra sigma clipping to remove outliers
-            if clip <= 10: sigma = 5
-            elif clip > 10 and clip < 11: sigma = 4.5
-            else: sigma = 4
-
-            # Perform clipping
-            lc  = LightCurve(df0, mode="multi", path=self.path)
-            df0 = lc.clip(model='wotan', sigma_lower=sigma, sigma_upper=sigma, replace=True)
-            
-            # Remove NaNs from sigma clipping
+            # Remove potential NaNs from binning
             df0 = df0.dropna()
-        
+                                                                    
         # Flux offset correction
         if flux_offset:
             if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')
             flux_offset = df0.flux.median() - 1
             df0.flux   -= flux_offset        
-            
-        # Add flux errors
-        if flux_err:
-            if verbose: print(f'Calculating flux errors')
-            s = df0.flux.to_numpy() - 1
-            N_short = round(1/binsize)
-            N_long  = round(10*24/binsize)
-            s_std0  = generic_filter(s,      np.std,  N_short)
-            s_std   = generic_filter(s_std0, np.mean, N_long)
-            df0['flux_err'] = s_std
-            #------------------------ Debugging
-            # t = df0.time
-            # plt.figure(figsize=(9,6))
-            # plt.plot(t, s_std0, 'k-', linewidth=1.0, label=r'$\sigma_i$')
-            # plt.plot(t, s_std,  'r-', linewidth=1.2, label=r'$\mu_i(\sigma_i)$')
-            # plt.axhline(0, linestyle=':', color='k')
-            # plt.xlabel(r'Time [days]')
-            # plt.ylabel(r'Relative uncertainty')
-            # plt.legend(loc='best', ncol=1)
-            # plt.xlim(t.iloc[0], t.iloc[-1])
-            # plt.tight_layout()
-            # plt.show()
-            #------------------------ Debugging
-                
+                            
         # If requested save output file
         if ofile:
             if verbose: print('Saving light curve')
@@ -2622,10 +2879,11 @@ class LightCurve(object):
             os.system(f'chmod 755 {ofile}')
             
         if verbose:
-            print('Done!')
             print('-'*ll)
 
         return LightCurve(df0, mode="multi", path=self.path)
+
+
 
     
     def reduce_star(self,

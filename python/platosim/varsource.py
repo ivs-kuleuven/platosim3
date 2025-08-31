@@ -2486,44 +2486,35 @@ class EclipsingBinary(object):
 
         
 class SMBHB(object):
-
     """Models for Super Massive Black Hole Binaries (SMBHBs).
     """
 
-
     def __init__(self, time, seed=None):
-
         """Initialize class
         """
-        
         self.time = time
         self.seed = seed
         self.rng  = ut.rng(seed)
 
 
-        
     def __del__(self):
-
         """Destructor
         """
-
         pass
 
 
-
     def initToyModelSpikey(self):
-        
+        """Initialise toy model of Spikey.
+        """
         A   = 0.04         # [mag]
         P   = 2 * 365.25   # [days]
         phi = 0.1 * np.pi  # [rad] #np.random.uniform(low=0, high=2*np.pi) 
         tscale    = 10     # [days] #np.ones(len(max)) * 10
         amplitude = 0.08   # [mag]
-
         return
 
     
     def initToyModel(self):
-
         """Simplified description of a SMBH binary system.
 
         The model consist of two components:
@@ -2563,9 +2554,7 @@ class SMBHB(object):
         return P, A_beam, A_lens, phi_lens, tmax_lens, tdur_lens
 
 
-
     def evalLensingEvent(self, tmax=False, tscale=False, ampl=30, asym=1):
-
         """Simple analytic model for lensing event.
         
         Parameters
@@ -2624,10 +2613,8 @@ class SMBHB(object):
         # Return relative flux
         return flux * ampl + 1
 
-    
 
     def evalToyModel(self, P, A_beam, A_lens, phi, tmax, tdur):
-
         """Uniform distribution of toy model.
         """
         
@@ -2686,6 +2673,7 @@ class SMBHB(object):
             E = E_next
         raise Exception("Eccentric anomaly solver did not converge.") 
 
+    
     def rv_semiamplitude(self, T, M1, M, q, a, i, e):
         """The RV semi-amplitude of secondary
         """
@@ -2693,16 +2681,19 @@ class SMBHB(object):
         K1 = q * K2
         return K1, K2
 
+    
     def r_ISCO(self, M):
         """Radius of innermost stable circular orbit (ISCO) [cm].
         """
         return 6 * c.G.cgs.value * M / c.c.cgs.value**2
 
+    
     def accretion_rate(self, M, radiative_efficiency=0.1):
         """Accretion rate.
         """
         return 2.26e-2 * (radiative_efficiency/0.1)**-1 * (M/10**6) / ut.year()
 
+    
     def temperature_disc(self, q, r, M):
         """Temperature profile of accretion disc [K].
         """
@@ -2712,6 +2703,7 @@ class SMBHB(object):
         power    = 3 * c.G.cgs.value * q * M_g / (1 + q) / (8 * np.pi * r**3) * acc_rate
         return (power / c.sigma_sb.cgs.value)**0.25  
 
+    
     def planck_wavelength(self, wvl, T):
         """Planck wavelength for given temperature [cm].
         """
@@ -2720,6 +2712,7 @@ class SMBHB(object):
         denominator = wvl**5 * (np.exp(exponent) - 1)
         return numerator / denominator
 
+    
     def flux(self, wvl, r, q, M, T):
         """Flux from accretion disc [erg / s].
         """
@@ -2728,12 +2721,14 @@ class SMBHB(object):
         condition2 = np.pi * self.planck_wavelength(wvl, self.temperature_disc(q, r, M))
         return np.where(condition1, condition2, 0)
 
+    
     def schwarzchild_radius(self):
         """Schwarzchild radius of primary and secondary [cm].
         """
         RS1 = 2 * c.G.cgs * self.M.cgs / ((1 + self.q) * c.c.cgs**2)
         RS2 = 2 * c.G.cgs * self.M.cgs * self.q / ((1 + self.q) * c.c.cgs**2)
         return RS1, RS2
+
     
     def einstein_radius(self, phi1, phi2, I):
         """Einstein radius of primary and secondary [cm].
@@ -2744,21 +2739,21 @@ class SMBHB(object):
         RE2 = np.sqrt(const * RS2.value * np.sin(phi2))
         return RE1, RE2
 
-    def position_uv(self, phi1, phi2, I):
+    
+    def position_uv(self, phi1, phi2, I, e, E):
         """Relative position of primary and secondary in uv plane.
         """
-        x = self.e * np.cos(self.w.value)
-        #x = np.sqrt((1+self.e)/(1-self.e))
-        #print(x)
+        x = 1 #(1 - e * np.cos(E))
         if 0 < phi1 < np.pi:
             phase_u = np.sqrt(np.cos(phi1)**2 + np.sin(I)**2 * np.sin(phi1)**2)
-            u_0 = self.a.value * phase_u / self.einstein_radius(phi1, phi2, I)[0] #/ x
+            u_0 = self.a.value * phase_u / self.einstein_radius(phi1, phi2, I)[0] * x
         else:
             phase_u = np.sqrt(np.cos(phi2)**2 + np.sin(I)**2 * np.sin(phi2)**2)
-            u_0 = self.a.value * phase_u / self.einstein_radius(phi1, phi2, I)[1] #/ x
+            u_0 = self.a.value * phase_u / self.einstein_radius(phi1, phi2, I)[1] * x
         v_0 = np.arctan(np.sin(I) * np.tan(phi1))
         return u_0, v_0 
 
+    
     def radius(self, u, v, u_0, v_0, r_E, J):
         """Radius in lens-centered polar coordinates.
         """
@@ -2769,6 +2764,7 @@ class SMBHB(object):
         r = r_star * np.sqrt(np.cos(theta)**2 + np.sin(theta)**2 / np.cos(np.pi/2 - J)**2)
         return r
 
+    
     def magnification_finite(self, flux, u_grid, delta_u, delta_v):
         """Magnification for finite source limit.
         """        
@@ -2776,13 +2772,15 @@ class SMBHB(object):
         numer = np.sum(flux * M_point_u * delta_u * delta_v)
         denom = np.sum(flux * u_grid * delta_u * delta_v)
         return numer / denom
+
     
     def magnification_point(self, u):
         """Magnification of point source limit.
         """            
         return (u**2 + 2) / (u * np.sqrt(u**2 + 4))
 
-    def lensing(self, time, wvl_cm, z, T, I, J, M, q, u_max=5, u_grid=100, v_grid=100):
+    
+    def lensing(self, time, wvl_cm, z, T, I, e, w, J, M, q, u_max, u_grid, v_grid):
         """Function to evaluate gravitation self-lensing model.
         """
         # Grid for accretion disc 
@@ -2797,8 +2795,23 @@ class SMBHB(object):
         M1_ps = np.ones(N)
         M2_ps = np.ones(N)
         M_fs = np.ones(N)
-        
-        for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+
+        # Find the true anomaly using mean anomaly [rad]
+        f_mean = 2 * np.pi * time / T * u.rad
+        E = self.eccentric_anomaly(f_mean, e).value
+        f = 2 * np.arctan(np.sqrt((1 + e) / (1 - e)) * np.tan(E/2))
+
+        ab = (1+e)/(1-e)
+        print(ab)
+        print(np.sqrt(ab))
+        plt.figure()
+        plt.plot(time, f_mean)
+        plt.plot(time, E)
+        plt.plot(time, f)
+        plt.show()
+        exit()
+        #for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+        for i in range(N):
 
             # Convert to phase space
             phase = time[i] / T
@@ -2806,7 +2819,7 @@ class SMBHB(object):
             phi2 = phi1 - np.pi
 
             # Find position in uv plane
-            u_0, v_0 = self.position_uv(phi1, phi2, I)
+            u_0, v_0 = self.position_uv(phi1, phi2, I, e, E[i])
 
             # Einstein radii
             RE1, RE2  = self.einstein_radius(phi1, phi2, I)
@@ -2899,7 +2912,7 @@ class SMBHB(object):
 
     
     def doppler_boosting(self, t0, z, P, M1, M2, i, e, w, alpha, f_lum, v_z=0, plot=False):
-        """Signal from Doppler boosting effect.
+        """Model relativistic Doppler boosting.
 
         This function initialise the Doppler boosting model of a
         two-body gravitationally bound system.
@@ -2955,6 +2968,7 @@ class SMBHB(object):
         # The RV semi-amplitude of secondary [m/s]
         K1, K2 = self.rv_semiamplitude(T, M1, self.M, self.q, a, i, e)
 
+        # Show parameters to screen
         if plot:
             ut.errorcode('message', 'Model parameters:')
             print(f'Time of ephemeris, t0              : {t0.to("yr"):.3f}')
@@ -2973,7 +2987,7 @@ class SMBHB(object):
         f_mean = 2 * np.pi * (self.time - t0) / T * u.rad
         E = self.eccentric_anomaly(f_mean, e)
         f = 2 * np.arctan(np.sqrt((1 + e) / (1 - e)) * np.tan(E/2))
-        
+         
         # (Murray & Correria, 2010) [m/s]
         # Projection of the velocity vector on to the line of sight.
         # NOTE Minus sign is introduced here as the RV is defined to be
@@ -2982,9 +2996,9 @@ class SMBHB(object):
         RV2 = v_z - K2 * (np.cos(w + f) + e * np.cos(w))    
 
         # (Charisi et al. 2018) [pp1]
-        self.D1 = (3 - alpha) * RV1 / c.c + 1 
-        self.D2 = (3 - alpha) * RV2 / c.c + 1
-        self.D = (1 - f_lum) * self.D1**(3 - alpha) + f_lum * self.D2**(3 - alpha)
+        self.D1 = (3 - alpha) * RV1/c.c * np.sin(i) * 2 + 1 
+        self.D2 = (3 - alpha) * RV2/c.c * np.sin(i) * 2 + 1
+        self.D  = (1 - f_lum) * self.D1 + f_lum * self.D2
 
         if plot:
             t = self.time.to('d').value #/ T.to('d').value
@@ -3002,9 +3016,9 @@ class SMBHB(object):
 
     
     def gravitational_lensing(self, t0, z, P, M1, M2, I, e, w, 
-                              J, wvl=550, u_max=10, u_grid=500, v_grid=500,
+                              J, wvl=550, u_max=10, u_grid=100, v_grid=100,
                               plot=False):
-        """Initialise gravitational self-lensing model.
+        """Model gravitational self-lensing.
 
         This function calculates the magnification of a SMBHB binary pair
         accretion discs during their orbital phase. The model return both
@@ -3084,21 +3098,21 @@ class SMBHB(object):
         t0 = self.t0.value
 
         # Calculate magnifications
-        M1_ps, M2_ps = self.lensing(time, wvl, z, T, I, J, M, q, u_max, u_grid, v_grid)
-
+        M1_ps, M2_ps = self.lensing(time, wvl, z, T, I, e, w, J, M, q, u_max, u_grid, v_grid)
+        
         # Extend and interpolate
         self.M1_ps = self.extend_observation(time, t0, t_dur, T, M1_ps)
         self.M2_ps = self.extend_observation(time, t0, t_dur, T, M2_ps)
         self.M_ps  = self.M1_ps * self.M2_ps
         
         if plot:
-            t = self.time.to('yr').value
+            t = self.time.to('d').value
             plt.figure(figsize=(9,5))
             plt.plot(t, self.M1_ps, ':',  c='royalblue', label=r"$\mathcal{M}_1^{\rm PS}$")
             plt.plot(t, self.M2_ps, '-.', c='royalblue', label=r"$\mathcal{M}_2^{\rm PS}$")
             plt.plot(t, self.M_ps,  '-',  c='royalblue', label=r'$\mathcal{M}^{\rm PS}$')
             # plt.plot(time, M_finit, '--', c=cols[2], label='Finite')
-            plt.xlabel(r"Time [yr]")
+            plt.xlabel(r"Time [day]")
             plt.ylabel(r"Relative flux")
             plt.xlim(0, t[-1])
             plt.legend()
@@ -3110,15 +3124,21 @@ class SMBHB(object):
     def evalPhysicalModel(self, plot=False):
         """Evaluate physical SMBH binary model.
         """
-        a = 3 - self.alpha
-        DM1 = (1 - self.f_lum) * self.D1**a * self.M1_ps
-        DM2 = self.f_lum * self.D2**a * self.M2_ps
-        flux = (self.Q - 1) + DM1 + DM2
+        t = self.time.to('d').value
+        try:
+            Q = self.Q
+        except:
+            Q = np.ones_like(t)
+            
+        alpha3 = 3 - self.alpha
+        DM1 = (1 - self.f_lum) * self.D1 * self.M1_ps
+        DM2 =      self.f_lum  * self.D2 * self.M2_ps
+        flux = (Q - 1) + DM1 + DM2
+        #flux = + DM1 + DM2
 
         if plot:
-            t = self.time.to('d').value
             fig = plt.figure(figsize = (9, 5))
-            plt.plot(t, self.Q,    color='tomato',    label="DRW",      lw=0.8)
+            plt.plot(t, Q,         color='tomato',    label="DRW",      lw=0.8)
             plt.plot(t, self.D,    color='orange',    label="Beaming",  lw=2)
             plt.plot(t, self.M_ps, color='royalblue', label="Lensing",  lw=2)
             plt.plot(t, flux,      color='k',         label="Combined", lw=0.8)
