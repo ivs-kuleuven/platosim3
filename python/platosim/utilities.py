@@ -432,14 +432,23 @@ def votable2pandas(votable):
 
     """Function to convert a votable to a pandas data frame.
 
-    From: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
+    Resource: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
     """
 
     table = votable.get_first_table().to_table(use_names_over_ids=True)
-
     return table.to_pandas()
 
-    
+
+def pdWeightedAverage(df, value, weight):
+
+    """Function to calculate a weighted average
+    """    
+
+    val = df[value]
+    wt  = df[weight]
+    return (val * wt).sum() / wt.sum()
+
+
 #--------------------------------------------------------------#
 #                       NUMPY OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -519,7 +528,6 @@ def convolve(data0, filtertype, n):
 
 
 
-
 def normalize(signal, factor=1e6, length=-1):
 
     """Normalize a signal with the option to factorize it.
@@ -540,9 +548,8 @@ def normalize(signal, factor=1e6, length=-1):
         Normalized relative signal is returned. Default unit in [ppm].
     """
 
-    relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
+    return (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
-    return relative_signal
 
 
 
@@ -1137,7 +1144,7 @@ def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal', stage='dwa
 
 
     
-def getPointingField(name, unit='deg'):
+def getPointingField(name, unit='deg', system='icrs'):
 
     """Function to fetch pointing field coordinates.
 

@@ -1261,10 +1261,15 @@ def compass(ax, x, y, size):
 
             
 def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
+                 # Settings without colorbar
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1,
+                 # Setting with colorbar
                  c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
-                 showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
-                 title=None, fs=20, figsize=(9,9)):
+                 # Seeting for add-ons
+                 ncamStars=False, ncamMap='PIC', showGalactic=False, 
+                 showGroups=False, showFcamFOV=False,
+                 # General settings
+                 showLegend=False, title=None, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1320,64 +1325,87 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     # Select field [deg]
 
     alpha, delta, kappa = ut.getPointingField(pointingField) 
-
-    if system == 'icrs':
-        PF = SkyCoord(alpha, delta, frame='icrs', unit='deg')
+    PF = SkyCoord(alpha, delta, frame='icrs', unit='deg')
+    if system == 'icrs':    
         view = 'astro'
+        xPF, yFP = PF.ra.deg, PF.dec.deg
     elif system == 'galactic':
-        PF = SkyCoord(alpha, delta, frame='galactic', unit='deg')
         view = system
-
-    # START PLOT
+        PF = PF.transform_to(system)
+        xPF, yPF = PF.l.deg, PF.b.deg
+        
+    # Define figure
     
     fig = plt.figure(figsize=figsize)
     ax = plt.axes(projection=f'{view} degrees zoom', center=PF,
                   radius=f'{fovSize} deg', rotate='180 deg')
-        
-    # Load PIC stars for each N-CAM visibility
+    tax = ax.get_transform('world')
+
+
+    # ax.text(340, 670, 'LOPS2', horizontalalignment='center', verticalalignment='center', fontsize=17)
+    # plt.plot()
+    # exit()
+    
+    # Plot N-CAM visibility flower
 
     if ncamStars is not False:
 
+        # Load PIC target stars
         if isinstance(ncamStars, pd.DataFrame):
             df = ncamStars
         else:
             idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-            df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
-
+            if ncamMap == 'PIC':
+                df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+            elif ncamMap == 'PLATO-CS':
+                df = pd.read_feather(f'{idir}/starcat_PlatoCS_NCAM_{pointingField}.ftr')
+                df = df.loc[::5]
+            
         # Backward compatible
         try:
             ncam = df.ncam
         except AttributeError:
             ncam = df.ncams
-            
+
+        # Define each visibility
         PF06 = df[ncam == 6]
         PF12 = df[ncam == 12]
         PF18 = df[ncam == 18]
         PF24 = df[ncam == 24]
-
-        starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame=system, unit='deg')
-        starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame=system, unit='deg')
-        starPF18 = SkyCoord(PF18.ra*u.deg, PF18.dec*u.deg, frame=system, unit='deg')
-        starPF24 = SkyCoord(PF24.ra*u.deg, PF24.dec*u.deg, frame=system, unit='deg')
-
+        starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame='icrs', unit='deg')
+        starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame='icrs', unit='deg')
+        starPF18 = SkyCoord(PF18.ra*u.deg, PF18.dec*u.deg, frame='icrs', unit='deg')
+        starPF24 = SkyCoord(PF24.ra*u.deg, PF24.dec*u.deg, frame='icrs', unit='deg')
         if system == "icrs":
             x06, y06 = starPF06.ra.deg, starPF06.dec.deg
             x12, y12 = starPF12.ra.deg, starPF12.dec.deg
             x18, y18 = starPF18.ra.deg, starPF18.dec.deg
             x24, y24 = starPF24.ra.deg, starPF24.dec.deg
         elif system == "galactic":
+            starPF06 = starPF06.transform_to(system)
+            starPF12 = starPF12.transform_to(system)
+            starPF18 = starPF18.transform_to(system)
+            starPF24 = starPF24.transform_to(system)
             x06, y06 = starPF06.l.deg, starPF06.b.deg
             x12, y12 = starPF12.l.deg, starPF12.b.deg
             x18, y18 = starPF18.l.deg, starPF18.b.deg
             x24, y24 = starPF24.l.deg, starPF24.b.deg
     
         # Plot PIC1.1.0 stars after N-CAM visibility
-        t = ax.get_transform(system)
-        ax.plot(x06, y06, '.', c='skyblue',     transform=t, ms=ms, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=t, ms=ms, zorder=2)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=t, ms=ms, zorder=3)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=t, ms=ms, zorder=4)
-    
+        ax.plot(x06, y06, '.', c='skyblue',     transform=tax, ms=ms, zorder=1)
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=tax, ms=ms, zorder=1)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=tax, ms=ms, zorder=1)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=tax, ms=ms, zorder=1)
+
+    # Plot transparent layer of Galactic footprint
+
+    if showGalactic:
+        # Convert to galactic coordinates
+        starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
+        starPF = starPF.transform_to('galactic')
+        ax.scatter(starPF.l.deg, starPF.b.deg, transform=ax.get_transform('world'),
+                   s=2, alpha=0.01, marker='.', c='k', ec='none', zorder=2)
+        
     # Plot stars and add legend scaled to the stellar magnitudes
     
     if magStars is not None and len(magStars) > 0:
@@ -1396,48 +1424,60 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     # Plot all stars
 
     if raStars is not None:
-        starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
+        starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame='icrs', unit='deg')
+
+        # Select system
+        if system == 'icrs':
+            xStarPF, yStarPF = starPF.ra.deg, starPF.dec.deg
+        elif system == 'galactic':
+            starPF = starPF.transform_to(system)
+            xStarPF, yStarPF = starPF.l.deg, starPF.b.deg
+
+        # Plot
         if c is None:
-            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
-                                 transform=ax.get_transform('world'), 
-                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=lw, zorder=5)
+            scatter = ax.scatter(xStarPF, yStarPF, s=dm, c=color, alpha=aa,
+                                 transform=tax, marker=mark, ec='k', lw=lw, zorder=5)
         else:
-            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
-                                 transform=ax.get_transform('world'), 
-                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=lw, zorder=5)
+            scatter = ax.scatter(xStarPF, yStarPF, s=s, c=c, cmap=cmap,
+                                 transform=tax, marker=mark, ec='k', lw=lw, zorder=5)
             cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
             cbar.set_label(clabel)
-
+                
     # Plot pointing of each camera group
 
     if showGroups:
-
-        # Show N-CAM groups
+        # Fetch pointing of N-CAM groups
         raGroups, decGroups = rf.getCameraGroupCoordinates(np.deg2rad(alpha),
                                                            np.deg2rad(delta),
                                                            np.deg2rad(kappa))
-        camPointing = SkyCoord(np.rad2deg(raGroups)*u.deg,
-                               np.rad2deg(decGroups)*u.deg,
-                               frame='icrs', unit='deg')
-        for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
-            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=10, color=c,
-                    mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
+        ncamPointing = SkyCoord(np.rad2deg(raGroups)*u.deg,
+                                np.rad2deg(decGroups)*u.deg,
+                                frame='icrs', unit='deg')
         
-        # Plot pointing F-CAM group (i.e. platform pointing)
-        ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=20,
-                transform=ax.get_transform('world'), zorder=6)
+        # Plot pointing of each camera group
+        msGroups = 8
+        for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
+            if system == 'icrs':
+                ncamX, ncamY = ncamPointing[i].ra.deg, ncamPointing[i].dec.deg
+            elif system == 'galactic':
+                ncamPointing = ncamPointing.transform_to(system)
+                ncamX, ncamY = ncamPointing[i].l.deg, ncamPointing[i].b.deg
+            ax.plot(ncamX, ncamY, 'o', c=c, mec='k', ms=msGroups,
+                    transform=tax, zorder=6, label=f'Group {i+1}')
+        ax.plot(xPF, yPF, '*', c='magenta', mec='k',
+                ms=msGroups+8, transform=tax, zorder=6)
 
     # Plot F-CAM FOV as cicle 
         
     if showFcamFOV:
-        ax.scatter(PF.ra.deg, PF.dec.deg, s=13.2e4, marker='o',
-                   edgecolor='magenta', facecolor='none', linewidth=2,
+        ax.scatter(xPF, yPF, s=8e4, marker='o',
+                   edgecolor='magenta', facecolor='none', linewidth=1.5,
                    transform=ax.get_transform(system), zorder=6)
 
     # Add-on's
     
-    ax.scalebar((0.05, 0.05), 10 * u.deg).label()
-    ax.compass(0.95, 0.05, 0.1)
+    ax.scalebar((0.03, 0.03), 10 * u.deg).label()
+    ax.compass(0.97, 0.03, 0.1)
     ax.grid(color='gray')
     
     # Settings
@@ -1445,9 +1485,13 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     if showLegend and showGroups:
         ax.legend(loc='upper right')    
     if title is not None:
-        ax.set_title(title, fontsize=fs+2, pad=10)        
-    ax.set_xlabel('RA',  fontsize=fs)
-    ax.set_ylabel('Dec', fontsize=fs)
+        ax.set_title(title, fontsize=fs+2, pad=10)
+    if system == 'icrs':        
+        xlab, ylab = 'RA', 'Dec'
+    elif system == 'galactic':
+        xlab, ylab = r'Longitude, $l$', 'Latitude, $b$'
+    ax.set_xlabel(xlab, fontsize=fs)
+    ax.set_ylabel(ylab, fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
     ax.tick_params(axis='both', labelsize=fs)
