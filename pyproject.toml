@@ -1,34 +1,32 @@
 [tool.poetry]
 name = "platosim"
-version = "3.6.1"
+version = "3.7.0"
 description = "PlatoSim: An end-to-end PLATO camera simulator"
 authors = ["KU Leuven and the PlatoSim team <nicholas.jannsen@kuleuven.be>"]
 readme = "README.md"
 packages = [{include = "python/platosim"}]
 
 [tool.poetry.dependencies]
-python = ">=3.9,<4.0"
+python = ">=3.11,<4.0"
 pyaml = "^21.10.1"
 h5py = "^3.6.0"
 tqdm = "^4.65.0"
 colorama = "^0.4.4"
-pyqt5 = "5.15.2"
 prettytable = "^3.2.0"
 descartes = "^1.1.0"
-Shapely = "^1.8.1"
+Shapely = "^2.0.0"
 DateTime = "^4.4"
 numpy = "^1.22.3"
 pandas = "^1.4.1"
-scipy = "^1.3.0"
+scipy = "^1.15.0"
 scikit-image = "^0.19.2"
-astropy = "^5.2"
+astropy = "^6.0"
 matplotlib = "^3.5.1"
 ipywidgets = "^8.0.2"
 notebook = ">=6.4.6,<6.4.7"
 jupyter-client = "7.3.2"
 traitlets = "5.9.0"
 tornado = "6.1.0"
-# NOTE: jupyter-client and tornado froozen versions for speed
 
 [tool.poetry.group.platonium]
 optional = true
@@ -48,8 +46,7 @@ PyAstronomy = "^0.17.1"
 statsmodels = "^0.13.5"
 joblib = "^1.3.2"
 lmfit = "^1.2.2"
-"ligo.skymap" = "2.0.0"
-#"ligo.skymap" = "^0.6.1"
+"ligo.skymap" = "2.4.1rc1"
 
 [tool.poetry.group.exomoon]
 optional = true
@@ -63,7 +60,6 @@ optional = true
 [tool.poetry.group.pipeline.dependencies]
 Cython = "^0.29.28"
 mpi4py = "^3.1.3"
-#PyQt5 = "^5.15.6"
 
 [tool.poetry.group.docs]
 optional = true
@@ -77,8 +73,9 @@ optional = true
 pyxel-sim = "^1.9.1"
 cosmix = "^0.2"
 
-[tool.poetry.dev-dependencies]
+[poetry.group.dev.dependencies]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
