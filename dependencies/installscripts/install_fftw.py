@@ -8,7 +8,7 @@ import os,sys,shutil,subprocess
 
 # Specify the dependency package name
 
-packageName = "fftw-3.3.4"
+packageName = "fftw-3.3.10"
 
 # Specify build and install folders
 
