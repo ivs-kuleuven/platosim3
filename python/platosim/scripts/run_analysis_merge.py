@@ -36,6 +36,8 @@ man_group.add_argument('odir',   type=str, help='Output directory to save analys
 opt_group = parser.add_argument_group('OPTIONAL PARAMETERS')
 opt_group.add_argument('--bin_size',   metavar='FLOAT', type=float, help='Time bin size [sec]')
 opt_group.add_argument('--clip_sigma', metavar='FLOAT', type=float, help='Sigma-clip threshold')
+opt_group.add_argument('--gaps',          action='store_true', help='Use instrumentGAP.tab file')
+opt_group.add_argument('--flux_err',      action='store_true', help='Calculate flux errors')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
 
@@ -43,7 +45,9 @@ args = parser.parse_args()
 
 # User defined parameters
 verbose   = args.verbose
-bin_size  = args.bin_size / 3600  # [hours]
+bin_size  = args.bin_size
+gaps      = args.gaps
+flux_err  = args.flux_err
 
 # File paths
 star = f'{args.starID}'.zfill(9)
@@ -55,7 +59,6 @@ odir_table = odir / 'table'
 errorcode('software', f'\nReducing star {star}')
 
 # Create output directory
-# Create folders
 odir_final.mkdir(parents=True, exist_ok=True)
 odir_table.mkdir(parents=True, exist_ok=True)
 os.system(f'chmod 755 {odir_final}')
@@ -85,10 +88,10 @@ lc = lcs.merge(suffix='ftr',
                binsize=bin_size,
                clip_sigma=clip_sigma,
                flux_offset=True,
-               flux_err=True)
+               flux_err=flux_err)
 
 # Introducing data gaps
-if filename_gap.is_file():
+if gaps and filename_gap.is_file():
     if args.verbose:
         print('Introducing data gaps')
     df = lc.gaps(filename_gap, replace=True)
