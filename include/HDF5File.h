@@ -46,10 +46,10 @@ class HDF5File
         virtual void writeAttribute(string groupName, string attributeName, vector<double> attributeValue);
         virtual void writeAttribute(string groupName, string attributeName, vector<int> attributeValue);
 
-        virtual void writeArray(string groupName, string arrayName, int*          array, int size);
-        virtual void writeArray(string groupName, string arrayName, unsigned int* array, int size);
-        virtual void writeArray(string groupName, string arrayName, float*        array, int size);
-        virtual void writeArray(string groupName, string arrayName, double*       array, int size);
+        virtual void writeArray(string groupName, string arrayName, int*          array, hsize_t size);
+        virtual void writeArray(string groupName, string arrayName, unsigned int* array, hsize_t size);
+        virtual void writeArray(string groupName, string arrayName, float*        array, hsize_t size);
+        virtual void writeArray(string groupName, string arrayName, double*       array, hsize_t size);
         template<typename T>
         void writeArray(string groupName, string arrayName, arma::Mat<T>& A);
         template<typename T>
