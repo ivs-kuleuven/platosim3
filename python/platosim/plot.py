@@ -3134,8 +3134,15 @@ def plotVarsimLC(lc, figsize=False):
     # Start plotting
     fig, ax = plt.subplots(n, 1, figsize=figsize, sharex=True)
 
+    if lc.flux.abs().max() > 0.01:
+        norm = 1e3
+        lab  = 'ppt'
+    else:
+        norm = 1e6
+        lab  = 'ppm'
+    
     for i,signal in zip(range(n), lc.columns[1:]):
-        flux = (lc[signal] - 1) * 1e6
+        flux = (lc[signal] - 1) * norm
         if signal == 'flux':
             ax[i].plot(time, flux, '-', c='k', label='Combined')
         else:
@@ -3144,7 +3151,7 @@ def plotVarsimLC(lc, figsize=False):
         ax[i].legend(loc="upper right")
 
     plt.xlabel('Time [days]')
-    fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')    
+    fig.text(0.01, 0.5, f'Relative flux [{lab}]', va='center', rotation='vertical')    
     plt.tight_layout(h_pad=0.0, w_pad=1)
     
     return fig, ax
