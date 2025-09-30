@@ -2369,7 +2369,6 @@ class LightCurve(object):
     #                      MULTI CAMERA/QUARTER                    #
     #==============================================================#
 
-
     def folders(self):
 
         """Fetch list of folders.
@@ -2490,10 +2489,12 @@ class LightCurve(object):
               flux_normalise=False,
               flux_contamination=False,
               flux_group_mean=False,
+              flux_stitch=False,
               flux_offset=False,
               flux_error=False,
               detrend=False,
               clip_sigma=None,
+              stitch_segment=None,
               binsize=None,
               verbose=True,
               files=None,
@@ -2604,17 +2605,13 @@ class LightCurve(object):
                 # Contatinate data frames
                 df0 = pd.concat([df0, df1])
 
-        # Remove potential NaNs from binning
-        df0 = df0.dropna()
-
-        # Cadence [h]
-        dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
-
         # Sort data after time stamps
         if verbose:
             print('Sorting data after timings')
         df0 = df0.sort_values(by="time")
-
+        df0 = df0.dropna()
+        df0 = df0.reset_index(drop=True)
+        
         # Mean fluxes from same group (i.e. same time stamp)
         if flux_group_mean:
             if verbose:
@@ -2639,12 +2636,15 @@ class LightCurve(object):
         # Perform signma clipping
         if clip_sigma:
             if verbose: print('Removing outliers')
-            # Use light curve object for clipping
             lc  = LightCurve(df0, mode="multi", path=self.path)
             df0 = lc.clip(model='wotan', sigma_lower=clip_sigma, sigma_upper=clip_sigma,
                           replace=True)
-            # Remove potential NaNs
             df0 = df0.dropna()
+
+        if stitch_segment:
+            if verbose: print('Stitching flux jumps')
+            lc = LightCurve(df0, mode="multi", path=self.path)
+            df0 = lc.stitch(method='lowess', segment=stitch_segment, replace=True)
             
         # Flux offset correction
         if flux_offset:
@@ -2656,6 +2656,8 @@ class LightCurve(object):
         if flux_error:
             if verbose:
                 print(f'Calculating flux errors')
+            # Cadence [h]
+            dt = (df0.time.iloc[1] - df0.time.iloc[0]) / 3600
             s = df0.flux.to_numpy() - 1
             N_short = round(1 / dt)
             N_long  = round(10 * 24 / dt)
@@ -2689,201 +2691,6 @@ class LightCurve(object):
             print('-'*ll)
 
         return LightCurve(df0, mode="multi", path=self.path)
-
-
-
-
-    def merge2(self,
-               quarter=False,
-               flux_normalise=False,
-               flux_contamination=False,
-               flux_group_mean=False,
-               flux_offset=False,
-               flux_error=False,
-               detrend=False,
-               clip_sigma=None,
-               binsize=None,
-               verbose=True,
-               files=None,
-               ofile=None,
-               suffix="ftr"):
-        """Merge light curves from a single star.
-
-        Function to merge multi-cameras and multi-quarter light curves into
-        a single pandas data frame. If requested each of light curve can be
-        detrended prior to the merge and as default Wotan detrending is used.
-        This package is good for planet transit searches, however, not so 
-        much for preserving the stellar signal.
-
-        Parameters
-        ----------
-        quarter : int
-            Mission quarter number.
-        detrend : bool
-            Whether or not detrending should be applied before merge.
-        clip : bool
-            Whether or not sigma-clipping should be applied before merge.
-        ofile : str
-            Obsolute path to output file.
-        flux_group_mean : bool
-            Whether or not to mean measurements from the same camera (i.e. identical times).
-        suffix : str
-            Suffix of simulations (either 'hdf5' or 'ftr').
-
-        Return
-        ------
-        <ofile>.ftr : pdarray
-            Output feather file with merged data if requested.
-        lc : class object
-            Instance of the LightCurve class to be used to extract data.
-        """
-
-       # Open a pandas data frame and write to it
-        df0 = pd.DataFrame()
-        df1 = pd.DataFrame()
-        ll = 55
-        
-        # Fetch all zip files
-        if not files:
-            files = self.files(suffix)
-        nfiles = len(files)
-        ncam   = 0
-        flag   = 0
-        star   = Path(files[0]).stem[:9]
-        
-        # Loop over each group and camera
-        if verbose:
-            print(f'Processing star ID {star}')
-            print('-'*ll)
-            print(f'Merging {nfiles} light curves')
-            bar = tqdm(range(nfiles), bar_format=ut.tqdmBar())
-        else:
-            bar = range(nfiles)
-            
-        for i in bar:
-
-            # Fetch light curve object            
-            lc = LightCurve(files[i])
-            
-            # Fetch obs info
-            G, C, Q = lc.obs()
-
-            # Select quarter
-            if Q == quarter:
-                ncam += 1
-
-            # Create initial data frame and save to it
-            df = lc.data()
-
-            # Cadence [h]
-            dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
-
-            # Normalise if requested
-            if flux_normalise:
-                df.flux /= df.flux.median()
-
-            # Correct amplitude suppresion from stellar contamination
-            if flux_contamination:
-                SPR = lc.star().SPR.values[0]
-                df.flux = (df.flux - 1) * (1 + SPR)
-
-            # Apply long-term trend correction
-            if detrend:
-                df = lc.detrend(model=detrend, poly_degree=False, replace=True, plot=False)
-
-            # Perform signma clipping
-            if clip_sigma:
-                df = lc.clip(model='wotan', sigma_lower=clip_sigma, sigma_upper=clip_sigma,
-                             plot=False, replace=True)
-
-            # Add flux errors
-            if flux_error:
-                df = lc.flux_error(flux_unit='norm')
-                
-            # TODO clean up usage of old L1 pipeline
-            if i == 0:
-                df0['time'] = df.time
-                df0['flux'] = df.flux
-                if 'flux_err'     in df: df0['flux_err']     = df.flux_err
-                if 'flux_cor'     in df: df0['flux_cor']     = df.flux_cor
-                if 'flux_trend'   in df: df0['flux_trend']   = df.flux_trend
-                if 'flux_detrend' in df: df0['flux_detrend'] = df.flux_detrend
-                if 'flux_clip'    in df: df0['flux_clip']    = df.flux_clip
-            else:
-                df1['time'] = df.time
-                df1['flux'] = df.flux
-                if 'flux_err'     in df: df1['flux_err']     = df.flux_err
-                if 'flux_cor'     in df: df1['flux_cor']     = df.flux_cor
-                if 'flux_trend'   in df: df1['flux_trend']   = df.flux_trend
-                if 'flux_detrend' in df: df1['flux_detrend'] = df.flux_detrend
-                if 'flux_clip'    in df: df1['flux_clip']    = df.flux_clip
-                # Contatinate data frames
-                df0 = pd.concat([df0, df1])
-
-        # Remove potential NaNs from binning
-        df0 = df0.dropna()
-
-        # Cadence [h]
-        dt = (df.time.iloc[1] - df.time.iloc[0]) / 3600
-
-        # Sort data after time stamps
-        if verbose:
-            print('Sorting data after timings')
-        df0 = df0.sort_values(by="time")
-
-        # If requested mean fluxes from same group (i.e. same time stamp)
-        if flux_group_mean:
-            if flux_error:
-                if verbose:
-                    print('Averaging data from same camera group with weights')
-                dx0 = df0.groupby('time')
-                flux_weight = ut.pdWeightedAverage(dx0, 'flux', 'flux_err')
-                df0 = dx0.apply(flux_weight) 
-                print(flux_weight)
-                plt.figure()
-                plt.plot(df0.time, flux)
-                plt.show()
-                
-                df0 = df0.groupby('time').apply(flux_weight)
-            else:
-                if verbose:
-                    print('Averaging data from same camera group without weights')
-                df0 = df0.groupby('time').mean().reset_index()
-        
-        # Bin data 
-        if binsize:
-            # Save number of data points in each time bin
-            tdur = df0.time.iloc[-1] - df0.time.iloc[0]
-            tbin = binsize # [s]
-            bins = int(tdur/tbin)
-            # Perform binning
-            if verbose:
-                print(f'Binning data per {binsize}h')
-            flux, time, _= binned_statistic(df0.time, df0.flux, statistic='median', bins=bins)
-            time = time[:-1] + np.diff(time)[0]/2.
-            df0 = pd.DataFrame(np.transpose([time, flux]), columns=['time', 'flux'])
-            # Remove potential NaNs from binning
-            df0 = df0.dropna()
-                                                                    
-        # Flux offset correction
-        if flux_offset:
-            if verbose: print(f'Corrrecting flux offset of {flux_offset:.1f} ppm')
-            flux_offset = df0.flux.median() - 1
-            df0.flux   -= flux_offset        
-                            
-        # If requested save output file
-        if ofile:
-            if verbose: print('Saving light curve')
-            df0.reset_index(drop=True, inplace=True)
-            df0.to_feather(ofile)
-            os.system(f'chmod 755 {ofile}')
-            
-        if verbose:
-            print('-'*ll)
-
-        return LightCurve(df0, mode="multi", path=self.path)
-
-
 
     
     def reduce_star(self,

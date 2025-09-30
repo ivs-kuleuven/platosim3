@@ -2736,7 +2736,9 @@ class SMBHB(object):
         RS1, RS2 = self.RS
         const = 2 * self.a.value * np.cos(I)
         RE1 = np.sqrt(const * RS1.value * np.sin(phi1))
-        RE2 = np.sqrt(const * RS2.value * np.sin(phi2))
+        RE2 = np.sqrt(const * RS2.value * np.sin(phi2))        
+        # RE1 = np.sqrt(const * RS1.value * np.sin(phi1) * (np.cos(w + f) + e * np.cos(w)) )
+        # RE2 = np.sqrt(const * RS2.value * np.sin(phi2) * (np.cos(w + f) + e * np.cos(w)) )
         return RE1, RE2
 
     
@@ -2746,10 +2748,10 @@ class SMBHB(object):
         x = 1 #(1 - e * np.cos(E))
         if 0 < phi1 < np.pi:
             phase_u = np.sqrt(np.cos(phi1)**2 + np.sin(I)**2 * np.sin(phi1)**2)
-            u_0 = self.a.value * phase_u / self.einstein_radius(phi1, phi2, I)[0] * x
+            u_0 = self.a.value * phase_u / (self.einstein_radius(phi1, phi2, I)[0] * x)
         else:
             phase_u = np.sqrt(np.cos(phi2)**2 + np.sin(I)**2 * np.sin(phi2)**2)
-            u_0 = self.a.value * phase_u / self.einstein_radius(phi1, phi2, I)[1] * x
+            u_0 = self.a.value * phase_u / (self.einstein_radius(phi1, phi2, I)[1] * x)
         v_0 = np.arctan(np.sin(I) * np.tan(phi1))
         return u_0, v_0 
 
@@ -2801,15 +2803,16 @@ class SMBHB(object):
         E = self.eccentric_anomaly(f_mean, e).value
         f = 2 * np.arctan(np.sqrt((1 + e) / (1 - e)) * np.tan(E/2))
 
-        ab = (1+e)/(1-e)
-        print(ab)
-        print(np.sqrt(ab))
-        plt.figure()
-        plt.plot(time, f_mean)
-        plt.plot(time, E)
-        plt.plot(time, f)
-        plt.show()
-        exit()
+        # ab = (1+e)/(1-e)
+        # print(ab)
+        # print(np.sqrt(ab))
+        # plt.figure()
+        # plt.plot(time, f_mean)
+        # plt.plot(time, E)
+        # plt.plot(time, f)
+        # plt.show()
+        # exit()
+         
         #for i in tqdm(range(N), bar_format=ut.tqdmBar()):
         for i in range(N):
 
@@ -2992,7 +2995,7 @@ class SMBHB(object):
         # Projection of the velocity vector on to the line of sight.
         # NOTE Minus sign is introduced here as the RV is defined to be
         #      positive when object is moving away from the observed
-        RV1 = v_z + K1 * (np.cos(w + f) + e * np.cos(w))    
+        RV1 = v_z + K1 * (np.cos(w + f) + e * np.cos(w))
         RV2 = v_z - K2 * (np.cos(w + f) + e * np.cos(w))    
 
         # (Charisi et al. 2018) [pp1]
@@ -3052,7 +3055,9 @@ class SMBHB(object):
         self.T = self.period_observed(P, z)
 
         # Semi-major axis [cm]
-        self.a = self.semimajor_axis()
+        self.a  = self.semimajor_axis()
+        self.a1 = self.a * M2.cgs / self.M.cgs
+        self.a2 = self.a * M1.cgs / self.M.cgs
 
         # Schwarzchild radii (primary and secondary)
         self.RS = self.schwarzchild_radius()
@@ -3074,6 +3079,8 @@ class SMBHB(object):
             print(f'Inclination of mini-disc, J        : {J.to("deg"):.2f}')
             #print(f'Argument of periapse          : {self.w:.2f}')
             print(f'Semi-major axis of binaries, a     : {self.a.to("AU"):.2f}')
+            print(f'Semi-major axis of primary, a1     : {self.a1.to("AU"):.2f}')
+            print(f'Semi-major axis of secondary, a2   : {self.a2.to("AU"):.2f}')
             print(f'Schwarchild radius primary, Rs1    : {self.RS[0].to("R_sun"):.2f}')
             print(f'Schwarchild radius secondary, Rs2  : {self.RS[1].to("R_sun"):.2f}')
             print(f'Max Einstein radius primary, Re1   : {RE1.to("AU"):.2f}')
@@ -3129,10 +3136,17 @@ class SMBHB(object):
             Q = self.Q
         except:
             Q = np.ones_like(t)
+
+        try:
+            M1_ps = self.M1_ps
+            M2_ps = self.M2_ps
+        except:
+            M1_ps = np.ones_like(t)
+            M2_ps = np.ones_like(t)
             
-        alpha3 = 3 - self.alpha
-        DM1 = (1 - self.f_lum) * self.D1 * self.M1_ps
-        DM2 =      self.f_lum  * self.D2 * self.M2_ps
+        #alpha3 = 3 - self.alpha
+        DM1 = (1 - self.f_lum) * self.D1 * M1_ps
+        DM2 =      self.f_lum  * self.D2 * M2_ps
         flux = (Q - 1) + DM1 + DM2
         #flux = + DM1 + DM2
 
