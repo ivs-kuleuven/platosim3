@@ -8,7 +8,7 @@ import os,sys,shutil,subprocess
 
 # Specify the dependency package name
 
-packageName = "fftw-3.3.4"
+packageName = "fftw-3.3.10"
 
 # Specify build and install folders
 
@@ -39,7 +39,7 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                                      \
-                    tar -xvf {package}.tgz;                                          \
+                    tar -xvf {package}.tar.gz;                                          \
                     cd {package};                                                    \
                     ./configure --prefix={install} --enable-threads --enable-float --disable-fortran;  \
                     make;                                                            \

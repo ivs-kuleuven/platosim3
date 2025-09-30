@@ -36,14 +36,19 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                     \
-					tar -xzvf {package}.tgz;                        \
-					cd {package};                                   \
+		    tar -xzvf {package}.tgz;                        \
+		    cd {package};                                   \
                     mkdir build;                                    \
                     cd build;                                       \
                     cmake ..;                                       \
                     make".format(build=buildDir, package=packageName)
 
 subprocess.call(installProcedure, shell=True)
+
+
+
+
+
 
 
 # If there is an older version of the install dir, make sure to remove it first.
