@@ -21,10 +21,10 @@ class ClosedLoopHDF5File : public HDF5File
         void writeAttribute(string groupName, string attributeName, vector<double> attributeValue) override {};
         void writeAttribute(string groupName, string attributeName, vector<int>    attributeValue) override {};
         
-        void writeArray(string groupName, string arrayName, int*          array, int size) override {};
-        void writeArray(string groupName, string arrayName, unsigned int* array, int size) override {};
-        void writeArray(string groupName, string arrayName, float*        array, int size) override {};
-        void writeArray(string groupName, string arrayName, double*       array, int size) override {};
+        void writeArray(string groupName, string arrayName, int*          array, hsize_t size) override {};
+        void writeArray(string groupName, string arrayName, unsigned int* array, hsize_t size) override {};
+        void writeArray(string groupName, string arrayName, float*        array, hsize_t size) override {};
+        void writeArray(string groupName, string arrayName, double*       array, hsize_t size) override {};
 
         void writeArray(string groupName, string arrayName, arma::Mat<float>& A) override {};
         void writeArray(string groupName, string arrayName, arma::Mat<uint16_t>& A) override {};
