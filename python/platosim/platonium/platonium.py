@@ -664,7 +664,15 @@ class PLATOnium(object):
 
         # Secure that user-defined cadence is used!
         if self.cadence:
+            cadence = sim['ObservingParameters/CycleTime']
             sim['ObservingParameters/CycleTime'] = self.cadence
+            factor = self.cadence / cadence
+            if factor > 1:
+                if self.verbose > 1:
+                    errorcode('warning', f'Increasing random noise {factor} times due to change of cadence!')
+                sim['CCD/DarkSignal/DarkCurrent'] *= factor
+                sim['CCD/ReadoutNoise'] *= factor
+                sim['FEE/ReadoutNoise'] *= factor 
             
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
