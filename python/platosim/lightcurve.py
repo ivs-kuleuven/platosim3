@@ -2429,16 +2429,22 @@ class LightCurve(object):
         Q, flux_max = [], []
         for i,f in zip(range(len(filenames)), filenames):
 
-            # Fetch columns and plot
+            # Fetch columns
             lc = LightCurve(f)
             time = lc.time(unit=time_unit)
             flux = lc.flux(unit=flux_unit)
 
+            # Remove NaNs
             time = time[~np.isnan(flux)]
             flux = flux[~np.isnan(flux)]
-            
+
+            # Adjust flux level
             if suffix == 'hdf5':
-                flux /= 1e3
+                if np.max(flux) > 1e3:
+                    flux /= 1e3
+                    ylab = r"Flux [ke$^-$ s$^{-1}$]"
+                else:
+                    ylab = r"Flux [e$^-$ s$^{-1}$]"
             
             # Plot the quarter data
             ax.plot(time, flux, '.', alpha=alpha, ms=1, zorder=1)
@@ -2474,7 +2480,7 @@ class LightCurve(object):
             
         # Settings
         ax.set_xlabel(f'Time [days]')
-        ax.set_ylabel(r"Flux [ke$^-$ s$^{-1}$]")
+        ax.set_ylabel(ylab)
         ax.ticklabel_format(useOffset=False)
         plt.tight_layout()
         

@@ -30,9 +30,12 @@ from platosim.utilities import errorcode
 #                   HIGH PERFORMANCE COMPUTING                 #
 #==============================================================#
 
+
 class HPC(object):
+
     """Class for parallisation of PLATOnium functions.
-    """    
+    """
+    
     def __init__(self, project, cpus=6, backend='threading'):
 
          # PATHS AND INPUT
@@ -53,9 +56,13 @@ class HPC(object):
         self.VARSIM    = simpath + 'varsim.py'
         self.PLATONIUM = simpath + 'platonium.py'
 
+
+
+
         
     def run(self, script, param_file=False, odir=False, vdir=False,
             sim_range=False, kwargs=None):
+
         """Function to run the parallelisation.
         """
 
@@ -102,11 +109,13 @@ class HPC(object):
             elif script == 'varsim':
                 Parallel()(delayed(self.run_varsim)(i, N, params[i])
                            for i in tqdm(sim_range, bar_format=ut.tqdmBar()))
+
             
     #--------------------------------------------------------------#
     #                        HPC FOR PLATONIUM                     #
     #--------------------------------------------------------------#
 
+    
     def run_platonium(self, i, N, M, params):
 
         """Function to run the PLATOnium in parallel.
@@ -117,10 +126,28 @@ class HPC(object):
         C = int(params[i,2])
         Q = int(params[i,3])
         starID = f'{S}'.zfill(9)
+
+        # Testing MOCKA locally
+        #varfile = self.vardir / f'{starID}' / f'varsource_001.txt'
+        #vararg = f'--varfile {varfile}'
+        
+        # Parse arguments
+        # if vdir:
+        #     starID9 = f'{S}'.zfill(9)
+        #     varfile = self.vardir / f'varsource_{starID}.txt'
+        #     varlist = self.vardir / f'{starID}' / f'varSourceList.txt'
+        #     if varfile.is_file():
+        #         vararg = f'--varfile {varfile}'
+        #     elif varlist.is_file():
+        #         vararg = f'--varlist {varlist}'
         
         # Run PlatoSim simulation
         os.system(f'{self.PLATONIUM} {S} {G} {C} {Q} --project {self.project} ' +
                   f'-o {self.odir} {self.kwargs} -v 0 -w')
+
+
+
+
 
     #--------------------------------------------------------------#
     #                         HPC FOR VARSIM                       #
