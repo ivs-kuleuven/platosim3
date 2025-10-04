@@ -664,8 +664,25 @@ class PLATOnium(object):
 
         # Secure that user-defined cadence is used!
         if self.cadence:
+            cadence = sim['ObservingParameters/CycleTime']
             sim['ObservingParameters/CycleTime'] = self.cadence
-            
+            factor = self.cadence / cadence
+            t_out0 = sim.getReadoutTime()[0]
+            t_out1 = t_out0 * factor
+            t_exp0 = 25 - t_out0
+            t_exp1 = t_exp0 * factor
+            if factor > 1:
+                if self.verbose > 1:
+                    errorcode('warning',
+                              f'Changes due to non-default cadence:\n' +
+                              f'Cadence       : {cadence:.1f}s -> {self.cadence:.1f}s\n' +
+                              f'Exposure time : {t_exp0:.2f}s -> {t_exp1:.2f}s\n' +
+                              f'Readout time  : {t_out0:.2f}s -> {t_out1:.2f}s\n' +
+                              f'Random noise  : {factor} x Nominal')
+                sim['CCD/DarkSignal/DarkCurrent'] *= factor
+                sim['CCD/ReadoutNoise'] *= factor
+                sim['FEE/ReadoutNoise'] *= factor 
+                
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
         if self.magPB == 'Pmag':
