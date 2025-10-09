@@ -52,6 +52,7 @@ installProcedure = "cd {build};                                         \
                     tar -xzvf {package1}.tar.gz;                        \
                     mkdir {install};					\
                     cd {package1};					\
+                    ./autogen.sh;                                       \
                     ./configure --prefix={install} --without-libsodium;	\
                     make;						\
                     make install;					\
