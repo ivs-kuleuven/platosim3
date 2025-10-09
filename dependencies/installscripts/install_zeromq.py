@@ -9,11 +9,11 @@ import os,sys,shutil,subprocess, glob
 
 # Specify the dependency package name
 
-packageName1 = "zeromq-4.3.5"
-packageName2 = "cppzmq"
+packageName1 = "zeromq-4.1.4"
+packageName2 = "cppzmq-master"
 
 # Specify build and install folders
-2
+
 currentWorkingDir = os.getcwd()
 buildDir         = currentWorkingDir + "/dependencies/Downloads/"
 parentInstallDir = currentWorkingDir + "/dependencies/Installs/"
@@ -48,11 +48,10 @@ print("\n")
 
 
 
-installProcedure = "cd {build};                                         \
-                    tar -xzvf {package1}.tar.gz;                        \
+installProcedure = "cd {build};                                     \
+                    tar -xzvf {package1}.tar.gz;                         \
                     mkdir {install};					\
                     cd {package1};					\
-                    ./autogen.sh;                                       \
                     ./configure --prefix={install} --without-libsodium;	\
                     make;						\
                     make install;					\

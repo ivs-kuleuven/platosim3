@@ -1280,8 +1280,8 @@ void HDF5File::writeArray(string groupName, string arrayName, int* array, int si
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 1;
-    unsigned long shape[Ndimensions] {size};
-    // TODO: shape[0] = size;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.
@@ -1351,8 +1351,8 @@ void HDF5File::writeArray(string groupName, string arrayName, unsigned int* arra
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 1;
-    unsigned long shape[Ndimensions] = {size};
-    // TODO: shape[0] = size;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.
@@ -1426,8 +1426,8 @@ void HDF5File::writeArray(string groupName, string arrayName, float* array, int 
      // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 1;
-    unsigned long shape[Ndimensions] = {size};
-    // TODO: shape[0] = size;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.
@@ -1496,8 +1496,8 @@ void HDF5File::writeArray(string groupName, string arrayName, double* array, int
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 1;
-    unsigned long shape[Ndimensions] = {size};
-    // TODOshape[0] = size;
+    unsigned long long shape[Ndimensions];
+    shape[0] = size;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.
@@ -1669,9 +1669,9 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<uint16_t
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 2;
-    unsigned long shape[Ndimensions] = {A.n_rows, A.n_cols};
-    // TODOshape[0] = A.n_rows;
-    // TODOshape[1] = A.n_cols;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.
@@ -1741,9 +1741,9 @@ void HDF5File::writeArray(string groupName, string arrayName, arma::Mat<float>& 
     // Create a DataSpace defining the shape and type of the data 
 
     unsigned int Ndimensions = 2;
-    const unsigned long shape[Ndimensions] = {A.n_rows, A.n_cols};
-    // shape[0] = A.n_rows;
-    // shape[1] = A.n_cols;
+    unsigned long long shape[Ndimensions];
+    shape[0] = A.n_rows;
+    shape[1] = A.n_cols;
     H5::DataSpace arraySpace(Ndimensions, shape);
 
     // Check if the array is not already in the file.

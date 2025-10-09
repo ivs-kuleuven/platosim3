@@ -9,7 +9,7 @@ import os,sys,shutil,subprocess, glob
 
 # Specify the dependency package name
 
-packageName = "armadillo-15.0.1"
+packageName = "armadillo-6.500.4"
 
 # Specify build and install folders
 
