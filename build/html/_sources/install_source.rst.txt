@@ -420,7 +420,7 @@ If you switch to another branch and want to run simulations with the current bra
 
 .. important::
    
-   To install PlatoSim's Python distribution we strongly recommend to install `Anaconda <https://docs.continuum.io/anaconda/install/>`_ and use Conda to manage your Python environments. Note that well tested package builds are currently with **Python version 3.8 and 3.9**.
+   To install PlatoSim's Python distribution we strongly recommend to install `Anaconda <https://docs.continuum.io/anaconda/install/>`_ and use Conda to manage your Python environments. Note that well tested package builds are currently with **Python version 3.9, 3.10, and 3.11**.
 
 **Create a Conda environment**
 
