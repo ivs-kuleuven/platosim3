@@ -22,13 +22,13 @@ To make life easier on the people who want to use PlatoSim without ever wanting 
 
 .. important::
    
-   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ installed. Well tested Jenkins builds are with **Python version 3.8 and 3.9**.
+   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.10**.
 
 First, create a Conda environment (e.g. called ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n <environment name> python=<Python version>
+   conda create -n <environment name> python=3.10
 
 Activate your new conda environment:
 
