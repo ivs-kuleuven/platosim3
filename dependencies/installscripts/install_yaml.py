@@ -43,7 +43,9 @@ installProcedure = "cd {build};                                     \
                     cmake ..;                                       \
                     make".format(build=buildDir, package=packageName)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
 
 
 # If there is an older version of the install dir, make sure to remove it first.

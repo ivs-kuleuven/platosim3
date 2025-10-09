@@ -61,7 +61,9 @@ installProcedure = "cd {build};                                     \
                     mv *.hpp {install}/include/.;				\
                     ".format(build=buildDir, package1=packageName1, package2=packageName2, install=installDir)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
 
 
 # After installation in the install folder, remove the decompressed package folder in 

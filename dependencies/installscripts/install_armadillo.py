@@ -47,7 +47,9 @@ installProcedure = "cd {build};                                     \
                     make;                                           \
                     make install DESTDIR={install}".format(build=buildDir, package=packageName, install=installDir)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
 
 
 # Armadillo installs the libraries and header files in a folder structure depending on the OS.

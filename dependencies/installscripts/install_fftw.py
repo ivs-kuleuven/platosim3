@@ -45,7 +45,8 @@ installProcedure = "cd {build};                                                 
                     make;                                                            \
                     make install".format(build=buildDir, package=packageName, install=installDir)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+print(process.returncode)
 
 
 # After installation in the install folder, remove the decompressed package folder in 
