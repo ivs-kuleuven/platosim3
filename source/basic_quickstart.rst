@@ -31,13 +31,13 @@ PlatoSim also requires a PSF file (which is not included in the default distribu
 
 .. code-block:: shell
 		
-   wget ftp://<username>:<password>@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 $PLATO_PROJECT_HOME
+   wget ftp://<username>:<password>@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 $PLATO_PROJECT_HOME/inputfiles
 
 A simple test simulation from the command line looks like:
 
 .. code-block:: shell
 
-   platosim $PLATO_PROJECT_HOME/inputfile.yaml $PLATO_WORKDIR/quickstart/test.hdf5
+   platosim $PLATO_PROJECT_HOME/inputfiles/inputfile.yaml $PLATO_WORKDIR/quickstart/test.hdf5
 
 A simple test simulation from Python looks like:
 
