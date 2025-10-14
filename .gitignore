@@ -18,3 +18,7 @@ pyproject.toml
 
 # Files from sphinx
 _static
+_sources/
+_sources/basic_quickstart.rst.txt
+_sources/index.rst.txt
+build/doctrees/environment.pickle
