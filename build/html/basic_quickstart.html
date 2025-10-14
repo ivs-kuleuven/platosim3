@@ -205,11 +205,11 @@ conda install -c https://&lt;username&gt;:&lt;password&gt;@jenkins.miricle.org/p
 </pre></div>
 </div>
 <p>PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you can download from our FTP site:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wget ftp://&lt;username&gt;:&lt;password&gt;@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 <span class="nv">$PLATO_PROJECT_HOME</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wget ftp://&lt;username&gt;:&lt;password&gt;@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 <span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles
 </pre></div>
 </div>
 <p>A simple test simulation from the command line looks like:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim <span class="nv">$PLATO_PROJECT_HOME</span>/inputfile.yaml <span class="nv">$PLATO_WORKDIR</span>/quickstart/test.hdf5
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>platosim <span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles/inputfile.yaml <span class="nv">$PLATO_WORKDIR</span>/quickstart/test.hdf5
 </pre></div>
 </div>
 <p>A simple test simulation from Python looks like:</p>
