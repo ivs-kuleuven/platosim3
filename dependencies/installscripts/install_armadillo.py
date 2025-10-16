@@ -9,7 +9,7 @@ import os,sys,shutil,subprocess, glob
 
 # Specify the dependency package name
 
-packageName = "armadillo-15.0.1"
+packageName = "armadillo-6.500.4"
 
 # Specify build and install folders
 
@@ -47,7 +47,9 @@ installProcedure = "cd {build};                                     \
                     make;                                           \
                     make install DESTDIR={install}".format(build=buildDir, package=packageName, install=installDir)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
 
 
 # Armadillo installs the libraries and header files in a folder structure depending on the OS.
