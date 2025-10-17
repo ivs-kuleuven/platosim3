@@ -2847,7 +2847,7 @@ class SMBHB(object):
         return self.M_ps
             
     
-    def evalPhysicalModel(self, plot=False):
+    def evalPhysicalModel(self, plot=False, ofile_fig=False):
         """Evaluate physical SMBH binary model.
         """
         time = self.time.to('d').value
@@ -2877,7 +2877,7 @@ class SMBHB(object):
             m_ps = np.ones_like(t)
 
         # Combute boosting+lensing model
-        x = self.flip2
+        x = self.flip
         flux    = (1 - self.L) * D1             + self.L * D2 * M_ps
         flux[x] = (1 - self.L) * D1[x]* M_ps[x] + self.L * D2[x]
         
@@ -2902,6 +2902,9 @@ class SMBHB(object):
             plt.legend()
             plt.tight_layout()
             plt.show()
+
+            if ofile_fig:
+                fig.savefig(ofile_fig, bbox_inches='tight', dpi=300)
             
         return flux, Q, D, m_ps
         
