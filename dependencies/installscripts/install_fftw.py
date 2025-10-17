@@ -8,7 +8,7 @@ import os,sys,shutil,subprocess
 
 # Specify the dependency package name
 
-packageName = "fftw-3.3.10"
+packageName = "fftw-3.3.4"
 
 # Specify build and install folders
 
@@ -39,13 +39,16 @@ print("\n")
 # Build and install package
 
 installProcedure = "cd {build};                                                      \
-                    tar -xvf {package}.tar.gz;                                          \
+                    tar -xvf {package}.tgz;                                          \
                     cd {package};                                                    \
                     ./configure --prefix={install} --enable-threads --enable-float --disable-fortran;  \
                     make;                                                            \
                     make install".format(build=buildDir, package=packageName, install=installDir)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
+
 
 
 # After installation in the install folder, remove the decompressed package folder in 

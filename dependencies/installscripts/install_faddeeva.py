@@ -47,8 +47,9 @@ installProcedure = "cd {build};                                     \
                     make;                                           \
                     make install".format(build=buildDir, package=packageName)
 
-subprocess.call(installProcedure, shell=True)
-
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
 
 # For Mac systems, we still need to correct the relative path in the armadillo library
 
