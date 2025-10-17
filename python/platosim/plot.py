@@ -10,8 +10,8 @@ import os
 
 # PlatoSim standard
 import h5py
+import shapely.plotting as sp
 import shapely.geometry as sg
-import descartes
 from tqdm import tqdm
 from ipywidgets import interact
 import numpy as np
@@ -671,7 +671,7 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     ccdCodes      = ["1", "2", "3", "4"]
     tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
     azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
-    fovDegrees    = 19.6 #sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
+    fovDegrees    = 19.8#sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
     focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
     pixelSize     = sim['CCD/PixelSize']                                # [micron]
     plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
@@ -781,13 +781,13 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
                                 -(yPixels[group] - offsetY)).buffer(fovPixels))
     for index in range(numCorners):
         one = circles[index].intersection(circles[index])
-        ax.add_patch(descartes.PolygonPatch(one, fc='gray', ec='none', alpha=0.2))
+        ax.add_patch(sp.patch_from_polygon(one, facecolor='gray', alpha=0.08))
         two = circles[index].intersection(circles[(index + 1) % numCorners])
-        ax.add_patch(descartes.PolygonPatch(two, fc='gray', ec='none', alpha=0.1))
+        ax.add_patch(sp.patch_from_polygon(two, facecolor='gray', alpha=0.08))
         three = circles[index].intersection(circles[(index + 1) % numCorners]).intersection(circles[(index + 2) % numCorners])
-        ax.add_patch(descartes.PolygonPatch(three, fc='gray', ec='none', alpha=0.05))
+        ax.add_patch(sp.patch_from_polygon(three, facecolor='gray', alpha=0.08))
     four = circles[0].intersection(circles[1]).intersection(circles[2]).intersection(circles[3])
-    ax.add_patch(descartes.PolygonPatch(four, fc='gray', ec='none', alpha=0.03))
+    ax.add_patch(sp.patch_from_polygon(four, facecolor='gray', alpha=0.08))        
 
     # Plot CCD footprint ontop
 
@@ -3134,8 +3134,15 @@ def plotVarsimLC(lc, figsize=False):
     # Start plotting
     fig, ax = plt.subplots(n, 1, figsize=figsize, sharex=True)
 
+    if lc.flux.abs().max() > 0.01:
+        norm = 1e3
+        lab  = 'ppt'
+    else:
+        norm = 1e6
+        lab  = 'ppm'
+    
     for i,signal in zip(range(n), lc.columns[1:]):
-        flux = (lc[signal] - 1) * 1e6
+        flux = (lc[signal] - 1) * norm
         if signal == 'flux':
             ax[i].plot(time, flux, '-', c='k', label='Combined')
         else:
@@ -3144,7 +3151,7 @@ def plotVarsimLC(lc, figsize=False):
         ax[i].legend(loc="upper right")
 
     plt.xlabel('Time [days]')
-    fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')    
+    fig.text(0.01, 0.5, f'Relative flux [{lab}]', va='center', rotation='vertical')    
     plt.tight_layout(h_pad=0.0, w_pad=1)
     
     return fig, ax
