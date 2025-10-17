@@ -2321,8 +2321,8 @@ class VarSim(object):
 
             # Save final plot
             if self.verbose > 1:
-                print(f'Saving file : {ofile_parameters}')            
-            fig.savefig(ofile_lightcurve, bbox_inches='tight', dpi=300)
+                print(f'Saving file : {ofile_lightcurve}')            
+            fig.savefig(ofile_lightcurve, bbox_inches='tight', dpi=200)
 
             
     #--------------------------------------------------------------#
