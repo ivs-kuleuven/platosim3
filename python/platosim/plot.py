@@ -1260,7 +1260,7 @@ def compass(ax, x, y, size):
 
 
             
-def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
+def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
                  # Settings without colorbar
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1,
                  # Setting with colorbar
