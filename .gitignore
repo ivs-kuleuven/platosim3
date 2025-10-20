@@ -21,4 +21,5 @@ _static
 _sources/
 _sources/basic_quickstart.rst.txt
 _sources/index.rst.txt
+_sources/basic_acknowledgements.rst.txt
 build/doctrees/environment.pickle

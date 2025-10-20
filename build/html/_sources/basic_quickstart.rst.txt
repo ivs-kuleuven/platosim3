@@ -5,7 +5,7 @@ Quickstart
 
    PlatoSim is currently only available to memebers of the PLATO Mission Consortium (with a signed Non-Disclosure Agreement: NDA). Thus, to install (or download) the PlatoSim software, please contact one of the PlatoSim developers (see our `GitHub page <https://github.com/IvS-KULeuven/PlatoSim3>`_) for the credentials: **<username>** and **<password>**.
 
-The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` suing the following set of terminal commands:
+The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` using the following set of terminal commands to install the ``master`` branch:
 
 .. code-block:: shell
 		
@@ -13,18 +13,18 @@ The easiest way to install PlatoSim is through our :doc:`Conda installation <ins
    conda activate platosim
    conda install -c https://<username>:<password>@jenkins.miricle.org/platosim/ platosim
 
-Create a working directory for which you want to store all your future PlatoSim projects:
+Create a working directory for which you want to store all your future PlatoSim projects (e.g. using ``platosim_workdir`` as our project folder and create a first project called ``quickstart``):
 
 .. code-block:: shell
 
-   mkdir -p ~/platosim_workdir/quickstart
+   mkdir -p $HOME/platosim_workdir/quickstart
    
 Export the following paths (and add them to your bash file for future sessions):
 
 .. code-block:: shell
 		
    export PLATO_PROJECT_HOME=$CONDA_PREFIX
-   export PLATO_WORKDIR=~/plato_workdir
+   export PLATO_WORKDIR=$HOME/plato_workdir
    export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
    
 PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you can download from our FTP site:  
@@ -44,7 +44,7 @@ A simple test simulation from Python looks like:
 .. code-block:: python
 
    import os
-   import platosim.simulation as Simulation
+   from platosim.simulation import Simulation
    odir = os.getenv('PLATO_WORKDIR') + '/quickstart'
    sim = Simulation('test', outputDir=odir)
    sim.run()
