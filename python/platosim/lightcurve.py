@@ -19,7 +19,6 @@ import shutil
 import datetime
 from pathlib import Path
 from zipfile import ZipFile
-
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -56,14 +55,11 @@ from platosim.simfile    import SimFile
 from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
 
-
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-
 class LightCurve(object):
-
     """Class for PlatoSim photometry and time series analysis.
     
     This class provides the Python interface to the output files generated
@@ -340,11 +336,39 @@ class LightCurve(object):
         """
 
         # Get correct path to varsource file
-        filename = Path(self.filename)
-        starID   = filename.stem[:9]
-        path     = filename.parents[1]
-        filename = f"varsource_{starID}_parameters.ftr"
-        varpath  = path / "varsource" / filename
+        # filename = Path(self.filename)
+        # starID   = filename.stem[:9]
+        # path     = filename.parents[1]
+        # filename = f"varsource_{starID}_parameters.ftr"
+        # varpath  = path / "varsource" / filename
+ 
+        # Check if path or file is parsed
+        if not self.path:
+            return None
+        elif self.mode == 'final':
+            path   = self.path.parents[1]
+            starID = self.filename.stem[-9:]
+        elif self.path.is_dir():
+            path   = self.path.parents[1]
+            starID = self.path.stem[:9]
+        elif self.filename.is_file():
+            path   = self.path.parents[1]
+            starID = path.stem[:9]
+        
+        # Two options for storage
+        varpath_file0 = path / 'varsource' / f'varsource_{starID}_parameters.ftr'
+        varpath_file1 = path / 'varsource' / starID / f'varsource_{starID}_parameters.ftr'
+        varpath_file2 = path / 'varsource' / starID / 'varsource_001_parameters.ftr'            
+
+        # Check if file can be found
+        if varpath_file0.is_file():
+            varpath = varpath_file0
+        elif varpath_file1.is_file():
+            varpath = varpath_file1
+        elif varpath_file2.is_file():
+            varpath = varpath_file2            
+        else:
+            return
         
         return pd.read_feather(varpath)
 
@@ -1059,24 +1083,19 @@ class LightCurve(object):
                 else:
                     ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
 
-        # Set legend
+        # Set legend TODO place legend above figure
         if legend:
             ax.legend(loc='upper right', ncols=4)
             # Adjust y padding for legend
-            try:
-                ampl_model = dv.flux.max() - dv.flux.min()
-                ampl_flux  = flux.max() - flux.min()
-                if ampl_model > ampl_flux:
-                    F = dv.flux
-                    pad = 1.35
-                else:
-                    F = flux
-                    pad = 1.1
-            except:
-                F = flux
-                pad = 1.1
-            ymin, ymax = pt.getAxesMinMax(y=F, percentage=5)
-            ax.set_ylim(ymin, ymax*pad)
+            # try:
+            #     ampl_model = dv.flux.max() - dv.flux.min()
+            #     ampl_flux  = flux.max() - flux.min()
+            #     if ampl_model > ampl_flux:
+            #         F = dv.flux
+            # except:
+            #     F = flux
+            # ymin, ymax = pt.getAxesMinMax(y=F, percentage=10)
+            # ax.set_ylim(ymin, ymax)
             
         # Settings
         ax.ticklabel_format(useOffset=False)
@@ -2031,7 +2050,7 @@ class LightCurve(object):
         return self.df
 
 
-    def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,10)):
+    def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,8)):
 
         """Plot a clipped light curve for outliers.
         """
