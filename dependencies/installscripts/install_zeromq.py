@@ -9,11 +9,11 @@ import os,sys,shutil,subprocess, glob
 
 # Specify the dependency package name
 
-packageName1 = "zeromq-4.3.5"
-packageName2 = "cppzmq"
+packageName1 = "zeromq-4.1.4"
+packageName2 = "cppzmq-master"
 
 # Specify build and install folders
-2
+
 currentWorkingDir = os.getcwd()
 buildDir         = currentWorkingDir + "/dependencies/Downloads/"
 parentInstallDir = currentWorkingDir + "/dependencies/Installs/"
@@ -48,8 +48,8 @@ print("\n")
 
 
 
-installProcedure = "cd {build};                                         \
-                    tar -xzvf {package1}.tar.gz;                        \
+installProcedure = "cd {build};                                     \
+                    tar -xzvf {package1}.tar.gz;                         \
                     mkdir {install};					\
                     cd {package1};					\
                     ./configure --prefix={install} --without-libsodium;	\
@@ -61,7 +61,9 @@ installProcedure = "cd {build};                                         \
                     mv *.hpp {install}/include/.;				\
                     ".format(build=buildDir, package1=packageName1, package2=packageName2, install=installDir)
 
-subprocess.call(installProcedure, shell=True)
+process = subprocess.run(installProcedure, shell=True)
+if not process.returncode == 0:
+    exit(1)
 
 
 # After installation in the install folder, remove the decompressed package folder in 
