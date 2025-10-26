@@ -1262,11 +1262,12 @@ def compass(ax, x, y, size):
             
 def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
                  # Settings without colorbar
-                 raStars=0, decStars=0, magStars=None, ms=2, aa=1,
+                 raStars=0, decStars=0, magStars=None, ms=2, aa=1, ec='k',
                  # Setting with colorbar
                  c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
                  # Seeting for add-ons
-                 ncamStars=False, ncamMap='PIC', showGalactic=False, 
+                 ncamStars=False, ncamMap='PIC',
+                 showGalactic=False, aa_gal=0.01,
                  showGroups=False, showFcamFOV=False,
                  # General settings
                  showLegend=False, title=None, fs=20, figsize=(9,9)):
@@ -1404,7 +1405,7 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
         starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
         starPF = starPF.transform_to('galactic')
         ax.scatter(starPF.l.deg, starPF.b.deg, transform=ax.get_transform('world'),
-                   s=2, alpha=0.01, marker='.', c='k', ec='none', zorder=2)
+                   s=2, alpha=aa_gal, marker='.', c='k', ec='none', zorder=2)
         
     # Plot stars and add legend scaled to the stellar magnitudes
     
@@ -1436,10 +1437,10 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
         # Plot
         if c is None:
             scatter = ax.scatter(xStarPF, yStarPF, s=dm, c=color, alpha=aa,
-                                 transform=tax, marker=mark, ec='k', lw=lw, zorder=5)
+                                 transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
         else:
             scatter = ax.scatter(xStarPF, yStarPF, s=s, c=c, cmap=cmap,
-                                 transform=tax, marker=mark, ec='k', lw=lw, zorder=5)
+                                 transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
             cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
             cbar.set_label(clabel)
                 
