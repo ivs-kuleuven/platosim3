@@ -47,9 +47,9 @@ joblib = "^1.3.2"
 lmfit = "^1.2.2"
 "ligo.skymap" = "2.4.1rc1"
 
-[tool.poetry.group.exomoon]
+[tool.poetry.group.pandora]
 optional = true
-[tool.poetry.group.exomoon.dependencies]
+[tool.poetry.group.pandora.dependencies]
 pandoramoon = "^1.2"
 ultranest = "^4.4.0"
 dynasty = "^0.0.3"
