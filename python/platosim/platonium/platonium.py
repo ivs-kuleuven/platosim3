@@ -121,11 +121,7 @@ class PLATOnium(object):
         self.pipeJitDriftOff  = args.pipe_jit_off
         self.pipeExtendedMask = args.pipe_emask
         self.pipePlots        = args.pipe_plots
-        
-        # Start software writing
-        if self.verbose > 1:
-            errorcode('software', '\nPLATOnium')
-        
+                
         # MANDATORY PARAMETERS
         
         # Normal vs Fast cameras
@@ -178,6 +174,10 @@ class PLATOnium(object):
             self.animation = True
         else:
             self.animation = False
+
+        # Start software writing
+        if self.verbose > 1:
+            errorcode('software', '\nPLATOnium')
             
         # I/O PARAMETERS
         
@@ -420,9 +420,7 @@ class PLATOnium(object):
         """
         Module to load the stellar targets and contaminants.
         """
-        if (self.verbose == 3) or (self.fullFrame and self.verbose > 1):
-            print('\nLoading stellar catalogue..')
-
+        
         # Fetch some information from YAML
         sim = Simulation(self.outputFileName, self.inputFile)
 
@@ -436,17 +434,21 @@ class PLATOnium(object):
         
         if self.fullFrame:
             
-            # Get pointing field from YAML and load stellar catalogue
+            # Get pointing field from YAML and load stellar catalogue            
             starcatName = f'starcat**_{self.pointingField}_group{self.group}.ftr'
             starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
             if not starcat.is_file() and not starcat.is_symlink():
                 errorcode('error', 'No star catalogue found in the project input directory!')
+
+            # Load source catalogue
+            if self.verbose > 1:
+                print('\nLoading source catalogue..')
             self.dx = pd.read_feather(starcat)
 
             # Check source and passband names
-            self._check_source_name(dx)
-            self._check_passband_name(dx)
-            
+            self._check_source_name(self.dx)
+            self._check_passband_name(self.dx)
+
             # Store source catalogue
             self.ds = pd.DataFrame()
             self.ds['ra']  = self.dx.ra
@@ -465,9 +467,6 @@ class PLATOnium(object):
                 # Read catalogue
                 # TODO Update colID to also incldue source_*
                 df = pd.read_feather(self.starcatFile)
-
-                # Check magnitude parsed
-                self.check_passband_magnitude(df)
 
                 # Define data frames
                 # NOTE assumed first row is target
@@ -496,21 +495,21 @@ class PLATOnium(object):
                 except IndexError:
                     errorcode('error', f'Stellar catalogue "{self.sample}" does not exist!')
                 else:
-                    self.catTarFile = glob.glob(catTarName)[0]
-                    self.catConFile = glob.glob(catConName)[0]
-                    df = pd.read_feather(self.catTarFile)
-                    dc = pd.read_feather(self.catConFile)
-
+                    try:
+                        self.catTarFile = glob.glob(catTarName)[0]
+                        self.catConFile = glob.glob(catConName)[0]
+                    except IndexError:
+                        errorcode('error', 'Stellar contaminant catalogue does not exist! ' +
+                                  'To generate full-frame CCD images, use "--fullframe"')
+                    else:
+                        df = pd.read_feather(self.catTarFile)
+                        dc = pd.read_feather(self.catConFile)
+                    
                 # Check if target and contaminant catalogues are consistent
+                # NOTE This allows the user to have multiple catalogues in same project folder
                 if str(Path(self.catTarFile).stem[:-8]) != str(Path(self.catConFile).stem[:-13]):
-                    errorcode('error', f'Target and contaminant catalogue does not match! ' +
+                    errorcode('error', f'Target catalogue does not match contaminant catalogues! ' +
                               'Use --field to specify a LOP or alter the YAML')
-
-                # Check magnitude parsed
-                self.check_source_name(df)
-
-                # Merge for full frame
-                self.dx = pd.concat([df, dc])
 
                 # Correct indicing and allow a specific star to be choosen
                 if self.targetNo == 0:
@@ -530,6 +529,10 @@ class PLATOnium(object):
                 self.df = df.iloc[self.targetNo]
 
             # Continue information for subfield simulations
+
+            # Check source name and passband
+            self._check_source_name(self.df)
+            self._check_passband_name(self.df)
             
             # If requested select only the target, else include contaminants
             if not self.starcatFile:
@@ -538,9 +541,6 @@ class PLATOnium(object):
                 else:
                     self.dc = dc[dc[self.colID] == self.df[self.colID]]
                     self.dc = self.dc.sort_values(by=['dis'])
-
-            # Check name of passband
-            self._check_passband_magnitude(df)
 
             # Change naming
             self.df = self.df.to_frame().T.rename(columns={self.passband:'mag'}).squeeze()
@@ -636,14 +636,15 @@ class PLATOnium(object):
             # thermal stabilisation, data downlink, microscanning, etc.
             self.numExposures = round((timeQuarter - 1) * 86400 / self.cadence)
             
-        # Secure correct zero-point flux w.r.t. passband used
+        # Secure correct zero-point flux for passband
+        # Values are from: docs/technical/DLR-TN-0113/zero_point.ipynb
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
         if self.passband == 'Pmag':
-            sim['ObservingParameters/Fluxm0'] = 7.324509159344043e7
+            sim['ObservingParameters/Fluxm0'] = 6.80208291e7
         elif self.passband == 'PBmag':
-            sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
+            sim['ObservingParameters/Fluxm0'] = 1.07575201e8 
         elif self.passband == 'PRmag':
-            sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
+            sim['ObservingParameters/Fluxm0'] = 5.34942672e7
             
         # PHOTOMETRY ALA MARCHIORI
         
@@ -678,20 +679,23 @@ class PLATOnium(object):
                 sim["Platform/Orientation/Quaternion/Components"] = quaternionPLM
         else:
             # Use ICRS coordinates to set platform pointing
+            block = 'Platform/Orientation/Angles'
             if self.verbose > 1:
                 print(f'Applying platform pointing   (PLM to {self.pointingField})')           
             # Select PLATO pointing field from inputfile
             alpha, delta, kappa = getPointingField(self.pointingField)
-            sim["Platform/Orientation/Angles/RAPointing"]  = alpha
-            sim["Platform/Orientation/Angles/DecPointing"] = delta
+            sim[f"{block}/RAPointing"]  = alpha
+            sim[f"{block}/DecPointing"] = delta
             # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
             solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
-            sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
+            sim[f"{block}/SolarPanelOrientation"] = solarPanelOrientationDeg
             
             # Include Pointing Repeatability Error (PRE) between consecutive quarters
-            # NOTE This usages the new CSV and old TXT file format
+            # NOTE Below we secure that platonium is backward compatible
             inputFilePRE_csv = self.inputDir.joinpath('instrumentPRE.csv')
             inputFilePRE_txt = self.inputDir.joinpath('instrumentPRE.txt')
+            #---------------------------------------------------------------------            
+            # New implementation for PlatoSim >= 3.7.0
             if inputFilePRE_csv.is_file():
                 PRE = pd.read_csv(inputFilePRE_csv)
                 if self.quarter not in PRE.quarter.tolist():
@@ -699,33 +703,32 @@ class PLATOnium(object):
                               f'instrumentPRE.csv does not contain quarter {self.quarter}..')
                 # Apply PRE from new or old method
                 data = PRE.iloc[self.quarter - 1]
-                sim["Platform/Orientation/Angles/RAPointing"]            += data.alpha
-                sim["Platform/Orientation/Angles/DecPointing"]           += data.delta
-                sim["Platform/Orientation/Angles/SolarPanelOrientation"] += data.kappa
-            # TODO ---------------------------------------------------------------------#
-            # TODO                 Remove with next major release                       #
-            # TODO ---------------------------------------------------------------------#
+                sim[f"{block}/RAPointing"]            += data.alpha
+                sim[f"{block}/DecPointing"]           += data.delta
+                sim[f"{block}/SolarPanelOrientation"] += data.kappa
+            #---------------------------------------------------------------------
+            # Old implementation for PlatoSim < 3.7.0
             elif inputFilePRE_txt.is_file():
-                if self.verbose > 1:
-                    errorcode('warning', 'Deprecation alert for "instrumentPRE.txt"! ' +
-                              f'Use "payload" to generate a new file in csv format..')
                 PRE = np.loadtxt(inputFilePRE_txt)
                 # Catch one dimentional arrays
-                try: PRE.shape[1]
-                except: PRE = np.array([PRE])
+                try:
+                    PRE.shape[1]
+                except:
+                    PRE = np.array([PRE])
                 # Apply pointing errors
                 index = np.where(PRE[:,0] == self.quarter)[0]
-                try: index[0]
+                try:
+                    index[0]
                 except:
                     errorcode('error', 'Cannot apply pointing error model! ' +
                               f'instrumentPRE.txt does not contain quarter {self.quarter}..')
                 else:
                     if self.verbose > 1:
                         print('Applying pointing errors     (PRE FromFile)')
-                    sim["Platform/Orientation/Angles/RAPointing"]           += PRE[index, 1][0]
-                    sim["Platform/Orientation/Angles/DecPointing"]          += PRE[index, 2][0]
-                    sim["Platform/Orientation/Angles/SolarPanelOrientation"]+= PRE[index, 3][0]
-            # TODO ---------------------------------------------------------------------#
+                    sim[f"{block}/RAPointing"]            += PRE[index, 1][0]
+                    sim[f"{block}/DecPointing"]           += PRE[index, 2][0]
+                    sim[f"{block}/SolarPanelOrientation"] += PRE[index, 3][0]
+            #---------------------------------------------------------------------                    
             
         # Attitude Orbit Control System (AOCS) jitter
         # First check if file from payload is present
@@ -782,23 +785,12 @@ class PLATOnium(object):
             sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
 
         # Absolute Pointing Error (APE) due to camera misalignments
-        # NOTE: Included if "instrumentAPE.csv" is available in the input
-        inputFileAPE = self.inputDir.joinpath('instrumentAPE.csv')
-        # TODO ---------------------------------------------------------------------#
-        # TODO                 Remove with next major release                       #
-        # TODO ---------------------------------------------------------------------#
+        # NOTE Below we secure that platonium is backward compatible
+        inputFileAPE_csv = self.inputDir.joinpath('instrumentAPE.csv')
         inputFileAPE_txt = self.inputDir.joinpath('instrumentAPE.txt')
-        if inputFileAPE_txt.is_file():
-            if self.verbose > 1:
-                print('Applying camera misalignment (APE FromFile)')
-                errorcode('warning', 'Deprecation alert for "instrumentAPE.txt"! ' +
-                          f'Use "payload" to generate a new file in csv format..')
-            APE = np.loadtxt(inputFileAPE_txt)
-            dex = (self.group - 1) * 6 + self.camera - 1
-            sim["Telescope/TiltAngle"]    += APE[dex, 0]
-            sim["Telescope/AzimuthAngle"] += APE[dex, 1]
-        # TODO ---------------------------------------------------------------------#
-        elif inputFileAPE.is_file():
+        #---------------------------------------------------------------------
+        # New implementation for PlatoSim >= 3.7.0
+        if inputFileAPE_csv.is_file():
             if self.verbose > 1:
                 print('Applying camera misalignment (APE FromFile)')
             APE = pd.read_csv(inputFileAPE)
@@ -840,9 +832,19 @@ class PLATOnium(object):
                     # Apply new camera pointing
                     sim["Platform/Orientation/Source"] = 'Quaternion'
                     sim["Platform/Orientation/Quaternion/Components"] = quaternionCAM
+        #---------------------------------------------------------------------
+        # Old implementation for PlatoSim < 3.7.0
+        elif inputFileAPE_txt.is_file():
+            if self.verbose > 1:
+                print('Applying camera misalignment (APE FromFile)')
+            APE = np.loadtxt(inputFileAPE_txt)
+            dex = (self.group - 1) * 6 + self.camera - 1
+            sim["Telescope/TiltAngle"]    += APE[dex, 0]
+            sim["Telescope/AzimuthAngle"] += APE[dex, 1]
+        #---------------------------------------------------------------------
 
         # Thermo-Elastic Drift (TED) due to thermal gradient across optical bench
-        # NOTE: Included if "instrumentTED.txt" is available in input
+        # NOTE Included if "instrumentTED**.txt" is available in input
         inputFileTED   = self.inputDir.joinpath('instrumentTED.txt')
         inputFileTED_i = self.inputDir.joinpath(f'instrumentTED_group{self.group}.txt')
         if inputFileTED.is_file() or inputFileTED_i.is_file():
@@ -861,7 +863,7 @@ class PLATOnium(object):
                     
         # CONFIGURE CAMERA
         
-        # NOTE: adds option to turn off DKA
+        # Turn off effect of kinematic aberration
         if self.noAberrCorr:
             sim['Camera/IncludeAberrationCorrection'] = False
         else:
@@ -891,6 +893,9 @@ class PLATOnium(object):
                     sim["Camera/IncludeFieldDistortion"] = True
                     sim["Camera/FieldDistortion/Source"] = 'ConstantValue'
                     sim["Camera/FieldDistortion/ConstantCoefficients"] = coeff_normal
+                else:
+                    errorcode('warning', 'No field distortion coefficients found in CAM! ' +
+                              'Using default values from YAML file..')
                 if 'ik1' in CAM.columns:
                     coeff_inverse = []
                     coeff_inverse.append(CAM.ik1.iloc[dex])
@@ -937,7 +942,6 @@ class PLATOnium(object):
                 
         # Thermal gain transients due to data gaps
         # NOTE Included if "instrumentGTT.txt" is available in input
-        # TODO Check model implementation!
         inputFileGTT = self.inputDir.joinpath('instrumentGTT.txt')
         if inputFileGTT.is_file():
             sim["CCD/Temperature"]         = "FromFile"

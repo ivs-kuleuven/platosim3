@@ -1255,12 +1255,12 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
     # Plot figure above     
     if plot: plt.show()
 
-    # Save data in one big drift text file for PlatoSim
+    # Save data in one big drift ascii file for PlatoSim
     if ofile:
-        df_1.to_csv(f'{ofile[:-4]}_group1.txt', sep=" ", header=False, index=False)
-        df_2.to_csv(f'{ofile[:-4]}_group2.txt', sep=" ", header=False, index=False)
-        df_2.to_csv(f'{ofile[:-4]}_group3.txt', sep=" ", header=False, index=False)
-        df_4.to_csv(f'{ofile[:-4]}_group4.txt', sep=" ", header=False, index=False)
+        df_1.to_csv(f'{ofile[:-4]}_group1.csv', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group2.csv', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group3.csv', sep=" ", header=False, index=False)
+        df_4.to_csv(f'{ofile[:-4]}_group4.csv', sep=" ", header=False, index=False)
         fig.savefig(f'{ofile[:-4]}.png', bbox_inches='tight', dpi=200)
 
 
