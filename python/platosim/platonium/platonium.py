@@ -121,25 +121,19 @@ class PLATOnium(object):
         self.pipeJitDriftOff  = args.pipe_jit_off
         self.pipeExtendedMask = args.pipe_emask
         self.pipePlots        = args.pipe_plots
-
-        # Debug L1 without re-simulating all platosim data
-        self.l1_only = False
-
-        # Overwrite simulation
-        if args.overwrite:
-            self.overwrite = True
-        else:
-            self.overwrite = False
-
+        
+        # Start software writing
+        if self.verbose > 1:
+            errorcode('software', '\nPLATOnium')
+        
         # MANDATORY PARAMETERS
         
-        # Normal cameras
+        # Normal vs Fast cameras
         if self.group in [1, 2, 3, 4]:
             if self.camera in [1, 2, 3, 4, 5, 6]:
                 self.groupID = self.group
             else:
                 errorcode('error', 'Camera can only be [1, 2, 3, 4, 5, 6]')
-        # Fast cameras
         elif self.group == 5:
             self.groupID = 'Fast'
             if self.camera == 1:
@@ -158,11 +152,11 @@ class PLATOnium(object):
                 errorcode('error', 'CCD code can only be [1, 2, 3, 4]')
 
         # OPTIONAL PARAMETERS
-        # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
+
+        # Verbosity (a.k.a log level) -> Identical to PlatoSim usage:
         # verbose = 0: Cluster mode: Disabling print and warnings, and no log files are saved
         # verbose = 1: Default mode: Print details to bash but do not save log files
-        # verbose = 3: Debug mode  : Print details to bash and saves all log files
-        
+        # verbose = 3: Debug   mode: Print details to bash and saves all log files
         if args.verbose == 0:
             self.verbose = 0
             self.verbose_platosim = 0
@@ -184,11 +178,7 @@ class PLATOnium(object):
             self.animation = True
         else:
             self.animation = False
-
-        # Start software writing
-        if self.verbose > 1:
-            errorcode('software', '\nPLATOnium')
-
+            
         # I/O PARAMETERS
         
         # Absolute pwd path
@@ -218,11 +208,22 @@ class PLATOnium(object):
             errorcode('error', 'File inputfile.yaml do not exist! ' +
                       'Alternamtively use {-i, --yaml}')
 
+        # Overwrite simulation
+        if args.overwrite:
+            self.overwrite = True
+        else:
+            self.overwrite = False
+
+        # SOURCE CATALOGUE PARAMETERS
+        
         # Inclusion thresholds for contaminants
         if not self.conDeltaMag: self.conDeltaMag = 10   # [delta mag]
         if not self.conDisLimit: self.conDisLimit = 60   # [arcsec -> 15 arcsec/pixel]
-
+        
         # PHOTOMETRY AND PIPELINE PARAMETERS
+
+        # Debug L1 without re-simulating all platosim data
+        self.l1_only = False
         
         if self.pipeline:
             # Pipeline paths
@@ -380,15 +381,47 @@ class PLATOnium(object):
         else:
             pass
 
-        
+
+    def _check_source_name(self, df):
+        """Utility to check source name in catalogue.
+        """
+        if 'PIC' in df:
+            self.colID = 'PIC'
+        elif 'gaiaDR3' in df:
+            self.colID = 'gaiaDR3'
+        elif 'source_gaia_dr3' in df:
+            self.colID = 'source_gaia_dr3'                
+        elif 'ID' in df:
+            # TODO Backward compatible with PlatoSim =< 3.5.3-19-g18d87597
+            self.colID = 'ID'
+        else:
+            errorcode('error', 'Cannot find ID identifier! ' + 
+                      'Valid names are [ID, PIC, gaiaDR3, source_gaia_dr3]')
+
+
+    def _check_passband_name(self, df):
+        """Utility to check passband name in catalogue.
+        """
+        if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
+            self.passband = 'PBmag'
+        elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
+            self.passband = 'PRmag'
+        elif 'Pmag' in df:
+            self.passband = 'Pmag'
+        elif 'mag' in df:
+            # NOTE to be coherent with Fluxm0 in YAML!
+            self.passband = 'mag'
+        else:
+            errorcode('error', "No valid passband present in star catalogue! " +
+                      "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
+                
+            
     def load_stars(self):
         """
         Module to load the stellar targets and contaminants.
         """
         if (self.verbose == 3) or (self.fullFrame and self.verbose > 1):
             print('\nLoading stellar catalogue..')
-
-        self.magPB = 'mag'
 
         # Fetch some information from YAML
         sim = Simulation(self.outputFileName, self.inputFile)
@@ -399,7 +432,7 @@ class PLATOnium(object):
         else:
             self.pointingField = self.field
             
-        # FULL-FRAME CCD
+        # FULL-FRAME CATALOGUE
         
         if self.fullFrame:
             
@@ -410,34 +443,23 @@ class PLATOnium(object):
                 errorcode('error', 'No star catalogue found in the project input directory!')
             self.dx = pd.read_feather(starcat)
 
-            # Store star catalogue
+            # Check source and passband names
+            self._check_source_name(dx)
+            self._check_passband_name(dx)
+            
+            # Store source catalogue
             self.ds = pd.DataFrame()
             self.ds['ra']  = self.dx.ra
             self.ds['dec'] = self.dx.dec
-            self.ds['mag'] = self.dx.Pmag
+            self.ds['mag'] = self.dx[self.passband]
             self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)
 
-        # SUBFIELD
+        # SUBFIELD CATALOGUES
             
         else:
 
-            def check_passband_magnitude(df):
-                """Utility to fetch correct magnitude name.
-                """
-                if 'PIC' in df:
-                    self.colID = 'PIC'
-                elif 'gaiaDR3' in df:
-                    self.colID = 'gaiaDR3'
-                elif 'source_gaia_dr3' in df:
-                    self.colID = 'source_gaia_dr3'                
-                elif 'ID' in df:
-                    # PlatoSim version: 3.5.3-19-g18d87597
-                    self.colID = 'ID'
-                else:
-                    errorcode('error', 'Cannot find ID identifier! ' + 
-                              'Usage in [ID, PIC, gaiaDR3, source_gaia_dr3]')
-
             # Fetch stars from custum catalogue
+            
             if self.starcatFile is not None:
 
                 # Read catalogue
@@ -445,16 +467,19 @@ class PLATOnium(object):
                 df = pd.read_feather(self.starcatFile)
 
                 # Check magnitude parsed
-                check_passband_magnitude(df)
+                self.check_passband_magnitude(df)
 
                 # Define data frames
+                # NOTE assumed first row is target
                 self.targetNo = 0
                 self.df = df.loc[self.targetNo]
                 self.dc = df.iloc[1:]
 
-            # Fetch stars from the default setup
+            # Fetch stars from PIC and Gaia DR3 catalogues
+            
             else:
-                # Add sample name to use non-default catalogues
+                
+                # Addsample name to use non-default catalogues
                 if self.sample is not None:
                     extra_str = self.sample
                 else:
@@ -479,10 +504,10 @@ class PLATOnium(object):
                 # Check if target and contaminant catalogues are consistent
                 if str(Path(self.catTarFile).stem[:-8]) != str(Path(self.catConFile).stem[:-13]):
                     errorcode('error', f'Target and contaminant catalogue does not match! ' +
-                              'Use --field to specify a LOP without altering the YAML.')
+                              'Use --field to specify a LOP or alter the YAML')
 
                 # Check magnitude parsed
-                check_passband_magnitude(df)
+                self.check_source_name(df)
 
                 # Merge for full frame
                 self.dx = pd.concat([df, dc])
@@ -504,55 +529,46 @@ class PLATOnium(object):
                 # Select target star
                 self.df = df.iloc[self.targetNo]
 
-            # Additional info for subfield simulations
-            if not self.fullFrame:
-                # If requested select only the target, else include contaminants
-                if not self.starcatFile:
-                    if self.noCon:
-                        self.dc = dc[dc[self.colID] == 0]
-                    else:
-                        self.dc = dc[dc[self.colID] == self.df[self.colID]]
-                        self.dc = self.dc.sort_values(by=['dis'])
-
-                # Check PLATO passbands
-                if not 'mag' in df:
-                    if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
-                        self.magPB = 'PBmag'
-                    elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
-                        self.magPB = 'PRmag'
-                    elif 'Pmag' in df:
-                        self.magPB = 'Pmag'
-                    else:
-                        errorcode('error', "No valid passband present in star catalogue! " +
-                                  "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
-
-                    # Change naming
-                    self.df = self.df.to_frame().T.rename(columns={self.magPB:'mag'}).squeeze()
-                    self.dc = self.dc.rename(columns={self.magPB:'mag'})
-
-                # If requested overwrite magnitude of target star
-                if self.mag is not None:
-                    self.df.mag = self.mag
-
-                # Number of contaminants
+            # Continue information for subfield simulations
+            
+            # If requested select only the target, else include contaminants
+            if not self.starcatFile:
                 if self.noCon:
-                    self.numCon = 0
+                    self.dc = dc[dc[self.colID] == 0]
                 else:
-                    # Limits for contaminants
-                    self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
-                    self.dc = self.dc[self.dc.dis < self.conDisLimit]
-                    self.dc = self.dc.reset_index(drop=True)
-                    self.numCon = self.dc.shape[0]
+                    self.dc = dc[dc[self.colID] == self.df[self.colID]]
+                    self.dc = self.dc.sort_values(by=['dis'])
 
-                # Save star catalogue
-                self.ds = pd.DataFrame()
-                self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
-                self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
-                self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
-                if not self.noCon:
-                    self.ds['ids'] = np.arange(1, self.numCon+2)
-                else:
-                    self.ds['ids'] = 1
+            # Check name of passband
+            self._check_passband_magnitude(df)
+
+            # Change naming
+            self.df = self.df.to_frame().T.rename(columns={self.passband:'mag'}).squeeze()
+            self.dc = self.dc.rename(columns={self.passband:'mag'})
+
+            # If requested overwrite magnitude of target star
+            if self.mag is not None:
+                self.df.mag = self.mag
+
+            # Number of contaminants
+            if self.noCon:
+                self.numCon = 0
+            else:
+                # Limits for contaminants
+                self.dc = self.dc[(self.dc.mag - self.df.mag) < self.conDeltaMag]
+                self.dc = self.dc[self.dc.dis < self.conDisLimit]
+                self.dc = self.dc.reset_index(drop=True)
+                self.numCon = self.dc.shape[0]
+
+            # Save star catalogue
+            self.ds = pd.DataFrame()
+            self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
+            self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
+            self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
+            if not self.noCon:
+                self.ds['ids'] = np.arange(1, self.numCon+2)
+            else:
+                self.ds['ids'] = 1
 
         
     def init_sim(self):
@@ -622,11 +638,11 @@ class PLATOnium(object):
             
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
-        if self.magPB == 'Pmag':
+        if self.passband == 'Pmag':
             sim['ObservingParameters/Fluxm0'] = 7.324509159344043e7
-        elif self.magPB == 'PBmag':
+        elif self.passband == 'PBmag':
             sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
-        elif self.magPB == 'PRmag':
+        elif self.passband == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
             
         # PHOTOMETRY ALA MARCHIORI
