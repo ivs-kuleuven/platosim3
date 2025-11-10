@@ -40,7 +40,6 @@ from astroquery.gaia     import Gaia
 # PlatoSim functions
 import platosim.utilities as ut
 
-
 #--------------------------------------------------------------#
 #                      HIDDEN FUNCTIONS                        #
 #--------------------------------------------------------------#

@@ -815,6 +815,47 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
 
 
 
+def getContaminants(dt, dc, column='PIC', radius=45):
+    """Match contaminating sources from dc to targets of dt.
+    """
+    from tqdm import tqdm
+    
+    # Query radial distance [arcsec]
+    x = radius/3600.
+
+    # Loop over each target
+    
+    for i in tqdm(range(dt.shape[0]), bar_format=tqdmBar()):
+        # Select target star
+        dt_i = dt.iloc[i]
+
+        # Fetch smaller region around target
+        dc_i = dc[(dc.ra  > dt_i.ra  - x) & (dc.ra  < dt_i.ra  + x) &
+                  (dc.dec > dt_i.dec - x) & (dc.dec < dt_i.dec + x)]
+        dc_i = dc_i.reset_index(drop=True)
+        
+        # Remove target star if present
+        dc_i = dc_i.drop(dc_i[dc_i[column] == dt_i[column]].index)
+
+        # Find radial distance [arcsec] 
+        dc_i['dis'] = radialDistance(dt_i.ra, dt_i.dec, dc_i.ra, dc_i.dec).to_numpy() * 3600.
+        dc_i = dc_i.sort_values(by=['dis'])
+        dc_i = dc_i.reset_index(drop=True)
+
+        # Set contaminant ID to target ID
+        dc_i[column] = dt_i[column]
+
+        # Save to a new df
+        if i == 0:
+            df = dc_i
+        else:
+            df = pd.concat([df, dc_i])
+
+    # Save to feather files
+    return df.reset_index(drop=True)
+
+
+
 def cart2pol(x, y):
     """Transformation from cartesian to polar coordinates.
 
@@ -1165,10 +1206,10 @@ def getPointingField(name, unit='deg', system='icrs'):
     Sky coordinates (alpha, delta, kappa) [deg]
     """
 
-    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000],  # PIC 1.1
-          'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
-          'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
-          'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
+    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000],  # PIC 1.1.0
+          'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1.0
+          'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0.0
+          'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC >= 2.0.0
           'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # TN of KUL20
 
     # Check data field exists
@@ -1176,7 +1217,7 @@ def getPointingField(name, unit='deg', system='icrs'):
     try:
         p = PF[name]
     except KeyError:
-        errorcode('error', 'Not valid PLATO field! Options: {LOPS2, LOPN1, SPF, NPF}')
+        errorcode('error', 'Not valid Plato field! Use {LOPS2, LOPN1, SPF, NPF}')
 
     # Convert units and return
     
@@ -1743,46 +1784,3 @@ def copyVizierInputYAML(field, odir):
             # Write the file out again
             with open(yaml_new, 'w') as file:
                 file.write(filedata)
-
-
-
-                
-def getContaminants(dt, dc, column='PIC', radius=45):
-
-    from tqdm import tqdm
-    
-    # Query radial distance [arcsec]
-    x = radius/3600.
-
-    # Loop over each target
-    
-    for i in tqdm(range(dt.shape[0]), bar_format=tqdmBar()):
-
-        # Select target star
-        dt_i = dt.iloc[i]
-
-        # Fetch smaller region around target
-        dc_i = dc[(dc.ra  > dt_i.ra  - x) & (dc.ra  < dt_i.ra  + x) &
-                  (dc.dec > dt_i.dec - x) & (dc.dec < dt_i.dec + x)]
-        dc_i = dc_i.reset_index(drop=True)
-        
-        # Remove target star if present
-        dc_i = dc_i.drop(dc_i[dc_i[column] == dt_i[column]].index)
-
-        # Find radial distance [arcsec] 
-        dc_i['dis'] = radialDistance(dt_i.ra, dt_i.dec, dc_i.ra, dc_i.dec).to_numpy() * 3600.
-        dc_i = dc_i.sort_values(by=['dis'])
-        dc_i = dc_i.reset_index(drop=True)
-
-        # Set contaminant ID to target ID
-        dc_i[column] = dt_i[column]
-
-        # Save to a new df
-        if i == 0:
-            df = dc_i
-        else:
-            df = pd.concat([df, dc_i])
-
-    # Save to feather files
-
-    return df.reset_index(drop=True)                

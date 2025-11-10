@@ -163,6 +163,29 @@ def slider(imagePlot, images, Nimg, label="Image number"):
 
 
 
+def compass(ax, x, y, size):
+    
+    """Add a compass to indicate the north and east directions.
+
+    Parameters
+    ----------
+    x, y : float
+        Position of compass vertex in axes coordinates.
+    size : float
+        Size of compass in axes coordinates.
+    """
+    xy = x, y
+    scale = ax.wcs.pixel_scale_matrix
+    scale /= np.sqrt(np.abs(np.linalg.det(scale)))
+    self.annotate(label, xy, xy + size * n,
+                  self.transAxes, self.transAxes,
+                  ha='center', va='center',
+                  arrowprops=dict(arrowstyle='<-', shrinkA=0.0, shrinkB=0.0))
+
+
+
+
+    
 def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
 
     """Move scientific notation exponent from top to the side.
@@ -1231,42 +1254,14 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
 
-
-
-
-def compass(ax, x, y, size):
-    
-    """Add a compass to indicate the north and east directions.
-
-    Parameters
-    ----------
-    x, y : float
-        Position of compass vertex in axes coordinates.
-    size : float
-        Size of compass in axes coordinates.
-    """
-    xy = x, y
-    scale = ax.wcs.pixel_scale_matrix
-    scale /= np.sqrt(np.abs(np.linalg.det(scale)))
-    self.annotate(label, xy, xy + size * n,
-                  self.transAxes, self.transAxes,
-                  ha='center', va='center',
-                  arrowprops=dict(arrowstyle='<-', shrinkA=0.0, shrinkB=0.0))
-            # for n, label, ha, va in zip(scale, 'EN',
-            #                             ['right', 'center'],
-            #                             ['center', 'bottom'])]
-
-
-
-
             
 def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
                  # Settings without colorbar
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1, ec='k',
-                 # Setting with colorbar
+                 # Settings with colorbar
                  c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
-                 # Seeting for add-ons
-                 ncamStars=False, ncamMap='PIC',
+                 # Settings for add-ons
+                 ncamStars=False, ncamMap='PIC210',
                  showGalactic=False, aa_gal=0.01,
                  showGroups=False, showFcamFOV=False,
                  # General settings
@@ -1314,15 +1309,20 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
 
     import ligo.skymap.plot
 
-    # Fetch PIC catalogue
+    # Fetch N-CAM map if requested
 
-    if pointingField in ['SPF', 'NPF']:
-        catalogName  = 'PIC110'
-    elif pointingField in ['LOPS2', 'LOPN1']:
-        catalogName = 'PIC200'
+    if ncamMap == 'PIC210':
+        if pointingField not in ['LOPS2']:
+            ut.errorcode('error', 'Not valid pointing for PIC210! Choose [LOPS2]')
+    elif ncamMap in ['PIC200', 'PLATO-CS']:
+        if pointingField not in ['LOPS2', 'LOPN1']:
+            ut.errorcode('error', f'Not valid pointing for {ncamMap}! Choose [LOPS2, LOPN1]')        
+    elif ncamMap == 'PIC110':
+        if pointingField not in ['SPF', 'NPF']:
+            ut.errorcode('error', 'Not valid pointing for PIC110! Choose [SPF, NPF]')
     else:
-        errorcode('error', 'Not valid pointing! Choose [LOPS2, LOPN1, SPF, NPF]')
-        
+        ut.errorcode('error', 'Not valid N-CAM map! Choose [PIC210, PIC200, PIC110, PLATO-CS]')
+                
     # Select field [deg]
 
     alpha, delta, kappa = ut.getPointingField(pointingField) 
@@ -1341,11 +1341,6 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
     ax = plt.axes(projection=f'{view} degrees zoom', center=PF,
                   radius=f'{fovSize} deg', rotate='180 deg')
     tax = ax.get_transform('world')
-
-
-    # ax.text(340, 670, 'LOPS2', horizontalalignment='center', verticalalignment='center', fontsize=17)
-    # plt.plot()
-    # exit()
     
     # Plot N-CAM visibility flower
 
@@ -1356,19 +1351,19 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
             df = ncamStars
         else:
             idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-            if ncamMap == 'PIC':
-                df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+            if ncamMap in ['PIC210', 'PIC200', 'PIC110']:
+                df = pd.read_feather(f'{idir}/{ncamMap}_{pointingField}_targets.ftr')
             elif ncamMap == 'PLATO-CS':
                 df = pd.read_feather(f'{idir}/starcat_PlatoCS_NCAM_{pointingField}.ftr')
                 df = df.loc[::5]
             
-        # Backward compatible
+        # NOTE Backward compatible
         try:
             ncam = df.ncam
         except AttributeError:
             ncam = df.ncams
 
-        # Define each visibility
+        # Plot sources after N-CAM visibility
         PF06 = df[ncam == 6]
         PF12 = df[ncam == 12]
         PF18 = df[ncam == 18]
@@ -1391,8 +1386,6 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
             x12, y12 = starPF12.l.deg, starPF12.b.deg
             x18, y18 = starPF18.l.deg, starPF18.b.deg
             x24, y24 = starPF24.l.deg, starPF24.b.deg
-    
-        # Plot PIC1.1.0 stars after N-CAM visibility
         ax.plot(x06, y06, '.', c='skyblue',     transform=tax, ms=ms, zorder=1)
         ax.plot(x12, y12, '.', c='deepskyblue', transform=tax, ms=ms, zorder=1)
         ax.plot(x18, y18, '.', c='dodgerblue',  transform=tax, ms=ms, zorder=1)
@@ -1443,7 +1436,7 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
                                  transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
             cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
             cbar.set_label(clabel)
-                
+            
     # Plot pointing of each camera group
 
     if showGroups:
@@ -2352,7 +2345,7 @@ def plotNSRvsMagnitude(df,
     elif passband == 'V':
         xlabel = r'Johnson-Cousin magnitude, $V$'
     else:
-        errorcode('error', 'Not valid passband: options ["P", "V"]')
+        ut.errorcode('error', 'Not valid passband: options ["P", "V"]')
     ax.set_xlabel(xlabel)
     ylabel = r'NSR [ppm h$^{-1/2}$]'
     
