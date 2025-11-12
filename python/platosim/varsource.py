@@ -1869,7 +1869,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Create new data frame
         self.df = pd.DataFrame()
@@ -1955,7 +1955,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
         
         # Create new data frame
         self.df = pd.DataFrame()
@@ -2010,7 +2010,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Swap max peak location if not in [5, 25] c/d
         # This is based on observations from:
@@ -2073,7 +2073,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Swap max peak location if not in [5, 25] c/d
         # This is based on observations from:
@@ -2140,7 +2140,7 @@ class Pulsator(object):
             self.df.ampl *= self.scale
 
         # Convert units
-        self.df.ampl = 2.5 * np.log10(1 + self.df.ampl)
+        self.df.ampl = -2.5 * np.log10(1 + self.df.ampl)
             
         # Return parameters
         return starfile.stem, f_corr, A_corr, self.df
@@ -2547,6 +2547,60 @@ class SMBHB(object):
 
     #--------------------------------------------------- Start of physical model
 
+    
+    def model_params(object):
+        """Load model parameters.
+        """
+        def __init__(self):
+
+            # Observational parameters
+            self.t0 = 0    
+            self.z  = 0
+
+            # Orbital parameters
+            self.P = 1     # Observed period [days]
+            self.i = 0.01  # Inclination [deg]
+            self.e = 0     # Eccentricity [0,1]
+            self.w = 0     # Argument of periapse [0, 360] [deg]
+
+            # Physical parameters
+            self.M = 1e9
+            self.q = 0.1
+            self.L = 0.1
+
+            # Damped Random Walk (DRW) parameters
+            self.tau   = 50 * u.d  # Variability time scale [d] 
+            self.sigma = 300       # [ppm]
+
+            # Doppler boosting parameters
+            self.alpha = 2.09  # Spectral slope
+            self.v_z   = 0     # Relative motion of frames [m/s]
+        
+        # # Observational parameters
+        # self.t0 = 0    
+        # self.z  = 0
+        
+        # # Orbital parameters
+        # self.P = 1     # Observed period [days]
+        # self.i = 0.01  # Inclination [deg]
+        # self.e = 0     # Eccentricity [0,1]
+        # self.w = 0     # Argument of periapse [0, 360] [deg]
+
+        # # Physical parameters
+        # self.M = 1e9
+        # self.q = 0.1
+        # self.L = 0.1
+
+        # # Damped Random Walk (DRW) parameters
+        # self.tau   = 50 * u.d  # Variability time scale [d] 
+        # self.sigma = 300       # [ppm]
+
+        # # Doppler boosting parameters
+        # self.alpha = 2.09  # Spectral slope
+        # self.v_z   = 0     # Relative motion of frames [m/s]
+
+
+    
     def initPhysicalModel(self, t0, P, M, q, i, e, w, L, z, verbose=False):
         """Initialise physical model.
 
@@ -2624,7 +2678,7 @@ class SMBHB(object):
         Parameters
         ----------
         tau : ndarray
-            Time scale tau of each red noise component [s]
+            Time scale tau of each red noise component [d]
         sigma : ndarray 
             Variation scale of each red noise component [ppm]
         verbose : bool
@@ -3346,7 +3400,7 @@ class Exomoon(object):
         return df1
 
 
-    def plot_lc(self, df, dv, alpha=0.5, figsize=(9,4)):
+    def plot_lc(self, df, dv, di=None, alpha=0.5, figsize=(9,4)):
         """Select data around planet transits.
 
         Parameters
@@ -3357,14 +3411,18 @@ class Exomoon(object):
         fig, ax = plt.subplots(1, 1, figsize=figsize)
         ax.plot(df.time, df.flux, 'k.', ms=10, alpha=alpha)
         ax.plot(dv.time, dv.flux, '-', c='royalblue')
-        ax.set_xlabel("Time (days)")
+        if di is not None:
+            ax.plot(di.time, di.flux, '-', c='orange')
+        ax.set_xlabel("Time [days]")
         ax.set_ylabel("Normalized flux")
         plt.tight_layout()
         return fig, ax
 
 
-    def plot_epochs(self, df, dv, n_epoch, T_epoch, t0, P,
-                    alpha=0.5, ms=10, figsize=(9,4)):
+    def plot_epochs(self, timings,
+                    df, alpha=0.5, ms=10,
+                    dm=None, cb='orange', cp='deeppink', cm='royalblue', 
+                    figsize=(9,3)):
         """Select data around planet transits.
 
         Parameters
@@ -3376,14 +3434,39 @@ class Exomoon(object):
         t0 : Time of first transit [d]
         P : Period of transits [d]
         """
-        fig, ax = plt.subplots(1, n_epoch, figsize=figsize)
+        n_epoch = timings[0]
+        T_epoch = timings[1]
+        t0_bary = timings[2]
+        P_bary  = timings[3]
+
+        # Interpolate model to data timings
+        if df.shape[0] != dm.shape[0]:
+            interp = scipy.interpolate.make_interp_spline(dm.time, dm.flux, k=1)
+            df['flux_model'] = interp(df.time)
+        else:
+            df['flux_model'] = dm.flux
+        
+        fig, ax = plt.subplots(2, n_epoch, figsize=figsize)        
         for i in range(n_epoch):
-            ax[i].plot(df.time, df.flux, 'k.', ms=ms, alpha=alpha)
-            ax[i].plot(dv.time, dv.flux, '-', c='royalblue')
-            t_transit = t0 + (P * i)
-            ax[i].set_xlim(t_transit-T_epoch/2 , t_transit+T_epoch/2)
-            ax[i].set_xlabel("Time (days)")
-        ax[0].set_ylabel("Normalized flux")
+            # Plot simulated data
+            ax[0,i].errorbar(df.time, df.flux, yerr=df.flux_err, fmt='.k', alpha=alpha, zorder=1)
+            # Plot Pandora planet and moon model
+            if 'flux_planet' in dm:
+                ax[0,i].plot(dm.time, dm.flux_planet, '-', c=cp, zorder=2)
+            if 'flux_moon' in dm:
+                ax[0,i].plot(dm.time, dm.flux_moon,   '-', c=cm, zorder=3)
+            # Plot injected model
+            ax[0,i].plot(dm.time, dm.flux, '-', c=cb, zorder=4)                
+            # Plot OC diagram
+            ax[1,i].errorbar(df.time, df.flux-df.flux_model, yerr=df.flux_err,
+                             fmt='.k', alpha=alpha)
+            # Settings
+            t_transit = t0_bary + (P_bary * i)
+            for j in range(2):
+                ax[j,i].set_xlim(t_transit-T_epoch/2 , t_transit+T_epoch/2)
+                ax[j,i].set_xlabel("Time [days]")
+        ax[0,0].set_ylabel("Normalized flux")
+        ax[1,0].set_ylabel("Residuals")
         plt.tight_layout()
         return fig, ax
 
@@ -3426,7 +3509,8 @@ class Exomoon(object):
                 p[5] = cube[5]                  # LD q1 [0..1]
                 p[6] = cube[6]                  # LD q2 [0..1]
                 return p
-
+        else:
+            pass
             
         def log_likelihood(p):
             # Convert q priors to u LDs (Kipping 2013)
@@ -3444,15 +3528,15 @@ class Exomoon(object):
                 u1 = u1,
                 u2 = u2,
                 # Planet parameters
-                per_bary = p[0],
-                a_bary = p[1],
-                r_planet = p[2],
-                b_bary = p[3],
-                w_bary = 0,
-                ecc_bary = 0,
-                t0_bary = params.t0_bary,
+                per_bary       = p[0],
+                a_bary         = p[1],
+                r_planet       = p[2],
+                b_bary         = p[3],
+                ecc_bary       = 0,
+                w_bary         = 0,
+                t0_bary        = params.t0_bary,
                 t0_bary_offset = p[4],   
-                M_planet = 1e27,
+                M_planet       = 1e27,
                 # Moon parameters
                 r_moon     = moon_params[0],  # negligible moon size
                 per_moon   = 30,  # other moon params do not matter
