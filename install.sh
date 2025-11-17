@@ -9,7 +9,7 @@
 set -e
 
 # Set number of threads
-THREADS=1
+THREADS=4
 
 while getopts "j:" opt; do
     case "$opt" in
