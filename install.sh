@@ -8,6 +8,33 @@
 
 set -e
 
+# Set number of threads
+THREADS=1
+
+while getopts "j:" opt; do
+    case "$opt" in
+        j)
+            THREADS=$OPTARG
+
+            # Validate: must be a non-negative integer
+            case $THREADS in
+                ''|*[!0-9]*)
+                    printf '%s\n' "Error: -j requires a positive integer" >&2
+                    exit 1
+                    ;;
+		0)
+                    printf '%s\n' "Error: -j 0 not allowed. Edit the script if you know what you are doing." >&2
+                    printf '%s\n' "       Please use a positive integer, e.g. -j 4." >&2
+                    exit 1
+                    ;;
+            esac
+            ;;
+        *)
+            printf 'Usage: %s -j <number>\n' "$0" >&2
+            exit 1
+            ;;
+    esac
+done
 
 # Check if the "python" command exists, if not try "python3".
 
@@ -23,12 +50,12 @@ fi
 # dependency package. Each script Unzip/Untar packages in dependencies/Downloads/ 
 # and installs dependencies packages in dependencies/Installs/
 
-$myPython ./dependencies/installscripts/install_hdf5.py
-$myPython ./dependencies/installscripts/install_yaml.py
-$myPython ./dependencies/installscripts/install_armadillo.py
-$myPython ./dependencies/installscripts/install_fftw.py
-$myPython ./dependencies/installscripts/install_faddeeva.py
-$myPython ./dependencies/installscripts/install_zeromq.py
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_hdf5.py
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_yaml.py
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_armadillo.py
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_fftw.py
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_faddeeva.py
+INSTALL_NUM_THREADS="$THREADS" "$myPython" ./dependencies/installscripts/install_zeromq.py
 
 
 # Build the simulator
@@ -39,5 +66,5 @@ fi
 
 cd build
 cmake ..
-make -j 4 
+make  -j "$THREADS"
 

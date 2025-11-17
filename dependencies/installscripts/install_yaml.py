@@ -41,7 +41,9 @@ installProcedure = "cd {build};                                     \
                     mkdir build;                                    \
                     cd build;                                       \
                     cmake ..;                                       \
-                    make".format(build=buildDir, package=packageName)
+                    make -j {num_threads}".format(build=buildDir, 
+                                                  package=packageName,
+                                                  num_threads=os.environ.get("INSTALL_NUM_THREADS"))
 
 process = subprocess.run(installProcedure, shell=True)
 if not process.returncode == 0:
