@@ -2629,7 +2629,7 @@ class SMBHB(object):
         self.a  = self._semimajor_axis(self.P, self.M)
         self.a1 = self.a * self.M2 / self.M
         self.a2 = self.a * self.M1 / self.M
-        
+
         # Show parameters to screen
         if verbose:
             ut.errorcode('message', 'Input parameters:')
@@ -2751,7 +2751,7 @@ class SMBHB(object):
                 
         # The RV semi-amplitude of secondary [cm/s]
         K1,K2 = self._rv_semiamplitude(self.P, self.M1, self.M, self.q, self.a, self.i, self.e)
-
+        print(K1, K2)
         # Show parameters to screen
         if verbose:
             ut.errorcode('message', '\nDoppler boosting parameters:')
