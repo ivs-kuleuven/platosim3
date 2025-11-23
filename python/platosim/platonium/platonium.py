@@ -96,7 +96,7 @@ class PLATOnium(object):
         self.simBeginExp   = args.bexp
         self.picID         = args.pic
         self.mag           = args.mag
-        self.noCon         = args.nocon
+        self.conNone         = args.con_none
         self.conDeltaMag   = args.con_dmag
         self.conDisLimit   = args.con_dist
         self.reuseJitter   = args.jit_reuse
@@ -508,7 +508,7 @@ class PLATOnium(object):
             if not self.fullFrame:
                 # If requested select only the target, else include contaminants
                 if not self.starcatFile:
-                    if self.noCon:
+                    if self.conNone:
                         self.dc = dc[dc[self.colID] == 0]
                     else:
                         self.dc = dc[dc[self.colID] == self.df[self.colID]]
@@ -535,7 +535,7 @@ class PLATOnium(object):
                     self.df.mag = self.mag
 
                 # Number of contaminants
-                if self.noCon:
+                if self.conNone:
                     self.numCon = 0
                 else:
                     # Limits for contaminants
@@ -549,7 +549,7 @@ class PLATOnium(object):
                 self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
                 self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
                 self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
-                if not self.noCon:
+                if not self.conNone:
                     self.ds['ids'] = np.arange(1, self.numCon+2)
                 else:
                     self.ds['ids'] = 1
@@ -2100,19 +2100,19 @@ out_group.add_argument('--varlist',    metavar='FILE', type=str, help='Path to v
 out_group.add_argument('--compress',   action='store_true',      help='Flag to compress output files')
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
-sim_group.add_argument('--field',         metavar='LOP',  type=str,   help='PLATO pointing field [LOPS2, LOPN1, SPF, NPF]')
+sim_group.add_argument('--field',         metavar='LOP',  type=str,   help='PLATO pointing field [tLOPS2, LOPS2, LOPN1, SPF, NPF]')
 sim_group.add_argument('--cadence',       metavar='SEC',  type=float, help='Cadence for each exposure (default: 25 seconds)')
 sim_group.add_argument('--tdur',          metavar='DAY',  type=float, help='Duration of shortened quarter time series [days]')
 sim_group.add_argument('--bdur',          metavar='DAY',  type=float, help='Duration of time to start qurter simulation [days]')
 sim_group.add_argument('--nexp',          metavar='NO.',  type=int,   help='Number of exposures of shortened quarter time series')
 sim_group.add_argument('--bexp',          metavar='NO.',  type=int,   help='Number of exposure to start from beginning of quarter')
 sim_group.add_argument('--pic',           metavar='ID',   type=int,   help='Option to overwrite starID and select PIC identifier')
-sim_group.add_argument('--mag',           metavar='PMAG', type=float, help='Option to overwrite target magnitude in inputfile')
+sim_group.add_argument('--mag',           metavar='MAG',  type=float, help='Option to overwrite target magnitude in inputfile')
 sim_group.add_argument('--con_dmag',      metavar='MAG',  type=float, help='Threshold in dmag of contaminant(s) (Default: 10 mag)')
 sim_group.add_argument('--con_dist',      metavar='AS',   type=float, help='Threshold in dist of contaminant(s) (Default: 60 as)')
-sim_group.add_argument('--nocon',         action='store_true',       help='Flag to ignore all stellar contaminants')
-sim_group.add_argument('--no_aberr_corr', action='store_true',       help='Flag to turn of aberration correction (no DKA)')
-sim_group.add_argument('--jit_reuse',     action='store_true',       help='Flag to reuse an AOCS jitter file across all quarters')
+sim_group.add_argument('--con_none',      action='store_true',        help='Flag to ignore all contaminants in subfield')
+sim_group.add_argument('--no_aberr_corr', action='store_true',        help='Flag to turn of aberration correction (no DKA)')
+sim_group.add_argument('--jit_reuse',     action='store_true',        help='Flag to reuse an AOCS jitter file across all quarters')
 
 phot_group = parser.add_argument_group('PHOTOMETRY PARAMETERS')
 phot_group.add_argument('--mask',        metavar='DAY',  type=float,  help='Option to overwrite the mask-update in inputfile [days]')
@@ -2180,7 +2180,7 @@ elif args.pipeline and args.sample == 'P5':
 else:
     # Only run PlatoSim time series
     p.run_sim_normal(sim)
-    # Run post-processing
+    # Run simple post-processing
     if args.detrend or args.stitch or args.clip:
         p.run_reduction(sim)
     # Prologue
