@@ -138,6 +138,7 @@ from ldtk import LDPSetCreator, TabulatedFilter
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
+import platosim.smbhb     as smbhb
 from platosim.utilities import errorcode
 from platosim.spectrum  import Spectrum
 from platosim.varsource import (Pulsator,
@@ -185,14 +186,18 @@ class VarSim(object):
         self.star        = args.star
         self.star_params = args.star_params
 
-        # Binary mode
-        self.binary = args.binary
-
         # Planet mode
         self.planet = args.planet
         self.planet_params = args.planet_params
         #self.phase_curve = args.phase_curve TODO
+        
+        # Binary mode
+        self.binary = args.binary
 
+        # SMBHBB
+        self.smbhb = args.smbhb
+        self.smbhb_params = args.smbhb_params
+        
         # Limb darkening model
         self.ldms = ['linear', 'quadratic', 'squareroot', 'power2']
         if args.ldm is None:
@@ -1536,56 +1541,126 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-    def binary_smbh(self):
+    #--------------------------------------------------------------#
+    #                          SMBH BINARY                         #
+    #--------------------------------------------------------------#
 
+
+    def mode_smbhb(self):
+        """Given SMBH binary properties asign variable signal.
+        """
+        if self.verbose > 1:
+            errorcode('module', '\nSMBH binary\n')
+        
+        self.smbhb_source()
+        self.smbhb_model()
+        self.run_prolog()
+
+        
+    def load_smbhb(self, source):
+        """Module to load benchmark exoplanets to be used by varsim.
+        """
+        if source == 'Spikey':
+            # From Hu+2020
+            params = [
+                0.962,  # z
+                1.050,  # t0 [day]
+                1.144,  # P  [day]
+                81.95,  # i  [deg]
+                0.524,  # e  [0,1]
+                84.63,  # w  [deg]
+                7.479,  # logM [logM_sun]
+                0.1995, # q  [0,1]
+                0.89,   # L  [0,1]
+                2.09,   # alpha
+                0.0,    # vz [-c,c]
+                50,     # tau [day]
+                15      # sigma [ppt]
+            ]
+        return params
+
+
+    def smbhb_source(self):
+        """Select the stellar paramters.
+        """
+        if self.verbose > 1:
+            errorcode('module', '\nBinary parameters\n')
+
+        # If stellar parameters are parsed
+        if self.smbhb_params:
+            self.smbhb = 'SMBHB'
+            params = self.smbhb_params
+        else:
+            try:
+                params = self.load_smbhb(self.smbhb)
+            except UnboundLocalError:
+                errorcode('error', 'No SMBHB with that name! Check --smbhb entry')
+
+        # Store parameters
+        self.df['z']            = params[0]
+        self.df['t0_yr']        = params[1]
+        self.df['P_yr']         = params[2]
+        self.df['i_deg']        = params[3]
+        self.df['e']            = params[4]
+        self.df['w_deg']        = params[5]
+        self.df['logM_logMsun'] = params[6]
+        self.df['q']            = params[7]
+        self.df['L']            = params[8]
+        self.df['alpha']        = params[9]
+        self.df['vz_c']         = params[10]
+        self.df['tau_day']      = params[11]
+        self.df['sigma_ppt']    = params[12]
+        self.df['seed']         = self.seed
+            
+        # Print available stellar model parameters
+        if self.verbose > 1:
+            print(f"Source          : {self.smbhb}")
+            print(f"z               : {self.df.z:.3f}")
+            print(f"t0    [yr]      : {self.df.t0_yr:.3f}")
+            print(f"P     [yr]      : {self.df.P_yr:.3f}")
+            print(f"i     [deg]     : {self.df.i_deg:.3f}")
+            print(f"e               : {self.df.e:.3f}")
+            print(f"w     [deg]     : {self.df.w_deg:.3f}")
+            print(f"logM  [logMsun] : {self.df.logM_logMsun:.3f}")
+            print(f"q               : {self.df.q:.3f}")
+            print(f"L               : {self.df.L:.3f}")
+            print(f"alpha           : {self.df.alpha:.3f}")
+            print(f"vz    [c]       : {self.df.vz_c:.3f}")
+            print(f"tau   [day]     : {self.df.tau_day:.3f}")
+            print(f"sigma [ppt]     : {self.df.sigma_ppt:.3f}")
+            
+    
+    def smbhb_model(self):
         """Function to generate a SMBH binary light curve.
 
         A Super Massive Black Hole (SMBH) binary system consist of several 
-        components, for which this model includes two of the effects:
+        components, for which this model includes the effects:
           1) The doppler boosting
-          2) The gravitational lensing effect
+          2) The gravitational self-lensing effect
           3) The stochastic quasar variability
-        """
-
-        if self.verbose > 1:
-            errorcode('module', '\nSMBH binary\n')
-
-        # Set the stellar source entry
-        self.star_source = 'SMBHB'
-            
+        """            
         # Fetch time array
-        time  = self.time.to('d').value
-        model = SMBHB(time, seed=self.seed)
+        time = self.time.to('d').value
 
-        # Fetch model parameters
-        P, A_beam, A_lens, phi, tmax, tdur = model.initToyModel()
+        params = smbhb.model_params()
+        params.z     = self.df['z']
+        params.t0    = self.df['t0_yr']
+        params.P     = self.df['P_yr']
+        params.i     = self.df['i_deg']
+        params.e     = self.df['e']
+        params.w     = self.df['w_deg']
+        params.logM  = self.df['logM_logMsun']
+        params.q     = self.df['q']
+        params.L     = self.df['L']
+        params.alpha = self.df['alpha']
+        params.vz    = self.df['vz_c']
+        params.tau   = self.df['tau_day']
+        params.sigma = self.df['sigma_ppt']
+        params.seed  = self.seed
 
-        if self.verbose > 1:
-            print(f'Model parameters of toy model:')
-            print(f'Orbital period     : {P:.3f} day')
-            print(f'Beaming amplitude  : {A_beam*1e3:.3f} mmag')
-            print(f'Lensing amplitude  : {A_lens*1e3:.3f} mmag')
-            print(f'Lens time maximum  : {tmax:.3f} day')
-            print(f'Lens time duration : {tdur:.3f} day')
-        
-        # Get model
-        flux, flux_beam, flux_lens = model.evalToyModel(P, A_beam, A_lens, phi, tmax, tdur) 
-
-        # plot light curve
-        if self.plot: model.plot()
-                
-        # Return light curve
-        self.lc['flux']      = flux
-        self.lc['flux_beam'] = flux_beam
-        self.lc['flux_lens'] = flux_lens
-
-        # Return parameters
-        self.df['P_day']         = P
-        self.df['A_beam_mag']    = A_beam
-        self.df['A_lens_mag']    = A_lens
-        self.df['tmax_lens_day'] = tmax
-        self.df['tdur_lens_day'] = tdur        
-
+        # Generate model
+        model = smbhb.model(params)
+        self.lc = model.light_curve(time, df=True)
         
     #--------------------------------------------------------------#
     #                          PLANET MODELS                       #
@@ -2245,6 +2320,11 @@ class VarSim(object):
             args.spot is False and args.flare is False):
             self.star = 'constant'
 
+        elif args.smbhb or args.smbhb_params:
+            fig, ax = smbhb.plot_model(self.lc)
+            if self.plot: plt.show()
+            self.lc.time *= 86400
+
         # Combine all signals any other variable source
         else:
             # Empty array to store flux [pp1]
@@ -2289,7 +2369,7 @@ class VarSim(object):
             
             # Save light curve [pp1 -> mag]
             df = self.lc.flux.to_numpy()
-            dm = - 2.5 * np.log10(df)                        
+            dm = -2.5 * np.log10(df)                        
             if self.verbose > 1:
                 print(f'Saving file : {self.ofile}')
             data = np.transpose([self.lc['time'], dm])
@@ -2829,11 +2909,6 @@ star_group.add_argument('--spot',     metavar='MODEL', type=str, help='Model of 
 star_group.add_argument('--flare',    metavar='MODEL', type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, no]')
 star_group.add_argument('--pulslist', metavar='FILE',  type=str, help='Use file with pulsations [frequencies/(c/d), amplitudes/dmag, phases/rad]')
 
-star_group = parser.add_argument_group('BINARY PARAMETERS')
-star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
-#star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
-#                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
-
 planet_group = parser.add_argument_group('PLANET PARAMETERS')
 planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
@@ -2842,6 +2917,17 @@ planet_group.add_argument('--planet_params', action='append', type=float, nargs=
 planet_group.add_argument('--ldm',  metavar='MODEL', type=str, help='Limb darkening model [power2, squareroot, quadratic, linear]')
 planet_group.add_argument('--moon', metavar='NAME',  type=str, help='Benchmark moon (check --notes)')
 
+
+binary_group = parser.add_argument_group('BINARY PARAMETERS')
+binary_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
+#star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
+#                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
+
+smbhb_group = parser.add_argument_group('PLANET PARAMETERS')
+smbhb_group.add_argument('--smbhb', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
+smbhb_group.add_argument('--smbhb_params', action='append', type=float, nargs=13,
+                         metavar=('z', 't0', 'P', 'e', 'i', 'w', 'logM', 'q', 'L', 'alpha', 'vz', 'tau', 'sigma'),
+                         help='SMBH binary model parameters (check --notes)')
 
 mode_group = parser.add_argument_group('DISTRIBUTION MODES')
 mode_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')
@@ -2871,6 +2957,10 @@ elif args.kul20:
 # Default mode for binaries
 elif args.binary:
     v.mode_binary()
+
+# Default mode for binaries
+elif args.smbhb or args.smbhb_params:
+    v.mode_smbhb()
     
 # Default mode for single stars
 else:
