@@ -445,6 +445,11 @@ class model(object):
         )
         # Add red noise model if requested
         if self.tau is not None:
+            #-------------------------------------------------------------------
+            # from astroML.time_series import generate_damped_RW
+            # flux_red = generate_damped_RW(time, tau=self.tau, SFinf=self.sigma,
+            #                               z=self.z, random_state=self.seed) + 1
+            #-------------------------------------------------------------------
             tau   = np.array([self.tau])
             sigma = np.array([self.sigma])
             flux_red = modelRedNoise(time, tau, sigma, seed=self.seed)
@@ -941,9 +946,7 @@ def plot_lc(df, dm=None, dv=None, ms=10, alpha=0.5, figsize=(9,5)):
 
     # return flux, Q, D, m_ps
 
-    #--------------------------------------------------- Public API
-
-
+    
 #--------------------------------------------------------------#
 #                        PUBLIC METHODS                        #
 #--------------------------------------------------------------#
