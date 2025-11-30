@@ -9,6 +9,7 @@ PlatoSim installation and in the extra PLATOnium installation.
 import datetime
 
 # PlatoSim standard
+import scipy
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -379,8 +380,8 @@ class model_params(object):
         self.e     = 0.    # Eccentricity
         self.w     = 0.    # Argument of periapse [deg]
         # Physical parameters
-        self.logM  = 9.    # Total mass [log(M_sun)]
-        self.q     = 0.1   # Mass ratio
+        self.logM1 = 8.    # Total mass [log(M_sun)]
+        self.logM2 = 7.    # Mass ratio
         self.L     = 0.1   # Luminosity ratio
         # Doppler boosting parameters
         self.alpha = 2.    # Spectral slope
@@ -406,9 +407,9 @@ class model(object):
         self.e = params.e
         self.w = params.w
         # Physical parameters
-        self.logM = params.logM
-        self.q = params.q
-        self.L = params.L        
+        self.logM1 = params.logM1
+        self.logM2 = params.logM2
+        self.L     = params.L        
         # Doppler boosting parameters
         self.alpha = params.alpha
         self.vz    = params.vz
@@ -432,8 +433,8 @@ class model(object):
             self.e,
             self.w,
             # Physical parameters
-            self.logM,
-            self.q,
+            self.logM1,
+            self.logM2,
             self.L,
             # Doppler boosting parameters
             self.alpha,
@@ -466,7 +467,7 @@ class model(object):
 
     
 @jit(cache=True, nopython=True, fastmath=True, parallel=False)
-def smbhb(time, z, t0, P, i, e, w, logM, q, L, alpha, vz, tau, sigma, seed):
+def smbhb(time, z, t0, P, i, e, w, logM1, logM2, L, alpha, vz, tau, sigma, seed):
 
     # Make sure to work with floats (to avoid int overflow)
     z     = float(z)
@@ -475,8 +476,8 @@ def smbhb(time, z, t0, P, i, e, w, logM, q, L, alpha, vz, tau, sigma, seed):
     i     = np.deg2rad(i)
     e     = float(e)
     w     = np.deg2rad(w)
-    M     = 10**logM * M_SUN
-    q     = float(q)
+    M1    = 10**logM1 * M_SUN
+    M2    = 10**logM2 * M_SUN
     L     = float(L)
     alpha = float(alpha)
     vz    = float(vz)
@@ -486,12 +487,12 @@ def smbhb(time, z, t0, P, i, e, w, logM, q, L, alpha, vz, tau, sigma, seed):
     #     sigma = float(sigma)
     # if seed is not None:
     #     seed = int(seed) 
-    
-    # Binary masses [g]
-    M1 = M / (1 + q)
-    M2 = M - M1
 
-    # Orbital period in binary rest frame [s] 
+    # Total mass and mass fraction
+    M = M1 + M2
+    q = M2 / M1 
+
+    # Orbital period in observers frame [s]
     T = _period_observed(P, z)
 
     # Check parameters
@@ -503,7 +504,7 @@ def smbhb(time, z, t0, P, i, e, w, logM, q, L, alpha, vz, tau, sigma, seed):
     a  = _semimajor_axis(P, M)
     a1 = a * M2 / M
 
-    # Radial coordinate []
+    # Radial coordinate [cm]
     r  = _radial_vector(fe, e, a)
     r1 = _radial_vector(fe, e, a1)
     
@@ -568,8 +569,8 @@ class model_priors(object):
         self.e     = [0, 1]
         self.w     = [0, 360]
         # Physical parameters
-        self.logM  = [5, 11]
-        self.q     = [0, 1]
+        self.logM1 = [6, 11]
+        self.logM2 = [6, 11]
         self.L     = [0, 1]
         # Doppler boosting parameters
         self.alpha = [-4, 4]
@@ -631,18 +632,18 @@ def run_ultranest(df, priors, path, nsteps=1000, live_points=400):
     elif type(priors.w) in [int, float]:
         w = float(priors.w)
 
-    if type(priors.logM) == list:
-        params_names.append('logM')
-        priors_range.append(priors.logM)
-    elif type(priors.logM) in [int, float]:
-        logM = float(priors.logM)
+    if type(priors.logM1) == list:
+        params_names.append('logM1')
+        priors_range.append(priors.logM1)
+    elif type(priors.logM1) in [int, float]:
+        logM1 = float(priors.logM1)
 
-    if type(priors.q) == list:
-        params_names.append('q')
-        priors_range.append(priors.q)
-    elif type(priors.q) in [int, float]:
-        q = float(priors.q)
-
+    if type(priors.logM2) == list:
+        params_names.append('logM2')
+        priors_range.append(priors.logM2)
+    elif type(priors.logM2) in [int, float]:
+        logM2 = float(priors.logM2)
+        
     if type(priors.L) == list:
         params_names.append('L')
         priors_range.append(priors.L)
@@ -653,8 +654,11 @@ def run_ultranest(df, priors, path, nsteps=1000, live_points=400):
         params_names.append('alpha')
         priors_range.append(priors.alpha)
     elif type(priors.alpha) in [int, float]:
+        params_names.append('alpha')
         alpha = float(priors.alpha)
-
+        priors_range.append(alpha)
+        #normal = scipy.stats.norm(alpha, 0.5)
+        
     if type(priors.vz) == list:
         params_names.append('vz')
         priors_range.append(priors.vz)
@@ -677,7 +681,13 @@ def run_ultranest(df, priors, path, nsteps=1000, live_points=400):
     n = len(params_names)
     wrapped_params = np.zeros(n).astype(bool)
 
+    # print(normal.ppf(alpha))
+    # exit()
+    
     # Define a few function needed for UltraNest
+
+    # def transform_normal(quantile):
+    #     return normal.ppf(quantile)
     
     def prior_transform(cube):
         """Prior transformation hypercube.
@@ -685,6 +695,9 @@ def run_ultranest(df, priors, path, nsteps=1000, live_points=400):
         p = cube.copy()
         x = priors_range 
         for i in range(n):
+            # if i == if type(normal) == scipy.stats._distn_infrastructure.rv_continuous_frozen:
+            #     p[i] = normal.ppf(cube[i])
+            # else:
             p[i] = cube[i] * (x[i][1] - x[i][0]) + x[i][0]
         return p
 
@@ -699,8 +712,8 @@ def run_ultranest(df, priors, path, nsteps=1000, live_points=400):
             i     = p[2],
             e     = p[3],
             w     = p[4],
-            logM  = p[5],
-            q     = p[6],
+            logM1 = p[5],
+            logM2 = p[6],
             L     = p[7],
             alpha = p[8],
             vz    = vz,
@@ -787,6 +800,7 @@ def plot_corner(result, bestfit=False, values_input=None):
 def plot_result(df, result, z,
                 tdur=3, dt=0.1,
                 alpha=0.2,
+                uncertainty=0.95,
                 show_quarters=True,
                 figsize=(9,7)):
 
@@ -799,8 +813,8 @@ def plot_result(df, result, z,
     mll_i     = result["maximum_likelihood"]["point"][2]
     mll_e     = result["maximum_likelihood"]["point"][3]
     mll_w     = result["maximum_likelihood"]["point"][4]
-    mll_logM  = result["maximum_likelihood"]["point"][5]
-    mll_q     = result["maximum_likelihood"]["point"][6]
+    mll_logM1 = result["maximum_likelihood"]["point"][5]
+    mll_logM2 = result["maximum_likelihood"]["point"][6]
     mll_L     = result["maximum_likelihood"]["point"][7]
     mll_alpha = result["maximum_likelihood"]["point"][8]
 
@@ -809,8 +823,8 @@ def plot_result(df, result, z,
     params.z     = z
     params.t0    = mll_t0
     params.P     = mll_P
-    params.logM  = mll_logM
-    params.q     = mll_q
+    params.logM1 = mll_logM1
+    params.logM2 = mll_logM2
     params.i     = mll_i
     params.e     = mll_e
     params.w     = mll_w
@@ -823,7 +837,6 @@ def plot_result(df, result, z,
     modelfit = model(params)
     modelflux, _, _ = modelfit.light_curve(time)
     dm = pd.DataFrame({'time': time, 'flux': modelflux})
-
     
     # Plot light curve
     residuals = df.flux - dm.flux
@@ -832,9 +845,37 @@ def plot_result(df, result, z,
 
     ax0 = fig.add_subplot(gs[0:2, 0])
     ax0.errorbar(df.time, df.flux, yerr=df.flux_err, fmt='.k', alpha=alpha, zorder=1)
-    ax0.plot(dm.time, dm.flux, '-', c='deeppink')
+
+    # Plot 95% uncertainties
+    sample = result['weighted_samples']['points']
+    quantile = int(len(sample) * (1-uncertainty))
+    for q in range(quantile):
+        p = sample[-q-1]
+        params = model_params()
+        params.z     = z
+        params.t0    = p[0]
+        params.P     = p[1]
+        params.i     = p[2]
+        params.e     = p[3]
+        params.w     = p[4]
+        params.logM1 = p[5]
+        params.logM2 = p[6]
+        params.L     = p[7]
+        params.alpha = p[8]
+        params.vz    = 0
+        modelfit = model(params)
+        modelflux, _, _ = modelfit.light_curve(time)
+        ax0.plot(time, modelflux, '-', c='orange', lw=1, alpha=0.05)
+
+    ax0.plot(dm.time, dm.flux, '-', c='royalblue')
     ax0.set_ylabel("Normalized flux")
     ax0.set_xlim(time[0], time[-1])
+    ax0.tick_params(labelbottom=False)
+    #ax0.set_xticks([])
+    # Remove last major tick label
+    # labels = ax0.get_yticklabels()
+    # labels[0] = ""
+    # ax0.set_yticklabels(labels)
     
     ax1 = fig.add_subplot(gs[2, 0])
     ax1.errorbar(df.time, residuals, yerr=df.flux_err, fmt='.k', alpha=alpha, zorder=1)
@@ -842,9 +883,44 @@ def plot_result(df, result, z,
     ax1.set_xlabel("Time [days]")
     ax1.set_ylabel("Residuals")
     ax1.set_xlim(time[0], time[-1])
+    
+    # Correct labels
+    for ax in [ax0, ax1]:
+        ax.get_yaxis().set_label_coords(-0.1, 0.5)
+    
+    # Plot quarter marks
+    if show_quarters:
+        plot_quarter_marks([ax0, ax1], time, 2)
 
-    plt.tight_layout()
+    # Global settings
+    plt.tight_layout(h_pad=0)
+    fig.subplots_adjust(hspace=0.09)
+
     return fig, [ax0, ax1]
+
+
+def plot_quarter_marks(ax, time, N):
+    quarter = ut.quarter()
+    n_quarter = int(np.ceil(time[-1] / quarter))
+    quarters = []
+    position = []
+    for q in range(1, n_quarter+1):
+        time_Q = q * quarter
+        xpos = time_Q - quarter / 2
+        quarters.append(q)
+        position.append(xpos)
+        for i in range(N):
+            ax[i].axvline(x=time_Q, c='k', linestyle='--', lw=0.5, alpha=0.5, zorder=0)
+    # Plot marks on top y-axis
+    ax0 = ax[0].twiny()
+    ax0.set_xticks(position)
+    ax0.tick_params(axis='x', which='major', labelsize=15)
+    ax0.set_xticklabels([f'Q{q}' for q in quarters])
+    tmin = (min(quarters) - 1) * quarter
+    tmax = (max(quarters)    ) * quarter
+    ax0.set_xlim(tmin, tmax)
+    import matplotlib.ticker as ticker
+    ax0.xaxis.set_minor_locator(ticker.NullLocator())
 
 
 def plot_model(df, lw=1.5, figsize=(9,5)):
