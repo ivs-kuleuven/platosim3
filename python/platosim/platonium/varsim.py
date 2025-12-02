@@ -168,8 +168,7 @@ class VarSim(object):
         # CONSTANTS
         
         self.Teff_sun = 5777.  # [K]
-        
-        
+                
         # I/O SETTINGS
 
         # Check if notes are requested
@@ -287,7 +286,6 @@ class VarSim(object):
             ut.downloadFromFTP('passband_kepler.txt',      self.idir)
             ut.downloadFromFTP('varsim_meunier19a_t1.txt', self.idir)
             ut.downloadFromFTP('varsim_mainFitsBiSON.txt', self.idir)
-
             
         # OBS PARAMETERS
 
@@ -350,10 +348,8 @@ class VarSim(object):
     #--------------------------------------------------------------#
     #                     BENCHMARK STARS/PLANETS                  #
     #--------------------------------------------------------------#
-
     
     def load_star(self, source):
-
         """Function to load benchmark stars used by varsim.
 
         NOTE in the following the astropy-units are required, however,
@@ -369,6 +365,8 @@ class VarSim(object):
         Stellar parameters {M, R, Teff, logg, Z}
         """
 
+        # Exoplanet host stars
+        
         if source == 'GJ1214':
             spec = 'M'
             lum  = 'V'
@@ -424,7 +422,7 @@ class VarSim(object):
             logg = 4.5
             Z    = 0.0
 
-        #----------------------------------
+        # Pulsating stars (MOCKA defaults)
 
         if source == 'bCep':
             M = 8.0 * u.M_sun
@@ -486,7 +484,6 @@ class VarSim(object):
 
 
     def load_exoplanet(self, source):
-
         """Module to load benchmark exoplanets to be used by varsim.
 
         NOTE in the following the astropy-units are required, however,
@@ -521,6 +518,8 @@ class VarSim(object):
            Day-night temperature contrast [astropy.units]
         """
 
+        # Confirmed planets from literature
+        
         if source == 'WASP-43b':  # K7 V
             # http://exoplanet.eu/catalog/wasp-43_b/
             params = {'t0': 1 * u.d,
@@ -573,8 +572,8 @@ class VarSim(object):
                       'Tn': 1757 * u.K,
                       'dT': (3144 - 1757) * u.K}
 
-        #--------------------------------------------
-
+        # Theoretical "hot" (low P) planets:
+        
         if source == 'hot-Earth':
             # 
             params = {'t0': 1 * u.d,
@@ -659,7 +658,6 @@ class VarSim(object):
         
 
     def load_exomoon(self, source):
-
         """Module to load benchmark exopmoon to be used by varsim.
 
         NOTE in the following the astropy-units are required, however,
@@ -684,7 +682,7 @@ class VarSim(object):
         w : float
             Longitude of periastron [0, 360] [astropy.units]
         """
-
+        
         if source == 'pandora':
             # Default example from Pandora tutorial
             params = {'R'   : 5.0 * u.R_earth,
@@ -697,14 +695,13 @@ class VarSim(object):
                       'w'   : 20.0 * u.deg}
 
         return params
+
     
     #--------------------------------------------------------------#
     #                       STELLAR PARAMETERS                     #
     #--------------------------------------------------------------#
-
     
     def stellar_source(self):
-
         """Select the stellar paramters.
         """
 
@@ -790,17 +787,7 @@ class VarSim(object):
             print(f"Luminosity      : {self.df.L_Lsun:.2f}")
 
         
-    def binary_source(self):
-
-        """Select the stellar paramters of a binary system.
-        """
-
-        if self.verbose > 1:
-            errorcode('module', '\nBinary sources\n')
-
-        
     def stellar_spectrum(self):
-
         """Calculates the bolometric correction from high-res spectra.
         
         NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
@@ -1511,12 +1498,16 @@ class VarSim(object):
     #                          BINARY SYSTEMS                      #
     #--------------------------------------------------------------#
     
+    def binary_source(self):
+        """Select the stellar paramters of a binary system.
+        """
+        if self.verbose > 1:
+            errorcode('module', '\nBinary sources\n')
 
+            
     def binary_eb(self):
-
         """Function to generate a Eclipsing Binary (EB) light curve.
         """
-
         if self.verbose > 1:
             errorcode('module', '\nEclipsing binary\n')
 
@@ -1545,13 +1536,11 @@ class VarSim(object):
     #                          SMBH BINARY                         #
     #--------------------------------------------------------------#
 
-
     def mode_smbhb(self):
         """Given SMBH binary properties asign variable signal.
         """
         if self.verbose > 1:
-            errorcode('module', '\nSMBH binary\n')
-        
+            errorcode('module', '\nSMBH binary\n')        
         self.smbhb_source()
         self.smbhb_model()
         self.run_prolog()
@@ -1569,13 +1558,13 @@ class VarSim(object):
                 81.95,  # i  [deg]
                 0.524,  # e  [0,1]
                 84.63,  # w  [deg]
-                7.479,  # logM [logM_sun]
-                0.1995, # q  [0,1]
+                7.4,    # logM1 [logM_sun]
+                6.7,    # logM2 [logM_sun]
                 0.89,   # L  [0,1]
                 2.09,   # alpha
                 0.0,    # vz [-c,c]
-                50,     # tau [day]
-                15      # sigma [ppt]
+                31,     # tau [day]
+                9.25    # sigma [ppt]
             ]
         return params
 
@@ -1583,13 +1572,10 @@ class VarSim(object):
     def smbhb_source(self):
         """Select the stellar paramters.
         """
-        if self.verbose > 1:
-            errorcode('module', '\nBinary parameters\n')
-
         # If stellar parameters are parsed
         if self.smbhb_params:
             self.smbhb = 'SMBHB'
-            params = self.smbhb_params
+            params = self.smbhb_params[0]
         else:
             try:
                 params = self.load_smbhb(self.smbhb)
@@ -1603,31 +1589,31 @@ class VarSim(object):
         self.df['i_deg']        = params[3]
         self.df['e']            = params[4]
         self.df['w_deg']        = params[5]
-        self.df['logM_logMsun'] = params[6]
-        self.df['q']            = params[7]
+        self.df['logM1_logMsun'] = params[6]
+        self.df['logM2_logMsun'] = params[7]
         self.df['L']            = params[8]
         self.df['alpha']        = params[9]
         self.df['vz_c']         = params[10]
         self.df['tau_day']      = params[11]
         self.df['sigma_ppt']    = params[12]
         self.df['seed']         = self.seed
-            
+
         # Print available stellar model parameters
         if self.verbose > 1:
-            print(f"Source          : {self.smbhb}")
-            print(f"z               : {self.df.z:.3f}")
-            print(f"t0    [yr]      : {self.df.t0_yr:.3f}")
-            print(f"P     [yr]      : {self.df.P_yr:.3f}")
-            print(f"i     [deg]     : {self.df.i_deg:.3f}")
-            print(f"e               : {self.df.e:.3f}")
-            print(f"w     [deg]     : {self.df.w_deg:.3f}")
-            print(f"logM  [logMsun] : {self.df.logM_logMsun:.3f}")
-            print(f"q               : {self.df.q:.3f}")
-            print(f"L               : {self.df.L:.3f}")
-            print(f"alpha           : {self.df.alpha:.3f}")
-            print(f"vz    [c]       : {self.df.vz_c:.3f}")
-            print(f"tau   [day]     : {self.df.tau_day:.3f}")
-            print(f"sigma [ppt]     : {self.df.sigma_ppt:.3f}")
+            print(f"Source name             : {self.smbhb}")
+            print(f"Redshift, z             : {self.df.z:.3f}")
+            print(f"Time of ephemeris, t0   : {self.df.t0_yr:.3f} yr")
+            print(f"Orbital period, P       : {self.df.P_yr:.3f} yr")
+            print(f"Inclination, i          : {self.df.i_deg:.3f} deg")
+            print(f"Eccentricity, e         : {self.df.e:.3f}")
+            print(f"Argument of periapse, w : {self.df.w_deg:.3f} deg")
+            print(f"Primary mass, logM1     : {self.df.logM1_logMsun:.3f} logMsun")
+            print(f"Secondary mass, logM2   : {self.df.logM2_logMsun:.3f} logMsun")
+            print(f"Luminosity fraction, L  : {self.df.L:.3f}")
+            print(f"Spectral index, alpha   : {self.df.alpha:.3f}")
+            print(f"Proper motion, vz       : {self.df.vz_c:.3f} c")
+            print(f"DRW time scale, tau     : {self.df.tau_day:.3f} day")
+            print(f"DRW amplitude, sigma    : {self.df.sigma_ppt:.3f} ppt")
             
     
     def smbhb_model(self):
@@ -1642,6 +1628,7 @@ class VarSim(object):
         # Fetch time array
         time = self.time.to('d').value
 
+        # Initialise parameters
         params = smbhb.model_params()
         params.z     = self.df['z']
         params.t0    = self.df['t0_yr']
@@ -1649,8 +1636,8 @@ class VarSim(object):
         params.i     = self.df['i_deg']
         params.e     = self.df['e']
         params.w     = self.df['w_deg']
-        params.logM  = self.df['logM_logMsun']
-        params.q     = self.df['q']
+        params.logM1 = self.df['logM1_logMsun']
+        params.logM2 = self.df['logM2_logMsun']
         params.L     = self.df['L']
         params.alpha = self.df['alpha']
         params.vz    = self.df['vz_c']
