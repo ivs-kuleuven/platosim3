@@ -388,19 +388,19 @@ class LightCurve(object):
         if path is None: path = self.path
 
         # Sort after group, camera, or quarter        
-        if group: G = f"Ncam{group}."
-        else: G = ""
-        if camera: C = f"{camera}_"
-        else: C = ""
+        if group: G = f"Ncam{group}"
+        else: G = "**"
+        if camera: C = f"{camera}"
+        else: C = "**"
         if quarter: Q = f"Q{quarter}"
-        else: Q = ""
-        if name: N = f"_{name}"
-        else: N = ""
+        else: Q = "**"
+        if name: N = f"{name}.{suffix}"
+        else: N = f".{suffix}"
         
         # Fetch all zip files and sort them using natsort
-        string = f"{path}/{prefix}**_{G}**{C}**{Q}**{N}.{suffix}"
-        files = natsort.natsorted(glob.glob(string))
-
+        string = f"{path}/{prefix}**_{G}.{C}_{Q}{N}"
+        files = natsort.natsorted(glob.glob(string)); #print(string)
+        
         # Check if any file was found
         if error and len(files) == 0:
             errorcode('error', f'No files found with suffix {suffix}! ' +
@@ -814,7 +814,8 @@ class LightCurve(object):
         time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
 
         if df.columns.str.startswith("flux_err").sum():
-            flux_err, _, _ = binned_statistic(time, flux, 'median', bins=bins)
+            flux_err = df.flux_err
+            flux_err, _, _ = binned_statistic(time, flux_err, 'median', bins=bins)
             data = np.transpose([time_bin, flux_bin, flux_err])
             cols = ['time', 'flux', 'flux_err']
             
@@ -954,10 +955,17 @@ class LightCurve(object):
         return fig, ax
 
     
-    def plot(self, column='flux', time_unit="d", flux_unit="e/s", flux_error=False, 
-             median_filter=False, binsize=False, input_model=False,
-             legend=True, alpha=0.2, figsize=(9,5)):
-
+    def plot(self,
+             column='flux',
+             time_unit="d",
+             flux_unit="e/s",
+             flux_error=False, 
+             median_filter=False,
+             binsize=False,
+             input_model=False,
+             legend=True,
+             alpha=0.2,
+             figsize=(9,5)):
         """Plot a simulated light curve.
 
         Parameters
@@ -1814,7 +1822,7 @@ class LightCurve(object):
 
         # Convert unit [days -> number of exposures]        
         segment = int(segment * 86400 / cadence)
-        
+
         # Move the data chunk when a jump
         k = 0
         if len(dex) > 2:        
@@ -2428,12 +2436,14 @@ class LightCurve(object):
             flux = flux[~np.isnan(flux)]
 
             if suffix == 'hdf5':
-                if flux.max() < 1e3:
+                if flux_unit == "e/s":
                     ylab = r"Flux [e$^-$ s$^{-1}$]"
-                else:
+                elif flux_unit == 'ke/s':
                     ylab = r"Flux [ke$^-$ s$^{-1}$]"
                     flux /= 1e3
-            
+            else:
+                ylab = 'Normalised flux'
+                
             # Plot the quarter data
             ax.plot(time, flux, '.', alpha=alpha, ms=1, zorder=1)
                         

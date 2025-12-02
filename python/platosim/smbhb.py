@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+import matplotlib.ticker as ticker
 from scipy.interpolate import interp1d, make_interp_spline
 from scipy.optimize import root_scalar
 from tqdm import tqdm
@@ -545,6 +546,7 @@ def smbhb(time, z, t0, P, i, e, w, logM1, logM2, L, alpha, vz, tau, sigma, seed)
     # COMBINE MODEL COMPONENTS
 
     x = flip
+    #L = np.exp(L) / (1 + np.exp(L)) 
     flux    = (1 - L) * D1             + L * D2 * M_ps
     flux[x] = (1 - L) * D1[x]* M_ps[x] + L * D2[x]
 
@@ -797,16 +799,13 @@ def plot_corner(result, bestfit=False, values_input=None):
     return figure
 
 
-def plot_result(df, result, z,
-                tdur=3, dt=0.1,
-                alpha=0.2,
+def plot_result(df, result, z, label=None,
+                tdur=3, dt=0.1, Q0=None,
+                alpha=0.2, ms=3, lw=2,
                 uncertainty=0.95,
                 show_quarters=True,
                 figsize=(9,7)):
 
-    # Fetch names of model parameters
-    #parameters = result['paramnames']
-    
     # Maximum likelihood parameters
     mll_t0    = result["maximum_likelihood"]["point"][0]
     mll_P     = result["maximum_likelihood"]["point"][1]
@@ -844,30 +843,32 @@ def plot_result(df, result, z,
     gs = GridSpec(3, 1, figure=fig)
 
     ax0 = fig.add_subplot(gs[0:2, 0])
-    ax0.errorbar(df.time, df.flux, yerr=df.flux_err, fmt='.k', alpha=alpha, zorder=1)
-
+    ax0.errorbar(df.time, df.flux, yerr=df.flux_err, fmt='.k',
+                 ms=ms, alpha=alpha, zorder=1, label=label)
+    if label is not None: ax0.set_label(loc='upper right')
     # Plot 95% uncertainties
-    sample = result['weighted_samples']['points']
-    quantile = int(len(sample) * (1-uncertainty))
-    for q in range(quantile):
-        p = sample[-q-1]
-        params = model_params()
-        params.z     = z
-        params.t0    = p[0]
-        params.P     = p[1]
-        params.i     = p[2]
-        params.e     = p[3]
-        params.w     = p[4]
-        params.logM1 = p[5]
-        params.logM2 = p[6]
-        params.L     = p[7]
-        params.alpha = p[8]
-        params.vz    = 0
-        modelfit = model(params)
-        modelflux, _, _ = modelfit.light_curve(time)
-        ax0.plot(time, modelflux, '-', c='orange', lw=1, alpha=0.05)
+    # sample = result['weighted_samples']['points']
+    # quantile = int(len(sample) * (1-uncertainty))
+    # for q in range(quantile):
+    #     p = sample[-q-1]
+    #     params = model_params()
+    #     params.z     = z
+    #     params.t0    = p[0]
+    #     params.P     = p[1]
+    #     params.i     = p[2]
+    #     params.e     = p[3]
+    #     params.w     = p[4]
+    #     params.logM1 = p[5]
+    #     params.logM2 = p[6]
+    #     params.L     = p[7]
+    #     params.alpha = p[8]
+    #     params.vz    = 0
+    #     modelfit = model(params)
+    #     modelflux, _, _ = modelfit.light_curve(time)
+    #     ax0.plot(time, modelflux, '-', c='orange', lw=1, alpha=0.05)
 
-    ax0.plot(dm.time, dm.flux, '-', c='royalblue')
+    # Plot maximum-likelihood curve
+    ax0.plot(dm.time, dm.flux, '-', c='royalblue', lw=lw)
     ax0.set_ylabel("Normalized flux")
     ax0.set_xlim(time[0], time[-1])
     ax0.tick_params(labelbottom=False)
@@ -878,7 +879,7 @@ def plot_result(df, result, z,
     # ax0.set_yticklabels(labels)
     
     ax1 = fig.add_subplot(gs[2, 0])
-    ax1.errorbar(df.time, residuals, yerr=df.flux_err, fmt='.k', alpha=alpha, zorder=1)
+    ax1.errorbar(df.time, residuals, yerr=df.flux_err, fmt='.k', ms=ms, alpha=alpha, zorder=1)
     ax1.plot(dm.time, np.zeros_like(dm.time), '--', c='orange')
     ax1.set_xlabel("Time [days]")
     ax1.set_ylabel("Residuals")
@@ -886,20 +887,20 @@ def plot_result(df, result, z,
     
     # Correct labels
     for ax in [ax0, ax1]:
-        ax.get_yaxis().set_label_coords(-0.1, 0.5)
+        ax.get_yaxis().set_label_coords(-0.09, 0.5)
     
     # Plot quarter marks
     if show_quarters:
-        plot_quarter_marks([ax0, ax1], time, 2)
+        plot_quarter_marks([ax0, ax1], time, 2, Q0=Q0)
 
     # Global settings
     plt.tight_layout(h_pad=0)
-    fig.subplots_adjust(hspace=0.09)
+    fig.subplots_adjust(hspace=0.0)
 
     return fig, [ax0, ax1]
 
 
-def plot_quarter_marks(ax, time, N):
+def plot_quarter_marks(ax, time, N, Q0=None):
     quarter = ut.quarter()
     n_quarter = int(np.ceil(time[-1] / quarter))
     quarters = []
@@ -912,15 +913,15 @@ def plot_quarter_marks(ax, time, N):
         for i in range(N):
             ax[i].axvline(x=time_Q, c='k', linestyle='--', lw=0.5, alpha=0.5, zorder=0)
     # Plot marks on top y-axis
-    ax0 = ax[0].twiny()
-    ax0.set_xticks(position)
-    ax0.tick_params(axis='x', which='major', labelsize=15)
-    ax0.set_xticklabels([f'Q{q}' for q in quarters])
-    tmin = (min(quarters) - 1) * quarter
-    tmax = (max(quarters)    ) * quarter
-    ax0.set_xlim(tmin, tmax)
-    import matplotlib.ticker as ticker
-    ax0.xaxis.set_minor_locator(ticker.NullLocator())
+    if Q0 is not None:
+        ax0 = ax[0].twiny()
+        ax0.set_xticks(position)
+        ax0.tick_params(axis='x', which='major', labelsize=15)
+        ax0.set_xticklabels([f'Q{q + Q0-1}' for q in quarters])
+        #tmin = (min(quarters) - 1) * quarter
+        #tmax = (max(quarters)    ) * quarter
+        ax0.set_xlim(time.min(), time.max())
+        ax0.xaxis.set_minor_locator(ticker.NullLocator())
 
 
 def plot_model(df, lw=1.5, figsize=(9,5)):
@@ -966,63 +967,6 @@ def plot_lc(df, dm=None, dv=None, ms=10, alpha=0.5, figsize=(9,5)):
     return fig, ax
 
 
-    # # Check DRW model
-    # Q = self.quasar_variability(verbose=verbose, plot=plot, plot_psd=False)
-    # if quasar:
-    #     try:
-    #         Q = self.quasar_variability(verbose=verbose, plot=plot, plot_psd=False)
-    #     except:
-    #         Q = np.ones_like(time)
-
-    # # Check boosting model
-    # try:
-    #     D, D1, D2 = self.doppler_boosting(verbose=verbose, plot=plot)
-    # except:
-    #     D = D1 = D2 = np.ones_like(self.t)
-
-    # # Check lensing model
-    # try:
-    #     M_ps, m_ps = self.gravitational_lensing(verbose=verbose, plot=plot)
-    # except:
-    #     M_ps = m_ps = np.ones_like(self.t)
-    #     flux    = (1 - self.L) * D1 * M_ps + self.L * D2 * M_ps
-
-    # # Interpolate back to original time grid and add DRW model
-    # D_interp    = make_interp_spline(self.t.to('s').value, D,    k=3)
-    # m_ps_interp = make_interp_spline(self.t.to('s').value, m_ps, k=3)
-    # flux_interp = make_interp_spline(self.t.to('s').value, flux, k=3)
-    # D    = D_interp(self.time.to('s').value)
-    # m_ps = m_ps_interp(self.time.to('s').value)
-    # flux = flux_interp(self.time.to('s').value)
-    # flux += (Q - 1)
-
-    # # Find boosting+lensing model
-    # print(len(D1), len(M_ps))
-    # print(len(self.time), len(self.t))
-    # x = self.flip
-    # flux    = (1 - self.L) * D1             + self.L * D2 * M_ps
-    # flux[x] = (1 - self.L) * D1[x]* M_ps[x] + self.L * D2[x]
-
-
-    # if plot:
-    #     fig = plt.figure(figsize = (9, 5))
-    #     plt.plot(time, Q,     color='tomato',    label="DRW",      lw=0.8)
-    #     plt.plot(time, D,     color='orange',    label="Beaming",  lw=1.8)
-    #     plt.plot(time, m_ps,  color='royalblue', label="Lensing",  lw=1.8)
-    #     plt.plot(time, flux,  color='k',         label="Combined", lw=0.8)
-    #     plt.xlabel(r"Time [day]")
-    #     plt.ylabel(r"Relative flux")
-    #     plt.xlim(0, time[-1])
-    #     plt.legend()
-    #     plt.tight_layout()
-    #     plt.show()
-
-    #     if ofile_fig:
-    #         fig.savefig(ofile_fig, bbox_inches='tight', dpi=300)
-
-    # return flux, Q, D, m_ps
-
-    
 #--------------------------------------------------------------#
 #                        PUBLIC METHODS                        #
 #--------------------------------------------------------------#

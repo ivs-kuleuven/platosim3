@@ -1629,9 +1629,9 @@ def copyInputYAML(field, odir):
             filedata = filedata.replace('inputfiles/starcatalog.txt', field)
             filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
             filedata = filedata.replace( 'NumColumns:                      100',
-                                        f'NumColumns:                      7  ')
+                                        f'NumColumns:                      8  ')
             filedata = filedata.replace( 'NumRows:                         100',
-                                        f'NumRows:                         7  ')
+                                        f'NumRows:                         8  ')
             filedata = filedata.replace('IncludePhotometry:               no ',
                                         'IncludePhotometry:               yes')
             filedata = filedata.replace('MaskUpdateInterval:              14.0',
