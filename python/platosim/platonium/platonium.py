@@ -87,6 +87,7 @@ class PLATOnium(object):
         self.varSourceFile = args.varfile
         self.varSourceList = args.varlist
         self.compress      = args.compress
+        self.savePlot      = args.saveplot
 
         self.field         = args.field
         self.cadence       = args.cadence
@@ -1097,8 +1098,8 @@ class PLATOnium(object):
         # Plot star in CCD focal plane
         # TODO plot do not work for F-CAM yet!
         if not self.fullFrame and not self.groupID == 'Fast':
-            fig = plt.figure(figsize=(12,10))
-            drawStarInCCDfocalPlane(fig, sim,
+            fig1 = plt.figure(figsize=(12,10))
+            drawStarInCCDfocalPlane(fig1, sim,
                                     self.df0['xCCD [pix]'][0], self.df0['yCCD [pix]'][0],
                                     self.df0['CCD'][0], self.group,
                                     self.raPlatformDeg, self.decPlatformDeg,
@@ -1132,17 +1133,26 @@ class PLATOnium(object):
             showStarPositions = False
 
         # Plot the subfield
-        f.showImage(self.beginExposureNr,
-                    showStarPositions=showStarPositions,
-                    clip=clipPercentile,
-                    showMaskOfStarID=mask,
-                    useTitle=title,
-                    colorMap=cmap,
-                    colorBar=True,
-                    imgScale=imgScale,
-                    showGrid=showGrid,
-                    figsize=figsize)
+        fig2, _ = f.showImage(
+            self.beginExposureNr,
+            showStarPositions=showStarPositions,
+            clip=clipPercentile,
+            showMaskOfStarID=mask,
+            useTitle=title,
+            colorMap=cmap,
+            colorBar=True,
+            imgScale=imgScale,
+            showGrid=showGrid,
+            figsize=figsize
+        )
 
+        # Save figure if requested
+        if self.savePlot:
+            filename1 = f'{self.outputDir}/focalplane_{self.outputFileName}.png'
+            filename2 = f'{self.outputDir}/subfield_{self.outputFileName}.png'
+            fig1.savefig(filename1, bbox_inches='tight', dpi=200)
+            fig2.savefig(filename2, bbox_inches='tight', dpi=200)
+            
         # Remove the output files
         if os.path.isfile(str(self.outputSimName) + '.hdf5'):
             os.system(f'rm {self.outputDir}/{self.outputFileName}*')
@@ -2098,6 +2108,7 @@ out_group.add_argument('--starcat',    metavar='FILE', type=str, help='Path to s
 out_group.add_argument('--varfile',    metavar='FILE', type=str, help='Path to variable source file -> see PlatoSim docs')
 out_group.add_argument('--varlist',    metavar='FILE', type=str, help='Path to variable source list -> see PlatoSim docs')
 out_group.add_argument('--compress',   action='store_true',      help='Flag to compress output files')
+out_group.add_argument('--saveplot',   action='store_true',      help='Flag to save any plot produced')
 
 sim_group = parser.add_argument_group('SIM PARAMETERS')
 sim_group.add_argument('--field',         metavar='LOP',  type=str,   help='PLATO pointing field [tLOPS2, LOPS2, LOPN1, SPF, NPF]')
