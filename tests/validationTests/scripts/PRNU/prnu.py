@@ -36,6 +36,7 @@ class PRNU(Test):
         self.sim["SubField/NumColumns"] = 2000
 
         self.sim["CCD/IncludeFlatfield"] = "yes"
+        self.sim["CCD/Flatfield/Source"] = "FromRedNoise"
         
         self.sim["Platform/Orientation/Angles/DecPointing"] = -self.sim["Platform/Orientation/Angles/DecPointing"]
 
@@ -45,12 +46,12 @@ class PRNU(Test):
 
     def runSimulation(self):
 
-        self.sim["CCD/FlatfieldNoiseRMS"] = 0.1
+        self.sim["CCD/Flatfield/FromRedNoise/FlatfieldNoiseRMS"] = 0.1
         self.simFile1 = self.sim.run(removeOutputFile = True)
         image1   = self.simFile1.getImage(0)
 
 
-        self.sim["CCD/FlatfieldNoiseRMS"] = 1
+        self.sim["CCD/Flatfield/FromRedNoise/FlatfieldNoiseRMS"] = 1
         self.simFile2 = self.sim.run(removeOutputFile = True)
         image2   = self.simFile2.getImage(0)
 
@@ -60,8 +61,6 @@ class PRNU(Test):
         
     def compare(self):
 
-        
-        
         flat1 = self.simFile1.getPRNU()
         flat2 = self.simFile2.getPRNU()
 
