@@ -849,7 +849,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("SerialTransferTime");
     addDouble("ParallelTransferTime");
     addDouble("ParallelTransferTimeFast");
-    addDouble("FlatfieldNoiseRMS");
     addDouble("NominalOperatingTemperature");
     addString("Temperature");
     addString("TemperatureFileName");
@@ -871,6 +870,15 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeDigitalSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeGainNonlinearity");
+    subGroup = "CCD/Flatfield";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    subGroup = "CCD/Flatfield/FromFile";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("FilePath");
+    subGroup = "CCD/Flatfield/FromRedNoise";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("FlatfieldNoiseRMS");
     subGroup = "CCD/BFE";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("CoefficientsFileName");
