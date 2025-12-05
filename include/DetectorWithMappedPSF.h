@@ -46,6 +46,7 @@ class DetectorWithMappedPSF : public Detector
         void applyFlatfield() override;
         void applyDiffusionKernel(double row, double column, double flux);
         void generateFlatfieldMap();
+        void readInFlatfieldMap();
         void generateDiffusionKernel(double kernelWidth);
         void rebin();
         void writeSubPixelMapToHDF5(int exposureNr);
@@ -62,6 +63,8 @@ class DetectorWithMappedPSF : public Detector
         arma::Mat<float> unDistortedX;
         arma::Mat<float> unDistortedY;
         vector<std::array<double, 4>> distortionMap;
+        string flatfieldFilePath;
+        string flatfieldSource;
 
         double chargeDiffusionStrength;		// Strength of the charge diffusion (width of the Gaussian diffusion kernel) [pixels]
         bool includeChargeDiffusion;		// Whether or not to include charge diffusion

@@ -39,9 +39,18 @@ DetectorWithAnalyticGaussianPSF::DetectorWithAnalyticGaussianPSF(ConfigurationPa
 
     if(includeFlatfield)
     {
-        // Generate the flatfield map
+        if (flatfieldSource == "FromRedNoise")
+        {
+            // Generate the flatfield map
 
-        generateFlatfieldMap();
+            generateFlatfieldMap();
+        }
+        else if (flatfieldSource == "FromFile")
+        {
+            // Read in the flatfield map
+
+            readInFlatfieldMap();
+        }      
     }
 }
 
@@ -86,14 +95,78 @@ DetectorWithAnalyticGaussianPSF::~DetectorWithAnalyticGaussianPSF()
 
     // Get the configuration parameters for the PRNU
 
-    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
-    flatfieldSeed             = configParam.getLong("RandomSeeds/FlatFieldSeed");
+    if (includeFlatfield)
+    {
+        flatfieldSource = configParam.getString("CCD/Flatfield/Source");
+        if (flatfieldSource == "FromFile")
+        {
+            flatfieldFilePath = configParam.getAbsoluteFilename("CCD/Flatfield/FromFile/FilePath");
+        }
+        else if (flatfieldSource == "FromRedNoise")
+        {
+            flatfieldNoiseRMS = configParam.getDouble("CCD/Flatfield/FromRedNoise/FlatfieldNoiseRMS");
+            flatfieldSeed     = configParam.getLong("RandomSeeds/FlatFieldSeed");
+        }
+    }
 
     // The configuration for the HDF5 contents
 
     writeFlatfieldMap = configParam.getBoolean("ControlHDF5Content/WriteFlatfieldMap");
  }
+
+
+
+
+
+
+
+
+
+/**
+ * \brief: Read in the flatfield variations from a file.
+ *
+ */
+
+void DetectorWithAnalyticGaussianPSF::readInFlatfieldMap()
+{
+    HDF5File prnuFile;
+    Log.info("Detector: reading in flatfield map.");
+
+    // Prepare the prnu map by performing some basic checks
+
+    if (!FileUtilities::fileExists(flatfieldFilePath))
+    {
+      throw FileException("Detectors: trying to load flatfield file (" + flatfieldFilePath + "), but file doesn't exist.");
+    }
+
+    try
+    {
+        prnuFile.open(flatfieldFilePath);
+    }
+    catch (H5::FileIException ex)
+    {
+        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+        throw H5FileException("Detector: Could not open flatfield HDF5 file: " + flatfieldFilePath);
+    }
+
+    // Select the correct subregion from our prnuFile
+    arma::Mat<float> prnuMap;
+    prnuFile.readArray("/", "PRNU", prnuMap);
+
+    flatfieldMap = prnuMap.submat(subFieldZeroPointRow, subFieldZeroPointColumn,
+                                   subFieldZeroPointRow+numRowsPixelMap-1,
+                                   subFieldZeroPointColumn+numColumnsPixelMap-1);
+
+
+    prnuFile.close();
+    if (writeFlatfieldMap)
+    {
+        Log.debug("Detector: writing PRNU to HDF5");
+        hdf5File.createGroup("/Flatfield");
+        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
+    }
+}
 
 
 
