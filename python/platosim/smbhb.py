@@ -845,7 +845,7 @@ def plot_result(df, result, z, label=None,
     ax0 = fig.add_subplot(gs[0:2, 0])
     ax0.errorbar(df.time, df.flux, yerr=df.flux_err, fmt='.k',
                  ms=ms, alpha=alpha, zorder=1, label=label)
-    if label is not None: ax0.set_label(loc='upper right')
+    #if label is not None: ax0.set_label(loc='upper right')
     # Plot 95% uncertainties
     # sample = result['weighted_samples']['points']
     # quantile = int(len(sample) * (1-uncertainty))

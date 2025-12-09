@@ -1552,8 +1552,8 @@ class VarSim(object):
         if source == 'Spikey':
             # From Hu+2020
             params = [
-                0.962,  # z
-                1.050,  # t0 [day]
+                0.918,  # z
+                0.6528, # t0 [day]
                 1.144,  # P  [day]
                 81.95,  # i  [deg]
                 0.524,  # e  [0,1]
@@ -1648,12 +1648,12 @@ class VarSim(object):
         # Generate model
         model = smbhb.model(params)
         self.lc = model.light_curve(time, df=True)
+
         
     #--------------------------------------------------------------#
     #                          PLANET MODELS                       #
     #--------------------------------------------------------------#
-        
-        
+                
     def ldc(self):
 
         """Compute the Limb Darkening (LD) coefficients.
