@@ -19,7 +19,6 @@ import shutil
 import datetime
 from pathlib import Path
 from zipfile import ZipFile
-
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -56,14 +55,11 @@ from platosim.simfile    import SimFile
 from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
 
-
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-
 class LightCurve(object):
-
     """Class for PlatoSim photometry and time series analysis.
     
     This class provides the Python interface to the output files generated
@@ -340,11 +336,39 @@ class LightCurve(object):
         """
 
         # Get correct path to varsource file
-        filename = Path(self.filename)
-        starID   = filename.stem[:9]
-        path     = filename.parents[1]
-        filename = f"varsource_{starID}_parameters.ftr"
-        varpath  = path / "varsource" / filename
+        # filename = Path(self.filename)
+        # starID   = filename.stem[:9]
+        # path     = filename.parents[1]
+        # filename = f"varsource_{starID}_parameters.ftr"
+        # varpath  = path / "varsource" / filename
+ 
+        # Check if path or file is parsed
+        if not self.path:
+            return None
+        elif self.mode == 'final':
+            path   = self.path.parents[1]
+            starID = self.filename.stem[-9:]
+        elif self.path.is_dir():
+            path   = self.path.parents[1]
+            starID = self.path.stem[:9]
+        elif self.filename.is_file():
+            path   = self.path.parents[1]
+            starID = path.stem[:9]
+        
+        # Two options for storage
+        varpath_file0 = path / 'varsource' / f'varsource_{starID}_parameters.ftr'
+        varpath_file1 = path / 'varsource' / starID / f'varsource_{starID}_parameters.ftr'
+        varpath_file2 = path / 'varsource' / starID / 'varsource_001_parameters.ftr'            
+
+        # Check if file can be found
+        if varpath_file0.is_file():
+            varpath = varpath_file0
+        elif varpath_file1.is_file():
+            varpath = varpath_file1
+        elif varpath_file2.is_file():
+            varpath = varpath_file2            
+        else:
+            return
         
         return pd.read_feather(varpath)
 
@@ -364,19 +388,19 @@ class LightCurve(object):
         if path is None: path = self.path
 
         # Sort after group, camera, or quarter        
-        if group: G = f"Ncam{group}."
-        else: G = ""
-        if camera: C = f"{camera}_"
-        else: C = ""
+        if group: G = f"Ncam{group}"
+        else: G = "**"
+        if camera: C = f"{camera}"
+        else: C = "**"
         if quarter: Q = f"Q{quarter}"
-        else: Q = ""
-        if name: N = f"_{name}"
-        else: N = ""
+        else: Q = "**"
+        if name: N = f"{name}.{suffix}"
+        else: N = f".{suffix}"
         
         # Fetch all zip files and sort them using natsort
-        string = f"{path}/{prefix}**_{G}**{C}**{Q}**{N}.{suffix}"
-        files = natsort.natsorted(glob.glob(string))
-
+        string = f"{path}/{prefix}**_{G}.{C}_{Q}{N}"
+        files = natsort.natsorted(glob.glob(string)); #print(string)
+        
         # Check if any file was found
         if error and len(files) == 0:
             errorcode('error', f'No files found with suffix {suffix}! ' +
@@ -790,7 +814,8 @@ class LightCurve(object):
         time_bin = time_bin[:-1] + np.diff(time_bin)[0]/2.
 
         if df.columns.str.startswith("flux_err").sum():
-            flux_err, _, _ = binned_statistic(time, flux, 'median', bins=bins)
+            flux_err = df.flux_err
+            flux_err, _, _ = binned_statistic(time, flux_err, 'median', bins=bins)
             data = np.transpose([time_bin, flux_bin, flux_err])
             cols = ['time', 'flux', 'flux_err']
             
@@ -930,10 +955,17 @@ class LightCurve(object):
         return fig, ax
 
     
-    def plot(self, column='flux', time_unit="d", flux_unit="e/s", flux_error=False, 
-             median_filter=False, binsize=False, input_model=False,
-             legend=True, alpha=0.2, figsize=(9,5)):
-
+    def plot(self,
+             column='flux',
+             time_unit="d",
+             flux_unit="e/s",
+             flux_error=False, 
+             median_filter=False,
+             binsize=False,
+             input_model=False,
+             legend=True,
+             alpha=0.2,
+             figsize=(9,5)):
         """Plot a simulated light curve.
 
         Parameters
@@ -1059,24 +1091,19 @@ class LightCurve(object):
                 else:
                     ax.axvline(x=update, c='k', linestyle=':', linewidth=1)
 
-        # Set legend
+        # Set legend TODO place legend above figure
         if legend:
             ax.legend(loc='upper right', ncols=4)
             # Adjust y padding for legend
-            try:
-                ampl_model = dv.flux.max() - dv.flux.min()
-                ampl_flux  = flux.max() - flux.min()
-                if ampl_model > ampl_flux:
-                    F = dv.flux
-                    pad = 1.35
-                else:
-                    F = flux
-                    pad = 1.1
-            except:
-                F = flux
-                pad = 1.1
-            ymin, ymax = pt.getAxesMinMax(y=F, percentage=5)
-            ax.set_ylim(ymin, ymax*pad)
+            # try:
+            #     ampl_model = dv.flux.max() - dv.flux.min()
+            #     ampl_flux  = flux.max() - flux.min()
+            #     if ampl_model > ampl_flux:
+            #         F = dv.flux
+            # except:
+            #     F = flux
+            # ymin, ymax = pt.getAxesMinMax(y=F, percentage=10)
+            # ax.set_ylim(ymin, ymax)
             
         # Settings
         ax.ticklabel_format(useOffset=False)
@@ -1795,7 +1822,7 @@ class LightCurve(object):
 
         # Convert unit [days -> number of exposures]        
         segment = int(segment * 86400 / cadence)
-        
+
         # Move the data chunk when a jump
         k = 0
         if len(dex) > 2:        
@@ -2031,7 +2058,7 @@ class LightCurve(object):
         return self.df
 
 
-    def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,10)):
+    def plot_clip(self, df, column='flux', flux_unit='e/s', plot_oc=True, figsize=(9,8)):
 
         """Plot a clipped light curve for outliers.
         """
@@ -2409,12 +2436,14 @@ class LightCurve(object):
             flux = flux[~np.isnan(flux)]
 
             if suffix == 'hdf5':
-                if flux.max() < 1e3:
+                if flux_unit == "e/s":
                     ylab = r"Flux [e$^-$ s$^{-1}$]"
-                else:
+                elif flux_unit == 'ke/s':
                     ylab = r"Flux [ke$^-$ s$^{-1}$]"
                     flux /= 1e3
-            
+            else:
+                ylab = 'Normalised flux'
+                
             # Plot the quarter data
             ax.plot(time, flux, '.', alpha=alpha, ms=1, zorder=1)
                         
