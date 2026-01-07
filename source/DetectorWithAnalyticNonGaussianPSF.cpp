@@ -460,7 +460,6 @@ double DetectorWithAnalyticNonGaussianPSF::takeExposure(int exposureNr, double s
       if (includeCTIeffects &&
           (CTImodel == "Short2013" || CTImodel == "Short2013FromFile"))
       {
-          cout << "Preflashing" << endl;
           setInitialNumberOfOccupiedTraps(numberOfOccupiedTrapsPixelMap);
       }
     }
