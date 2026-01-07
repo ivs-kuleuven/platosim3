@@ -2276,7 +2276,6 @@ void Detector::applyShort2013CTImodel(string map)
         matMap = &pixelMap;
         radiation = &radiationMap;
         numberOfOccupiedTraps  = &numberOfOccupiedTrapsPixelMap;
-        cout << numberOfOccupiedTraps->row(0) << endl;
     }
     else if (map == "smearingMap")
     {
@@ -2367,7 +2366,6 @@ void Detector::applyShort2013CTImodel(string map)
 
             gamma = 2 * totalTraps / pow(fullWellSaturationLimit, beta) / (1 + beta); // +1 as row = 0 also has to be transferred once
             
-
             numberOfCapturedElectrons =
                 (gamma % arma::pow((*matMap).row(rowNumber), beta) - (*numberOfOccupiedTraps).row(k)) 
                 / (gamma % arma::pow((*matMap).row(rowNumber), beta - 1) + 1) 
