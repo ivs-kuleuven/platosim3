@@ -1422,7 +1422,7 @@ class SolarLikeOscillator(object):
             # According to Kjeldsen and Bedding (1995), Eq. 4 using Eq. 8 [ppm]
             A_puls_bol = self.L * self.T**-1 * self.M**-1 * 4.7 * 550/623
 
-        elif scaling == 'Mosser2010': # TODO
+        elif scaling == 'Mosser2010': # TODO Not working yet
             r = 1.5  # free parameter
             tau0 = convert('d','Ms', 2.65)
             # According to Corsaro et al. 2013, equ. (24)
@@ -1437,7 +1437,7 @@ class SolarLikeOscillator(object):
             r = 2.0
             A_puls_bol = self.L**s * self.M**-t * self.T**(1-r) * A_puls_bol_sun
 
-        elif scaling == 'KjeldsenBedding2011':  # TODO
+        elif scaling == 'KjeldsenBedding2011':  # TODO Not working yet
             # According to Corsaro et al. 2013, equ. (24)
             tau_puls = convert('d', 'Ms', np.exp(delta_Teff / 601.) * 2.65)
             r = 2.0
@@ -1869,7 +1869,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Create new data frame
         self.df = pd.DataFrame()
@@ -1955,7 +1955,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
         
         # Create new data frame
         self.df = pd.DataFrame()
@@ -2010,7 +2010,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Swap max peak location if not in [5, 25] c/d
         # This is based on observations from:
@@ -2073,7 +2073,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Swap max peak location if not in [5, 25] c/d
         # This is based on observations from:
@@ -2140,7 +2140,7 @@ class Pulsator(object):
             self.df.ampl *= self.scale
 
         # Convert units
-        self.df.ampl = 2.5 * np.log10(1 + self.df.ampl)
+        self.df.ampl = -2.5 * np.log10(1 + self.df.ampl)
             
         # Return parameters
         return starfile.stem, f_corr, A_corr, self.df
@@ -2193,7 +2193,7 @@ class Pulsator(object):
    
     
 #==============================================================#
-#                         OTHER OBJECTS                        #
+#                      ECLIPSING BINARIES                      #
 #==============================================================#
 
 class EclipsingBinary(object):
@@ -2389,10 +2389,11 @@ class EclipsingBinary(object):
         """
         return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
                                         plot=plot, title=self.starname)
-        
 
-
-
+    
+#==============================================================#
+#                         SMBH BINARIES                        #
+#==============================================================#
         
 class SMBHB(object):
     """Models for Super Massive Black Hole Binaries (SMBHBs).
@@ -2546,6 +2547,60 @@ class SMBHB(object):
 
     #--------------------------------------------------- Start of physical model
 
+    
+    def model_params(object):
+        """Load model parameters.
+        """
+        def __init__(self):
+
+            # Observational parameters
+            self.t0 = 0    
+            self.z  = 0
+
+            # Orbital parameters
+            self.P = 1     # Observed period [days]
+            self.i = 0.01  # Inclination [deg]
+            self.e = 0     # Eccentricity [0,1]
+            self.w = 0     # Argument of periapse [0, 360] [deg]
+
+            # Physical parameters
+            self.M = 1e9
+            self.q = 0.1
+            self.L = 0.1
+
+            # Damped Random Walk (DRW) parameters
+            self.tau   = 50 * u.d  # Variability time scale [d] 
+            self.sigma = 300       # [ppm]
+
+            # Doppler boosting parameters
+            self.alpha = 2.09  # Spectral slope
+            self.v_z   = 0     # Relative motion of frames [m/s]
+        
+        # # Observational parameters
+        # self.t0 = 0    
+        # self.z  = 0
+        
+        # # Orbital parameters
+        # self.P = 1     # Observed period [days]
+        # self.i = 0.01  # Inclination [deg]
+        # self.e = 0     # Eccentricity [0,1]
+        # self.w = 0     # Argument of periapse [0, 360] [deg]
+
+        # # Physical parameters
+        # self.M = 1e9
+        # self.q = 0.1
+        # self.L = 0.1
+
+        # # Damped Random Walk (DRW) parameters
+        # self.tau   = 50 * u.d  # Variability time scale [d] 
+        # self.sigma = 300       # [ppm]
+
+        # # Doppler boosting parameters
+        # self.alpha = 2.09  # Spectral slope
+        # self.v_z   = 0     # Relative motion of frames [m/s]
+
+
+    
     def initPhysicalModel(self, t0, P, M, q, i, e, w, L, z, verbose=False):
         """Initialise physical model.
 
@@ -2574,7 +2629,7 @@ class SMBHB(object):
         self.a  = self._semimajor_axis(self.P, self.M)
         self.a1 = self.a * self.M2 / self.M
         self.a2 = self.a * self.M1 / self.M
-        
+
         # Show parameters to screen
         if verbose:
             ut.errorcode('message', 'Input parameters:')
@@ -2623,7 +2678,7 @@ class SMBHB(object):
         Parameters
         ----------
         tau : ndarray
-            Time scale tau of each red noise component [s]
+            Time scale tau of each red noise component [d]
         sigma : ndarray 
             Variation scale of each red noise component [ppm]
         verbose : bool
@@ -2696,7 +2751,7 @@ class SMBHB(object):
                 
         # The RV semi-amplitude of secondary [cm/s]
         K1,K2 = self._rv_semiamplitude(self.P, self.M1, self.M, self.q, self.a, self.i, self.e)
-
+        print(K1, K2)
         # Show parameters to screen
         if verbose:
             ut.errorcode('message', '\nDoppler boosting parameters:')
@@ -3307,26 +3362,241 @@ class SMBHB(object):
 #                         EXOPLANETS                           #
 #==============================================================#
 
+class Exomoon(object):
+    """Class for modelling planet+moon systems.
+    """
 
+    def __init__(self, time, seed=False):
+        """Initialize class
+        """
+        self.time = time
+        self.seed = seed
+        self.rng = ut.rng(seed)
+
+    #--------------------------------------------------------------#
+    #                         SIMULATED LC                         #
+    #--------------------------------------------------------------#
+        
+    def cut_out_transits(self, df, P, t0, T_epoch):
+        """Select data around planet transits.
+
+        Parameters
+        ----------
+        df : data frame of time [d] and flux [pp1]
+        P : Orbital period [d]
+        t0 : Time of first transit [d]
+        T_tot : Total transit duration [d]
+        n_tot : Number of T_tot to use for cut [int]
+        """
+        t_dur = df.time.iloc[-1]
+        epochs = round(np.floor( (t0 + t_dur) / P))
+
+        df1 = pd.DataFrame()
+        for i in range(epochs):
+            t_transit = t0 + (P * i)
+            df0 = df[(df.time > t_transit - T_epoch) & (df.time < t_transit + T_epoch)]
+            df1 = pd.concat([df1, df0])
+
+        return df1
+
+
+    def plot_lc(self, df, dv, di=None, alpha=0.5, figsize=(9,4)):
+        """Select data around planet transits.
+
+        Parameters
+        ----------
+        df : light curve with columns: time [d], flux [pp1]
+        dv : input model with columns: time [d], flux [pp1]
+        """
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        ax.plot(df.time, df.flux, 'k.', ms=10, alpha=alpha)
+        ax.plot(dv.time, dv.flux, '-', c='royalblue')
+        if di is not None:
+            ax.plot(di.time, di.flux, '-', c='orange')
+        ax.set_xlabel("Time [days]")
+        ax.set_ylabel("Normalized flux")
+        plt.tight_layout()
+        return fig, ax
+
+
+    def plot_epochs(self, timings,
+                    df, alpha=0.5, ms=10,
+                    dm=None, cb='orange', cp='deeppink', cm='royalblue', 
+                    figsize=(9,3)):
+        """Select data around planet transits.
+
+        Parameters
+        ----------
+        df : light curve with columns: time [d], flux [pp1]
+        dv : input model with columns: time [d], flux [pp1]
+        n_epoch : Number of transit epochs [d]
+        T_epoch : Duration of each epoch [d]
+        t0 : Time of first transit [d]
+        P : Period of transits [d]
+        """
+        n_epoch = timings[0]
+        T_epoch = timings[1]
+        t0_bary = timings[2]
+        P_bary  = timings[3]
+
+        # Interpolate model to data timings
+        if df.shape[0] != dm.shape[0]:
+            interp = scipy.interpolate.make_interp_spline(dm.time, dm.flux, k=1)
+            df['flux_model'] = interp(df.time)
+        else:
+            df['flux_model'] = dm.flux
+        
+        fig, ax = plt.subplots(2, n_epoch, figsize=figsize)        
+        for i in range(n_epoch):
+            # Plot simulated data
+            ax[0,i].errorbar(df.time, df.flux, yerr=df.flux_err, fmt='.k', alpha=alpha, zorder=1)
+            # Plot Pandora planet and moon model
+            if 'flux_planet' in dm:
+                ax[0,i].plot(dm.time, dm.flux_planet, '-', c=cp, zorder=2)
+            if 'flux_moon' in dm:
+                ax[0,i].plot(dm.time, dm.flux_moon,   '-', c=cm, zorder=3)
+            # Plot injected model
+            ax[0,i].plot(dm.time, dm.flux, '-', c=cb, zorder=4)                
+            # Plot OC diagram
+            ax[1,i].errorbar(df.time, df.flux-df.flux_model, yerr=df.flux_err,
+                             fmt='.k', alpha=alpha)
+            # Settings
+            t_transit = t0_bary + (P_bary * i)
+            for j in range(2):
+                ax[j,i].set_xlim(t_transit-T_epoch/2 , t_transit+T_epoch/2)
+                ax[j,i].set_xlabel("Time [days]")
+        ax[0,0].set_ylabel("Normalized flux")
+        ax[1,0].set_ylabel("Residuals")
+        plt.tight_layout()
+        return fig, ax
+
+    #--------------------------------------------------------------#
+    #                      MODELLING FITTING                       #
+    #--------------------------------------------------------------#
+
+    def run(self, path, trial=False, moon=False, resume='overwrite',
+            nsteps=1000, adaptive_nsteps='move-distance'):
+
+        from ultranest import ReactiveNestedSampler
+        from ultranest.stepsampler import RegionSliceSampler
+        
+        if trial:
+            parameters = [
+                'per_bary',
+                'a_bary',
+                'r_planet',
+                'b_bary',
+                't0_bary_offset',
+                'q1',
+                'q2'
+            ]
+            wrapped_params = [
+                False,
+                False, 
+                False, 
+                False, 
+                False, 
+                False, 
+                False
+            ]
+            def prior_transform(cube):
+                p    = cube.copy()
+                p[0] = cube[0] * 10 + 360.25    # per_bary [days]
+                p[1] = cube[1] * 300 + 1        # a_bary [R_star]
+                p[2] = cube[2] * 0.2 + 0.001    # r_planet [R_star]
+                p[3] = cube[3] * 1              # b_bary [0..1]
+                p[4] = cube[4] * 0.1 - 0.05     # t0_bary_offset [days]
+                p[5] = cube[5]                  # LD q1 [0..1]
+                p[6] = cube[6]                  # LD q2 [0..1]
+                return p
+        else:
+            pass
+            
+        def log_likelihood(p):
+            # Convert q priors to u LDs (Kipping 2013)
+            q1 = p[5]
+            q2 = p[6]
+            u1, u2 = ld_convert(q1, q2)
+
+            if not moon:
+                # negligible moon mass
+                moon_params = [1e-8, 0]
+                
+            # Calculate pandora model with trial parameters
+            _, _, flux_trial_total, _, _, _, _ = pandora.pandora(
+                R_star = R_sun,
+                u1 = u1,
+                u2 = u2,
+                # Planet parameters
+                per_bary       = p[0],
+                a_bary         = p[1],
+                r_planet       = p[2],
+                b_bary         = p[3],
+                ecc_bary       = 0,
+                w_bary         = 0,
+                t0_bary        = params.t0_bary,
+                t0_bary_offset = p[4],   
+                M_planet       = 1e27,
+                # Moon parameters
+                r_moon     = moon_params[0],  # negligible moon size
+                per_moon   = 30,  # other moon params do not matter
+                tau_moon   = moon_params[1],
+                Omega_moon = moon_params[1],
+                i_moon     = moon_params[1],
+                ecc_moon   = moon_params[1],
+                w_moon     = moon_params[1],
+                M_moon     = moon_params[0], 
+                # Other model parameters
+                epoch_distance = params.epoch_distance,
+                supersampling_factor = 1,
+                occult_small_threshold = 0.01,
+                hill_sphere_threshold=1.0,
+                numerical_grid=25,
+                time=time,
+                #cache=cache  # Can't use cache because free LDs
+            )
+            loglike = -0.5 * np.nansum(((flux_trial_total - testdata) / yerr)**2)
+
+            return loglike            
+            
+            
+        sampler = ReactiveNestedSampler(
+            parameters,
+            log_likelihood, 
+            prior_transform,
+            wrapped_params=wrapped_params,
+            log_dir=path,
+            resume='overwrite'
+        )
+        sampler.stepsampler = RegionSliceSampler(
+            nsteps=nsteps,
+            adaptive_nsteps=adaptive_nsteps
+        ) 
+
+            
+        return p
+    
+
+
+
+
+
+
+    
 class Exoplanet(object):
-
     """Class for modelling exoplanets.
     """
 
     def __init__(self, seed=False):
-
         # Random number generator
         self.rng = ut.rng(seed)
 
-
         
     def ldc(self, ):
-
         """Compute the Limb Darkening (LD) coefficients.
 
         This module uses the software LDTk:        
         """
-
         if self.verbose > 1:
             print('\nComputing limb darkening coefficients with LDTk')
             
@@ -3365,16 +3635,9 @@ class Exoplanet(object):
             self.ldc = u[0]
 
         return self.ldc
-
-
-
-
-        
     
     
-
 class LimbDarkening(funcFit.OneDFit):
-
     """Class for fitting the Limb Darkening Coefficients.
     Integrated into the BATMAN and SPIDERMAN packages.
     """
