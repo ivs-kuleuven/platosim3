@@ -56,9 +56,18 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
         Log.info("Simulation: create a connected detector factory instance");
 
-        // create a specific empty hdf5 output file
-
-        hdf5File = new ClosedLoopHDF5File();
+        // In the closed-loop case, data is sent over the network and normally not stored locally
+        if (configParams.nodeExists("ControlHDF5Content/GenerateRealHdf5") && 
+                configParams.getBoolean("ControlHDF5Content/GenerateRealHdf5"))
+        {
+            // create a regular HDF5 file only if configured to do so
+            hdf5File = new HDF5File();
+        } 
+        else
+        {
+            // create a specific empty hdf5 output file otherwise
+            hdf5File = new ClosedLoopHDF5File();
+        }
 
     }
     else
