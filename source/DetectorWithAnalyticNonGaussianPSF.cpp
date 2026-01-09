@@ -388,12 +388,6 @@ void DetectorWithAnalyticNonGaussianPSF::readInFlatfieldMap()
 
 
     prnuFile.close();
-    if (writeFlatfieldMap)
-    {
-        Log.debug("Detector: writing PRNU to HDF5");
-        hdf5File.createGroup("/Flatfield");
-        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
-    }
 }
 
 
@@ -464,15 +458,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
     flatfieldMap += 1;
 
     flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
-
-    // Write the result to the HDF5 output file
-
-    if (writeFlatfieldMap)
-    {
-        Log.debug("Detector: writing PRNU to HDF5");
-        hdf5File.createGroup("/Flatfield");
-        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
-    }
 }
 
 
@@ -1033,6 +1018,14 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
       arma::Mat<float> highResDiffusedMap;
       makeHighResolutionPSF(highResDiffusedMap, true, Npixels, Nsubpixels);
       hdf5File.writeArray("/PSF", "diffusedPSF", highResDiffusedMap);
+    }
+
+    // Save PRNU
+    if (writeFlatfieldMap)
+    {
+        Log.info("Writing PRNU to the HDF5 file");
+        hdf5File.createGroup("/Flatfield");
+        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
     }
 
     // Save the photometry info
