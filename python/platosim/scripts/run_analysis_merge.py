@@ -30,6 +30,7 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID', type=int, help='Star ID')
+man_group.add_argument('sdir',   type=str, help='Simulation directory with feather simulations')
 man_group.add_argument('idir',   type=str, help='Input directory containing star folders')
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
 
@@ -44,14 +45,16 @@ opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to rem
 args = parser.parse_args()
 
 # User defined parameters
-verbose   = args.verbose
-bin_size  = args.bin_size
-gaps      = args.gaps
-flux_err  = args.flux_err
+verbose    = args.verbose
+bin_size   = args.bin_size
+clip_sigma = args.clip_sigma
+gaps       = args.gaps
+flux_err   = args.flux_err
 
 # File paths
 star = f'{args.starID}'.zfill(9)
-idir = Path(args.idir).resolve() / star
+sdir = Path(args.sdir).resolve() / star
+idir = Path(args.idir).resolve()
 odir = Path(args.odir).resolve()
 odir_final = odir / 'lightcurve'
 odir_table = odir / 'table'
@@ -69,12 +72,12 @@ filename_final = f'lc_{star}'
 filename_table = f'table_{star}'
 filename_ftr = odir_final / f'{filename_final}.ftr'
 filename_tab = odir_table / f'{filename_table}.ftr'
-filename_gap = gdir / 'instrumentGAP.tab'
+filename_gap = idir / 'instrumentGAP.tab'
 
 # EXTRACT FINAL LIGHT CURVE
 
 # Construct light curve object
-lcs = LightCurve(idir, 'multi')
+lcs = LightCurve(sdir, 'multi')
 
 # Save simulation table
 if args.verbose:
@@ -88,7 +91,7 @@ lc = lcs.merge(suffix='ftr',
                binsize=bin_size,
                clip_sigma=clip_sigma,
                flux_offset=True,
-               flux_err=flux_err)
+               flux_error=flux_err)
 
 # Introducing data gaps
 if gaps and filename_gap.is_file():
@@ -100,8 +103,8 @@ else:
     df = lc.data()
 
 # Save feather with modes
-df.to_feather(filename_mod)
-os.system(f'chmod 755 {filename_mod}')
+df.to_feather(filename_ftr)
+os.system(f'chmod 755 {filename_ftr}')
 
 # Remove output and starshadow files
 if args.clean:

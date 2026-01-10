@@ -163,7 +163,7 @@ def _rv_vector(vz, K1, K2, f, e, w):
 
 
 @jit(cache=True, nopython=True, fastmath=True, parallel=False)
-def _xyz_orbital_plane(f, r1, a1, q, i, w, omega=np.pi/2):
+def _xyz_orbital_plane(f, r1, a1, q, i, w, omega=0): #np.pi/2):
     """Cartesian 3D position as function of time.
     """
     # Cartesian positions of primary and secondary 
@@ -462,7 +462,7 @@ class model(object):
                 return flux, flux_lens, flux_boost, flux_red
         else:
             if df:
-                get_df(time, flux, flux_lens, flux_boost)
+                return get_df(time, flux, flux_lens, flux_boost)
             else:
                 return flux, flux_lens, flux_boost
 
@@ -1213,7 +1213,7 @@ def fetch_gaia_info(df, NED=False):
     """Fetch Gaia info for each source in data frame.
     Use NASA/IPAC Extragalactic Database (NED).
     """
-    for i in range(df.shape[0]):
+    for i in tqdm(range(df.shape[0]), bar_format=ut.tqdmBar()):
         di = df.reset_index(drop=True).loc[i]
         if NED:
             ra, dec = di.RA, di.Dec
