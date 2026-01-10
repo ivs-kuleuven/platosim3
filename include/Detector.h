@@ -297,11 +297,12 @@ class Detector: public HDF5Writer
         vector<double> meanTrapDensityEOL;       // mean (averaged over entire CCD) trap density of each trap species at End-Of-Live [traps/pixel]
         vector<double> trapCaptureCrossSection;  // For each trap species: the trap capture cross section [m^2]
         vector<double> releaseTime;              // For each trap species: the electron release time [s]
+
+        HDF5File CTIFile;                        // Input CTI file with the trap density maps, contains the info below.
         arma::Mat<float> radiationMap;           // Normalized radiation map for the subfield under consideration [p+ / s]
         arma::Mat<float> radiationSmearingMap;   // Normalized radiation map for the smearing map under consideration [p+ / s]
-        arma::Mat<float> numberOfOccupiedTrapsPixelMap;  // Number of occupied traps in the Short2013 CTI model
-        arma::Mat<float> numberOfOccupiedTrapsSmearingMap;
-        HDF5File CTIFile;                        // Input CTI file with the trap density maps
+        arma::Mat<float> numberOfOccupiedTrapsPixelMap;      // Number of occupied traps in the Short2013 CTI model, when specified in ...
+        arma::Mat<float> numberOfOccupiedTrapsSmearingMap;   // ... a file, to allow a for spatially varying trap density.
 
         double chargeInjectionLevel;             // Percentage of the full well to be filled by charge injection [0-100]
         int injectionRowInterval;                // Charge will be injected every XX CCD row [integer: in 1 - numrows] starting from firstInjectedRow.
