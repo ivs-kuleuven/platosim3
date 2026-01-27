@@ -229,7 +229,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def star(self, filename=False):
+    def target(self, filename=False):
 
         """Function to fetch the info about star.
         """
@@ -2493,11 +2493,11 @@ class LightCurve(object):
               quarter=False,
               flux_normalise=False,
               flux_contamination=False,
+              detrend=False,
               flux_group_mean=False,
               flux_stitch=False,
               flux_offset=False,
               flux_error=False,
-              detrend=False,
               clip_sigma=None,
               stitch_segment=None,
               binsize=None,
@@ -2582,7 +2582,7 @@ class LightCurve(object):
 
             # Correct amplitude suppresion from stellar contamination
             if flux_contamination:
-                SPR = lc.star().SPR.values[0]
+                SPR = lc.target().SPR.values[0]
                 df.flux = (df.flux - 1) * (1 + SPR)
                 
             # Apply long-term trend correction
@@ -3023,7 +3023,7 @@ class LightCurve(object):
                         lc = LightCurve(file_sim)
 
                         # Fetch sim info from table
-                        df1 = lc.star()
+                        df1 = lc.target()
 
                         # Add NSR [ppm/sqrt(h)]
                         df1['NSR'] = lc.get_nsr()
