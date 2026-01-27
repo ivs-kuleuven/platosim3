@@ -35,10 +35,11 @@ man_group.add_argument('idir',   type=str, help='Input directory containing star
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
 
 opt_group = parser.add_argument_group('OPTIONAL PARAMETERS')
+opt_group.add_argument('--detrend',    action='store_true', help='Perform auto-poly detrending')
 opt_group.add_argument('--bin_size',   metavar='FLOAT', type=float, help='Time bin size [sec]')
 opt_group.add_argument('--clip_sigma', metavar='FLOAT', type=float, help='Sigma-clip threshold')
-opt_group.add_argument('--gaps',          action='store_true', help='Use instrumentGAP.tab file')
-opt_group.add_argument('--flux_err',      action='store_true', help='Calculate flux errors')
+opt_group.add_argument('--flux_err',   action='store_true', help='Calculate flux errors')
+opt_group.add_argument('--gaps',       action='store_true', help='Use instrumentGAP.tab file')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
 
@@ -50,6 +51,12 @@ bin_size   = args.bin_size
 clip_sigma = args.clip_sigma
 gaps       = args.gaps
 flux_err   = args.flux_err
+
+# Activate detrending
+if args.detrend:
+    detrend = 'poly'
+else:
+    detrend = False
 
 # File paths
 star = f'{args.starID}'.zfill(9)
@@ -79,6 +86,9 @@ filename_gap = idir / 'instrumentGAP.tab'
 # Construct light curve object
 lcs = LightCurve(sdir, 'multi')
 
+fig, ax = lcs.plot_multi(suffix='ftr', group=False, camera=False, quarter=False, 
+                         flux_median=144, alpha=0.5, figsize=(9,5))
+
 # Save simulation table
 if args.verbose:
     print('Saving simulation table')
@@ -87,6 +97,7 @@ ds = lcs.stat_sim_table(filename_tab)
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
                verbose=verbose,
+               detrend=detrend,
                flux_group_mean=True,
                binsize=bin_size,
                clip_sigma=clip_sigma,

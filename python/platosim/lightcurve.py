@@ -378,7 +378,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def files(self, suffix="zip", prefix="0", path=None, error=True,
+    def files(self, suffix="hdf5", prefix="0", path=None, error=True,
               group=False, camera=False, quarter=False, name=False):
 
         """Fetch all files with a common extention.
