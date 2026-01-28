@@ -43,8 +43,11 @@ installProcedure = "cd {build};                                     \
                     tar -xzvf {package}.tar.gz;                     \
                     cd {package};                                   \
                     ./configure --prefix={install} --enable-cxx;    \
-                    make;                                           \
-                    make install".format(build=buildDir, package=packageName, install=installDir)
+                    make -j {num_threads};                          \
+                    make install".format(build=buildDir, 
+                                         package=packageName, 
+                                         install=installDir,
+                                         num_threads=os.environ.get("INSTALL_NUM_THREADS"))
 
 process = subprocess.run(installProcedure, shell=True)
 if not process.returncode == 0:
