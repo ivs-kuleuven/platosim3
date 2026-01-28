@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 This script is an integrated part of PlatoSim's toolkit PLATOnium.
 The usage consist of three main query methods:
@@ -36,9 +35,7 @@ General information:
   of full-frame CCD images. Usage examples:
 
   $ picsim --vizier LOPS2 --project <project_name> -p
-
 """
-
 # Built-in
 import os
 import shutil
@@ -58,7 +55,7 @@ from astropy import units as u
 from tqdm import tqdm
 from prettytable import PrettyTable
 
-# PLATOnium extra
+# Platonium extra
 import ligo.skymap.plot
 
 # PlatoSim functions
@@ -76,15 +73,14 @@ from platosim.matplotlibrc import setup; setup()
 
 class PicSim(object):
     """Class to generate customised (PIC) catalogues.
-    """
-    
+    """ 
     def __init__(self, args):
 
         # I/O PARAMETERS
 
         # Plotting flag
         self.plot = args.plot
-
+        
         # Verbosity (a.k.a log level) -> Identical to PlatoSim usage
         if args.verbose == 0:
             self.verbose = 0            
@@ -125,7 +121,7 @@ class PicSim(object):
             self.disConLimit = 45
         else:
             if args.pic is not None:
-                if ((args.pic[0][2] in ['LOPS2', 'LOPN1', 'SPF', 'NPF']) and
+                if ((args.pic[0][2] in ['LOPS2', 'LOPN1']) and
                     (args.dist not in [30, 45, 60])):
                     errorcode('error', 'Not a valid contaminant-to-target distance! ' +
                               'Use {30, 45, 60} arcsec')
@@ -147,48 +143,52 @@ class PicSim(object):
 Notes on parsed argument "--pic":
   "star"   : Number of targets saved in catalog (Select "all" for all stars)
   "sample" : PIC samples [P1, P2, P4, P5, all]  (Select "all" for all samples)
-  "field"  : PLATO pointing field [tLOPS2, LOPS2, LOPN1, SPF, NPF]
-        
-Number of stars in PLATO fields:
-  PIC210 tLOPS2: 218,162
-  PIC200  LOPS2: 179,564
-  PIC200  LOPN1: 175,597
-  PIC110  SPF  : 163,772
-  PIC110  NPF  : 156,971
+  "field"  : PLATO pointing field [LOPS2, LOPN1]
+       
+Information about PIC 2.1.0:
+- Number of stars in fields:
+  --------------------------
+  LOPS2      : 315,385
+    - tPIC   : 218,820
+      - P1   :  10,967
+      - P2   :     690
+      - P4   :  12,738
+      - P5   : 157,723
+    - fgPIC  :   5,283
+    - cPIC   :  53,321
+    - scvPIC :  37,961
+  --------------------------
+- Notes about the catalogue:
+  - Magnitude completeness of contaminants    : Pmag < 19 mag
+  - Maximum radial target-contaminat distance : Rmax < 60 arcsec
+  - Calibration methods: Same as PIC 200.
 
-Number of stars in PIC210 (LOPS2):
-  tPIC   : 218,820
-  fgPIC  :   5,283
-  cPIC   :  53,321
-  scvPIC :  37,961
+Information about PIC 2.0.0:
+- Number of stars in fields:
+  --------------------------
+  LOPS2    : 179,564
+    - P1   :   8,835
+    - P2   :     678
+    - P4   :  12,026
+    - P5   : 157,543
+  --------------------------
+  LOPN1    : 179,564
+    - P1   :   9,369
+    - P2   :     680
+    - P4   :  12,026
+    - P5   : 152,818
+  --------------------------
+- Notes about the catalogue:
+  - Magnitude completeness of contaminants    : Pmag < 17 mag
+  - Maximum radial target-contaminat distance : Rmax < 45 arcsec
+  - Calibration methods: The Gaia DR3 colour information (BP-RP)
+    and extinction maps are used to derive the PLATO magnitudes.
 
-Number of stars per PIC sample:
-  P1: tLOPS2:  10,967, LOPS2:   8,835, LOPN1:   9,367, SPF:   6,817, NPF:   6,892
-  P2: tLOPS2:     690, LOPS2:     678, LOPN1:     680, SPF:     717, NPF:     668
-  P4: tLOPS2:  12,738, LOPS2:  12,026, LOPN1:  12,026, SPF:  16,866, NPF:  16,166
-  P5: tLOPS2: 157,723, LOPS2: 157,543, LOPN1: 152,818, SPF: 132,571, NPF: 140,046
-  Note that P2 is a bright sub-sample of P1, and P1 of P5.
-
-Notes on PIC catalogue creation:
-    PIC210 (LOPS2):
-      - Magnitude completeness of contaminants    : Pmag < 19 mag
-      - Maximum radial contaminat-target distance : Rmax < 60 arcsec
-      - Calibration methods: Same as PIC 200.
-    PIC200 (LOPS2, LOPN1):
-      - Magnitude completeness of contaminants    : Pmag < 17 mag
-      - Maximum radial contaminat-target distance : Rmax < 45 arcsec
-      - Calibration methods: The Gaia DR3 colour information (BP-RP)
-        and extinction maps are used to derive the PLATO magnitudes.
-    PIC110 (SPF, NFP):
-      - Magnitude completeness of contaminants    : Vmag < 17 mag
-      - Maximum radial contaminat-target distance : Rmax < 60 arcsec
-      - Calibration method using the de-reddened Gaia V magnitude obtained
-        from Gaia photometry using a calibration technique being valid for: 
-        0.5 < Bp-Rp < 5.17
+General notes:
+  - The P2 is a bright sub-sample of P1, and P1 of P5.
         """)
 
-
-    
+        
     def initPIC(self):
         """Initialise the PIC input parameters.
         """
@@ -200,16 +200,52 @@ Notes on PIC catalogue creation:
         self.inputFiles    = args.incat
         self.oldCatalogue  = args.unique
         self.numTimeseries = args.ntime
-        
+            
         # MANDATORY PARAMETERS
             
-        # Mandatory parameters
+        # PIC arguments
         self.stars, self.sample, self.field = args.pic[0]
+
+        # Check field
+        field = ['LOPS2', 'LOPN1']
+        if self.field not in field:
+            errorcode('error', f'{self.field} is not defined! Use {field}')
         
-        # Check if sample is correct
-        if self.sample == 'all':
-            self.sample = None
-        elif self.field in ['tLOPS2']:
+        # Select PIC release (default is the latest version)
+        if args.release in [None, 'PIC210']:
+            self.pic = 'PIC210'
+            self.mag_column = 'Pmag'
+            # Select the field
+            if self.field == 'LOPS2':
+                self.numPIC = 218162
+            else:
+                errorcode('error', f'{self.field} is not defined! Use LOPS2')
+            # Select the sample
+        elif self.release == 'PIC200':
+            self.pic = 'PIC200'
+            self.mag_column = 'mag'
+            
+            # Select the field
+            if self.field == 'LOPS2':
+                self.numPIC = 179564
+            elif self.field == 'LOPN1':
+                self.numPIC = 175325 # Original: 175,597
+            else:
+                errorcode('error', f'{self.field} is not defined! Use {LOPS2, LOPN1}')
+        elif self.release == 'PIC110':
+            self.pic = 'PIC110'
+            self.mag_column = 'mag'
+            sample = ['P1', 'P1', 'P4', 'P5']
+            # Select the field
+            if self.field == 'SPF':
+                self.numPIC = 137052
+            elif self.field == 'NPF':
+                self.numPIC = 144507
+            else:
+                errorcode('error', f'{self.field} is not defined! Use {SPF, NPF}')
+            
+        # Available samples for release
+        if self.pic == 'PIC210':
             sample = [
                 'tPIC', 'P1', 'P2', 'P4', 'P5',
                 'fgPIC', 'fgFb', 'fgFr',
@@ -217,31 +253,14 @@ Notes on PIC catalogue creation:
                 'scvPIC', 'SCV1a', 'SCV1b', 'SCV1c', 'SCV1d', 'SCV1e',
                 'SCV2a', 'SCV2b', 'SCV3a', 'SCV3b', 'SCV4a', 'SCV4b', 'SCV5', 'SCV6'
             ]
-            if self.sample not in sample: 
-                errorcode('error', 'Not a valid PIC sample! Use {P1, P2, P4, P5, all}')
         else:
-            if self.sample not in ['P1', 'P2', 'P4', 'P5']:
-                errorcode('error', 'Not a valid PIC sample! Use {P1, P2, P4, P5, all}')
-
-        # Check the PLATO field
-        if self.field in ['SPF', 'NPF']:
-            self.pic = 'PIC110'
-            self.mag_column = 'mag'
-            if self.field == 'SPF': self.numPIC = 137052
-            if self.field == 'NPF': self.numPIC = 144507
-        elif self.field in ['LOPS2', 'LOPN1']:
-            self.pic  = 'PIC200'
-            self.mag_column = 'mag'
-            if self.field == 'LOPS2': self.numPIC = 179564
-            if self.field == 'LOPN1': self.numPIC = 175325 # Original: 175,597
-        elif self.field in ['tLOPS2']:
-            self.pic    = 'PIC210'
-            self.field  = 'LOPS2'
-            self.numPIC = 218162
-            self.mag_column = 'Pmag'
-        else:
-            errorcode('error', 'Not valid pointing! Use {tLOPS2, LOPS2, LOPN1, SPF, NPF}')   
-
+            sample = ['P1', 'P1', 'P4', 'P5']
+        # Check the sample
+        if self.sample == 'all':
+            self.sample = None
+        elif self.sample not in sample:
+            errorcode('error', f'Not a valid PIC sample! Use {sample}')
+    
         # Check number of stars
         self.numTargets = self.stars
         if self.numTargets[0].isdigit():
@@ -322,8 +341,7 @@ Notes on PIC catalogue creation:
         # Generic title to use for plotting
         self.title = f'{self.pic}, {self.field}, {self.sample} sample'
          
-            
-   
+               
     def loadPIC(self):
         """Fetch PIC targets from feather files.
         """
@@ -340,12 +358,10 @@ Notes on PIC catalogue creation:
         # Load catalogues
         if self.verbose > 1:
             print('Loading stellar catalogues..')
-
         self.df0 = pd.read_feather(inputFileTar)
         self.dc0 = pd.read_feather(inputFileCon)
         self.dx = self.df0
     
-
         
     def loadOldPIC(self):
         """Load old PIC catalog to re-plot it.
@@ -372,7 +388,6 @@ Notes on PIC catalogue creation:
         # For --incat and sample distribution
         self.dx  = self.df0
         self.df0 = self.df
-        
 
                 
     def getStellarClass(self, df):
@@ -391,10 +406,9 @@ Notes on PIC catalogue creation:
         sgK = sg[ sg.Teff < 5300]
         sgG = sg[(sg.Teff > 5300) & (sg.Teff < 5900)]
         sgF = sg[ sg.Teff > 5900]
-
+        
         return df, ds, sg, dK, dG, dF, sgK, sgG, sgF
 
-                
 
     def queryTargetsPIC(self):
         """Fetch PIC targets from feather files.
@@ -488,7 +502,6 @@ Notes on PIC catalogue creation:
                 df = df[df.scvPIC & 2048 == 2048]                    
             elif self.sample == 'SCV6':
                 df = df[df.scvPIC & 4096 == 4096]                    
-                
         # Check stellar sample
         else: 
             df = df[df['sample'] == self.sample]
@@ -598,7 +611,6 @@ Notes on PIC catalogue creation:
         # Store copy of modified df
         self.df = df
 
-
         
     def queryContaminantsPIC(self):        
         """Fetch and select PIC contaminants.
@@ -647,7 +659,6 @@ Notes on PIC catalogue creation:
         self.dc = dc1
 
         
-            
     def plotTargetsPIC(self):
         """Plot function for PIC targets.
         """
@@ -670,7 +681,6 @@ Notes on PIC catalogue creation:
         self.fig2, ax = pt.plotTeffvsRadius(ds, dK, dG, dF, sg, sgK, sgG, sgF, df,
                                             self.title)
         if self.plot: plt.show()
-
         
         
     def plotContaminantsPIC(self):
@@ -688,7 +698,6 @@ Notes on PIC catalogue creation:
         if self.plot: plt.show()
 
 
-        
     def prologuePIC(self):
         """Handle output for --pic flag.
         """
@@ -815,7 +824,6 @@ Notes on PIC catalogue creation:
             self.outputFileTar = self.outputDir / self.outputPrefixTar
             self.outputFileCon = self.outputDir / self.outputPrefixCon
 
-
         
     def querySimbad(self):
         """Function to query a Gaia DR3 star and its contaminants.
@@ -850,7 +858,6 @@ Notes on PIC catalogue creation:
             print(self.df)
             print(f'\nCatalogue for {self.simbad} contaminants:')
             print(self.dc)
-
 
             
     def prologueSimbad(self):
@@ -982,11 +989,9 @@ Notes on PIC catalogue creation:
             self.plotVizier()
 
 
-
     def plotVizier(self):
         """Plot grid used to make Gaia DR3 source query.
         """
-        
         # PLOT GRID IN EQUATORIAL COORDINATES
         
         # Shorten names
@@ -1039,7 +1044,6 @@ Notes on PIC catalogue creation:
         ax.set_ylabel('Dec [deg]')
         plt.show()
 
-        
         
     def queryVizier(self):
         """Query function for Gaia DR3.
@@ -1238,21 +1242,22 @@ out_group.add_argument('--project',       type=str, metavar='NAME', help='Name o
 
 pic_group = parser.add_argument_group('PIC QUERY (PLATO FIELDS)')
 pic_group.add_argument('--pic',    type=str, nargs=3, metavar=('STARS', 'SAMPLE', 'FIELD'), action="append", help='Mandatory arguments (Check "--notes")')
+pic_group.add_argument('--release', type=str, metavar='STR',  help='PIC release [210 (default), 200]')
 pic_group.add_argument('--ncams',  type=int, metavar='INT',   help='N-CAM visibility [6, 12, 18, 24]')
-pic_group.add_argument('--group',  type=int, metavar='INT',   help='Camera-group visibility [1, 2, 3, 4]')
+pic_group.add_argument('--group',  type=int, metavar='INT',   help='Camera-group w.r.t. Q1 [1, 2, 3, 4]')
 pic_group.add_argument('--mag',    type=str, metavar='RANGE', help='P magnitude range of PIC targets (float or dash-range)')
 pic_group.add_argument('--spec',   type=str, metavar='STR',   help='Spectral type [F, G, K]')
 pic_group.add_argument('--lum',    type=str, metavar='STR',   help='Luminosity class [V, IV]')
 pic_group.add_argument('--ntime',  type=int, metavar='INT',   help='Number of individual timeseries to be generated')
 pic_group.add_argument('--incat',  type=str, nargs='*',       help='PIC target and contaminant input files [*.ftr, *.txt]')
-pic_group.add_argument('--unique', type=str, metavar='STR',   help='Parse old target catalogue to select new unique stars [*ftr])')
+pic_group.add_argument('--unique', type=str, metavar='STR',   help='Parse old target catalogue to select new unique stars [*.ftr])')
 pic_group.add_argument('--save',   action='store_true',       help='Flag to save stars into ascii PlatoSim-like catalogue')
 pic_group.add_argument('--notes',  action='store_true',       help='Flag to show the notes of the available PIC catalogues')
 
 bad_group = parser.add_argument_group('SIMBAD QUERY (SKY REGION)')
-bad_group.add_argument('--simbad',      type=str, metavar='NAME',                     help='Simbad target name')
-bad_group.add_argument('--pipe_sample', type=str, metavar='[P1, P2, P4, P5]',         help='PLATO sample for platonium pipeline processing')
-bad_group.add_argument('--pipe_field',  type=str, metavar='[SPF, NPF, LOPS2, LOPN1]', help='PLATO field for platonium pipeline processing')
+bad_group.add_argument('--simbad',      type=str, metavar='NAME', help='Simbad target name')
+bad_group.add_argument('--pipe_sample', type=str, metavar='INT',  help='PLATO sample for platonium pipeline processing [P1, P2, P4, P5]')
+bad_group.add_argument('--pipe_field',  type=str, metavar='INT',  help='PLATO fields for platonium pipeline processing [LOPS2, LOPN1]')
 
 viz_group = parser.add_argument_group('VIZIER QUERY (PLATO FOV)')
 viz_group.add_argument('--vizier', type=str,   metavar='FIELD', help='PLATO pointing field')

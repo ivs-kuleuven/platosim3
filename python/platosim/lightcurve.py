@@ -229,7 +229,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def star(self, filename=False):
+    def target(self, filename=False):
 
         """Function to fetch the info about star.
         """
@@ -378,7 +378,7 @@ class LightCurve(object):
     #--------------------------------------------------------------#
 
 
-    def files(self, suffix="zip", prefix="0", path=None, error=True,
+    def files(self, suffix="hdf5", prefix="0", path=None, error=True,
               group=False, camera=False, quarter=False, name=False):
 
         """Fetch all files with a common extention.
@@ -2490,21 +2490,24 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     
     def merge(self,
-              quarter=False,
-              flux_normalise=False,
-              flux_contamination=False,
-              flux_group_mean=False,
-              flux_stitch=False,
-              flux_offset=False,
-              flux_error=False,
-              detrend=False,
-              clip_sigma=None,
-              stitch_segment=None,
-              binsize=None,
+              suffix="ftr",              
               verbose=True,
               files=None,
               ofile=None,
-              suffix="ftr"):
+              #-------------------- Camera level
+              quarter=False,
+              flux_normalise=False,
+              flux_contamination=False,
+              detrend=False,
+              flux_group_mean=False,
+              flux_stitch=False,
+              #-------------------- Mission level
+              flux_offset=False,
+              flux_error=False,
+              clip_sigma=None,
+              stitch_segment=None,
+              binsize=None,
+    ):
         """Merge light curves from a single star.
 
         Function to merge multi-cameras and multi-quarter light curves into
@@ -2582,7 +2585,7 @@ class LightCurve(object):
 
             # Correct amplitude suppresion from stellar contamination
             if flux_contamination:
-                SPR = lc.star().SPR.values[0]
+                SPR = lc.target().SPR.values[0]
                 df.flux = (df.flux - 1) * (1 + SPR)
                 
             # Apply long-term trend correction
@@ -3023,7 +3026,7 @@ class LightCurve(object):
                         lc = LightCurve(file_sim)
 
                         # Fetch sim info from table
-                        df1 = lc.star()
+                        df1 = lc.target()
 
                         # Add NSR [ppm/sqrt(h)]
                         df1['NSR'] = lc.get_nsr()

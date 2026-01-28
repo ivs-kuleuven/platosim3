@@ -1209,6 +1209,7 @@ class PLATOnium(object):
         outputFile = f'{self.outputSimName}.hdf5'
 
         # FULL-FRAME CCD IMAGE
+        
         if self.fullFrame:
             # Save full-frame catalogue for first exposure
             # Fetch simulation and stellar positions
@@ -1246,6 +1247,7 @@ class PLATOnium(object):
                 df.to_feather(f'{self.outputSimName}.ftr')
 
         # SUBFIELD ANIMATION
+        
         if self.animation:
             # Adjust number of images to skip and frame rate
             if   self.cadence ==  25.0: fps, nskip = 50, 800
@@ -1266,6 +1268,7 @@ class PLATOnium(object):
                                   figsize=(6,6))
 
         # RESOURCES
+        
         if self.verbose > 1:
             # Execution time of module
             self.tocPlatoSim = datetime.datetime.now() - self.tic
