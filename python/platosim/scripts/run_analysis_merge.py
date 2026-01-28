@@ -30,7 +30,6 @@ parser = argparse.ArgumentParser(epilog=__doc__,
 
 man_group = parser.add_argument_group('MANDATORY PARAMETERS')
 man_group.add_argument('starID', type=int, help='Star ID')
-man_group.add_argument('sdir',   type=str, help='Simulation directory with feather simulations')
 man_group.add_argument('idir',   type=str, help='Input directory containing star folders')
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
 
@@ -39,7 +38,7 @@ opt_group.add_argument('--detrend',    action='store_true', help='Perform auto-p
 opt_group.add_argument('--bin_size',   metavar='FLOAT', type=float, help='Time bin size [sec]')
 opt_group.add_argument('--clip_sigma', metavar='FLOAT', type=float, help='Sigma-clip threshold')
 opt_group.add_argument('--flux_err',   action='store_true', help='Calculate flux errors')
-opt_group.add_argument('--gaps',       action='store_true', help='Use instrumentGAP.tab file')
+opt_group.add_argument('--file_gaps',  metavar='FILE', type=str, help='Use instrumentGAP.tab file')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
 
@@ -49,7 +48,6 @@ args = parser.parse_args()
 verbose    = args.verbose
 bin_size   = args.bin_size
 clip_sigma = args.clip_sigma
-gaps       = args.gaps
 flux_err   = args.flux_err
 
 # Activate detrending
@@ -60,8 +58,7 @@ else:
 
 # File paths
 star = f'{args.starID}'.zfill(9)
-sdir = Path(args.sdir).resolve() / star
-idir = Path(args.idir).resolve()
+idir = Path(args.idir).resolve() / star
 odir = Path(args.odir).resolve()
 odir_final = odir / 'lightcurve'
 odir_table = odir / 'table'
@@ -79,12 +76,12 @@ filename_final = f'lc_{star}'
 filename_table = f'table_{star}'
 filename_ftr = odir_final / f'{filename_final}.ftr'
 filename_tab = odir_table / f'{filename_table}.ftr'
-filename_gap = idir / 'instrumentGAP.tab'
+filename_gap = Path(args.file_gaps).resolve()
 
 # EXTRACT FINAL LIGHT CURVE
 
 # Construct light curve object
-lcs = LightCurve(sdir, 'multi')
+lcs = LightCurve(idir, 'multi')
 
 fig, ax = lcs.plot_multi(suffix='ftr', group=False, camera=False, quarter=False, 
                          flux_median=144, alpha=0.5, figsize=(9,5))
@@ -92,7 +89,7 @@ fig, ax = lcs.plot_multi(suffix='ftr', group=False, camera=False, quarter=False,
 # Save simulation table
 if args.verbose:
     print('Saving simulation table')
-ds = lcs.stat_sim_table(filename_tab)
+#ds = lcs.stat_sim_table(filename_tab)
 
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
@@ -105,7 +102,7 @@ lc = lcs.merge(suffix='ftr',
                flux_error=flux_err)
 
 # Introducing data gaps
-if gaps and filename_gap.is_file():
+if filename_gap.is_file():
     if args.verbose:
         print('Introducing data gaps')
     df = lc.gaps(filename_gap, replace=True)

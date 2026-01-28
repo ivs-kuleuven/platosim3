@@ -2490,21 +2490,24 @@ class LightCurve(object):
     #--------------------------------------------------------------#
     
     def merge(self,
+              suffix="ftr",              
+              verbose=True,
+              files=None,
+              ofile=None,
+              #-------------------- Camera level
               quarter=False,
               flux_normalise=False,
               flux_contamination=False,
               detrend=False,
               flux_group_mean=False,
               flux_stitch=False,
+              #-------------------- Mission level
               flux_offset=False,
               flux_error=False,
               clip_sigma=None,
               stitch_segment=None,
               binsize=None,
-              verbose=True,
-              files=None,
-              ofile=None,
-              suffix="ftr"):
+    ):
         """Merge light curves from a single star.
 
         Function to merge multi-cameras and multi-quarter light curves into
