@@ -122,7 +122,7 @@ class PLATOnium(object):
         self.pipeJitDriftOff  = args.pipe_jit_off
         self.pipeExtendedMask = args.pipe_emask
         self.pipePlots        = args.pipe_plots
-
+        
         # Debug L1 without re-simulating all platosim data
         self.l1_only = False
 
@@ -449,8 +449,8 @@ class PLATOnium(object):
                 check_passband_magnitude(df)
 
                 # Define data frames
-                self.targetNo = 0
-                self.df = df.loc[self.targetNo]
+                self.targetDex = 0
+                self.df = df.loc[self.targetDex]
                 self.dc = df.iloc[1:]
 
             # Fetch stars from the default setup
@@ -495,15 +495,16 @@ class PLATOnium(object):
                     if 'gaiaDR3' in df or 'source_gaia_dr3' in df:
                         errorcode('error', "Argument '--pic' is only valid for a PIC identifier!")
                     try:
-                        self.targetNo = np.where(df.PIC == self.picID)[0][0]
+                        self.targetDex = np.where(df.PIC == self.picID)[0][0]
                     except IndexError:
                         errorcode('error', f'PIC {self.picID} star does not exist in catalogue:' +
                                   f'\n{self.catTarFile}')
                 else:
-                    self.targetNo -= 1
-
+                    # Set index of target
+                    self.targetDex = self.targetNo - 1
+                            
                 # Select target star
-                self.df = df.iloc[self.targetNo]
+                self.df = df.iloc[self.targetDex]
 
             # Additional info for subfield simulations
             if not self.fullFrame:
@@ -840,8 +841,8 @@ class PLATOnium(object):
         if not self.isOnCCD:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
-                            'do not fall on any of the CCDs for ' +
-                            f'{self.groupID} {self.group}.{self.camera} and Q{self.quarter}!')
+                            'do not fall on any of the CCDs for N-CAM ' +
+                            f'{self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             # Terminate script
             exit()
@@ -929,15 +930,16 @@ class PLATOnium(object):
         # Calculate radial distance of coordinate away from OA
         self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
                                                                        focalLength))
-        # TODO make rOA limit dependent on SimFile
-        if self.rOA > 19.555:
+        # Account for maximum optical distortion: rAO = 19.8deg -> T = 1%
+        # TODO sim['CCD/RelativeTransmissivity/RadiusFOV'] + distortion
+        if self.rOA > 18.8908+1:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
-                            f'is outside camera FOV (d={self.rOA:.2f} deg) ' +
+                            f'is outside camera FOV (rOA={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             # Terminate script
-            exit()
+            #exit()
 
         # Create data frame for printing and saving
         c = [self.colID, 'ra [deg]', 'dec [deg]', 'mag',
@@ -1018,7 +1020,7 @@ class PLATOnium(object):
                                 'Dec [deg]': self.ds.dec,
                                 'P [mag]': self.ds.mag,
                                 'Dis [pix]': np.append(0, self.dc['dis'])/15.})
-            print(df1)
+            print(df1, '\n')
 
         # SAVE LIST OF VARIABLE SOURCES
         
@@ -1038,7 +1040,10 @@ class PLATOnium(object):
                     sim["Sky/VariableSourceList"] = self.varSourceList
                 else:
                     errorcode('error', 'VariableSourceList do not exist, check file path!')
-
+                # Print to bash
+                if self.verbose > 1:
+                    print(f'Applying variable-source list ({self.varSourceList.name})')
+                    
             # Second priority to varSourceFile -> Allows variability for target only
             elif self.varSourceFile:
                 # If varSourceFile is parsed
@@ -1049,7 +1054,10 @@ class PLATOnium(object):
                     sim.createVariableSourceList('1', str(self.varSourceFile), self.varSourceList)
                 else:
                     errorcode('error', 'VariableSourceFile do not exist, check file path!')
-
+                # Print to bash
+                if self.verbose > 1:
+                    print(f'Applying variable-source file ({self.varSourceFile.name})')
+                    
         # SAVE PHOTOMETRY FILE
         
         # NOTE if a user defined file name for the photometry file is parsed
@@ -1060,6 +1068,9 @@ class PLATOnium(object):
                 np.savetxt(photometryList, np.array([]), header='1', comments='')
             sim["Photometry/TargetFileName"] = photometryList
             self.photometry = True
+            # Print to bash
+            if self.verbose > 1:
+                print(f'Applying on-board photometry  ({photometryList.name})')
         else:
             self.photometry = False
 
@@ -1747,7 +1758,7 @@ class PLATOnium(object):
         """
         # Write PlatoSim info to a table
         filename = f'{odir}/{self.outputFileName}.table'
-        data = {"ID":       self.targetNo+1,
+        data = {"ID":       self.targetNo,
                 self.colID: self.df[self.colID],
                 "ra":       self.df.ra,
                 "dec":      self.df.dec,
