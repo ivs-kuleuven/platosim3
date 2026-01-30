@@ -690,17 +690,18 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     numGroups     = 4
     numCorners    = 4
     offset        = 4
+    radiusDistFOV = 20.4 # [deg]
     colors        = ['b', 'g', 'orange', 'r']
     ccdCodes      = ["1", "2", "3", "4"]
     tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
     azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
-    fovDegrees    = 19.8#sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
+    fovDegrees    = radiusDistFOV  # sim['CCD/RelativeTransmissivity/RadiusFOV'] # [deg]
     focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
     pixelSize     = sim['CCD/PixelSize']                                # [micron]
     plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
 
     # Find actual FOV in pixel and mm
-    
+
     fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
     fovMm      = focalLength * np.tan(np.radians(fovDegrees))
 
