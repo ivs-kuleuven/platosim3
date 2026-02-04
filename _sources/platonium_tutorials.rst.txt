@@ -56,7 +56,7 @@ These catalogues compose more than :math:`300,000` PLATO targets from the sample
 	   
 **Usage function:** To get an overview of its usage simply type:
 
-.. code-block::
+.. code-block:: shell
 
    picsim -h
    
@@ -64,19 +64,19 @@ These catalogues compose more than :math:`300,000` PLATO targets from the sample
      
 * In our first example we draw 100 P1 stars from the LOPN1 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs:
 
-  .. code-block::
+  .. code-block:: shell
 
      picsim --pic 100 P1 LOPN1 --group 1 --ncams 24 --project <project_name>
   
 * In our second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star:
 
-  .. code-block::
+  .. code-block:: shell
 
      picsim --pic 100 P5 LOPN1 --dist 30 --dmag 8 --project <project_name>
   
 * In our last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2:
 
-  .. code-block::
+  .. code-block:: shell
 
      picsim --pic all P1 LOPS2 --spec G  --lum V --mag 9.5-11.2 -o </path/to/outdir>   
   
@@ -88,7 +88,7 @@ Notice that for all examples shown, we parse the argument ``--project`` or ``-o`
 
 **Combine or replot catalogue(s):** Notice that ``picsim`` also can be used to combine catalogues or replot an old catalogue produced by itself. Both can simply be done by giving the already exsisting feather binary catalogue files as input to ``picsim`` using the argument ``--incat`` as follows:
 
-.. code-block::
+.. code-block:: shell
 
    picsim --pic all all LOPS2 --incat </path/to/indir>/starcat**.ftr --project <project_name> -p
 
@@ -96,13 +96,13 @@ Note we here use the asteriks ``**`` to specify that all files should start with
 
 **Query a Simbad object:** It is possible to query a circular celestial sky region around a known object from the `CDS/Simbad <http://simbad.cds.unistra.fr/simbad/>`_ database. E.g. say that we want to query the star Mizar and all of its stellar contaminants that are within a radial distance of 60 arcsec, and no brighter than 5 mag compared to Mizar, we simple use: 
 
-.. code-block::
+.. code-block:: shell
 
    picsim --simbad Mizar --dist 60 --dmag 5 --project <project_name> -p
 
 **Query a PLATO pointing field:** In order to generate realistic simulations of full-frame CCD images with PlatoSim, we have expanded the query method to include large celestial regions than combined cover a full PLATO field. Although this options queries stars from the Gaia DR3, it is just yet another `CDS/VizieR <https://vizier.cds.unistra.fr/viz-bin/VizieR>`_ catalogue, hence, this query option is doubted ``vizier``. Say we want to query Gaia stars from the LOPS2, simply use:
 
-.. code-block::
+.. code-block:: shell
 
    picsim --vizier LOPS2 --project <project_name> -p
 
@@ -145,7 +145,7 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
 
 **Usage function:** To get an overview of its usage simply type:
 
-.. code-block::
+.. code-block:: shell
 
    varsim -h
 
@@ -154,7 +154,7 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
 
 * In our first example we take advantage of the fact that by default ``varsim`` provides a few benchmark mock stars and planets:
   
-  .. code-block::
+  .. code-block:: shell
 
      varsim --star Sun --planet Earth --time 720 -o </path/to/file> -p
 
@@ -162,7 +162,7 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
   
 * In more general cases, as a user you want to specify the stellar and planetary parameters. This is done using the argument ``--star_params`` and ``--planet_params``, respectively:
 
-  .. code-block::
+  .. code-block:: shell
 
      varsim --star_params 1 1 5777 4.5 0.0 --planet_params 10 50 0 90 0 1 1 --quarter 1-8 -p
   
@@ -170,7 +170,7 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
   
 * If you only want to simulate stellar variability, and thus exclude the transiting planet, simply use:
 
-  .. code-block::
+  .. code-block:: shell
 
      varsim --star_params 1 1 5777 4.5 0.0 --time 720 -o </path/to/file>
 
@@ -178,7 +178,7 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
   
 * In our last example we show how you can exclude specific types of stellar variability:
 
-  .. code-block::
+  .. code-block:: shell
 
      varsim --star Sun --spot no --flare no --planet_params 10 50 0 90 0 1 1 --quarter 9-16 -p
 
@@ -197,7 +197,7 @@ The amplitude of each of these variable signals are derived using synthetic `PHO
 
 Using any of the above names in the bracket with the ``--star`` argument will generate a light curve of a pulsating star. Each pulsator is generated from either library of space/ground based observations or from a synthetic model. For pulsating stars you can select the pulsation model using ``--puls``, for example:
 
-.. code-block::
+.. code-block:: shell
 
    varsim --star gDor --puls Gang2020 --quarter 1 -o </path/to/file> -p
 
@@ -238,13 +238,13 @@ To help introduce more realistic (i.e. more noisy) instrumental systematics, we 
     
 **Usage function:** To get an overview of its usage simply type:
 
-.. code-block::
+.. code-block:: shell
 
    payload -h
               
 **General usage:** Before further exploring this script, a simple usage example is:
    
-.. code-block::
+.. code-block:: shell
 
    payload 100 LOPS2 --project <project_name> -p
 
@@ -332,7 +332,7 @@ This script uses the PIC targets and their contaminants (created with ``picsim``
 
 #. To secure that ``platonium`` can parse all the necessary input files to PlatoSim, within any project directory (``</path/to/plato_workdir/project_name>``) it is mandatory to have a folder called ``input`` where you place all inputfiles. In this folder you need to place your ``inputfile.yaml``, ``starcat**.ftr``, etc. Hence a directory tree example will look like:
 
-   .. code-block::
+   .. code-block:: shell
 
       </path/to/plato_workdir>
           ├── </project_name>
@@ -351,7 +351,7 @@ This script uses the PIC targets and their contaminants (created with ``picsim``
  
 **Usage function:** To get an overview of its usage simply type:
 
-.. code-block::
+.. code-block:: shell
 
    platonium -h
 
@@ -359,7 +359,7 @@ Seen from the usage function, ``platonium`` takes 4 mandatory input parameters b
 
 **General usage:** The simplest usage of ``platonium`` is the following:
    
-.. code-block::
+.. code-block:: shell
 
    platonium 1 1 1 1 --project <project_name> -p
 
@@ -386,7 +386,7 @@ In the following we clarify the usage of arguments we strongly recommend to use 
 
 **Variable sources:** Easy to include variable sources. ``varsim`` provide the correct format for inclusion here:
    
-.. code-block::
+.. code-block:: shell
 
    platonium 3 2 6 24 --project <project_name> --varfile </path/to/varSourceFile.txt>
    platonium 3 2 6 24 --project <project_name> --varlist </path/to/varSourceList.txt>
@@ -401,7 +401,7 @@ Notice the difference between ``varSourceFile`` and ``varSourceList``. The first
 
 Hence, an example-call is:
 
-.. code-block::
+.. code-block:: shell
 
    platonium 1 4 1 1 --fullframe --nexp 1 --project <project_name>
 
