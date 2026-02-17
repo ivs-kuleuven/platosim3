@@ -1422,7 +1422,7 @@ class SolarLikeOscillator(object):
             # According to Kjeldsen and Bedding (1995), Eq. 4 using Eq. 8 [ppm]
             A_puls_bol = self.L * self.T**-1 * self.M**-1 * 4.7 * 550/623
 
-        elif scaling == 'Mosser2010': # TODO
+        elif scaling == 'Mosser2010': # TODO Not working yet
             r = 1.5  # free parameter
             tau0 = convert('d','Ms', 2.65)
             # According to Corsaro et al. 2013, equ. (24)
@@ -1437,7 +1437,7 @@ class SolarLikeOscillator(object):
             r = 2.0
             A_puls_bol = self.L**s * self.M**-t * self.T**(1-r) * A_puls_bol_sun
 
-        elif scaling == 'KjeldsenBedding2011':  # TODO
+        elif scaling == 'KjeldsenBedding2011':  # TODO Not working yet
             # According to Corsaro et al. 2013, equ. (24)
             tau_puls = convert('d', 'Ms', np.exp(delta_Teff / 601.) * 2.65)
             r = 2.0
@@ -1869,7 +1869,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Create new data frame
         self.df = pd.DataFrame()
@@ -1955,7 +1955,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
         
         # Create new data frame
         self.df = pd.DataFrame()
@@ -2010,7 +2010,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Swap max peak location if not in [5, 25] c/d
         # This is based on observations from:
@@ -2073,7 +2073,7 @@ class Pulsator(object):
         # Apply passband correction
         if self.scale:
             A_i = (1 - ut.fromMagToFlux(A_i)) * self.scale
-            A_i = 2.5 * np.log10(1 + A_i)
+            A_i = -2.5 * np.log10(1 + A_i)
 
         # Swap max peak location if not in [5, 25] c/d
         # This is based on observations from:
@@ -2140,7 +2140,7 @@ class Pulsator(object):
             self.df.ampl *= self.scale
 
         # Convert units
-        self.df.ampl = 2.5 * np.log10(1 + self.df.ampl)
+        self.df.ampl = -2.5 * np.log10(1 + self.df.ampl)
             
         # Return parameters
         return starfile.stem, f_corr, A_corr, self.df
@@ -2193,7 +2193,7 @@ class Pulsator(object):
    
     
 #==============================================================#
-#                         OTHER OBJECTS                        #
+#                      ECLIPSING BINARIES                      #
 #==============================================================#
 
 class EclipsingBinary(object):
@@ -2389,10 +2389,11 @@ class EclipsingBinary(object):
         """
         return ns.timeSeriesFromFourier(self.time, self.freq, self.ampl, self.phase,
                                         plot=plot, title=self.starname)
-        
 
-
-
+    
+#==============================================================#
+#                         SMBH BINARIES                        #
+#==============================================================#
         
 class SMBHB(object):
     """Models for Super Massive Black Hole Binaries (SMBHBs).
@@ -2546,6 +2547,60 @@ class SMBHB(object):
 
     #--------------------------------------------------- Start of physical model
 
+    
+    def model_params(object):
+        """Load model parameters.
+        """
+        def __init__(self):
+
+            # Observational parameters
+            self.t0 = 0    
+            self.z  = 0
+
+            # Orbital parameters
+            self.P = 1     # Observed period [days]
+            self.i = 0.01  # Inclination [deg]
+            self.e = 0     # Eccentricity [0,1]
+            self.w = 0     # Argument of periapse [0, 360] [deg]
+
+            # Physical parameters
+            self.M = 1e9
+            self.q = 0.1
+            self.L = 0.1
+
+            # Damped Random Walk (DRW) parameters
+            self.tau   = 50 * u.d  # Variability time scale [d] 
+            self.sigma = 300       # [ppm]
+
+            # Doppler boosting parameters
+            self.alpha = 2.09  # Spectral slope
+            self.v_z   = 0     # Relative motion of frames [m/s]
+        
+        # # Observational parameters
+        # self.t0 = 0    
+        # self.z  = 0
+        
+        # # Orbital parameters
+        # self.P = 1     # Observed period [days]
+        # self.i = 0.01  # Inclination [deg]
+        # self.e = 0     # Eccentricity [0,1]
+        # self.w = 0     # Argument of periapse [0, 360] [deg]
+
+        # # Physical parameters
+        # self.M = 1e9
+        # self.q = 0.1
+        # self.L = 0.1
+
+        # # Damped Random Walk (DRW) parameters
+        # self.tau   = 50 * u.d  # Variability time scale [d] 
+        # self.sigma = 300       # [ppm]
+
+        # # Doppler boosting parameters
+        # self.alpha = 2.09  # Spectral slope
+        # self.v_z   = 0     # Relative motion of frames [m/s]
+
+
+    
     def initPhysicalModel(self, t0, P, M, q, i, e, w, L, z, verbose=False):
         """Initialise physical model.
 
@@ -2574,7 +2629,7 @@ class SMBHB(object):
         self.a  = self._semimajor_axis(self.P, self.M)
         self.a1 = self.a * self.M2 / self.M
         self.a2 = self.a * self.M1 / self.M
-        
+
         # Show parameters to screen
         if verbose:
             ut.errorcode('message', 'Input parameters:')
@@ -2623,7 +2678,7 @@ class SMBHB(object):
         Parameters
         ----------
         tau : ndarray
-            Time scale tau of each red noise component [s]
+            Time scale tau of each red noise component [d]
         sigma : ndarray 
             Variation scale of each red noise component [ppm]
         verbose : bool
@@ -2696,7 +2751,7 @@ class SMBHB(object):
                 
         # The RV semi-amplitude of secondary [cm/s]
         K1,K2 = self._rv_semiamplitude(self.P, self.M1, self.M, self.q, self.a, self.i, self.e)
-
+        print(K1, K2)
         # Show parameters to screen
         if verbose:
             ut.errorcode('message', '\nDoppler boosting parameters:')
@@ -3306,27 +3361,21 @@ class SMBHB(object):
 #==============================================================#
 #                         EXOPLANETS                           #
 #==============================================================#
-
-
+    
 class Exoplanet(object):
-
     """Class for modelling exoplanets.
     """
 
     def __init__(self, seed=False):
-
         # Random number generator
         self.rng = ut.rng(seed)
 
-
         
     def ldc(self, ):
-
         """Compute the Limb Darkening (LD) coefficients.
 
         This module uses the software LDTk:        
         """
-
         if self.verbose > 1:
             print('\nComputing limb darkening coefficients with LDTk')
             
@@ -3365,16 +3414,9 @@ class Exoplanet(object):
             self.ldc = u[0]
 
         return self.ldc
-
-
-
-
-        
     
     
-
 class LimbDarkening(funcFit.OneDFit):
-
     """Class for fitting the Limb Darkening Coefficients.
     Integrated into the BATMAN and SPIDERMAN packages.
     """

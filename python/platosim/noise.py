@@ -277,8 +277,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     A = np.max(np.abs(signal))
     signal = (1 + signal / A)**power
     signal = signal / np.max(signal)
-    signal = A * (signal - np.mean(signal))
-    #signal = A * ( (1 + signal/A)**power - 1 )
+    signal = - A * (signal - np.mean(signal))
 
     # If requested, plot model 
     if plot:
@@ -777,6 +776,8 @@ def modelRedNoise(time, timescale, varscale, kickscale=100, n_warmup=2000, seed=
     # Set the kick (= excitation) timestep to be one 100th of the
     # shortest noise time scale (i.e. kick often enough).
 
+    timescale = np.sqrt(timescale)
+    
     kicktimestep = min(timescale) / kickscale
     currenttime  = time[0] - kicktimestep
     

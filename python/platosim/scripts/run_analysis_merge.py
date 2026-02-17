@@ -34,20 +34,27 @@ man_group.add_argument('idir',   type=str, help='Input directory containing star
 man_group.add_argument('odir',   type=str, help='Output directory to save analysis')
 
 opt_group = parser.add_argument_group('OPTIONAL PARAMETERS')
+opt_group.add_argument('--detrend',    action='store_true', help='Perform auto-poly detrending')
 opt_group.add_argument('--bin_size',   metavar='FLOAT', type=float, help='Time bin size [sec]')
 opt_group.add_argument('--clip_sigma', metavar='FLOAT', type=float, help='Sigma-clip threshold')
-opt_group.add_argument('--gaps',          action='store_true', help='Use instrumentGAP.tab file')
-opt_group.add_argument('--flux_err',      action='store_true', help='Calculate flux errors')
+opt_group.add_argument('--flux_err',   action='store_true', help='Calculate flux errors')
+opt_group.add_argument('--file_gaps',  metavar='FILE', type=str, help='Use instrumentGAP.tab file')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
 opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
 
 args = parser.parse_args()
 
 # User defined parameters
-verbose   = args.verbose
-bin_size  = args.bin_size
-gaps      = args.gaps
-flux_err  = args.flux_err
+verbose    = args.verbose
+bin_size   = args.bin_size
+clip_sigma = args.clip_sigma
+flux_err   = args.flux_err
+
+# Activate detrending
+if args.detrend:
+    detrend = 'poly'
+else:
+    detrend = False
 
 # File paths
 star = f'{args.starID}'.zfill(9)
@@ -69,29 +76,33 @@ filename_final = f'lc_{star}'
 filename_table = f'table_{star}'
 filename_ftr = odir_final / f'{filename_final}.ftr'
 filename_tab = odir_table / f'{filename_table}.ftr'
-filename_gap = gdir / 'instrumentGAP.tab'
+filename_gap = Path(args.file_gaps).resolve()
 
 # EXTRACT FINAL LIGHT CURVE
 
 # Construct light curve object
 lcs = LightCurve(idir, 'multi')
 
+fig, ax = lcs.plot_multi(suffix='ftr', group=False, camera=False, quarter=False, 
+                         flux_median=144, alpha=0.5, figsize=(9,5))
+
 # Save simulation table
 if args.verbose:
     print('Saving simulation table')
-ds = lcs.stat_sim_table(filename_tab)
+#ds = lcs.stat_sim_table(filename_tab)
 
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
                verbose=verbose,
+               detrend=detrend,
                flux_group_mean=True,
                binsize=bin_size,
                clip_sigma=clip_sigma,
                flux_offset=True,
-               flux_err=flux_err)
+               flux_error=flux_err)
 
 # Introducing data gaps
-if gaps and filename_gap.is_file():
+if filename_gap.is_file():
     if args.verbose:
         print('Introducing data gaps')
     df = lc.gaps(filename_gap, replace=True)
@@ -100,8 +111,8 @@ else:
     df = lc.data()
 
 # Save feather with modes
-df.to_feather(filename_mod)
-os.system(f'chmod 755 {filename_mod}')
+df.to_feather(filename_ftr)
+os.system(f'chmod 755 {filename_ftr}')
 
 # Remove output and starshadow files
 if args.clean:

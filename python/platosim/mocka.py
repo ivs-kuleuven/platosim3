@@ -771,6 +771,7 @@ def plot_ncam_hist(df, title=None):
     plt.tight_layout()
     plt.minorticks_off()
     plt.show()
+    return fig, ax
 
 
 def plot_lc_io(path, star, batch, ID,
