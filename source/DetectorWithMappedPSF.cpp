@@ -20,7 +20,7 @@
  * throughputMap
  * cteMap
  *
- * The flatfieldMap is filled at sub-pixel level, the throughputMap and cteMap are filled at pixel level.
+ * The flatfieldMap is filled at sub-pixel level from Red Noise, the throughputMap and cteMap and flatfieldMap from file are filled at pixel level.
  *
  * \param configParam    Configuration parameters for the detector.
  * \param hdf5file       HFD5 file to write the detector images to.
@@ -57,7 +57,16 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     // Allocate memory for the different maps
 
     subPixelMap.zeros(numRowsSubPixelMap, numColumnsSubPixelMap);
-    flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+    if (flatfieldSource == "FromFile")
+    {
+        // We read in the flatfield at pixel level
+        flatfieldMap.ones(numRowsPixelMap, numColumnsPixelMap);
+    }
+    else
+    {
+        // We generate the flatfield at subpixel level
+        flatfieldMap.ones(numRowsSubPixelMap, numColumnsSubPixelMap);
+    }
 
     // Initialize the subpixel background map
     
@@ -71,11 +80,20 @@ DetectorWithMappedPSF::DetectorWithMappedPSF(ConfigurationParameters &configPara
     unDistortedX.zeros(numRowsPixelMap, numColumnsPixelMap);
     unDistortedY.zeros(numRowsPixelMap, numColumnsPixelMap);
 
-    // Generate the flatfield map
-    
     if (includeFlatfield)
     {
-        generateFlatfieldMap();
+      if (flatfieldSource == "FromRedNoise")
+      {
+          // Generate the flatfield map
+
+          generateFlatfieldMap();          
+      }
+      else if (flatfieldSource == "FromFile")
+      {
+          // Read in the flatfield map
+
+          readInFlatfieldMap();
+      }
     }
 
     // Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
@@ -114,16 +132,27 @@ DetectorWithMappedPSF::~DetectorWithMappedPSF()
 void DetectorWithMappedPSF::configure(ConfigurationParameters &configParam)
 {
     // General configuration parameters
-  
-    flatfieldNoiseRMS         = configParam.getDouble("CCD/FlatfieldNoiseRMS");
+
     includeFlatfield          = configParam.getBoolean("CCD/IncludeFlatfield");
+    if (includeFlatfield)
+    {
+        flatfieldSource = configParam.getString("CCD/Flatfield/Source");
+        if (flatfieldSource == "FromFile")
+        {
+            flatfieldFilePath = configParam.getAbsoluteFilename("CCD/Flatfield/FromFile/FilePath");
+        }
+        else if (flatfieldSource == "FromRedNoise")
+        {
+            flatfieldNoiseRMS         = configParam.getDouble("CCD/Flatfield/FromRedNoise/FlatfieldNoiseRMS");
+
+            // Configuration parameters for the noise source random seeds
+            flatfieldSeed = configParam.getLong("RandomSeeds/FlatFieldSeed");
+        }
+    }
+
     includeConvolution        = configParam.getBoolean("CCD/IncludeConvolution");
     writeSubPixelImagesToHDF5 = configParam.getBoolean("ControlHDF5Content/WriteSubPixelImages");
     numSubPixelsPerPixel      = configParam.getInteger("SubField/SubPixels");
-
-    // Configuration parameters for the noise source random seeds
-
-    flatfieldSeed = configParam.getLong("RandomSeeds/FlatFieldSeed");
 
     // Treat the specific configurations for a Mapped PSF
 
@@ -231,6 +260,63 @@ void DetectorWithMappedPSF::generateDiffusionKernel(double kernelWidth)
 
 
 
+
+
+/**
+ * \brief: Read in the flatfield variations from a file.
+ *
+ */
+
+void DetectorWithMappedPSF::readInFlatfieldMap()
+{
+    HDF5File prnuFile;
+    Log.info("Detector: reading in flatfield map.");
+
+    // Prepare the prnu map by performing some basic checks
+
+    if (!FileUtilities::fileExists(flatfieldFilePath))
+    {
+      throw FileException("Detectors: trying to load flatfield file (" + flatfieldFilePath + "), but file doesn't exist.");
+    }
+
+    try
+    {
+        prnuFile.open(flatfieldFilePath);
+    }
+    catch (H5::FileIException ex)
+    {
+        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+        throw H5FileException("Detector: Could not open flatfield HDF5 file: " + flatfieldFilePath);
+    }
+
+    // Select the correct subregion from our prnuFile
+    arma::Mat<float> prnuMap;
+    prnuFile.readArray("/", "PRNU", prnuMap);
+
+    flatfieldMap = prnuMap.submat(subFieldZeroPointRow, subFieldZeroPointColumn,
+                                   subFieldZeroPointRow+numRowsPixelMap-1,
+                                   subFieldZeroPointColumn+numColumnsPixelMap-1);
+
+
+    prnuFile.close();
+    if (writeFlatfieldMap)
+    {
+        Log.debug("Detector: writing PRNU to HDF5");
+        hdf5File.createGroup("/Flatfield");
+        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
 /**
  * \brief: Generate the (random) flatfield variations.  This map is generated
  *         at sub-pixel level but without the edge pixels.
@@ -296,6 +382,7 @@ void DetectorWithMappedPSF::generateFlatfieldMap()
     if (writeFlatfieldMap)
     {
         Log.debug("DetectorWithMappedPSF: writing IRNU to HDF5");
+        hdf5File.createGroup("/Flatfield");
         hdf5File.writeArray("/Flatfield", "IRNU", flatfieldMap);
     }
 
@@ -515,23 +602,46 @@ void DetectorWithMappedPSF::integrateLight(int exposureNr, double startTime, dou
         addBackgroundMapToSubpixelMap(camera, startTime);
     }
 
-    // Apply flatfield (at sub-pixel level)
+    // Apply flatfield (at sub-pixel or pixel level)
 
     if (includeFlatfield)
     {
         Log.debug("DetectorWithMappedPSF: applying Flatfield.");
 
-        applyFlatfield();
+        if (flatfieldSource == "FromFile")
+        {
+            // We apply the flatfield at pixel level
+
+            // First we rebin from a subpixel map to a pixel map
+
+            rebin();
+
+            // Secondly we apply the flatfield
+
+            applyFlatfield();          
+        }
+        else if (flatfieldSource == "FromRedNoise")
+        {
+            // We apply the flatfield at subpixel level
+
+            // Sky.cpp First we apply the flatfield
+
+            applyFlatfield();
+
+            // Secondly we rebin from subpixel map to a pixel map
+
+            rebin();
+        }
     }
     else
     {
         Log.debug("DetectorWithMappedPSF: no flatfield applied.");
+
+        // Rebin from a subpixel map to a pixel map
+
+        rebin();
+
     }
-
-    // Rebin from a subpixel map to a pixel map
-
-    Log.debug("DetectorWithMappedPSF: rebinning sub-pixel map into pixel map.");
-    rebin();
 
     // Apply throughput efficiency on the pixel map
     // This takes into account the QE, vignetting, polarisation, and particulate & molecular contamination.
@@ -910,7 +1020,7 @@ void DetectorWithMappedPSF::applyFlatfield()
 void DetectorWithMappedPSF::rebin()
 {
     // Rebinning is simply done by adding all values of the sub-pixels per pixel.
-
+    Log.debug("DetectorWithMappedPSF: rebinning sub-pixel map into pixel map.");
     for (unsigned int row = 0; row < numRowsPixelMap; row++)
     {
         for (unsigned int column = 0; column < numColumnsPixelMap; column++)
@@ -967,12 +1077,6 @@ void DetectorWithMappedPSF::convolveWithPsf()
  */
 void DetectorWithMappedPSF::initHDF5Groups()
 {
-  if (writeFlatfieldMap)
-    {
-      Log.debug("DetectorWithMappedPSF: creating Flatfield entry in HDF5");
-      hdf5File.createGroup("/Flatfield");
-    }
-
   if (writeSubPixelImagesToHDF5)
     {
       Log.debug("DetectorWithMappedPSF: creating SubPixelImages entry in HDF5");
@@ -1134,7 +1238,7 @@ void DetectorWithMappedPSF::applyDistortion(double &x, double &y)
 {
 
     // If the input coordinates are outside the field of view, we don't apply the
-    // distortion. This is because coordiantes in the table do not reach that far
+    // distortion. This is because coordinates in the table do not reach that far
     // and linear approximation of that point would fail.
     if (x*x + y*y > 80*80)
     {
@@ -1291,7 +1395,7 @@ void DetectorWithMappedPSF::applyInverseDistortion(double &x, double &y)
         // so that we are still able to converge to a point that would lie close to the edge of our square.
         length = 3*length / 5;
 
-        // Dependent on which quadrant of the square the input point falles, we change the middle of our square.
+        // Dependent on which quadrant of the square the input point falls, we change the middle of our square.
         switch (x > xDist)
         {
         case true:
