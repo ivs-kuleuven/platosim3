@@ -14,7 +14,8 @@ from skyBackground                                 import SkyBackGround
 from Convolution.mappedGaussianPSF                 import MappedGaussianPSF            
 from Convolution.analyticNonGaussian               import AnalyticNonGaussianPSF       
 from Convolution.analyticGaussian                  import AnalyticGaussianPSF          
-from prnu                                          import PRNU                         
+from PRNU.prnu                                     import PRNU
+from PRNU.mappedPRNU                               import MappedPRNU
 from rebinning                                     import Rebinning                    
 from ThroughputEfficiency.transmissionEfficiency   import TransmissionEfficiency       
 from ThroughputEfficiency.vignetting               import Vignetting                   
@@ -101,6 +102,7 @@ myTests = [
     (FocalPlaneCoordinates(),      "Orientation CAM ref frame in (RA, dec) plane"),
     (Straylight(),                 "Straylight"),
     (PRNU(),                       "Pixel-Responsivity Non Uniformity"),
+    (MappedPRNU(),                 "Mapped PRNU"),
 #    (Short2013CTIFromFile(),       "Short 2013 from file model"),
     (AnalyticNonGaussianPSF(),     "Analytic non Gaussian PSF"),
     (ElectronicOffset(),           "Electronic Offset"),
