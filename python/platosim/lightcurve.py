@@ -2498,7 +2498,7 @@ class LightCurve(object):
               quarter=False,
               flux_normalise=False,
               flux_contamination=False,
-              detrend=False,
+              flux_detrend=False, poly_degree=False, 
               flux_group_mean=False,
               flux_stitch=False,
               #-------------------- Mission level
@@ -2589,8 +2589,9 @@ class LightCurve(object):
                 df.flux = (df.flux - 1) * (1 + SPR)
                 
             # Apply long-term trend correction
-            if detrend:
-                df = lc.detrend(model=detrend, poly_degree=False, replace=True, plot=False)
+            if flux_detrend:
+                df = lc.detrend(model=flux_detrend, poly_degree=poly_degree,
+                                replace=True, plot=False)
 
             # TODO clean up usage of old L1 pipeline
             if i == 0:

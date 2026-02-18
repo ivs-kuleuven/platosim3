@@ -138,7 +138,7 @@ from ldtk import LDPSetCreator, TabulatedFilter
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
-import platosim.smbhb     as smbhb
+#import platosim.smbhb     as smbhb
 from platosim.utilities import errorcode
 from platosim.spectrum  import Spectrum
 from platosim.varsource import (Pulsator,

@@ -1256,7 +1256,7 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
             
-def plotPlatoFOV(pointingField, system="galactic", fovSize=30,
+def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
                  # Settings without colorbar
                  raStars=0, decStars=0, magStars=None, ms=2, aa=1, ec='k',
                  # Settings with colorbar
@@ -2713,6 +2713,57 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
     # Finito!
 
     return axes
+
+
+#--------------------------------------------------------------#
+#                        FREQUENCY ANALYSIS                    #
+#--------------------------------------------------------------#
+
+
+def plotPeriodogram(df, dm=None, scaling='density', lw=0.5,
+                    c='k', label='Simulation',
+                    cm='orange', label_model='Model',
+                    numax=False, title=False, figsize=(9,5)):
+    """Plot Power Spectral Density (PSD) for solar-like star.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data frame with time [s] and flux [norm] points
+    dm : pd.DataFrame
+        Data frame with model (or a second time series)
+    scaling : str
+        scipy.periodogram scaling argument.
+    **kwargs
+
+    Return
+    ------
+    matplotlib.pyplot fig,ax handles
+    """
+    # Compute frequencies uptil the Nyquist frequency
+    sampling = np.diff(df.time)[0]
+
+    # Compute PSD of granulation and oscillations
+    freq, psd = periodogram(df.flux, 1/sampling, scaling='density')
+    freq *= 1e6  # [muHz]
+    if isinstance(dm, pd.DataFrame):
+        freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling='density')
+        freq_model *= 1e6  # [muHz]
+
+    
+    # Start plotting
+    fig, ax = plt.subplots(1, 1, figsize=figsize)    
+    # Plot global model
+    ax.plot(freq, psd, '-', c=c, lw=lw, label=label)
+    ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
+    ax.set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
+    ax.legend(ncol=1, loc='best')
+    # Settings
+    plt.tight_layout()
+    return fig, ax
 
 
 #--------------------------------------------------------------#

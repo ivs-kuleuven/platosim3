@@ -589,7 +589,10 @@ class PLATOnium(object):
         if self.cadence:
             sim['ObservingParameters/CycleTime'] = self.cadence
         else:
-            self.cadence = sim['ObservingParameters/CycleTime']
+            if self.groupID == 'Fast':
+                self.cadence = 2.5
+            else:
+                self.cadence = sim['ObservingParameters/CycleTime']
 
         # Start time of simulation
         if self.simBeginTime:
@@ -931,15 +934,14 @@ class PLATOnium(object):
         self.rOA = np.rad2deg(rf.gnomonicRadialDistanceFromOpticalAxis(self.xFP, self.yFP,
                                                                        focalLength))
         # Account for maximum optical distortion: rAO = 19.8deg -> T = 1%
-        # TODO sim['CCD/RelativeTransmissivity/RadiusFOV'] + distortion
-        if self.rOA > 18.8908+1:
+        if self.rOA > sim['CCD/RelativeTransmissivity/RadiusFOV']:
             if self.verbose > 0:
                 message  = (f"{self.colID} {self.df[self.colID]} (subfield {self.targetNo}) " +
                             f'is outside camera FOV (rOA={self.rOA:.2f} deg) ' +
                             f'for N-CAM {self.group}.{self.camera} and Q{self.quarter}!')
                 errorcode('warning', message)
             # Terminate script
-            #exit()
+            exit()
 
         # Create data frame for printing and saving
         c = [self.colID, 'ra [deg]', 'dec [deg]', 'mag',
