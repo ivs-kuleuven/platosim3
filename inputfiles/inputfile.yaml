@@ -196,7 +196,12 @@ CCD:
        Partial:
           FirstRowReadout:           0               # First row that will be read out by the FEE in partial-readout mode
           NumRowsReadout:            4510            # Number of rows that will be read out by the FEE, in partial-readout mode
-    FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS (local PRNU)
+    Flatfield:                                       # Local PRNU
+        Source:                      FromFile    # Flatfield source {FromFile, FromRedNoise}
+        FromFile:
+          FilePath:                  inputfiles/prnu.hdf5
+        FromRedNoise:
+          FlatfieldNoiseRMS:               0.010           # Flatfield noise RMS
     RelativeTransmissivity:                          # Overall relative transmissivity w.r.t. angular distance from the OA
         Coefficients:                [4.18e-2, -5.65e-5, 2.37e-7]  # Coefficients of the polynomial fit (k1 * x^2 + k2 * x^4 + k3 * x^6)
         RadiusFOV:                   18.8908         # Radius of the FOV [degrees]

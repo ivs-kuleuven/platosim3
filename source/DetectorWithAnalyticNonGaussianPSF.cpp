@@ -53,9 +53,18 @@ DetectorWithAnalyticNonGaussianPSF::DetectorWithAnalyticNonGaussianPSF(Configura
 
     if(includeFlatfield)
     {
-      // Generate the flatfield map
+        if (flatfieldSource == "FromRedNoise")
+        {
+            // Generate the flatfield map
 
-      generateFlatfieldMap();
+            generateFlatfieldMap();
+        }
+        else if (flatfieldSource == "FromFile")
+        {
+            // Read in the flatfield map
+
+            readInFlatfieldMap();
+        }
     }
 
     // TODO Initialize and load the PSF. This will open the PSF HDF5 file and perform some basic checking,
@@ -102,9 +111,20 @@ void DetectorWithAnalyticNonGaussianPSF::configure(ConfigurationParameters &conf
     numExposures      = configParam.getUnsignedInteger("ObservingParameters/NumExposures");
     beginExposureNr   = configParam.getUnsignedInteger("ObservingParameters/BeginExposureNr");
     cycleTime         = configParam.getDouble("ObservingParameters/CycleTime");
-    flatfieldNoiseRMS = configParam.getDouble("CCD/FlatfieldNoiseRMS");
     includeFlatfield  = configParam.getBoolean("CCD/IncludeFlatfield");
-    flatfieldSeed     = configParam.getLong("RandomSeeds/FlatFieldSeed");
+    if (includeFlatfield)
+    {
+        flatfieldSource = configParam.getString("CCD/Flatfield/Source");
+        if (flatfieldSource == "FromFile")
+        {
+            flatfieldFilePath = configParam.getAbsoluteFilename("CCD/Flatfield/FromFile/FilePath");
+        }
+        else if (flatfieldSource == "FromRedNoise")
+        {
+            flatfieldNoiseRMS = configParam.getDouble("CCD/Flatfield/FromRedNoise/FlatfieldNoiseRMS");
+            flatfieldSeed     = configParam.getLong("RandomSeeds/FlatFieldSeed");
+        }
+    }
 
     // Read and configure the parameters used to calculate the PSF
 
@@ -331,6 +351,52 @@ void DetectorWithAnalyticNonGaussianPSF::integrateAnalyticPSF(IntegralOfAnalytic
 
 
 
+/**
+ * \brief: Read in the flatfield variations from a file.
+ *
+ */
+
+void DetectorWithAnalyticNonGaussianPSF::readInFlatfieldMap()
+{
+    HDF5File prnuFile;
+    Log.info("Detector: reading in flatfield map.");
+
+    // Prepare the prnu map by performing some basic checks
+
+    if (!FileUtilities::fileExists(flatfieldFilePath))
+    {
+      throw FileException("Detectors: trying to load flatfield file (" + flatfieldFilePath + "), but file doesn't exist.");
+    }
+
+    try
+    {
+        prnuFile.open(flatfieldFilePath);
+    }
+    catch (H5::FileIException ex)
+    {
+        Log.error("H5::FileIException: " + string(ex.getCDetailMsg()));
+        throw H5FileException("Detector: Could not open flatfield HDF5 file: " + flatfieldFilePath);
+    }
+
+    // Select the correct subregion from our prnuFile
+    arma::Mat<float> prnuMap;
+    prnuFile.readArray("/", "PRNU", prnuMap);
+
+    flatfieldMap = prnuMap.submat(subFieldZeroPointRow, subFieldZeroPointColumn,
+                                   subFieldZeroPointRow+numRowsPixelMap-1,
+                                   subFieldZeroPointColumn+numColumnsPixelMap-1);
+
+
+    prnuFile.close();
+}
+
+
+
+
+
+
+
+
 
 
  /**
@@ -392,15 +458,6 @@ void DetectorWithAnalyticNonGaussianPSF::generateFlatfieldMap()
     flatfieldMap += 1;
 
     flatfieldMap.reshape(numRowsFlatfield, numColumnsFlatfield);
-
-    // Write the result to the HDF5 output file
-
-    if (writeFlatfieldMap)
-    {
-        Log.debug("Detector: writing PRNU to HDF5");
-        hdf5File.createGroup("/Flatfield");
-        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
-    }
 }
 
 
@@ -961,6 +1018,14 @@ void DetectorWithAnalyticNonGaussianPSF::flushOutput()
       arma::Mat<float> highResDiffusedMap;
       makeHighResolutionPSF(highResDiffusedMap, true, Npixels, Nsubpixels);
       hdf5File.writeArray("/PSF", "diffusedPSF", highResDiffusedMap);
+    }
+
+    // Save PRNU
+    if (writeFlatfieldMap)
+    {
+        Log.info("Writing PRNU to the HDF5 file");
+        hdf5File.createGroup("/Flatfield");
+        hdf5File.writeArray("/Flatfield", "PRNU", flatfieldMap);
     }
 
     // Save the photometry info

@@ -53,6 +53,7 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         void integrateLight(int exposureNr, double startTime, double exposureTime) override;
         void applyFlatfield() override;
         void generateFlatfieldMap();
+        void readInFlatfieldMap();
 
         Parameter<double> *sigma;           // Width of the analytic PSF, equal to sigma for a Gaussian PSF
         vector<vector<double>> params;      // Table of analytic PSF parameters
@@ -66,6 +67,8 @@ class DetectorWithAnalyticNonGaussianPSF: public Detector
         bool includeFlatfield;              // Whether or not to include flat fielding        
         long flatfieldSeed;                 // Seed dedicated to generate a random flatfield map
         bool writeFlatfieldMap;             // Whether or not to write the flatfield map to the HDF5 file
+        string flatfieldFilePath;            // Path of the flatfield file
+        string flatfieldSource;              // Determines how the flatfield gets determined 
         bool writeHighResolutionPSF;        // Wheter or not to write the high resosultion PSF to the HDF5 file
         bool writeDiffusedPSF;              // Wheter or not to write the high resosultion PSF to the HDF5 file 
 
