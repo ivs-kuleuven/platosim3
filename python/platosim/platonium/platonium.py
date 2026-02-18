@@ -670,7 +670,6 @@ class PLATOnium(object):
         # Secure that user-defined cadence is used!
         if self.cadence:
             cadence = sim['ObservingParameters/CycleTime']
-            print(cadence)
             sim['ObservingParameters/CycleTime'] = self.cadence
             factor = self.cadence / cadence
             if factor > 1:
