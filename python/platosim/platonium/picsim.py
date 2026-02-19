@@ -221,7 +221,7 @@ General notes:
             else:
                 errorcode('error', f'{self.field} is not defined! Use LOPS2')
             # Select the sample
-        elif self.release == 'PIC200':
+        elif args.release == 'PIC200':
             self.pic = 'PIC200'
             self.mag_column = 'mag'
             
@@ -232,7 +232,7 @@ General notes:
                 self.numPIC = 175325 # Original: 175,597
             else:
                 errorcode('error', f'{self.field} is not defined! Use {LOPS2, LOPN1}')
-        elif self.release == 'PIC110':
+        elif args.release == 'PIC110':
             self.pic = 'PIC110'
             self.mag_column = 'mag'
             sample = ['P1', 'P1', 'P4', 'P5']
@@ -243,7 +243,9 @@ General notes:
                 self.numPIC = 144507
             else:
                 errorcode('error', f'{self.field} is not defined! Use {SPF, NPF}')
-            
+        else:
+            errorcode('error', f'No release named {args.release}! Usage in [PIC210, PIC200, PIC110]')
+                
         # Available samples for release
         if self.pic == 'PIC210':
             sample = [
