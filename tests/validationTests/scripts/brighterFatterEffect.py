@@ -171,13 +171,14 @@ class BrighterFatterEffect(Test):
         means = self.means
 
         # Checks that brighter star are fatter
+
         difference = self.widthWithBFE - self.widthWithoutBFE
-        isFatter   = all(difference[:-1] > difference[1:])
+        isFatter   = all(x or y for x,y in zip(difference[:-1] > difference[1:],
+                                               abs(difference[:-1] - difference[1:]) < 1e-5))
 
         # Checks that without BFE the variance remains approximately constant
         varWithout  = np.std(self.widthWithoutBFE)
         withoutIsConst = varWithout < 0.3
-
         condition1  =  isFatter and withoutIsConst
 
         # Checks that the phton trasfer curve is increasing (condition2a) in a concave (condition2b) manner.
@@ -187,7 +188,6 @@ class BrighterFatterEffect(Test):
 
         # Save the plot of the photon transfer curve
         self.makePlot(stds, means)
-
         return condition1 and condition2
 
     

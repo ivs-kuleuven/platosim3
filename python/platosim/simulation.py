@@ -381,16 +381,31 @@ class Simulation(object):
                    "found in input yaml file")
              return False
 
-        # If there are only 34nodes in the path, we're finished after setting its value
+        # If there are only 4 nodes in the path, we're finished after setting its value
 
         if len(nodeNames) == 4:
             self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]] = item
             return True
 
-        # If we arrive here, there are at least 5 nodes in the path.
+
+        # If we arrive here, there are at least 5 nodes in the path, check if 5th parent node exists
+
+        if nodeNames[4] not in self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]]:
+             print("ERROR: no node with the name " +
+                   f"{nodeNames[0]}/{nodeNames[1]}/{nodeNames[2]}/{nodeNames[3]}/{nodeNames[4]} " +
+                   "found in input yaml file")
+             return False
+
+        # If there are only 5 nodes in the path, we're finished after setting its value
+
+        if len(nodeNames) == 5:
+            self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]][nodeNames[4]] = item
+            return True
+
+        # If we arrive here, there are at least 6 nodes in the path.
         # Issue a not-implemented error message.
 
-        print(f"ERROR: detected 5 or more nodes in the path {key}")
+        print(f"Error: Not Implemented: detected 6 or more nodes in the path {key}")
         return False
 
 

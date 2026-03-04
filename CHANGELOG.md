@@ -1,7 +1,14 @@
 # Changelog for PlatoSim
 
-<!-- ?.?.? -->
-<!-- ***** -->
+Checklist to update for a future release:
+
+* Check that Conda installation of PlatoSim works (`master` and `develop` branch)
+* Check that test harness returns only `Success` statements
+* Check Python package installation `poetry install --with sphinx`    in a fresh Conda environment
+* Check Python package installation `poetry install --with platonium` in a fresh Conda environment
+* Update the "version" in the file `pyproject.toml`
+* Check all for a successful run of all Jupyter notebooks in `docs/tutorials` (runs with `poetry install` package management)
+
 
 ## Upcoming release
 
@@ -10,18 +17,19 @@
 
 ### Fixed
 
-* Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows). 
-*
+* Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows).
 
 ### Changed
 
 * Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4. 
 * Chnaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
+* Chnaged `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
 * Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
 * Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
 
 ### Added
 
+* Added PIC 2.1.0.1 (LOPS2) to the available `picsim` catalogues.
 * Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
 * Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
 * Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`].
@@ -29,11 +37,13 @@
 
 ### Removed
 
+* Removed `Dockerfile.txt` from base as this is redundant with the new LESIA L1 pipeline Docker installation.
 * Removed `inputfile_FCAM_required.yaml` as file was outdated. New strategy is to use Python to setup a F-CAM simulations using: `simulation.useFastCamera()`.
-
 
 <!-- 3.7.0 -->
 <!-- ***** -->
+
+## 27/03/2025: 3.7.0
 
 ### Fixed
 

@@ -1,5 +1,6 @@
 # Project related files to be ignored
 
+__pycache__/
 build/*
 inputfiles/*
 outputfiles/*
