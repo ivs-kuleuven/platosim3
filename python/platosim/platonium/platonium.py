@@ -685,50 +685,45 @@ class PLATOnium(object):
                 errorcode('error', 'Cannot apply platform quaternion! ' +
                           'instrumentPLM.csv needs 4 unit quaternions [q0, qx, qy, qz]..')
             else:
-                if self.verbose > 1:
-                    print('Setting platform pointing    (PLM FromFile)')
                 quaternionPLM = PLM.iloc[self.quarter-1].tolist()
                 sim["Platform/Orientation/Source"] = 'Quaternion'
                 sim["Platform/Orientation/Quaternion/Components"] = quaternionPLM
-
-        # CONFIGURE PAYLOAD
-        
-        if sim["Platform/Orientation/Source"] == "Quaternion":
-            print('Using Quaternion to setup platform!')
-
-        # Select PLATO pointing field from inputfile
-        alpha, delta, kappa = getPointingField(self.pointingField)
-        sim["Platform/Orientation/Angles/RAPointing"]  = alpha
-        sim["Platform/Orientation/Angles/DecPointing"] = delta
-
-        # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-        solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
-        sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
+                # Print to bash
+                if self.verbose > 1:
+                    print('Setting platform pointing    (PLM FromFile: Quaternion)')
+        else:
+            # Select PLATO pointing field from inputfile
+            alpha, delta, kappa = getPointingField(self.pointingField)
+            sim["Platform/Orientation/Angles/RAPointing"]  = alpha
+            sim["Platform/Orientation/Angles/DecPointing"] = delta
+            # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
+            solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
+            sim["Platform/Orientation/Angles/SolarPanelOrientation"] = solarPanelOrientationDeg
+            # Print to bash
+            if self.verbose > 1:
+                print(f'Setting platform pointing    (PLM FromYAML: {self.pointingField})')
+ 
+        # CONFIGURE CAMERA
 
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
         # TODO for now it is not possible to use GroupID = Custom since this uses
-        #      the N-CAM readout and results in a negative exposure time (and error)
-        if self.groupID == 'Fast':
-            sim["Telescope/GroupID"] = 'Fast'
-        else:
-            sim["Telescope/GroupID"]      = 'Custom'
-            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
-
-
-        # CONFIGURE CAMERA
-        
+        #      the N-CAM readout and results in a negative exposure time (and error)            
         # NOTE These functions set the correct CCD configuration and cadence!
         #      and if requested also performance and time conditions
         # NOTE Parameter "normal" is used in the subfield selection
         if self.groupID == 'Fast':
             normal = False
+            sim["Telescope/GroupID"] = 'Fast'
             sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
         else:
             normal = True
+            sim["Telescope/GroupID"]      = 'Custom'
+            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
+            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
             sim.useNormalCamera(self.performance, self.timeStart)
 
         # Secure that user-defined cadence is used!
+        # NOTE Done after applying the above sim functions
         if self.cadence:
             cadence = sim['ObservingParameters/CycleTime']
             sim['ObservingParameters/CycleTime'] = self.cadence
@@ -749,80 +744,52 @@ class PLATOnium(object):
         elif self.passband == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
 
-        # NOTE: adds option to turn off DKA
-        if self.noAberrCorr:
-            sim['Camera/IncludeAberrationCorrection'] = False
-        else:
-            sim['Camera/IncludeAberrationCorrection'] = True
-
         # POINTING ERRORS
         
-        # Include spacecraft Pointing Repeatability Error (PRE) between consecutive quarters
-        # NOTE: Included if the file "instrumentPRE.txt" is available in the input folder
-        inputFilePRE = self.inputDir.joinpath('instrumentPRE.txt')
-        if inputFilePRE.is_file():
-            PRE = np.loadtxt(inputFilePRE)
-            # Catch one dimentional arrays
-            try: PRE.shape[1]
-            except: PRE = np.array([PRE])
-            # Apply pointing errors
-            dex = np.where(PRE[:,0] == self.quarter)[0]
-            try: dex[0]
-            except:
-                errorcode('warning', 'Cannot apply pointing error model: ' +
-                          'no matching quarters in instrumentPRE.txt!')
-        else:
-            # Use ICRS coordinates to set platform pointing
-            block = 'Platform/Orientation/Angles'
+        # Include Pointing Repeatability Error (PRE) between consecutive quarters
+        # NOTE Below we secure that platonium is backward compatible
+        inputFilePRE_csv = self.inputDir.joinpath('instrumentPRE.csv')
+        inputFilePRE_txt = self.inputDir.joinpath('instrumentPRE.txt')
+        block = 'Platform/Orientation/Angles'
+        #---------------------------------------------------------------------            
+        # New implementation for PlatoSim >= 3.7.0
+        if inputFilePRE_csv.is_file():
+            PRE = pd.read_csv(inputFilePRE_csv)
+            if self.quarter not in PRE.quarter.tolist():
+                errorcode('error', 'Cannot apply pointing error model! ' +
+                          f'instrumentPRE.csv does not contain quarter {self.quarter}..')
+            # Apply PRE from new or old method
+            data = PRE.iloc[self.quarter - 1]
+            sim[f"{block}/RAPointing"]            += data.alpha
+            sim[f"{block}/DecPointing"]           += data.delta
+            sim[f"{block}/SolarPanelOrientation"] += data.kappa
+            # Print to bash
             if self.verbose > 1:
-                print(f'Applying platform pointing   (PLM to {self.pointingField})')           
-            # Select PLATO pointing field from inputfile
-            alpha, delta, kappa = getPointingField(self.pointingField)
-            sim[f"{block}/RAPointing"]  = alpha
-            sim[f"{block}/DecPointing"] = delta
-            # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
-            solarPanelOrientationDeg = ut.getSolarPanelOrientation(kappa, self.quarter)
-            sim[f"{block}/SolarPanelOrientation"] = solarPanelOrientationDeg
-            
-            # Include Pointing Repeatability Error (PRE) between consecutive quarters
-            # NOTE Below we secure that platonium is backward compatible
-            inputFilePRE_csv = self.inputDir.joinpath('instrumentPRE.csv')
-            inputFilePRE_txt = self.inputDir.joinpath('instrumentPRE.txt')
-            #---------------------------------------------------------------------            
-            # New implementation for PlatoSim >= 3.7.0
-            if inputFilePRE_csv.is_file():
-                PRE = pd.read_csv(inputFilePRE_csv)
-                if self.quarter not in PRE.quarter.tolist():
-                    errorcode('error', 'Cannot apply pointing error model! ' +
-                              f'instrumentPRE.csv does not contain quarter {self.quarter}..')
-                # Apply PRE from new or old method
-                data = PRE.iloc[self.quarter - 1]
-                sim[f"{block}/RAPointing"]            += data.alpha
-                sim[f"{block}/DecPointing"]           += data.delta
-                sim[f"{block}/SolarPanelOrientation"] += data.kappa
-            #---------------------------------------------------------------------
-            # Old implementation for PlatoSim < 3.7.0
-            elif inputFilePRE_txt.is_file():
-                PRE = np.loadtxt(inputFilePRE_txt)
-                # Catch one dimentional arrays
-                try:
-                    PRE.shape[1]
-                except:
-                    PRE = np.array([PRE])
-                # Apply pointing errors
-                index = np.where(PRE[:,0] == self.quarter)[0]
-                try:
-                    index[0]
-                except:
-                    errorcode('error', 'Cannot apply pointing error model! ' +
-                              f'instrumentPRE.txt does not contain quarter {self.quarter}..')
-                else:
-                    if self.verbose > 1:
-                        print('Applying pointing errors     (PRE FromFile)')
-                    sim[f"{block}/RAPointing"]            += PRE[index, 1][0]
-                    sim[f"{block}/DecPointing"]           += PRE[index, 2][0]
-                    sim[f"{block}/SolarPanelOrientation"] += PRE[index, 3][0]
-            #---------------------------------------------------------------------                    
+                print('Applying pointing errors     (PRE FromFile)')
+        #---------------------------------------------------------------------
+        # Old implementation for PlatoSim < 3.7.0
+        elif inputFilePRE_txt.is_file():
+            PRE = np.loadtxt(inputFilePRE_txt)
+            # Catch one dimentional arrays
+            try:
+                PRE.shape[1]
+            except:
+                PRE = np.array([PRE])
+            # Apply pointing errors
+            index = np.where(PRE[:,0] == self.quarter)[0]
+            try:
+                index[0]
+            except:
+                errorcode('error', 'Cannot apply pointing error model! ' +
+                          f'instrumentPRE.txt does not contain quarter {self.quarter}..')
+            else:
+                sim[f"{block}/RAPointing"]            += PRE[index, 1][0]
+                sim[f"{block}/DecPointing"]           += PRE[index, 2][0]
+                sim[f"{block}/SolarPanelOrientation"] += PRE[index, 3][0]
+                # Print to bash
+                if self.verbose > 1:
+                    print('Applying pointing errors     (PRE FromFile)')
+        #---------------------------------------------------------------------                    
             
         # Attitude Orbit Control System (AOCS) jitter
         # First check if file from payload is present
@@ -887,13 +854,13 @@ class PLATOnium(object):
         if inputFileAPE_csv.is_file():
             if self.verbose > 1:
                 print('Applying camera misalignment (APE FromFile)')
-            APE = pd.read_csv(inputFileAPE)
+            APE = pd.read_csv(inputFileAPE_csv)
             # Use (tilt, azimuth) angles to nudge camera pointing
             # NOTE: Included if "instrumentAPE.csv" is available in the input
             if 'TiltAngle' in APE.columns:
-                if APE.shape != (26, 2): 
+                if self.verbose > 0 and APE.shape != (26, 2): 
                     errorcode('warning', 'Cannot apply camera misalignment (tilt, azimuth)! ' +
-                              f'instrumentAPE.csv needs to be shape (26, 2)..)')            
+                              f'instrumentAPE.csv needs to be shape (26, 2)')            
                 else:
                     sim["Telescope/TiltAngle"]    += APE.TiltAngle.iloc[dex]
                     sim["Telescope/AzimuthAngle"] += APE.AzimuthAngle.iloc[dex]
@@ -901,13 +868,13 @@ class PLATOnium(object):
             # NOTE In the following approach we assume a nominal camera tilt and azimuth
             # and adjust the platform pointing to get desired camera pointing (misalignment)
             elif 'q0' in APE.columns:
-                if inputFilePLM.is_file():
-                    errorcode('warning', 'Platform pointing is overwritten by APE! ' +
-                              f'Consider removing the "instrumentPLM.csv" file..')
-                if APE.shape != (26, 4): 
+                if self.verbose > 0 and APE.shape != (26, 4): 
                     errorcode('warning', 'Cannot apply camera misalignment (quaternions)! ' +
-                              f'instrumentAPE.csv needs to be shape (26, 4)..')            
+                              f'instrumentAPE.csv needs to be shape (26, 4)')            
                 else:
+                    if self.verbose > 1 and inputFilePLM.is_file():
+                        errorcode('warning', 'Platform pointing is overwritten by APE! ' +
+                                  f'Consider removing the "instrumentPLM.csv" file')
                     quaternionCAM = APE.iloc[self.quarter-1].tolist()
                     alpha1, delta1, kappa1 = rf.platformAnglesFromQuaternion(quaternionCAM)
                     # NOTE we need to account for the fact that PRE has been included too
@@ -932,7 +899,6 @@ class PLATOnium(object):
             if self.verbose > 1:
                 print('Applying camera misalignment (APE FromFile)')
             APE = np.loadtxt(inputFileAPE_txt)
-            dex = (self.group - 1) * 6 + self.camera - 1
             sim["Telescope/TiltAngle"]    += APE[dex, 0]
             sim["Telescope/AzimuthAngle"] += APE[dex, 1]
         #---------------------------------------------------------------------
@@ -989,7 +955,7 @@ class PLATOnium(object):
                     sim["Camera/FieldDistortion/ConstantCoefficients"] = coeff_normal
                 else:
                     errorcode('warning', 'No field distortion coefficients found in CAM! ' +
-                              'Using default values from YAML file..')
+                              'Using default values from YAML file')
                 if 'ik1' in CAM.columns:
                     coeff_inverse = []
                     coeff_inverse.append(CAM.ik1.iloc[dex])
@@ -1002,7 +968,7 @@ class PLATOnium(object):
                     sim["Camera/FieldDistortion/ConstantInverseCoefficients"] = coeff_inverse
                 else:
                     errorcode('warning', 'No inverse distortion coefficients found in CAM! ' +
-                              'Using default values from YAML file..')
+                              'Using default values from YAML file')
                 
         # CONFIGURE CCD
         
