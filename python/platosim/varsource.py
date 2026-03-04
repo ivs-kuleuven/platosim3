@@ -234,7 +234,6 @@ class StellarSpots(object):
 
     def regions(self, activity_rate=1, cycle_period=10, cycle_overlap=0, randspots=False,
                 maxlat=70, minlat=0, tsim=1000, tstart=0, verbose=False):
-
         """ACTIVE REGION EMERGENCE
 
         According to Schrijver and Harvey (1994), the number of active regions
@@ -256,7 +255,6 @@ class StellarSpots(object):
         In our simulation we use a lower value of a(t) to account for "correlated"
         regions.
         """
-        
         nbin = 5                              # number of area bins
         delt = 0.5                            # delta ln(A)
         amax = 100.                           # orig. area of largest bipoles (deg^2)
@@ -898,10 +896,8 @@ class StellarSpots(object):
                  odir=None,
                  verbose=False,
                  save=False):
-
         """Generate spot modulated light curve.
         """
-        
         if odir is None:
             odir = os.getcwd()
             
@@ -1013,10 +1009,8 @@ class StellarSpots(object):
     
 
     def plot(self, title='params', panels=3, figsize=(11,8)):
-
         """Plot spot modulation model.
         """
-
         fig, axes = plt.subplots(panels,1, figsize=figsize, sharex=True)
         if title == 'params': 
             title= ('Model: ' +

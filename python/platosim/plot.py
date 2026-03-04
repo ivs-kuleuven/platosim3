@@ -690,12 +690,11 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     numGroups     = 4
     numCorners    = 4
     offset        = 4
-    radiusDistFOV = 20.4 # [deg]
     colors        = ['b', 'g', 'orange', 'r']
     ccdCodes      = ["1", "2", "3", "4"]
     tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
     azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
-    fovDegrees    = radiusDistFOV  # sim['CCD/RelativeTransmissivity/RadiusFOV'] # [deg]
+    fovDegrees    = sim['CCD/RelativeTransmissivity/RadiusFOV'] + 1     # [deg]
     focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
     pixelSize     = sim['CCD/PixelSize']                                # [micron]
     plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
@@ -2224,10 +2223,7 @@ def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
 
 
 def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
-
     """Function normalize the input flux and change time units to days. 
-
-    NOTE: Function tailored to PLATOniums output format feather!
 
     Parameters
     ----------
@@ -2244,14 +2240,13 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     ------
     fig, ax : objects
         Axes matplotlib.pyplot handle object to be modified by the user.
-    """
 
+    NOTE: Function tailored to PLATOniums output format feather!
+    """
     # Create matplotlib object
-    
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # Plot the input variable source
-    
     if "flux_err" in df.columns:
         ax.errorbar(df["time"], df["flux"], yerr=df["flux_err"],
                     fmt=".", color='k', ecolor='darkgray', elinewidth=1,
@@ -2260,30 +2255,24 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
         ax.plot(df["time"], df["flux"], 'k.', ms=5, alpha=aa, label="Raw flux", zorder=1)
 
     # Plot a median filter
-    
     if "flux_med" in df.columns:
-        ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw, label='1h mdeian', zorder=2)
+        ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw,
+                label='1h mdeian', zorder=2)
     
     # Show binned mean points if requested
-    
     if "flux_bin" in df.columns:
         binsize = 1
-        ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k', label=f'{binsize}h bins', zorder=3)
+        ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k',
+                label=f'{binsize}h bins', zorder=3)
             
     # Settings
-    
     ax.set_xlim(df["time"].iloc[0], df["time"].iloc[-1])
     ax.set_xlabel(f"Time [{time_unit}]")
     ax.set_ylabel(f"Flux [{flux_unit}]")
     ax.legend(loc='best')
 
-    # That's it!
-    
+    # That's it!    
     return fig, ax
-
-
-
-    
 
 
 def plotNSRvsMagnitude(df,
@@ -2299,7 +2288,6 @@ def plotNSRvsMagnitude(df,
                        legend=False,
                        cbar_extend=None,
                        figsize=(10,6)):
-
     """Plot the NSR vs. Magnitude for a star catalogue.
 
     Parameters
@@ -2326,9 +2314,7 @@ def plotNSRvsMagnitude(df,
     axes : object
         Axes matplotlib.pyplot handle object to be modified by the user
     """
-    
     # Create matplotlib object
-    
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # Secure a small offset in x axis to show data
@@ -2336,11 +2322,9 @@ def plotNSRvsMagnitude(df,
     ax.set_xlim(df.mag.min()-dx, df.mag.max()+dx)
 
     # Define global colormap
-    
     cmap = plt.cm.get_cmap(cmap)
     
     # Set figure labels
-
     if passband == 'P':
         xlabel = r'PLATO magnitude, $\mathcal{P}$'
     elif passband == 'V':
@@ -2351,19 +2335,18 @@ def plotNSRvsMagnitude(df,
     ylabel = r'NSR [ppm h$^{-1/2}$]'
     
     # Handle colorbar and make discrete
-    
     if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
-
         # Fetch custom discrete colorbar used by matplotlib
         sep =1
         cbins = np.arange(df[column].min(), df[column].max()+2, sep)
         ticks = cbins + 0.5
         norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
     else:
+        cbins = None
+        ticks = None
         norm = None
     
     # Distinguish between the NSR or O-C plot
-    
     if residuals in ("camera", "system"):
         ax.set_ylabel('NSR Residuals [ppm]')
         if yscale == "log":
@@ -2371,35 +2354,31 @@ def plotNSRvsMagnitude(df,
                             c=df[column], cmap=cmap, norm=norm)
         else:
             im = ax.scatter(df["mag"], df["res"], s=5, zorder=1,
-                            c=df[column], cmap=cmap, norm=norm)
-            
+                            c=df[column], cmap=cmap, norm=norm)            
     elif column:
         im = ax.scatter(df["mag"], df["NSR"], s=3, alpha=1, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel(ylabel)
-        
     else:
+        im = False
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel(ylabel)
         
     # Extra settings for colorbar after image generation
-
     if column == 'rOA':
         column_label = r'$\vartheta_{\rm OA}$ [deg]'
     else:
         column_label = column
     
-    if norm is None:
+    if im and norm is None:
         cb = plt.colorbar(im, extend=cbar_extend, pad=0.01)
         cb.set_label(column_label)
     else:
-
         # Change label
         if column == 'ncam':
             column_label = r'$n_{\rm CAM}$'
         elif column == 'ncon':
             column_label = r'$n_{\rm contaminants}$'
-            
         # Plot the colorbar
         cb = plt.colorbar(im, extend=cbar_extend, pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
@@ -2412,7 +2391,6 @@ def plotNSRvsMagnitude(df,
         #         label.set_visible(False)
                 
     # Plot saturation limits
-    
     if show_saturation_limits:
         ax.axvline(x=8.5, color="k", alpha=0.7, linestyle=':',  zorder=0,
                    label='Onset of saturation')
@@ -2420,15 +2398,12 @@ def plotNSRvsMagnitude(df,
                    label='Moderate saturation')
 
     # Plot requirements
-    
     if show_ncam_requirements == "camera":
         ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
         if yscale == "linear":
             ax.axhline(y=-108, c="darkorange", ls="--")
-            
     elif show_ncam_requirements == "system":
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
-        
     elif show_ncam_requirements == "multi" and 'ncam' in df:
         for nsr, ncam, color in zip([100, 70, 58, 50],
                                     [6, 12, 18, 24],
@@ -2438,12 +2413,9 @@ def plotNSRvsMagnitude(df,
         ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
 
     # Plot noise limits
-
     if show_ncam_noise_limits:
-        
         # Magnitude range
         mag = np.linspace(0, 20, 100)
-
         # Auto selection of level
         if show_ncam_noise_limits == 1:
             ncam  = 1
@@ -2451,7 +2423,6 @@ def plotNSRvsMagnitude(df,
         else:
             ncam  = 24
             level = 'instrument'
-        
         # Jitter noise
         if legend == 'SMBHB':
             lab = None
@@ -2461,18 +2432,15 @@ def plotNSRvsMagnitude(df,
         noise_jitter = ut.getJitterNoiseLimitNSR(rms, tdur=3600, camType='normal')
         ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
                        label=lab)
-
         # Photon noise
         ncams = show_ncam_noise_limits
         noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
         ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2,
                 label='Photon noise')
-        
         # Background and readout noise
         noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband, ncam=ncam)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
                 label='Sky/read noise')
-
         # Combine and plot
         if legend == 'SMBHB':
             lab = 'Noise model'
@@ -2483,7 +2451,6 @@ def plotNSRvsMagnitude(df,
                 label=lab)
         
     # Force all yticks for log plot
-
     ax.set_yscale(yscale)
     if (df["NSR"].max() - df["NSR"].min()) < 900:
         subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
@@ -2496,11 +2463,7 @@ def plotNSRvsMagnitude(df,
     if legend: ax.legend(loc='upper left')
 
     # Return axes objects
-    
     return fig, ax
-
-
-
 
 
 #--------------------------------------------------------------#
@@ -2742,26 +2705,35 @@ def plotPeriodogram(df, dm=None, scaling='density', lw=0.5,
     """
     # Compute frequencies uptil the Nyquist frequency
     sampling = np.diff(df.time)[0]
-
-    # Compute PSD of granulation and oscillations
-    freq, psd = periodogram(df.flux, 1/sampling, scaling='density')
+    freq, psd = periodogram(df.flux, 1/sampling, scaling=scaling)
     freq *= 1e6  # [muHz]
-    if isinstance(dm, pd.DataFrame):
-        freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling='density')
-        freq_model *= 1e6  # [muHz]
 
-    
-    # Start plotting
+    # Start plotting data and model
     fig, ax = plt.subplots(1, 1, figsize=figsize)    
-    # Plot global model
     ax.plot(freq, psd, '-', c=c, lw=lw, label=label)
-    ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model)
+    if isinstance(dm, pd.DataFrame):
+        sampling = np.diff(dm.time)[0]
+        freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling=scaling)
+        freq_model *= 1e6  # [muHz]
+        ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model)
+
+    # Plot mission requirements (from the red book)
+    misreq = True
+    scale = 1e6
+    if misreq:
+        plt.plot([3e-6*scale, 20e-6*scale], [21.4/scale, 0.23/scale],
+                 c='b', linestyle='--', lw=1, label='MPE requirement')
+        plt.plot([20e-6*scale, 4e-2*scale], [0.23/scale, 0.23/scale],
+                 c='b', linestyle='--', lw=1)
+        plt.plot([3e-6*scale, 4e-2*scale], [3/scale, 3/scale],
+                 c='r', linestyle='--', lw=1, label='MPE requirement')
+
+    # Settings
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
     ax.set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
     ax.legend(ncol=1, loc='best')
-    # Settings
     plt.tight_layout()
     return fig, ax
 
