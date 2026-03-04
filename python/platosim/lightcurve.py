@@ -2435,14 +2435,11 @@ class LightCurve(object):
             time = time[~np.isnan(flux)]
             flux = flux[~np.isnan(flux)]
 
-            if suffix == 'hdf5':
-                if flux_unit == "e/s":
-                    ylab = r"Flux [e$^-$ s$^{-1}$]"
-                elif flux_unit == 'ke/s':
-                    ylab = r"Flux [ke$^-$ s$^{-1}$]"
-                    flux /= 1e3
-            else:
-                ylab = 'Normalised flux'
+            if flux_unit == "e/s":
+                ylab = r"Flux [e$^-$ s$^{-1}$]"
+            elif flux_unit == 'ke/s':
+                ylab = r"Flux [ke$^-$ s$^{-1}$]"
+                flux /= 1e3
                 
             # Plot the quarter data
             ax.plot(time, flux, '.', alpha=alpha, ms=1, zorder=1)

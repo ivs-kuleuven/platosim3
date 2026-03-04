@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Python modules that contain some general utilities that are commonly
 used by the PlatoSim and PLATOnium.
@@ -32,66 +31,54 @@ except ImportError:
     # Versions of scipy < 1.6 use a different name
     from scipy.integrate import cumtrapz as cumulative_trapezoid
 
-
 #--------------------------------------------------------------#
 #                        UNIT FUNCTIONS                        #
 #--------------------------------------------------------------#
 
-
 def day():
-
     """Return 1 day in seconds.
     """
-
     return 86400
 
 
-
-
-
 def year():
-
     """Return 1 year in seconds.
     """
-    
     return 31556926
 
 
-
-
-
 def quarter():
-
     """Return 1 mission quarter in days.
     """
-    
     return year() / (4 * day())
 
 
-
-
-
 def rng(seed=None):
-
     """Choose seed for randomness
     """
-
     if seed is None:
         return np.random.default_rng()
     else:
         return np.random.default_rng(seed=seed)        
 
-
-
-
     
+def getHomeDir(path=''):
+    """Fetch PlatoSim home and working directory.
+    """    
+    return Path(os.getenv('PLATO_PROJECT_HOME')) / path
+
+
+def getWorkDir(path=''):
+    """Fetch PlatoSim home and working directory.
+    """    
+    return Path(os.getenv('PLATO_WORKDIR')) / path
+
+
 #--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
 #--------------------------------------------------------------#
 
-
 def errorcode(API, message):
-
     """Function to colour code error messages within a code.
 
     Parameters

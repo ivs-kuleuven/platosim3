@@ -914,6 +914,7 @@ General notes:
         self.stellar  = args.gaia_stellar
         self.variable = args.gaia_variable
         self.quasar   = args.gaia_quasar
+        self.fcam     = args.fcam
         
         # Magnitude limits
         if args.mag_min is None:
@@ -1072,7 +1073,7 @@ General notes:
                 print(f'Adding stellar  columns : {self.stellar}')
                 print(f'Adding variable columns : {self.variable}')
                 print(f'Adding quasar   columns : {self.quasar}')
-                print(f'\nStart Gaia DR3 query for magnitudes : {self.mag_min} - {self.mag_max}')
+                print(f'\nQuery Gaia DR3 for magnitudes : {self.mag_min} - {self.mag_max}')
 
             # Query stars within the FOV of each grid
             for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
@@ -1087,32 +1088,9 @@ General notes:
                 else:      df = pd.concat([df, df0])
 
             # Remove duplicate stars (from overlapping grid)
-            df = df.drop_duplicates(subset=['source_gaia_dr3'])
-
+            df = df.drop_duplicates(subset=['gaiaDR3'])
             if self.verbose > 1:
                 print(f'Number of objects in stellar catalogue: {df.shape[0]}')
-
-            # Replace missing Gaia colors
-            if df.BP_RP.isna().sum() > 0:
-                if self.quasar:
-                    # Mean value from PLATO fields 
-                    df.BP_RP[df.BP_RP.isna()] = 0.6
-                else:
-                    # Assuming M0 dwarfs for stars
-                    df.BP_RP[df.BP_RP.isna()] = 2.0
-
-            # Convert Gmag to Pmag
-            dex = df.columns.get_loc('Gmag')
-            if self.quasar:
-                df.insert(dex, 'Pmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
-                pass
-            else:
-                Pmag  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
-                PBmag = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
-                PRmag = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
-                df.insert(dex,   'Pmag',  Pmag)
-                df.insert(dex+1, 'PBmag', PBmag)
-                df.insert(dex+2, 'PRmag', PRmag)
 
             # If requested, add bright stars not available in the Gaia catalogue (G > 2)
             # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}
@@ -1169,66 +1147,129 @@ General notes:
             platonium = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
 
             # Query stars within the FOV of each grid
-            for ccd in tqdm(range(1,5), bar_format=ut.tqdmBar()):
-                for group in range(1,5):
-                    os.system(f'python {platonium} {ccd} {group} 1 1 --fullframe ' +
-                              f'-i {self.outputDir}/inputfile_vizier.yaml ' +
-                              f'-o {self.outputDir} --nexp 1 -v 0 -w')
+            if self.fcam:
+                ngroup = 1 # NOTE only one sinec F-CAM groups have identical FOV
+                groups = range(5,6)
+                string = 'Fcam'
+                sims = self.outputDir / 'Fcam1_Q1_ccd1.ftr'
+            else:
+                ngroup = 4
+                groups = range(1,5)
+                string = 'Ncam'
+                sims = self.outputDir / 'Ncam1.1_Q1_ccd1.ftr'
+                
+            if sims.is_file():
+                errorcode('warning', 'Camera group simulations already exists! skipping simulations..')
+            else:
+                for ccd in tqdm(range(1,5), bar_format=ut.tqdmBar()):
+                    for group in groups:
+                        os.system(f'python {platonium} {ccd} {group} 1 1 --fullframe ' +
+                                  f'-i {self.outputDir}/inputfile_vizier.yaml ' +
+                                  f'-o {self.outputDir} --nexp 1 -v 0 -w')
 
             if self.verbose > 1:
                 print(f'\nCombing catalogues into a final PLATO {self.field} catalogue')
 
             # Load full-frame stellar catalogues
             df = pd.DataFrame()
-            for group in range(1,5):
+            if self.fcam:
+                groups = [1]
+            for group in groups:
                 for ccd in range(1,5):
+                    if self.fcam:
+                        sims = f"{self.outputDir}/{string}{group}_Q1_ccd{ccd}.ftr"
+                    else:
+                        sims = f"{self.outputDir}/{string}{group}.1_Q1_ccd{ccd}.ftr"
                     try:
-                        df0 = pd.read_feather(f"{self.outputDir}/Ncam{group}.1_Q1_ccd{ccd}.ftr")
+                        df0 = pd.read_feather(sims)
                     except FileNotFoundError:
-                        errorcode('warning', f'No stars found on CCD {ccd} of N-CAM {group}.1')
+                        errorcode('error', f'No stars found on CCD {ccd} of {string} {group}.1')
                     else:
                         df = pd.concat([df, df0])
-            
-            # Remove all files again after loaded
-            os.system(f'rm {self.outputDir}/Ncam*')
-            os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
-            
+                                                    
             # Drop a few columns
             df = df.drop(columns=['starID', 'flux', 'xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
 
-            # Sort after gaia DR3
-            df = df.sort_values(by=['source_gaia_dr3'])
-
-            # Fetch N-CAM group visibility
-            N = df.shape[0]
-            ncams = np.zeros(N)
-            if self.verbose > 1:
-                print('\nFetching the N-CAM observability for each star:')
-
-            for i in tqdm(range(N), bar_format=ut.tqdmBar()):
-
-                # Fetch 4 values ahead (since max 4 groups)
-                dx = df.iloc[i:i+4]
-
-                # Subtract star ID and count zeros = N-CAM visibility:
-                # Row with highest ncams value is the one we keep below
-                diff = np.array(dx.source_gaia_dr3).astype(int) - int(dx.source_gaia_dr3.iloc[0])
-                ncams[i] = np.count_nonzero(diff==0)
-
-            # Add column
-            dex = df.columns.get_loc('Pmag')
-            df.insert(dex, 'ncams', (ncams * 6).astype(int))
-
             # Drop dublicates and keep highest count
-            df = df.drop_duplicates(subset=['source_gaia_dr3'])
+            df = df.drop_duplicates(subset=['gaiaDR3'])
+
+            # Replace any inf with nan
+            df = df.replace(np.inf, np.nan)
+
+            # Merge undefined spec types into the unknown spec type
+            df.spec.loc[df[df.spec == ''].index] = 'unknown'
             
-            # Sort after ncams and Pmag
-            df0 = df.sort_values(by=['ncams', 'Pmag'])
+            # Replace missing Gaia colors
+            if df.BP_RP.isna().sum() > 0:
+                if self.quasar:
+                    # Mean value from PLATO fields 
+                    df.BP_RP[df.BP_RP.isna()] = 0.6
+                else:
+                    # Assuming M0 dwarfs for stars
+                    df.BP_RP[df.BP_RP.isna()] = 2.0
+
+            # Convert Gmag to Pmag
+            dex = df.columns.get_loc('Gmag')
+            if self.quasar:
+                df.insert(dex, 'Pmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
+                pass
+            else:
+                Pmag  = ut.passbandConversionG2P(df.Gmag, df.BP_RP)
+                PBmag = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_blue')
+                PRmag = ut.passbandConversionG2P(df.Gmag, df.BP_RP, camera='fast_red')
+                df.insert(dex,   'Pmag',  Pmag)
+                df.insert(dex+1, 'PBmag', PBmag)
+                df.insert(dex+2, 'PRmag', PRmag)
+
+            # Remove stars with bad colour solutions
+            df.BP_RP.loc[df[(df.BP_RP == 2.000)].index] = np.nan
+                
+            # Add distances [pc]
+            dex = df.columns.get_loc('plx_err'); df.insert(dex+1, 'd', 1/(df.plx/1e3))
+            dex = df.columns.get_loc('d'); df.insert(dex+1, 'd_err', 1/(df.plx_err/1e3))
+
+            # Add absolute magnitude (zero extinction if not available)
+            Ag = df.Ag.fillna(0.0)
+            Mg = df.Gmag - 5 * np.log10(df.d) + 5 - Ag
+            dex = df.columns.get_loc('Ag')
+            df.insert(dex+1, 'Mg', Mg)
+            
+            # Sort data frame (add N-CAM visibility)
+            if self.fcam:
+                # Sort after ncams and Pmag
+                df = df.sort_values(by=['Pmag'])                
+            else:
+                # Fetch N-CAM group visibility
+                N = df.shape[0]
+                cams = np.zeros(N)
+                if self.verbose > 1:
+                    print(f'\nFetching the {string} observability for each star:')
+
+                for i in tqdm(range(N), bar_format=ut.tqdmBar()):
+
+                    # Fetch 4 values ahead (since max 4/2 groups for Ncam/Fcam)
+                    dx = df.iloc[i:i+ngroup]
+
+                    # Subtract star ID and count zeros = N-CAM visibility:
+                    # Row with highest ncams value is the one we keep below
+                    diff = np.array(dx.gaiaDR3).astype(int) - int(dx.gaiaDR3.iloc[0])
+                    cams[i] = np.count_nonzero(diff==0)
+
+                # Add column
+                dex = df.columns.get_loc('Pmag')
+                df.insert(dex, 'ncam', (cams * 6).astype(int))
+            
+                # Sort after ncams and Pmag
+                df = df.sort_values(by=['ncam', 'Pmag'])
 
             # Save catalogue be used by varsim
-            df0.reset_index(drop=True, inplace=True)
-            df0.to_feather(f'{self.outputDir}/starcat_GaiaDR3_{self.field}.ftr')
+            df.reset_index(drop=True, inplace=True)
+            df.to_feather(f'{self.outputDir}/starcat_PlatoCS_{string}_{self.field}.ftr')
 
+            # Remove all files again after loaded
+            os.system(f'rm {self.outputDir}/{string}*')
+            os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
+            
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
@@ -1269,6 +1310,7 @@ viz_group.add_argument('--yale_stars',    action='store_true',  help='Flag to ad
 viz_group.add_argument('--gaia_stellar',  action='store_true',  help='Flag to add stellar parameters to catalogue')
 viz_group.add_argument('--gaia_variable', action='store_true',  help='Flag to add variabe parameters to catalogue')
 viz_group.add_argument('--gaia_quasar',   action='store_true',  help='Flag to add Quasars parameters to catalogue')
+viz_group.add_argument('--fcam',          action='store_true',  help='Generate catalogue for F-CAMs instead')
 
 que_group = parser.add_argument_group('GENERIC QUERY OPTIONS')
 que_group.add_argument('--dmag', type=int, metavar='MAG',    help='Delta magnitude target-to-contaminant limit (Default: 5 mag)')

@@ -234,7 +234,6 @@ class StellarSpots(object):
 
     def regions(self, activity_rate=1, cycle_period=10, cycle_overlap=0, randspots=False,
                 maxlat=70, minlat=0, tsim=1000, tstart=0, verbose=False):
-
         """ACTIVE REGION EMERGENCE
 
         According to Schrijver and Harvey (1994), the number of active regions
@@ -256,7 +255,6 @@ class StellarSpots(object):
         In our simulation we use a lower value of a(t) to account for "correlated"
         regions.
         """
-        
         nbin = 5                              # number of area bins
         delt = 0.5                            # delta ln(A)
         amax = 100.                           # orig. area of largest bipoles (deg^2)
@@ -898,10 +896,8 @@ class StellarSpots(object):
                  odir=None,
                  verbose=False,
                  save=False):
-
         """Generate spot modulated light curve.
         """
-        
         if odir is None:
             odir = os.getcwd()
             
@@ -1013,10 +1009,8 @@ class StellarSpots(object):
     
 
     def plot(self, title='params', panels=3, figsize=(11,8)):
-
         """Plot spot modulation model.
         """
-
         fig, axes = plt.subplots(panels,1, figsize=figsize, sharex=True)
         if title == 'params': 
             title= ('Model: ' +
@@ -2997,32 +2991,185 @@ class SMBHB(object):
         f = lambda E: E - e * np.sin(E) - fm
         E = root_scalar(f, x0=fm, x1=fm + 0.1, method='secant').root
         return E
-
     
-    def _eccentric_anomaly_old(self, fm, e):
-        """Determine the Eccentric anomaly, E.
-        
-        We here solve Kepler's equation (M = E – e sin E) and use the
-        Newton-Raphson method to obtain the eccentric anomaly E.
-        NOTE Old method, but is it slower?
+    #--------------------------------
+    
+    def r_ISCO(self, m):
+        return 6 * self.G * m / self.cc**2
 
-        Parameters
-        ----------
-        M : mean anomaly
-        e : eccentricity
-        """
-        # Initialize E with M
-        E = fm
-        tol = 1e-12
-        max_iter = 1000
+    def accretion_rate(self, m, radiative_efficiency=0.1):
+        return 2.26*10**-2 * (radiative_efficiency/0.1)**-1 * (m/10**6) / ut.year()
+
+    def reduced_mass (self):
+        return self.q * self.M / (1 + self.q)
         
-        # Fetch eccentric anomaly
-        for _ in range(max_iter):
-            E_next = E - (E - e * np.sin(E) - fm) / (1 - e * np.cos(E))
-            if np.allclose(E_next, E, atol=tol):
-                return E_next
-            E = E_next
-        raise Exception("Eccentric anomaly solver did not converge.") 
+    def disc_temperature(self, q, r):
+        a_rate = self.accretion_rate(self.Mq)
+        r_isco = self.r_ISCO(self.Mq)
+        power = 3 * self.G * self.Mq * a_rate * (1 - np.sqrt(r_isco/r)) / (8 * np.pi * r**3)
+        return (power / self.sigma)**0.25  
+
+    def planck_wavelength(self, temp):
+        numerator   = 2 * self.h * self.cc**2
+        exponent    = (self.h * self.cc) / (self.wvl * self.k_B * temp)
+        denominator = (self.wvl**5) * (np.exp(exponent) - 1)
+        return numerator / denominator
+
+    def flux(self, r):
+        r_isco = self.r_ISCO(self.Mq)
+        condition1 = (r_isco < r) & (r < 0.27 * self.a * self.q**0.3)
+        condition2 = np.pi * self.planck_wavelength(self.disc_temperature(self.q, r))
+        return np.where(condition1, condition2, 0)
+    
+    def einstein_radius(self, t):
+        """Einstein radius of primary and secondary [cm].
+        """        
+        sin_phase_p = np.sin(2*np.pi * t/self.T)
+        sin_phase_s = np.sin(-np.pi + 2*np.pi * t/self.T)
+        RE_p = np.sqrt(2 * self.RS_p * self.a * np.cos(self.I) * sin_phase_p)
+        RE_s = np.sqrt(2 * self.RS_s * self.a * np.cos(self.I) * sin_phase_s)
+        return RE_p, RE_s
+
+    def position_uv(self, t):
+        """Complex components of u (projected  binary seperation) [RE]
+        """
+        phi = 2 * np.pi * t / self.T
+        if 0 < t/self.T < 0.5:
+            phase = np.sqrt(np.cos(phi)**2 + np.sin(self.I)**2 * np.sin(phi)**2)
+            u_0 = self.a / self.einstein_radius(t)[0] * phase
+        else:
+            phase = np.sqrt(np.cos(-np.pi+phi)**2 + np.sin(self.I)**2 * np.sin(-np.pi+phi)**2)
+            u_0 = self.a / self.einstein_radius(t)[1] * phase
+        v_0 = np.arctan(np.sin(self.I) * np.tan(phi))
+        return u_0, v_0 
+
+    def magnification_point_u(self, u):
+        """Dummy function to calculate finite source magnification.
+        """
+        return (u**2 + 2) / (np.sqrt(u**2 + 4))
+
+    def disc_radius(self, u, v, u0, v0, r_E):
+        r_star  = np.sqrt(u0**2 + u**2 - 2 * u0 * u * np.cos(v - v0)) * r_E 
+        sin_phi = (u * np.sin(v) - u0 * np.sin(v0)) / np.sqrt((u * np.sin(v) - u0 * np.sin(v0))**2 + (u * np.cos(v) - u0 * np.cos(v0))**2)
+        phi = np.arcsin(sin_phi)
+        r = r_star * np.sqrt(np.cos(phi)**2 + np.sin(phi)**2 / (np.cos(np.pi/2 - self.J)**2))
+        return r, r_star, phi
+
+    def magnification_point(self, u): #point-source magnification
+        return (u ** 2 + 2) / (u * np.sqrt(u**2 + 4))
+
+
+
+    def run_model(self, time, wvl, z, T, I, J, M, q, u_max=5, u_grid=300, v_grid=100):
+
+        # Grid for accretion disc 
+        u_array = np.linspace(0, u_max, u_grid)
+        delta_u = u_max / u_grid
+        v_array = np.linspace(0, 2 * np.pi, v_grid)
+        delta_v = 2 * np.pi / v_grid
+        u_grid, v_grid = np.meshgrid(u_array, v_array)
+
+        # Calculate self-lensing in phase
+        mag_e = []
+        mag_p = []
+
+        for t in tqdm(time, desc="Processing time steps"):
+            r_E = self.einstein_radius(t)[0]
+            u_0, v_0 = self.position_uv(t)
+            radius = self.disc_radius(u_grid, v_grid, u_0, v_0, r_E)[0]
+            flux_values = self.flux(radius)
+            M_point_u_values = self.magnification_point_u(u_grid)
+
+            numer = np.sum(flux_values * M_point_u_values * delta_u * delta_v)
+            denom = np.sum(flux_values * u_grid * delta_u * delta_v)
+            mag_e.append(numer / denom)
+
+        for t in time:
+            u_0, v_0 = self.position_uv(t)
+            mag_p.append(self.magnification_point(u_0))
+
+        return mag_p, mag_e
+
+
+
+    def lensing(self, t0, z, P, M, q, I, J, wvl,
+                u_max=10, u_grid=500, v_grid=500):
+
+        from astropy import units as u
+        from astropy import constants as c
+
+        # Convert to SI units
+        self.z  = z
+        self.q  = q
+        self.M  = M.to('M_sun')
+        self.t0 = t0.to('yr')
+        self.P  = P.to('yr')
+        self.I  = np.pi/2 * u.rad - I
+        self.J  = J
+        self.wvl = wvl.to('cm')
+        
+        # Orbital period in binary rest frame [s] 
+        self.T = self.period_observed()
+
+        # # Semi-major axis [m]        
+        self.a = self.semimajor_axis()
+        
+        # Schwarzchild radii (primary and secondary)
+        self.RS = self.schwarzchild_radius()
+
+        # Maximum Einstein radius (primary and secondary)
+        RE1 = np.sqrt(2 * self.a * self.RS[0])
+        RE2 = np.sqrt(2 * self.a * self.RS[1])
+        
+        # Print values
+        ut.errorcode('message', 'Model parameters:')
+        print(f'Orbital period in rest frame, P    : {self.P.to("yr"):.3f}')
+        print(f'Orbital period in obs. frame, T    : {self.T.to("yr"):.3f}')
+        print(f'Mass total, M = (M1 + M2)          : {self.M.to("M_sun")/1e6:.3f} x 1e6')
+        print(f'Mass ratio, q = (M2 / M1)          : {self.q:.4f}')
+        #print(f'Light ratio (L2 /(L1 + L2))   : {self.:.4f}')
+        print(f'Inclination of orbits, I           : {I.to("deg"):.2f}')
+        print(f'Inclination of mini-disc, J        : {J.to("deg"):.2f}')
+        #print(f'Argument of periapse          : {self.w:.2f}')
+        print(f'Semi-major axis of binaries, a     : {self.a.to("AU"):.2f}')
+        print(f'Schwarchild radius primary, Rs1    : {self.RS[0].to("R_sun"):.2f}')
+        print(f'Schwarchild radius secondary, Rs2  : {self.RS[1].to("R_sun"):.2f}')
+        print(f'Max Einstein radius primary, Re1   : {RE1.to("AU"):.2f}')
+        print(f'Max Einstein radius secondary, Re2 : {RE2.to("AU"):.2f}')
+
+        N = 1000
+        time = np.linspace(0, self.T.value, N)
+        phase = time / self.T.value
+        t_dur = self.time.to('yr').value[-1]
+        
+        #M_sun = 1.989e33   # [g]
+        q = self.q
+        M = (self.M/u.M_sun).value
+        t0 = self.t0.to('yr').value
+        T = self.T.to('yr').value
+        P = self.P.value
+        I = self.I.value
+        J = self.J.value
+
+        #self.a = self.a.to('cm').value
+        self.M = (M * u.M_sun).cgs.value
+        self.T = self.T.to('yr').value
+        self.a = self.a.cgs.value
+        self.Mq = self.reduced_mass()
+        self.wvl = self.wvl.cgs.value
+        self.I = self.I.value
+        self.RS_p = self.RS[0].cgs.value
+        self.RS_s = self.RS[1].cgs.value
+        self.J = self.J.value
+        
+        self.G = c.G.cgs.value
+        self.cc = c.c.cgs.value
+        self.h = c.h.cgs.value
+        self.k_B = c.k_B.cgs.value
+        self.sigma = 5.67 * 10 **-5 # erg cm^-2s^-1K^-4
+        
+        # RUN MODEL
+        M_point, M_finite = self.run_model(time, wvl, z, T, I, J, M, q, u_max, u_grid, v_grid)
 
     
     def _true_anomaly(self, E, e):
@@ -3262,102 +3409,6 @@ class SMBHB(object):
 
         return M1_ps, M2_ps
 
-    # def lensing_boosting_magnification(self):
-    #     """calculate magnification factor from lensing+boosting effects
-
-    #     time : array of times in units of orbits (typically from an AccretionSeries object)
-    #     fs   : fraction of total light coming from the secondary
-    #             := 0 when all from primary
-    #             := 1 when all from secondary
-    #     """
-    #     t = self.time
-    #     time = self.time.cgs.value
-
-    #     # Universal constants
-    #     G_cgs = c.G.cgs.value
-    #     c_cgs = c.c.cgs.value
-        
-    #     # Parameters for spikey
-    #     z  = self.z 
-    #     t0 = self.t0.value
-    #     T  = self.T.value
-    #     m1 = self.M1.value                                                           
-    #     m2 = self.M2.value
-    #     q  = self.q.value
-    #     m  = self.M.value
-    #     i  = self.i
-    #     e  = self.e
-    #     w  = self.w
-    #     fs = self.L
-
-    #     v_z = 0.0
-    #     alpha = 2.02
-
-    #     # Parameters from init
-    #     omega = self.omega
-    #     sini = self.sini
-    #     cosi = self.cosi
-    #     a  = self.a.value
-    #     a1 = self.a1.value
-    #     a2 = self.a2.value
-        
-    #     D1, D2 = self.doppler_boosting(alpha=alpha, v_z=v_z, plot=False)
-    #     E = np.array([self._eccentric_anomaly(m, e) for m in self.fm])
-    #     f = self._true_anomaly(E, e)
-    #     r = self._radial_vector(E, e, a)
-    #     r1 = self._radial_vector(E, e, a1)
-
-    #     # k1 = (n * a1 * sini) / (np.sqrt(1. - e**2))
-    #     # k2 = (n * a2 * sini) / (np.sqrt(1. - e**2))
-    #     # floor = 1e-10
-    #     # fkep  = 1. - e * np.cos(E)
-    #     # r  = a  * fkep
-    #     # r1 = a1 * fkep
-    #     # r2 = a2 * fkep
-    #     # vr1 = v_z + k1 * (np.cos(w + f) + e * np.cos(w))
-    #     # vr2 = v_z - k2 * (np.cos(w + f) + e * np.cos(w))
-    #     # v1_sqr = np.minimum((m2 / m)**2 * G_cgs * m * (2./r - 1./a) / c_cgs**2, 1. - floor)
-    #     # v2_sqr = np.minimum((m1 / m)**2 * G_cgs * m * (2./r - 1./a) / c_cgs**2, 1. - floor)
-    #     # gamma1 = 1. /  np.sqrt(1. - v1_sqr)
-    #     # gamma2 = 1. /  np.sqrt(1. - v2_sqr)
-    #     # D1 = 1. / (gamma1 * (1. - vr1 / c_cgs))**(3. - alpha)
-    #     # D2 = 1. / (gamma2 * (1. - vr2 / c_cgs))**(3. - alpha)
-        
-    #     x1 = r1 * (np.cos(omega) * np.cos(w + f) - np.sin(omega) * np.sin(w + f) * cosi)
-    #     y1 = r1 * (np.sin(omega) * np.cos(w + f) + np.cos(omega) * np.sin(w + f) * cosi)
-    #     z1 = r1 * (np.sin(w + f) * sini)
-    #     x2 = -1 * x1 / q
-    #     y2 = -1 * y1 / q
-    #     z2 = -1 * z1 / q
-    #     ml = np.full(z1.shape, m1)
-    #     dl = -z1
-    #     ds = -z2
-    #     flip = (z1 < 0)
-    #     ml[flip] =  m2
-    #     dl[flip] = -z2[flip]
-    #     ds[flip] = -z1[flip]
-    #     dl = ds - dl
-    #     dr = np.sqrt((x1 - x2)**2 + (y1 - y2)**2)
-    #     re = np.sqrt(4 * G_cgs * ml * dl / c_cgs**2)
-    #     u  = dr / (re + 1e-14)
-    #     M_ps = (u**2 + 2.) / (u * np.sqrt(u**2 + 4.))
-
-        
-    #     magnification = (1 - fs) * D1 + fs * D2 * M_ps
-    #     magnification[flip] = (1 - fs) * D1[flip] * M_ps[flip] + fs * D2[flip]
-
-        
-    #     fig, ax = plt.subplots(1, 1, figsize=(9,5))
-    #     t = t.to('yr').value
-    #     ax.plot(t, magnification, 'k-')
-    #     ax.set_xlim(0, t[-1])
-    #     ax.set_xlabel(r"Time [yr]")
-    #     ax.set_ylabel(r"Relative flux")
-    #     plt.legend()
-    #     plt.tight_layout();
-        
-    #     return magnification
-    
 #==============================================================#
 #                         EXOPLANETS                           #
 #==============================================================#
