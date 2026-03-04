@@ -97,7 +97,7 @@ class PLATOnium(object):
         self.simBeginExp   = args.bexp
         self.picID         = args.pic
         self.mag           = args.mag
-        self.conNone         = args.con_none
+        self.conNone       = args.con_none
         self.conDeltaMag   = args.con_dmag
         self.conDisLimit   = args.con_dist
         self.reuseJitter   = args.jit_reuse
@@ -546,7 +546,7 @@ class PLATOnium(object):
             
             # If requested select only the target, else include contaminants
             if not self.starcatFile:
-                if self.noCon:
+                if self.conNone:
                     self.dc = dc[dc[self.colID] == 0]
                 else:
                     self.dc = dc[dc[self.colID] == self.df[self.colID]]
@@ -561,7 +561,7 @@ class PLATOnium(object):
                 self.df.mag = self.mag
 
             # Number of contaminants
-            if self.noCon:
+            if self.conNone:
                 self.numCon = 0
             else:
                 # Limits for contaminants
@@ -575,7 +575,7 @@ class PLATOnium(object):
             self.ds['ra']  = np.append(self.df['ra'],  self.dc['ra'])
             self.ds['dec'] = np.append(self.df['dec'], self.dc['dec'])
             self.ds['mag'] = np.append(self.df['mag'], self.dc['mag'])
-            if not self.noCon:
+            if not self.conNone:
                 self.ds['ids'] = np.arange(1, self.numCon+2)
             else:
                 self.ds['ids'] = 1
@@ -600,7 +600,7 @@ class PLATOnium(object):
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
         # Select the camera index [0, 25]
-        dex  = self.camera_id - 1
+        dex  = self.cameraID - 1
 
         # NOTE These functions set the correct CCD configuration and cadence!
         #      and if requested also performance and time conditions
@@ -742,11 +742,11 @@ class PLATOnium(object):
             
         # Secure correct zero-point flux w.r.t. passband used
         # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
-        if self.magPB == 'Pmag':
+        if self.passband == 'Pmag':
             sim['ObservingParameters/Fluxm0'] = 7.324509159344043e7
-        elif self.magPB == 'PBmag':
+        elif self.passband == 'PBmag':
             sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
-        elif self.magPB == 'PRmag':
+        elif self.passband == 'PRmag':
             sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
 
         # NOTE: adds option to turn off DKA
