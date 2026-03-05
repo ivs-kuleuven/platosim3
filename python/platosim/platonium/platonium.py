@@ -71,7 +71,6 @@ class PLATOnium(object):
         self.group    = args.groupID
         self.camera   = args.cameraID
         self.quarter  = args.quarter
-        self.cameraID = (self.group - 1) * 6 + self.camera
 
         self.seed        = args.seed
         self.performance = args.performance
@@ -446,7 +445,11 @@ class PLATOnium(object):
             
             # Get pointing field from YAML and load stellar catalogue            
             starcatName = f'starcat**_{self.pointingField}_group{self.group}.ftr'
-            starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
+            try:
+                starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
+            except IndexError:
+                errorcode('error', 'No source catalogue found for full-frame mode! Add one or use "picsim --vizier" to produce one')
+                
             if not starcat.is_file() and not starcat.is_symlink():
                 errorcode('error', 'No star catalogue found in the project input directory!')
 
@@ -599,9 +602,6 @@ class PLATOnium(object):
         timeQuarter = ut.year() / 86400 / 4  # [days]
         self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
 
-        # Select the camera index [0, 25]
-        dex  = self.cameraID - 1
-
         # NOTE These functions set the correct CCD configuration and cadence!
         #      and if requested also performance and time conditions
         # NOTE Parameter "normal" is used in the subfield selection
@@ -611,7 +611,10 @@ class PLATOnium(object):
         else:
             self.normal = True
             sim.useNormalCamera(self.performance, self.timeStart)
-        
+
+        # Select the camera index [0, 25]
+        dex = (self.group - 1) * 6 + self.camera
+            
         # CONFIGURE OBSERVING PARAMETERS
         
         # Cadence of time series [s]
