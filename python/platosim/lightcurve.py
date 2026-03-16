@@ -613,7 +613,7 @@ class LightCurve(object):
         df = self.df.copy()
 
         # Fetch time and flux
-        df["time"] = self.time(unit="d")
+        df.time = self.time(unit="d")
 
         # Fetch flux column and force to be ppm for correct NSR
         if influx == "e/s":
@@ -624,18 +624,17 @@ class LightCurve(object):
             
         # Set the binned time scale [days]
         dt = binhour/24.
-
+        
         # Bin to devide data
         if binhour == 0:
             noise = df[column].std()
             nbin  = 1
         else:
-            nbins = round( (df["time"].max() - df["time"].min()) / dt) + 1
-            tbins = np.linspace(df["time"].min(), df["time"].max(), nbins)
-            nbin  = len(df[df["time"].between(tbins[0], tbins[1])])
+            nbins = round( (df.time.max() - df.time.min()) / dt) + 1
+            tbins = np.linspace(df.time.min(), df.time.max(), nbins)
+            nbin  = len(df[df.time.between(tbins[0], tbins[1])])
             flux_dex = df.columns.get_loc(column)
-            data  = [df[df["time"].between(tbins[i],
-                                           tbins[i+1])].to_numpy() for i in range(nbins-1)]
+            data  = [df[df.time.between(tbins[i], tbins[i+1])].to_numpy() for i in range(nbins-1)]
             noise = np.array([data[i][:,flux_dex].std() for i in range(len(data))])
 
         # Return NSR
