@@ -2686,54 +2686,61 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 #--------------------------------------------------------------#
 
 
-def plotPeriodogram(df, dm=None, scaling='density', lw=0.5,
+def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
                     c='k', label='Simulation',
                     cm='orange', label_model='Model',
-                    numax=False, title=False, figsize=(9,5)):
+                    numax=False, title=False, logx=True, logy=True,
+                    figsize=(9,5)):
     """Plot Power Spectral Density (PSD) for solar-like star.
 
     Parameters
     ----------
     df : pd.DataFrame
-        Data frame with time [s] and flux [norm] points
+        Data frame with observed light cuvre (time [s], flux [norm]). 
     dm : pd.DataFrame
-        Data frame with model (or a second time series)
+        Data frame with model light curve (time [s], flux [norm]).
     scaling : str
-        scipy.periodogram scaling argument.
+        scipy.periodogram scaling argument {'density', 'spectrum'}.
     **kwargs
 
     Return
     ------
-    matplotlib.pyplot fig,ax handles
+    matplotlib.pyplot handles (fig, ax)
     """
-    # Compute frequencies uptil the Nyquist frequency
+    # Convert flux to ppm
+    df = df0.copy()
+    df.time = df.time / 1e6
+    df.flux = (df.flux - 1) * 1e6
+    # Compute PSD up to Nyquist frequency
     sampling = np.diff(df.time)[0]
     freq, psd = periodogram(df.flux, 1/sampling, scaling=scaling)
-    freq *= 1e6  # [muHz]
 
     # Start plotting data and model
     fig, ax = plt.subplots(1, 1, figsize=figsize)    
     ax.plot(freq, psd, '-', c=c, lw=lw, label=label)
-    if isinstance(dm, pd.DataFrame):
+    if isinstance(dm0, pd.DataFrame):
+        # Convert units
+        dm = dm0.copy()
+        dm.time = dm.time / 1e6
+        dm.flux = (dm.flux - 1) * 1e6
+        # Compute PSD up to Nyquist frequency
         sampling = np.diff(dm.time)[0]
         freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling=scaling)
-        freq_model *= 1e6  # [muHz]
         ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model)
-
+ 
     # Plot mission requirements (from the red book)
     misreq = True
-    scale = 1e6
     if misreq:
-        plt.plot([3e-6*scale, 20e-6*scale], [21.4/scale, 0.23/scale],
-                 c='b', linestyle='--', lw=1, label='MPE requirement')
-        plt.plot([20e-6*scale, 4e-2*scale], [0.23/scale, 0.23/scale],
-                 c='b', linestyle='--', lw=1)
-        plt.plot([3e-6*scale, 4e-2*scale], [3/scale, 3/scale],
-                 c='r', linestyle='--', lw=1, label='MPE requirement')
+        plt.plot([3, 20], [50, 9],
+                 c='royalblue', linestyle='-', lw=2, label='MPE requirement')
+        plt.plot([20, 4000], [9, 9],
+                 c='royalblue', linestyle='-', lw=2)
+        #plt.plot([3e-6*scale, 4e-2*scale], [9/scale, 9/scale],
+        #         c='r', linestyle='--', lw=1, label='MPE requirement')
 
     # Settings
-    ax.set_xscale('log')
-    ax.set_yscale('log')
+    if logx: ax.set_xscale('log')
+    if logy: ax.set_yscale('log')
     ax.set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
     ax.set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
     ax.legend(ncol=1, loc='best')
