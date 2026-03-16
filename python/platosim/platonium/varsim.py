@@ -2304,7 +2304,8 @@ class VarSim(object):
 
         # If all signals are ignored then it is a constant star
         if ((args.gran is False or args.puls is False) and
-            args.spot is False and args.flare is False):
+            args.spot is False and args.flare is False and
+            args.planet_params is False):
             self.star = 'constant'
 
         elif args.smbhb or args.smbhb_params:
