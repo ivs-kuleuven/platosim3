@@ -613,7 +613,7 @@ class PLATOnium(object):
             sim.useNormalCamera(self.performance, self.timeStart)
 
         # Select the camera index [0, 25]
-        dex = (self.group - 1) * 6 + self.camera
+        dex = (self.group - 1) * 6 + (self.camera - 1)
             
         # CONFIGURE OBSERVING PARAMETERS
         
