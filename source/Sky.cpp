@@ -77,10 +77,10 @@ Sky::Sky(ConfigurationParameters &configParams)
         // time0  is the begin time of the exposure in [s]. It is measured w.r.t. the zero-point that is mentioned
         // the spacecraft orbit file, which is 2014-06-30T12:00:00.000. The start time of exposure # 0 w.r.t. this zero-point
         // is stated in the yaml inputfile in "Camera/AberrationCorrection/StartTime", expressed in [s].
-
-        time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")
-              + configParams.getDouble("ObservingParameters/BeginExposureNr") * configParams.getDouble("ObservingParameters/CycleTime");
-        double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
+      orbitStartTime = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+      double time0 = orbitStartTime
+	+ configParams.getDouble("ObservingParameters/BeginExposureNr") * configParams.getDouble("ObservingParameters/CycleTime");
+      double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
 
         ifstream orbitFile(orbitPlatoFile);
         if (orbitFile.is_open())
@@ -532,7 +532,7 @@ void Sky::aberrateSelectedPositions(Platform &platform, vector<unsigned int> &se
 
     for (unsigned int i = 0; i < orbitDB.size(); i++)
     {
-        if (std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+        if (std::get<0>(orbitDB.at(i)) <= orbitStartTime + startTime)
         {
             speed = std::get<2>(orbitDB.at(i));
             v = std::get<1>(orbitDB.at(i));
