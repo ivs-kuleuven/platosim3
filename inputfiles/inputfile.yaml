@@ -96,8 +96,8 @@ Camera:
     IncludeAberrationCorrection:     yes             # Calculate the differential aberration correction and apply
     AberrationCorrection:
         Type:                        differential    # [differential, absolute]
-        OrbitFile:                   inputfiles/orbit.txt   # Spacecraft orbit file containing t,X,Y,Z,Vx,Vy,Vz,|V|
-        StartTime:                   101489.207030   # Start time of exposure # 0 in [s] where t=0 corresponds to 2014-06-30T12:00:00.000.
+        OrbitFile:                   inputfiles/orbit_prime_10_years.txt   # Spacecraft orbit file containing t,X,Y,Z,Vx,Vy,Vz,|V|
+        StartTime:                   0.              # Start time of exposure # 0 in [s] where t=0 corresponds to 2027-01-20T15:30:00.000
     IncludeFieldDistortion:          yes             # Whether or not to include field distortion. Not used when a MappedFromFile PSF is selectie.
     FieldDistortion:                                 # Distortion model from Wang+2007 with coefficients: [k1, k2, k3, q1, q2, p1, p2]
         Source:                      ConstantValue   # Either ConstantValue (constant in time) or FromFile (time dependent)
