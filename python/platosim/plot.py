@@ -2689,8 +2689,9 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
                     c='k', label='Simulation',
                     cm='orange', label_model='Model',
+                    show_misreq=True, noise_level=None,
                     numax=False, title=False, logx=True, logy=True,
-                    figsize=(9,5)):
+                    figsize=(9,6)):
     """Plot Power Spectral Density (PSD) for solar-like star.
 
     Parameters
@@ -2726,15 +2727,26 @@ def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
         # Compute PSD up to Nyquist frequency
         sampling = np.diff(dm.time)[0]
         freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling=scaling)
-        ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model)
+        ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model, alpha=0.7)
  
     # Plot mission requirements (from the red book)
-    misreq = True
-    if misreq:
-        plt.plot([3, 20], [50, 9],
-                 c='royalblue', linestyle='-', lw=2, label='MPE requirement')
-        plt.plot([20, 4000], [9, 9],
-                 c='royalblue', linestyle='-', lw=2)
+    if show_misreq:
+        lw = 1.5
+        var = 3600e-6 * np.array([103, 71, 58, 50])**2
+        plt.plot([3, 20], [var[0]+50, var[0]], linestyle='-', lw=lw, label='Req. 06 N-CAM', c='royalblue')
+        plt.plot([3, 20], [var[1]+50, var[1]], linestyle='-', lw=lw, label='Req. 12 N-CAM', c='lime')
+        plt.plot([3, 20], [var[2]+50, var[2]], linestyle='-', lw=lw, label='Req. 18 N-CAM', c='yellow')
+        plt.plot([3, 20], [var[3]+50, var[3]], linestyle='-', lw=lw, label='Req. 24 N-CAM', c='red')
+        plt.plot([20, 4000], [var[0], var[0]], linestyle='-', lw=lw, c='royalblue')
+        plt.plot([20, 4000], [var[1], var[1]], linestyle='-', lw=lw, c='lime')
+        plt.plot([20, 4000], [var[2], var[2]], linestyle='-', lw=lw, c='yellow')
+        plt.plot([20, 4000], [var[3], var[3]], linestyle='-', lw=lw, c='red')
+
+    # Plot noise level
+    if noise_level:
+        plt.plot([3, 4000], [noise_level, noise_level],
+                 c='m', linestyle='--', lw=2, label='Noise level')
+        
         #plt.plot([3e-6*scale, 4e-2*scale], [9/scale, 9/scale],
         #         c='r', linestyle='--', lw=1, label='MPE requirement')
 

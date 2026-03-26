@@ -151,7 +151,7 @@ def getJobScript(ids, groups, cameras, quarters,
     source activate platonium
 
     # Run PLATOnium
-    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -d $OUTDIR --compress -v 0
+    python $PLATONIUM $id $group $camera $quarter --project $PROJECT -o $TEMDIR -s $OUTDIR -v 0
     """
 
     # Save textfile for worker
