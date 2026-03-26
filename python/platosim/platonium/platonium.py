@@ -680,6 +680,7 @@ class PLATOnium(object):
         else:
             # Select PLATO pointing field from inputfile
             alpha, delta, kappa = getPointingField(self.pointingField)
+            print(alpha, delta, kappa)
             sim["Platform/Orientation/Angles/RAPointing"]  = alpha
             sim["Platform/Orientation/Angles/DecPointing"] = delta
             # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
@@ -689,18 +690,6 @@ class PLATOnium(object):
             if self.verbose > 1:
                 print(f'Setting platform pointing    (PLM FromYAML: {self.pointingField})')
  
-        # CONFIGURE CAMERA
-
-        # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
-        # TODO for now it is not possible to use GroupID = Custom since this uses
-        #      the N-CAM readout and results in a negative exposure time (and error)            
-        if self.groupID == 'Fast':
-            sim["Telescope/GroupID"] = 'Fast'
-        else:
-            sim["Telescope/GroupID"]      = 'Custom'
-            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
-            
         # POINTING ERRORS
         
         # Include Pointing Repeatability Error (PRE) between consecutive quarters
@@ -759,7 +748,7 @@ class PLATOnium(object):
             sim["Platform/JitterFileName"] = inputFileAOCS
 
         # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters
-        # NOTE: Not recommended but used for PLATO-KUL-PL-TN-0023
+        # NOTE This is not recommended but was used for PLATO-KUL-PL-TN-0023
         elif self.reuseJitter:
             sim["Platform/UseJitter"]    = True
             sim["Platform/JitterSource"] = 'FromFile'
