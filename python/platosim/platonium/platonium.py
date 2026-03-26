@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 This script uses the PIC targets and their contaminants to simulate realistic imagettes
 or lightcurves using PlatoSim. It can simulate any of the 24 normal cameras/telescopes,
@@ -59,12 +58,10 @@ from platosim.matplotlibrc import setup; setup()
 #==============================================================#
 
 class PLATOnium(object):
+    """Class for running multi-camera and multi-quarter PlatoSim simulations.
     """
-    Class for running multi-camera and multi-quarter PlatoSim simulations.
-    """
-
     def __init__(self, args):
-
+        
         # PARSED ARGUMENTS
 
         self.targetNo = args.starID
@@ -155,6 +152,9 @@ class PLATOnium(object):
             self.ccdCode = self.targetNo
             if not self.ccdCode in [1, 2, 3, 4]:
                 errorcode('error', 'CCD code can only be [1, 2, 3, 4]')
+
+        # Select the camera index [0, 25]
+        self.cameraIndex = (self.group - 1) * 6 + (self.camera - 1)
 
         # OPTIONAL PARAMETERS
 
@@ -299,10 +299,8 @@ class PLATOnium(object):
 
 
     def configure_output(self):
+        """Module to create, configure, and select the correct output folders.
         """
-        Module to create, configure, and select the correct output folders.
-        """
-        
         # Final destination on the cluster
         if self.storageDir:
             self.storageDir = Path(self.storageDir).resolve()
@@ -426,10 +424,8 @@ class PLATOnium(object):
                 
             
     def load_stars(self):
+        """Module to load the stellar targets and contaminants.
         """
-        Module to load the stellar targets and contaminants.
-        """
-        
         # Fetch some information from YAML
         sim = Simulation(self.outputFileName, self.inputFile)
 
@@ -455,7 +451,7 @@ class PLATOnium(object):
 
             # Load source catalogue
             if self.verbose > 1:
-                print('\nLoading source catalogue..')
+                print(f'\nLoading source catalogue: {starcat.name}')
             self.dx = pd.read_feather(starcat)
 
             # Check source and passband names
@@ -470,11 +466,9 @@ class PLATOnium(object):
             self.ds['ids'] = np.arange(0, len(self.ds.ra)).astype(int)
 
         # SUBFIELD CATALOGUES
-            
+        
         else:
-
             # Fetch stars from custum catalogue
-            
             if self.starcatFile is not None:
 
                 # Read catalogue
@@ -487,7 +481,6 @@ class PLATOnium(object):
                 self.dc = df.iloc[1:]
 
             # Fetch stars from PIC and Gaia DR3 catalogues
-            
             else:
                 
                 # Addsample name to use non-default catalogues
@@ -585,25 +578,21 @@ class PLATOnium(object):
 
         
     def init_sim(self):
+        """Module to initialize the the PlatoSim simulation object.
         """
-        Module to initialize the the PlatoSim simulation object.
-        """
-
         # INITIALIZE SIMULATION
         
-        # Print to bash
+        # Setting up a test simulation environement
         if self.verbose > 1:
             errorcode('module', '\nInitialize and configure PlatoSim\n')
-
-        # Setting up a test simulation environement
         sim = Simulation(self.outputFileName, self.inputFile)
 
         # Start time of simulation [s]
-        timeQuarter = ut.year() / 86400 / 4  # [days]
-        self.timeStart = round(timeQuarter * (self.quarter - 1) * 86400.)
+        self.timeStart = round(ut.quarter() * (self.quarter - 1) * 86400)
 
-        # NOTE These functions set the correct CCD configuration and cadence!
-        #      and if requested also performance and time conditions
+        # Set general parameters for N-CAM and F-CAM
+        # NOTE These functions set multiple default configurations (see simulation.py)
+        # NOTE CCD offset is automatically set by sim.setSubfieldAroundCoordinates()
         # NOTE Parameter "normal" is used in the subfield selection
         if self.groupID == 'Fast':
             self.normal = False
@@ -611,31 +600,27 @@ class PLATOnium(object):
         else:
             self.normal = True
             sim.useNormalCamera(self.performance, self.timeStart)
-
-        # Select the camera index [0, 25]
-        dex = (self.group - 1) * 6 + (self.camera - 1)
-            
-        # CONFIGURE OBSERVING PARAMETERS
         
+        # CONFIGURE OBSERVING PARAMETERS
+
         # Cadence of time series [s]
-        # NOTE CCD offset is automatically set by setSubfieldAroundCoordinates()
+        # NOTE Overwrites sim.useFastCamera() and sim.useNormalCamera()
+        cadence = sim['ObservingParameters/CycleTime']
         if self.cadence:
             sim['ObservingParameters/CycleTime'] = self.cadence
+            factor = self.cadence / cadence
+            if factor > 1 and self.verbose > 1:
+                errorcode('warning', f'Only alter the cadence for testing purposes!')
         else:
-            if self.groupID == 'Fast':
-                self.cadence = 2.5
-            else:
-                self.cadence = sim['ObservingParameters/CycleTime']
-
-        # Start time of simulation
+            self.cadence = cadence
+            
+        # Check if start time or exposure is parsed
         if self.simBeginTime:
-            # Check if begin time is parsed
             self.simBeginExp = round(self.simBeginTime * 86400 / self.cadence)
-        elif not self.simBeginExp:
-            # Check if begin exposure number is parsed
+        elif self.simBeginExp is None:
             self.simBeginExp = 0
-                
-        # Apply start time relative mission BOL
+            
+        # Start time of simulation relative mission BOL
         self.beginExposureNr = round(self.timeStart / self.cadence) + self.simBeginExp
         sim['ObservingParameters/BeginExposureNr'] = self.beginExposureNr
 
@@ -647,10 +632,8 @@ class PLATOnium(object):
             # Setting timeseries by time given by user
             self.numExposures = round(self.simTime * 86400 / self.cadence)
         else:
-            # Setting time series to full quarter
-            # NOTE Minimally a day is lost due to events of platform roll,
-            # thermal stabilisation, data downlink, microscanning, etc.
-            self.numExposures = round((timeQuarter - 1) * 86400 / self.cadence)
+            # Setting time series to full quarter (assuming a 1-day break)
+            self.numExposures = round((ut.quarter() - 1) * 86400 / self.cadence)
             
         # Secure correct zero-point flux for passband
         # Values are from: docs/technical/DLR-TN-0113/zero_point.ipynb
@@ -711,42 +694,13 @@ class PLATOnium(object):
         # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
         # TODO for now it is not possible to use GroupID = Custom since this uses
         #      the N-CAM readout and results in a negative exposure time (and error)            
-        # NOTE These functions set the correct CCD configuration and cadence!
-        #      and if requested also performance and time conditions
-        # NOTE Parameter "normal" is used in the subfield selection
         if self.groupID == 'Fast':
-            normal = False
             sim["Telescope/GroupID"] = 'Fast'
-            sim.useFastCamera(self.cameraID, self.performance, self.timeStart)
         else:
-            normal = True
             sim["Telescope/GroupID"]      = 'Custom'
             sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
             sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
-            sim.useNormalCamera(self.performance, self.timeStart)
-
-        # Secure that user-defined cadence is used!
-        # NOTE Done after applying the above sim functions
-        if self.cadence:
-            cadence = sim['ObservingParameters/CycleTime']
-            sim['ObservingParameters/CycleTime'] = self.cadence
-            factor = self.cadence / cadence
-            if factor > 1:
-                if self.verbose > 1:
-                    errorcode('warning', f'Increasing random noise {factor} times due to change of cadence!')
-                sim['CCD/DarkSignal/DarkCurrent'] *= factor
-                sim['CCD/ReadoutNoise'] *= factor
-                sim['FEE/ReadoutNoise'] *= factor 
             
-        # Secure correct zero-point flux w.r.t. passband used
-        # NOTE if "mag" column exist the YAML entry "Fluxm0" is used
-        if self.passband == 'Pmag':
-            sim['ObservingParameters/Fluxm0'] = 7.324509159344043e7
-        elif self.passband == 'PBmag':
-            sim['ObservingParameters/Fluxm0'] = 3.808715439431968e7
-        elif self.passband == 'PRmag':
-            sim['ObservingParameters/Fluxm0'] = 2.759170426017332e7
-
         # POINTING ERRORS
         
         # Include Pointing Repeatability Error (PRE) between consecutive quarters
@@ -865,8 +819,8 @@ class PLATOnium(object):
                     errorcode('warning', 'Cannot apply camera misalignment (tilt, azimuth)! ' +
                               f'instrumentAPE.csv needs to be shape (26, 2)')            
                 else:
-                    sim["Telescope/TiltAngle"]    += APE.TiltAngle.iloc[dex]
-                    sim["Telescope/AzimuthAngle"] += APE.AzimuthAngle.iloc[dex]
+                    sim["Telescope/TiltAngle"]    += APE.TiltAngle.iloc[self.cameraIndex]
+                    sim["Telescope/AzimuthAngle"] += APE.AzimuthAngle.iloc[self.cameraIndex]
             # Use Quaternion to set camera pointing
             # NOTE In the following approach we assume a nominal camera tilt and azimuth
             # and adjust the platform pointing to get desired camera pointing (misalignment)
@@ -902,8 +856,8 @@ class PLATOnium(object):
             if self.verbose > 1:
                 print('Applying camera misalignment (APE FromFile)')
             APE = np.loadtxt(inputFileAPE_txt)
-            sim["Telescope/TiltAngle"]    += APE[dex, 0]
-            sim["Telescope/AzimuthAngle"] += APE[dex, 1]
+            sim["Telescope/TiltAngle"]    += APE[self.cameraIndex, 0]
+            sim["Telescope/AzimuthAngle"] += APE[self.cameraIndex, 1]
         #---------------------------------------------------------------------
 
         # Thermo-Elastic Drift (TED) due to thermal gradient across optical bench
@@ -943,16 +897,16 @@ class PLATOnium(object):
             else:            
                 if 'FocalLength' in CAM.columns:
                     sim['Camera/FocalLength/Source'] = 'ConstantValue'
-                    sim['Camera/FocalLength/ConstantValue'] = CAM.FocalLength.iloc[dex] * 1e-3
+                    sim['Camera/FocalLength/ConstantValue'] = CAM.FocalLength.iloc[self.cameraIndex] * 1e-3
                 if 'k1' in CAM.columns:
                     coeff_normal = []
-                    coeff_normal.append(CAM.k1.iloc[dex])
-                    coeff_normal.append(CAM.k2.iloc[dex]) if 'k2' in CAM.columns else coeff_normal.append(0.0)
-                    coeff_normal.append(CAM.k3.iloc[dex]) if 'k3' in CAM.columns else coeff_normal.append(0.0)
-                    coeff_normal.append(CAM.q1.iloc[dex]) if 'q1' in CAM.columns else coeff_normal.append(0.0)
-                    coeff_normal.append(CAM.q2.iloc[dex]) if 'q2' in CAM.columns else coeff_normal.append(0.0)
-                    coeff_normal.append(CAM.p1.iloc[dex]) if 'p1' in CAM.columns else coeff_normal.append(0.0)
-                    coeff_normal.append(CAM.p2.iloc[dex]) if 'p2' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.k1.iloc[self.cameraIndex])
+                    coeff_normal.append(CAM.k2.iloc[self.cameraIndex]) if 'k2' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.k3.iloc[self.cameraIndex]) if 'k3' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.q1.iloc[self.cameraIndex]) if 'q1' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.q2.iloc[self.cameraIndex]) if 'q2' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.p1.iloc[self.cameraIndex]) if 'p1' in CAM.columns else coeff_normal.append(0.0)
+                    coeff_normal.append(CAM.p2.iloc[self.cameraIndex]) if 'p2' in CAM.columns else coeff_normal.append(0.0)
                     sim["Camera/IncludeFieldDistortion"] = True
                     sim["Camera/FieldDistortion/Source"] = 'ConstantValue'
                     sim["Camera/FieldDistortion/ConstantCoefficients"] = coeff_normal
@@ -961,13 +915,13 @@ class PLATOnium(object):
                               'Using default values from YAML file')
                 if 'ik1' in CAM.columns:
                     coeff_inverse = []
-                    coeff_inverse.append(CAM.ik1.iloc[dex])
-                    coeff_inverse.append(CAM.ik2.iloc[dex]) if 'ik2' in CAM.columns else coeff_inverse.append(0.0)
-                    coeff_inverse.append(CAM.ik3.iloc[dex]) if 'ik3' in CAM.columns else coeff_inverse.append(0.0)
-                    coeff_inverse.append(CAM.iq1.iloc[dex]) if 'iq1' in CAM.columns else coeff_inverse.append(0.0)
-                    coeff_inverse.append(CAM.iq2.iloc[dex]) if 'iq2' in CAM.columns else coeff_inverse.append(0.0)
-                    coeff_inverse.append(CAM.ip1.iloc[dex]) if 'ip1' in CAM.columns else coeff_inverse.append(0.0)
-                    coeff_inverse.append(CAM.ip2.iloc[dex]) if 'ip2' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ik1.iloc[self.cameraIndex])
+                    coeff_inverse.append(CAM.ik2.iloc[self.cameraIndex]) if 'ik2' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ik3.iloc[self.cameraIndex]) if 'ik3' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.iq1.iloc[self.cameraIndex]) if 'iq1' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.iq2.iloc[self.cameraIndex]) if 'iq2' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ip1.iloc[self.cameraIndex]) if 'ip1' in CAM.columns else coeff_inverse.append(0.0)
+                    coeff_inverse.append(CAM.ip2.iloc[self.cameraIndex]) if 'ip2' in CAM.columns else coeff_inverse.append(0.0)
                     sim["Camera/FieldDistortion/ConstantInverseCoefficients"] = coeff_inverse
                 else:
                     errorcode('warning', 'No inverse distortion coefficients found in CAM! ' +
@@ -989,12 +943,12 @@ class PLATOnium(object):
                 OriginOffsetY = []
                 Orientation   = sim['CCDPositions/Orientation']
                 # Add small offset to orientations
-                dexCam = 4 * dex
-                for i in [dexCam, dexCam+1, dexCam+2, dexCam+3]:
+                ccdIndex = 4 * self.cameraIndex
+                for i in [ccdIndex, ccdIndex+1, ccdIndex+2, ccdIndex+3]:
                     ccd = CCD.iloc[i]
                     OriginOffsetX.append(ccd.OriginOffsetX)
                     OriginOffsetY.append(ccd.OriginOffsetY)
-                    Orientation[i-dexCam] += ccd.Orientation
+                    Orientation[i-ccdIndex] += ccd.Orientation
                 sim["CCDPositions/OriginOffsetX"] = OriginOffsetX
                 sim["CCDPositions/OriginOffsetY"] = OriginOffsetY
                 sim["CCDPositions/Orientation"]   = Orientation
@@ -1012,13 +966,44 @@ class PLATOnium(object):
             if self.verbose > 1:
                 print('Applying thermal transients  (GTT FromFile)')
                 
-        # SUBFIELD SIMULATION
+        # CONFIGURE FULL-FRAME OR SUBFIELD SIMULATION
         
-        if not self.fullFrame:
+        if self.fullFrame:
+            # Turn off photometry
+            sim['Photometry/IncludePhotometry'] = False
+            # Argument needed for later
+            self.isOnCCD = True
+            # Set CCD parameters
+            sim["CCD/Position"] = str(self.ccdCode)
+            sim["SubField/NumRows"]    = sim["CCDPositions/NumRows"][0]
+            sim["SubField/NumColumns"] = sim["CCDPositions/NumColumns"][0]
+            # Control output requirements
+            sim["ControlHDF5Content/GroupByExposure"]    = True
+            sim["ControlHDF5Content/WritePixelMaps"]     = True
+            sim["ControlHDF5Content/WriteStarPositions"] = True
 
-            # Check for sources in subfield
-            self.check_observability(sim)
+            # print(sim['SubField/ZeroPointRow'])
+            # print(sim['SubField/ZeroPointColumn'])
+            # exit()
+            # dex = int(self.ccdCode - 1)
+            # if self.groupID == 'Fast':
+            #     sim["CCD/FirstRowExposed"] = sim["CCDPositions/FirstRowForFastCamera"][dex]
+            # else:
+            #     sim["CCD/FirstRowExposed"] = sim["CCDPositions/FirstRowForNormalCamera"][dex]
             
+                # TODO readout time is not correct if not GroupID = Fast -> New feature
+                # shieldRows = sim["CCDPositions/MetallicShield/ShieldRowCoordinates"]
+                # shieldCols = sim["CCDPositions/MetallicShield/ShieldColumnCoordinates"]
+                # sim["SubField/ZeroPointRow"]    = shieldRows[0]
+                # sim["SubField/ZeroPointColumn"] = shieldCols[0]
+                # sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
+                # sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
+            # else:
+            #     sim["SubField/NumRows"]    = sim["CCD/NumRows"][0]
+            #     sim["SubField/NumColumns"] = sim["CCD/NumColumns"][0]
+        else:
+            # Check for sources in subfield
+            self._check_observability(sim)            
             # Create data frame for printing and saving
             c = [self.colID, 'ra [deg]', 'dec [deg]', 'mag',
                  'CCD', 'xCCD [pix]', 'yCCD [pix]',
@@ -1029,51 +1014,18 @@ class PLATOnium(object):
                  'rOA [deg]': [self.rOA], 'xFP [mm]': [self.xFP], 'yFP [mm]': [self.yFP],
                  'Ncon': self.numCon}
             self.df0 = pd.DataFrame(d, columns=c)
-
             # Print data frame
             if self.verbose > 1:
                 print('\nInformation about stellar target')
                 print(self.df0)
 
-            return sim
-
-        # FULL-FRAME SIMULATION
-        
-        else:
-            # Turn off photometry
-            sim['Photometry/IncludePhotometry'] = False
-
-            # Set CCD parameters
-            self.isOnCCD        = True
-            sim["CCD/Position"] = str(self.ccdCode)
-
-            if self.groupID == 'Fast':
-                # TODO readout time is not correct if not GroupID = Fast -> New feature
-                sim["Telescope/GroupID"] = 'Fast'
-                shieldRows = sim["CCDPositions/MetallicShield/ShieldRowCoordinates"]
-                shieldCols = sim["CCDPositions/MetallicShield/ShieldColumnCoordinates"]
-                sim["SubField/ZeroPointRow"]    = shieldRows[0]
-                sim["SubField/ZeroPointColumn"] = shieldCols[0]
-                sim["SubField/NumRows"]         = shieldRows[1] - shieldRows[0]
-                sim["SubField/NumColumns"]      = shieldCols[1] - shieldCols[0]
-            else:
-                sim["SubField/NumRows"]    = sim["CCDPositions/NumRows"][0]
-                sim["SubField/NumColumns"] = sim["CCDPositions/NumColumns"][0]
-
-            # Control output requirements
-            sim["ControlHDF5Content/GroupByExposure"]    = True
-            sim["ControlHDF5Content/WritePixelMaps"]     = True
-            sim["ControlHDF5Content/WriteStarPositions"] = True
-
-            return sim
-                    
+        # Return simulation object
+        return sim
 
     
-    def check_observability(self, sim):
-        """
-        Function to check if the target is observable.
-        """
-        
+    def _check_observability(self, sim):
+        """Function to check if the target is observable.
+        """        
         numColSubfield = sim["SubField/NumColumns"]
         numRowSubfield = sim["SubField/NumRows"]
         raTargetRad    = np.deg2rad(self.df['ra'])
@@ -1134,12 +1086,9 @@ class PLATOnium(object):
             exit()
         
     
-    
     def create_seeds(self, sim):
+        """Module to select and load the random seeds.
         """
-        Module to select and load the random seeds.
-        """
-
         # Initialise random number generator after user or clock
         if not self.seed:
             seed = 123456789
@@ -1175,13 +1124,10 @@ class PLATOnium(object):
             sim["RandomSeeds/FlatFieldSeed"]    += rng.integers(1e9, size=1)[0]
             sim["RandomSeeds/CosmicSeed"]       += rng.integers(1e9, size=1)[0]
 
-
             
     def create_inputfiles(self, sim):
-        """
-        Function to create ascii input files for PlatoSim.
-        """
-        
+        """Function to create ascii input files for PlatoSim.
+        """        
         # SAVE STELLAR CATALOGS AND TARGET LISTS
 
         # Save catalog and load it into the inputfile
@@ -1250,11 +1196,9 @@ class PLATOnium(object):
         else:
             self.photometry = False
 
-
             
     def show_subfield(self, sim):
-        """
-        Function to show:
+        """Function to show:
         1) where the target star is situated in the CCD focal plane
         2) the first subfield/imagette of the simulation
         This function exit the simulation.
@@ -1357,8 +1301,7 @@ class PLATOnium(object):
     #--------------------------------------------------------------#
 
     def run_sim_normal(self, sim):
-        """
-        Module to run PlatoSim only.
+        """Module to run PlatoSim only.
         """
         # Print to bash
         if self.verbose > 1:
@@ -1478,8 +1421,7 @@ class PLATOnium(object):
 
             
     def run_reduction(self, sim):
-        """
-        Module to perform data reduction.
+        """Module to perform data reduction.
         """
         # Print to bash
         if self.verbose > 1:
@@ -1488,21 +1430,6 @@ class PLATOnium(object):
         # Load light curve
         from platosim.lightcurve import LightCurve
         lc = LightCurve(f'{self.outputSimName}.hdf5', path=self.outputDir)
-
-        # INTRODUCE GAPS
-        # TODO
-
-        # Load file produced by payload.py
-        # inputFileGap = self.inputDir.joinpath('instrumentGap.ftr')
-
-        # if inputFileGap.is_file():
-        #     if self.verbose > 1 :
-        #         print('Introducing gaps in time series')
-
-        #     # Introduce gaps in time series
-        #     lc.apply_gaps(inputFileGap, self.beginExposureNr, self.numExposures,
-        #                   replace=True, plot=self.plotPost)
-
 
         # GAIN TRANSIENTS
         # TODO check exp model! Ask Pierre for correction 
@@ -1611,6 +1538,7 @@ class PLATOnium(object):
         df = df.reset_index(drop=True)
         df.to_feather(f'{self.outputSimName}.ftr')
 
+        #---------------------------------------- Debugging
         # Check reduced data
         # if self.plotPost:
         #     # Compute the residuals
@@ -1627,14 +1555,14 @@ class PLATOnium(object):
         #                      xlab='Time [days]', ylab='Residuals [ppt]')
         #     st.plot_residuals(lc, lsFit, theme='g')
         #     st.plot_standardized_residuals(lc, lsFit, K=2, reg='x', lsModel='OLS')
-                
+        #-------------------------------------------------------------------
+        
     #--------------------------------------------------------------#
     #                    L1 PIPELINE MODULES                       #
     #--------------------------------------------------------------#
 
     def control_hdf5(self):
-        """
-        Module to control HDF5 content for L1 pipeline.
+        """Module to control HDF5 content for L1 pipeline.
         """
         # Include HDF5 content
         sim["ControlHDF5Content/GroupByExposure"]             = False
@@ -1657,8 +1585,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
     def run_microscan(self, sim):
-        """
-        Module to run a microscan sequence with PlatoSim.
+        """Module to run a microscan sequence with PlatoSim.
         """
         # Print to bash
         if self.verbose > 1:
@@ -1753,8 +1680,7 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
     def run_L1_microscan(self):
-        """
-        Splits L1 processing of microscan into its own function
+        """Splits L1 processing of microscan into its own function.
         This allows better testing of L1
         """
         # Change directory needed to execute scripts
@@ -1764,13 +1690,15 @@ class PLATOnium(object):
             errorcode('message', '\n[psim2datastruc]: Pre-processing imagettes')
         mag_err = 2.5*(self.pipeFluxError/100.)/np.log(10.)
         comm = f'psim2datastruc --cam-id {self.cameraID:02d} --prnu_err {self.pipePrnuError} --seed {self.seedTarget} --mag-error {mag_err} --centroid-err {self.pipeAbsCenError} --target_id 1 . {self.starID} {self.starID} 6'
-        print(os.getcwd()) # DEBUGGING
-        print(comm) # DEBUGGING
+        # Debugging
+        if self.verbose > 2:
+            print(os.getcwd())
+            print(comm)
         cmd = os.system(comm)
         if cmd != 0:
             self.failed('psim2datastruc failed due to the above error!')
 
-        # get the inverted psf
+        # Get the inverted PSF
         if self.verbose > 1:
             errorcode('message', '\n[gen_psfinv]: Run the PSF inversion')
         comm = f"gen_psfinv --bsres {self.bsres} 1 {self.starID} {self.microscanDirInvers}"
@@ -1779,7 +1707,7 @@ class PLATOnium(object):
         if cmd != 0:
             self.failed('gen_psfinv failed due to the above error!')
 
-        # check the performance of the inversion!
+        # Check the performance of the inversion!
         if self.verbose > 1:
             errorcode('message', '\n[psfinv_quality]: Check the PSF inversion quality')
         comm = f"psfinv_quality {self.microscanDirInvers}/000000001_inverse_psf.hdf5 {self.starID}/000000001_psf.hdf5"
@@ -1794,8 +1722,7 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
     def run_L1_onground(self):
-        """
-        Module to for the on-ground L1 pipeline processing chain.
+        """Module to for the on-ground L1 pipeline processing chain.
         """
         # Print to bash
         if self.verbose > 1:
@@ -1847,8 +1774,7 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
     def run_L1_onboard(self):
-        """
-        Module to for the on-board L1 pipeline processing chain.
+        """Module to for the on-board L1 pipeline processing chain.
         """
         # onboard cadences are 50 or 600s, determine --n-average for gen_aflux from the configured cadence
         n_average = int(self.pipeCadence/25)
@@ -1934,8 +1860,7 @@ class PLATOnium(object):
     #--------------------------------------------------------------#
 
     def create_sim_table(self, odir):
-        """
-        Module to create a overview table of the simulation.
+        """Module to create a overview table of the simulation.
         """
         # Write PlatoSim info to a table
         filename = f'{odir}/{self.outputFileName}.table'
@@ -1987,8 +1912,7 @@ class PLATOnium(object):
         errorcode('error', message)
 
     def sort_output_normal(self):
-        """
-        Sort output files for default setup.
+        """Sort output files for default setup.
         """
         # Create a info table of simulation
         if not self.fullFrame:
@@ -2033,8 +1957,7 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
     def sort_output_pipeline(self):
-        """
-        Sort output files for pipeline setup.
+        """Sort output files for pipeline setup.
         """
         if self.verbose > 1:
             errorcode('module', '\nPrologue')
@@ -2243,8 +2166,7 @@ class PLATOnium(object):
             self.tic = datetime.datetime.now()
 
     def resources(self):
-        """
-        Module to print resources used by PLATOnium.
+        """Module to print resources used by PLATOnium.
         """
         if self.verbose > 1:
             errorcode('message', '\nSimulation statistics')
@@ -2368,7 +2290,7 @@ elif args.pipeline and args.sample == 'P1':
         p.run_sim_normal(sim)
         if p.pipePsfMethod == "microscan":
             p.run_microscan(sim)
-    p.run_L1_microscan()
+            p.run_L1_microscan()
     p.run_L1_onground()
     p.sort_output_pipeline()
 
@@ -2379,7 +2301,7 @@ elif args.pipeline and args.sample == 'P5':
         p.run_sim_normal(sim)
         if p.pipePsfMethod == "microscan":
             p.run_microscan(sim)
-    p.run_L1_microscan()
+            p.run_L1_microscan()
     p.run_L1_onboard()
     p.sort_output_pipeline()
 
