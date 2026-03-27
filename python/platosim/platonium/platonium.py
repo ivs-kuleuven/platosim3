@@ -680,7 +680,6 @@ class PLATOnium(object):
         else:
             # Select PLATO pointing field from inputfile
             alpha, delta, kappa = getPointingField(self.pointingField)
-            print(alpha, delta, kappa)
             sim["Platform/Orientation/Angles/RAPointing"]  = alpha
             sim["Platform/Orientation/Angles/DecPointing"] = delta
             # Solar panel orientation [deg]: Q(N) = {0, 90, 180, 270} + kappa
@@ -1573,6 +1572,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteCosmics"]                = False
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
+        
     def run_microscan(self, sim):
         """Module to run a microscan sequence with PlatoSim.
         """
@@ -1648,15 +1648,11 @@ class PLATOnium(object):
         #       Enabling to see if that helps.
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
-        # If mapped PSF is used the diffused PSFs need to be saved
-        if sim["PSF/Model"] == 'MappedFromFile':
-            sim["ControlHDF5Content/WriteDiffusedPSF"] = 'yes'
-
         # Save catalog and load it into the inputfile
         numStar = self.numCon + 1
         self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
 
-        # MICROSCANNING SIMULATION
+        # Run the microscan simulation
         if self.verbose > 1:
             errorcode('message', f'\n[PlatoSim]: Simulating {nimages} imagettes' +
                       ' along Archimedean spiral')
@@ -1668,6 +1664,7 @@ class PLATOnium(object):
             self.tocMicroscan = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def run_L1_microscan(self):
         """Splits L1 processing of microscan into its own function.
         This allows better testing of L1
@@ -1710,6 +1707,7 @@ class PLATOnium(object):
             self.tocInversion = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def run_L1_onground(self):
         """Module to for the on-ground L1 pipeline processing chain.
         """
@@ -1762,6 +1760,7 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def run_L1_onboard(self):
         """Module to for the on-board L1 pipeline processing chain.
         """
@@ -1885,6 +1884,7 @@ class PLATOnium(object):
         # Save simulation table
         df1.to_feather(filename)
 
+        
     def failed(self, message):
         """
         Create table of failed pipeline simulations.
@@ -1900,6 +1900,7 @@ class PLATOnium(object):
         # Stop script with errorcode
         errorcode('error', message)
 
+        
     def sort_output_normal(self):
         """Sort output files for default setup.
         """
@@ -1945,6 +1946,7 @@ class PLATOnium(object):
             self.tocPrologue = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def sort_output_pipeline(self):
         """Sort output files for pipeline setup.
         """
@@ -2154,6 +2156,7 @@ class PLATOnium(object):
             self.tocPrologue = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def resources(self):
         """Module to print resources used by PLATOnium.
         """
@@ -2184,6 +2187,7 @@ class PLATOnium(object):
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
+
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
 
