@@ -409,18 +409,23 @@ class PLATOnium(object):
     def _check_passband_name(self, df):
         """Utility to check passband name in catalogue.
         """
+        # Plato passbands
         if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
             self.passband = 'PBmag'
         elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
             self.passband = 'PRmag'
         elif 'Pmag' in df:
             self.passband = 'Pmag'
+        # Gaia mean G passband
+        elif 'Gmag' in df:
+            self.passband = 'Gmag'
+        # Johnson-Cousin V passband
+        # NOTE to be coherent with Fluxm0 in YAML!
         elif 'mag' in df:
-            # NOTE to be coherent with Fluxm0 in YAML!
-            self.passband = 'mag'
+            self.passband = 'mag'            
         else:
             errorcode('error', "No valid passband present in star catalogue! " +
-                      "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
+                      "Use ['mag', 'Gmag', 'Pmag', 'PBmag', 'PRmag']")
                 
             
     def load_stars(self):
@@ -444,8 +449,10 @@ class PLATOnium(object):
             try:
                 starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
             except IndexError:
-                errorcode('error', 'No source catalogue found for full-frame mode! Add one or use "picsim --vizier" to produce one')
-                
+                errorcode('error', 'No source catalogue found for full-frame mode! '+
+                          'Add one or use "picsim --vizier" to produce one')
+
+            # Check for stellar catalogue
             if not starcat.is_file() and not starcat.is_symlink():
                 errorcode('error', 'No star catalogue found in the project input directory!')
 
