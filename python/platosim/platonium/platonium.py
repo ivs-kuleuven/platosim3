@@ -409,18 +409,23 @@ class PLATOnium(object):
     def _check_passband_name(self, df):
         """Utility to check passband name in catalogue.
         """
+        # Plato passbands
         if ('PBmag' in df) and (self.group == 5) and (self.camera == 1):
             self.passband = 'PBmag'
         elif ('PRmag' in df) and (self.group == 5) and (self.camera == 2):
             self.passband = 'PRmag'
         elif 'Pmag' in df:
             self.passband = 'Pmag'
+        # Gaia mean G passband
+        elif 'Gmag' in df:
+            self.passband = 'Gmag'
+        # Johnson-Cousin V passband
+        # NOTE to be coherent with Fluxm0 in YAML!
         elif 'mag' in df:
-            # NOTE to be coherent with Fluxm0 in YAML!
-            self.passband = 'mag'
+            self.passband = 'mag'            
         else:
             errorcode('error', "No valid passband present in star catalogue! " +
-                      "Use ['mag', 'Pmag', 'PBmag', 'PRmag']")
+                      "Use ['mag', 'Gmag', 'Pmag', 'PBmag', 'PRmag']")
                 
             
     def load_stars(self):
@@ -444,8 +449,10 @@ class PLATOnium(object):
             try:
                 starcat = Path(glob.glob(f'{str(self.inputDir)}/{starcatName}')[0])
             except IndexError:
-                errorcode('error', 'No source catalogue found for full-frame mode! Add one or use "picsim --vizier" to produce one')
-                
+                errorcode('error', 'No source catalogue found for full-frame mode! '+
+                          'Add one or use "picsim --vizier" to produce one')
+
+            # Check for stellar catalogue
             if not starcat.is_file() and not starcat.is_symlink():
                 errorcode('error', 'No star catalogue found in the project input directory!')
 
@@ -689,18 +696,6 @@ class PLATOnium(object):
             if self.verbose > 1:
                 print(f'Setting platform pointing    (PLM FromYAML: {self.pointingField})')
  
-        # CONFIGURE CAMERA
-
-        # Set the Camera-group ID, Alt (tilt) [deg], and Az [deg]
-        # TODO for now it is not possible to use GroupID = Custom since this uses
-        #      the N-CAM readout and results in a negative exposure time (and error)            
-        if self.groupID == 'Fast':
-            sim["Telescope/GroupID"] = 'Fast'
-        else:
-            sim["Telescope/GroupID"]      = 'Custom'
-            sim["Telescope/TiltAngle"]    = sim["CameraGroups/TiltAngle"][self.group-1]
-            sim["Telescope/AzimuthAngle"] = sim["CameraGroups/AzimuthAngle"][self.group-1]
-            
         # POINTING ERRORS
         
         # Include Pointing Repeatability Error (PRE) between consecutive quarters
@@ -759,7 +754,7 @@ class PLATOnium(object):
             sim["Platform/JitterFileName"] = inputFileAOCS
 
         # Check if "AOCS_Q<quarterNo>.txt" is present to be reused for all quarters
-        # NOTE: Not recommended but used for PLATO-KUL-PL-TN-0023
+        # NOTE This is not recommended but was used for PLATO-KUL-PL-TN-0023
         elif self.reuseJitter:
             sim["Platform/UseJitter"]    = True
             sim["Platform/JitterSource"] = 'FromFile'
@@ -1584,6 +1579,7 @@ class PLATOnium(object):
         sim["ControlHDF5Content/WriteCosmics"]                = False
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
+        
     def run_microscan(self, sim):
         """Module to run a microscan sequence with PlatoSim.
         """
@@ -1659,15 +1655,11 @@ class PLATOnium(object):
         #       Enabling to see if that helps.
         sim["ControlHDF5Content/WriteDiffusedPSF"]            = True
 
-        # If mapped PSF is used the diffused PSFs need to be saved
-        if sim["PSF/Model"] == 'MappedFromFile':
-            sim["ControlHDF5Content/WriteDiffusedPSF"] = 'yes'
-
         # Save catalog and load it into the inputfile
         numStar = self.numCon + 1
         self.ds.ids = np.arange(self.targetNo, self.targetNo + numStar, 1) + 1
 
-        # MICROSCANNING SIMULATION
+        # Run the microscan simulation
         if self.verbose > 1:
             errorcode('message', f'\n[PlatoSim]: Simulating {nimages} imagettes' +
                       ' along Archimedean spiral')
@@ -1679,6 +1671,7 @@ class PLATOnium(object):
             self.tocMicroscan = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def run_L1_microscan(self):
         """Splits L1 processing of microscan into its own function.
         This allows better testing of L1
@@ -1721,6 +1714,7 @@ class PLATOnium(object):
             self.tocInversion = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def run_L1_onground(self):
         """Module to for the on-ground L1 pipeline processing chain.
         """
@@ -1773,6 +1767,7 @@ class PLATOnium(object):
             self.tocOnground = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def run_L1_onboard(self):
         """Module to for the on-board L1 pipeline processing chain.
         """
@@ -1896,6 +1891,7 @@ class PLATOnium(object):
         # Save simulation table
         df1.to_feather(filename)
 
+        
     def failed(self, message):
         """
         Create table of failed pipeline simulations.
@@ -1911,6 +1907,7 @@ class PLATOnium(object):
         # Stop script with errorcode
         errorcode('error', message)
 
+        
     def sort_output_normal(self):
         """Sort output files for default setup.
         """
@@ -1956,6 +1953,7 @@ class PLATOnium(object):
             self.tocPrologue = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def sort_output_pipeline(self):
         """Sort output files for pipeline setup.
         """
@@ -2165,6 +2163,7 @@ class PLATOnium(object):
             self.tocPrologue = datetime.datetime.now() - self.tic
             self.tic = datetime.datetime.now()
 
+            
     def resources(self):
         """Module to print resources used by PLATOnium.
         """
@@ -2195,6 +2194,7 @@ class PLATOnium(object):
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #
 #==============================================================#
+
 parser = argparse.ArgumentParser(epilog=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
 

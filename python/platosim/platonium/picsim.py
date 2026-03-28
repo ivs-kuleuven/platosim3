@@ -67,6 +67,9 @@ from platosim.utilities  import errorcode
 from platosim.simulation import Simulation
 from platosim.matplotlibrc import setup; setup()         
 
+# Turn of specific Pandas warning
+pd.options.mode.chained_assignment = None
+
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
@@ -311,7 +314,7 @@ General notes:
         # EXTRA I/O PARAMETERS
         
         # Input directory        
-        self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'    
+        self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
         if not self.inputDir.is_dir():
             errorcode('message', '\nInuaguration: Welcome to PIC of Destiny!')
 
@@ -790,10 +793,8 @@ General notes:
         # Arguments for GaiaDR3 star query
         self.simbad = args.simbad
         self.field  = args.pipe_field
-
         self.saveAscii = args.save
         self.inputFiles = args.incat
-
         self.outputPrefix = f'starcat_'
 
         # We need to set a sample because it is needed by platonium for the pipeline
@@ -814,8 +815,8 @@ General notes:
         else:
             errorcode('error', 'Not a valid field! Use --pipe_field {SPF, NPF, LOPS2, LOPN1}')
 
+        # Replace a few strings
         self.outputPrefix += self.simbad.replace(' ', '_')
-
         self.outputPrefixTar = self.outputPrefix + '_targets.ftr'
         self.outputPrefixCon = self.outputPrefix + '_contaminants.ftr'
 
@@ -842,14 +843,11 @@ General notes:
         # If there are contaminants, set dc to the rest of the rows
         if len(self.df_all) > 1:
             self.dc = self.df_all.iloc[1:]
-
             # Apply contamination limits
             self.dc = self.dc[self.dc['Pmag'] < (self.df.iloc[0]["Pmag"] + self.dmagConLimit)]
-
             # Platonium needs the gaiaDR3 ID to be set to that of the target
             # (to identify contaminants)
             self.dc["gaiaDR3"] = self.df["gaiaDR3"].iloc[0]
-
         else:
             # Set self.dc to a panda df with same columns as self.df
             self.dc = pd.DataFrame(columns=self.df.columns)
@@ -869,7 +867,6 @@ General notes:
             errorcode('module', '\nPrologue')
 
         if self.outputDir is not None:
-
             # Copy the YAML file to the project if it doesn't exist and a field is parsed
             if self.field is not None:
                 if self.verbose > 1:
@@ -886,7 +883,6 @@ General notes:
                 df0['Pmag'] = pd.concat([self.df.Pmag, self.dc.Pmag])
                 df0 = df0.reset_index()
                 df0.to_csv(self.outputFileCat, sep=' ', header=False, float_format='%.6f')
-
             else:
                 # We reset the index in order to save to feather
                 df = self.df.reset_index(drop=True)
@@ -921,7 +917,6 @@ General notes:
             self.mag_min = 0
         else:
             self.mag_min = args.mag_min
-            
         if args.mag_max is None:
             self.mag_max = 15
         else:
@@ -951,7 +946,6 @@ General notes:
         self.decGroups = np.rad2deg(np.append(decGroups, self.delta))
 
         # Make a grid in azimuth and tilt angles and find the sky coordinates [deg]
-
         # Grid constants [deg]
         r = 2.80                   # Radius of grid point search
         a = 3.95                   # Distance between equidistant grid points
@@ -964,10 +958,10 @@ General notes:
         for xx in range(-n, n+1):
             for yy in range(-n, n+1):
                 # Cut-off cornors
-                if ((xx == -n and yy == -n) or (xx == -n and yy == -n+1) or (xx == -n+1 and yy == -n) or
-                    (xx == -n and yy == +n) or (xx == -n and yy == +n-1) or (xx == -n+1 and yy == +n) or 
-                    (xx == +n and yy == -n) or (xx == +n and yy == -n+1) or (xx == +n-1 and yy == -n) or
-                    (xx == +n and yy == +n) or (xx == +n and yy == +n-1) or (xx == +n-1 and yy == +n)):
+                if ((xx==-n and yy==-n) or (xx==-n and yy==-n+1) or (xx==-n+1 and yy==-n) or
+                    (xx==-n and yy==+n) or (xx==-n and yy==+n-1) or (xx==-n+1 and yy==+n) or 
+                    (xx==+n and yy==-n) or (xx==+n and yy==-n+1) or (xx==+n-1 and yy==-n) or
+                    (xx==+n and yy==+n) or (xx==+n and yy==+n-1) or (xx==+n-1 and yy==+n)):
                     pass
                 else:
                     gridCC.append((xx*a, yy*a))
@@ -977,9 +971,11 @@ General notes:
         y = np.zeros(len(gridCC))
         for i in range(len(gridCC)):
             gridEQ = ut.cart2pol(gridCC[i][0], gridCC[i][1])
-            x[i], y[i] = rf.platformToTelescopePointingCoordinates(self.alpha, self.delta, self.kappa,
-                                                                   np.deg2rad(gridEQ[0]),
-                                                                   np.deg2rad(gridEQ[1]))
+            x[i], y[i] = rf.platformToTelescopePointingCoordinates(
+                self.alpha, self.delta, self.kappa,
+                np.deg2rad(gridEQ[0]),
+                np.deg2rad(gridEQ[1])
+            )
         self.raGrid  = np.rad2deg(x)
         self.decGrid = np.rad2deg(y)
 
@@ -993,10 +989,9 @@ General notes:
 
 
     def plotVizier(self):
-        """Plot grid used to make Gaia DR3 source query.
+        """Plot grid in EQ used to make Gaia DR3 source query.
         """
         # PLOT GRID IN EQUATORIAL COORDINATES
-        
         # Shorten names
         r, a, c = self.r, self.a, self.c
         rg, ag  = self.rGroup, self.aGroup
@@ -1020,7 +1015,6 @@ General notes:
         plt.show()
 
         # PLOT GRID IN EQUATORIAL COORDINATES
-        
         fig = plt.figure(figsize=(7,7))
         # Plot the grid points on the sky
         platform = SkyCoord(np.rad2deg(self.alpha), np.rad2deg(self.delta),
@@ -1070,10 +1064,10 @@ General notes:
             errorcode('warning', 'Camera group output files already exists, skipping query')
         else:
             if self.verbose > 1:
-                print(f'Adding stellar  columns : {self.stellar}')
-                print(f'Adding variable columns : {self.variable}')
-                print(f'Adding quasar   columns : {self.quasar}')
-                print(f'\nQuery Gaia DR3 for magnitudes : {self.mag_min} - {self.mag_max}')
+                print(f'Adding stellar  columns: {self.stellar}')
+                print(f'Adding variable columns: {self.variable}')
+                print(f'Adding quasar   columns: {self.quasar}')
+                print(f'\nQuery Gaia DR3 for G-magnitudes: {self.mag_min} - {self.mag_max}')
 
             # Query stars within the FOV of each grid
             for i in tqdm(range(len(self.raGrid)), bar_format=ut.tqdmBar()):
@@ -1088,55 +1082,58 @@ General notes:
                 else:      df = pd.concat([df, df0])
 
             # Remove duplicate stars (from overlapping grid)
-            df = df.drop_duplicates(subset=['gaiaDR3'])
+            df = df.drop_duplicates(subset=['source_gaia_dr3'])
             if self.verbose > 1:
                 print(f'Number of objects in stellar catalogue: {df.shape[0]}')
 
             # If requested, add bright stars not available in the Gaia catalogue (G > 2)
-            # All information if from CDS and magnitudes are in {V, B, R} = {P, PB, PR}
+            # All information if from CDS and magnitudes are in V Johnson-Cousin
             if self.bright:
-                Sirius  = {'source_gaia_dr3':'1', 'ra':101.2871667, 'dec':-16.7161167,
-                           'Pmag':  ut.passbandConversionV2P(-1.46, 9940),
-                           'PBmag': ut.passbandConversionV2P(-1.46, 9940),
-                           'PRmag': ut.passbandConversionV2P(-1.46, 9940)}
-                Canopus = {'source_gaia_dr3':'2', 'ra': 95.9879167, 'dec':-52.6956611,
-                           'Pmag':  ut.passbandConversionV2P(-0.72, 7400),
-                           'PBmag': ut.passbandConversionV2P(-0.59, 7400),
-                           'PRmag': ut.passbandConversionV2P(-0.96, 7400)}
-                epsCMa  = {'source_gaia_dr3':'3', 'ra':104.6564583, 'dec':-28.9720861,
-                           'Pmag':  ut.passbandConversionV2P(1.50, 22900),
-                           'PBmag': ut.passbandConversionV2P(1.29, 22900),
-                           'PRmag': ut.passbandConversionV2P(1.59, 22900)}
-                gamVel  = {'source_gaia_dr3':'4', 'ra':122.383126, 'dec':-47.336586,
-                           'Pmag':  ut.passbandConversionV2P(1.78, 21500),
-                           'PBmag': ut.passbandConversionV2P(1.58, 21500),
-                           'PRmag': ut.passbandConversionV2P(1.85, 21500)}
-                df_Sirius  = pd.DataFrame([Sirius])
-                df_Canopus = pd.DataFrame([Canopus])
-                df_epsCMa  = pd.DataFrame([epsCMa])
-                df_gamVel  = pd.DataFrame([gamVel])
-                df = pd.concat([df, df_Sirius, df_Canopus, df_epsCMa, df_gamVel])
+                if self.verbose > 2:
+                    print('[DEBUG]: Adding bright star catalogue')
+                self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
+                filename = self.inputDir / f'bright_star_catalogue.csv'
+                #dx.reset_index(drop=True).to_feather(filename)
+                # Download file if not exisiting
+                if not filename.is_file():
+                    print(f'Downloading {filename.name}')
+                    ut.downloadFromFTP(filename.name, self.inputDir, 'plato')
+                # Add catalogue to exisiting Gaia sources
+                db = pd.read_csv(filename)
+                indices = np.arange(db.shape[0]).tolist()
+                dx = pd.DataFrame(np.nan, index=indices, columns=df.columns.tolist())
+                # We assume that Vmag is similar to Gmag
+                dx.source_gaia_dr3 = indices
+                dx.ra    = db.ra
+                dx.dec   = db.dec
+                # Emperical transformation to Gaia colours
+                # NOTE Approximate relations from Gaia's docs: Evans et al. relations
+                for i in range(db.shape[0]):
+                    B_V = db.Bmag.iloc[i] - db.Vmag.iloc[i]
+                    dx.BP_RP.iloc[i] = 1.25 * B_V
+                    if B_V < 1:
+                        dx.Gmag.iloc[i] = db.Vmag.iloc[i] - (0.05 + 0.35 * B_V)
+                    if B_V >= 1:
+                        dx.Gmag.iloc[i] = db.Vmag.iloc[i] - (0.35 + 0.05 * B_V)
+                # Concatenate data frames
+                df = pd.concat([df, dx])
 
             # Keep only stars within the camera group FOV
             if self.verbose > 1:
                 print(f'\nCreating catalogue for each camera group')
-
             for i in range(5):
-
                 # Calculate angular distance [deg]
                 dOA = ut.radialDistance(self.raGroups[i], self.decGroups[i],
                                         df.ra.to_numpy(), df.dec.to_numpy())
                 df0 = df[dOA < 20]
-
                 # Select output filename
                 ofile = f'{self.filename}_group{i+1}.ftr'
-
                 # Save new catalogue
                 df0.reset_index(drop=True, inplace=True)
                 df0.to_feather(ofile)
-                
+            
         # CREATE FINAL CATALOGUE
-                
+
         # Run PLATOnium simulations to create final catalogue
         if self.flag_combine:
             if self.verbose > 1:
@@ -1144,11 +1141,11 @@ General notes:
                 
             # Copy YAML to output
             ut.copyVizierInputYAML(self.field, self.outputDir)
-            platonium = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/platonium/platonium.py'
+            platonium = os.getenv('PLATO_PROJECT_HOME')+'/python/platosim/platonium/platonium.py'
 
             # Query stars within the FOV of each grid
             if self.fcam:
-                ngroup = 1 # NOTE only one sinec F-CAM groups have identical FOV
+                ngroup = 1 # NOTE only one since F-CAM groups have identical FOV
                 groups = range(5,6)
                 string = 'Fcam'
                 sims = self.outputDir / 'Fcam1_Q1_ccd1.ftr'
@@ -1157,9 +1154,10 @@ General notes:
                 groups = range(1,5)
                 string = 'Ncam'
                 sims = self.outputDir / 'Ncam1.1_Q1_ccd1.ftr'
-                
+            # Check for or run simulations
             if sims.is_file():
-                errorcode('warning', 'Camera group simulations already exists! skipping simulations..')
+                errorcode('warning', 'Camera group simulations already exists! ' +
+                          'skipping simulations..')
             else:
                 for ccd in tqdm(range(1,5), bar_format=ut.tqdmBar()):
                     for group in groups:
@@ -1167,10 +1165,9 @@ General notes:
                                   f'-i {self.outputDir}/inputfile_vizier.yaml ' +
                                   f'-o {self.outputDir} --nexp 1 -v 0 -w')
 
+            # Load full-frame stellar catalogues
             if self.verbose > 1:
                 print(f'\nCombing catalogues into a final PLATO {self.field} catalogue')
-
-            # Load full-frame stellar catalogues
             df = pd.DataFrame()
             if self.fcam:
                 groups = [1]
@@ -1191,24 +1188,30 @@ General notes:
             df = df.drop(columns=['starID', 'flux', 'xCCD', 'yCCD', 'xFP', 'yFP', 'rOA'])
 
             # Drop dublicates and keep highest count
-            df = df.drop_duplicates(subset=['gaiaDR3'])
+            df = df.drop_duplicates(subset=['source_gaia_dr3'])
 
             # Replace any inf with nan
             df = df.replace(np.inf, np.nan)
 
             # Merge undefined spec types into the unknown spec type
-            df.spec.loc[df[df.spec == ''].index] = 'unknown'
+            if self.stellar:
+                df.spec.loc[df[df.spec == ''].index] = 'unknown'
             
             # Replace missing Gaia colors
             if df.BP_RP.isna().sum() > 0:
                 if self.quasar:
                     # Mean value from PLATO fields 
+                    if self.verbose > 2:
+                        print(f'\nDEBUG: Replacing BP_RP = NaN with 0.6 (mean value of Quasars)')
                     df.BP_RP[df.BP_RP.isna()] = 0.6
                 else:
                     # Assuming M0 dwarfs for stars
+                    if self.verbose > 2:
+                        print(f'\nDEBUG: Replacing BP_RP = NaN with 2.0 (mean M0 dwarf star)')
                     df.BP_RP[df.BP_RP.isna()] = 2.0
 
             # Convert Gmag to Pmag
+            df = df.rename(columns={'Pmag': 'Gmag'})
             dex = df.columns.get_loc('Gmag')
             if self.quasar:
                 df.insert(dex, 'Pmag', ut.passbandConversionG2P(df.Gmag, df.BP_RP))
@@ -1243,16 +1246,14 @@ General notes:
                 N = df.shape[0]
                 cams = np.zeros(N)
                 if self.verbose > 1:
-                    print(f'\nFetching the {string} observability for each star:')
+                    print(f'\nFetching the {string} visibility for each star:')
 
                 for i in tqdm(range(N), bar_format=ut.tqdmBar()):
-
                     # Fetch 4 values ahead (since max 4/2 groups for Ncam/Fcam)
                     dx = df.iloc[i:i+ngroup]
-
                     # Subtract star ID and count zeros = N-CAM visibility:
                     # Row with highest ncams value is the one we keep below
-                    diff = np.array(dx.gaiaDR3).astype(int) - int(dx.gaiaDR3.iloc[0])
+                    diff = np.array(dx.source_gaia_dr3).astype(int) - int(dx.source_gaia_dr3.iloc[0])
                     cams[i] = np.count_nonzero(diff==0)
 
                 # Add column
@@ -1267,8 +1268,8 @@ General notes:
             df.to_feather(f'{self.outputDir}/starcat_PlatoCS_{string}_{self.field}.ftr')
 
             # Remove all files again after loaded
-            os.system(f'rm {self.outputDir}/{string}*')
-            os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
+            # os.system(f'rm {self.outputDir}/{string}*')
+            # os.system(f'rm {self.outputDir}/inputfile_vizier.yaml')
             
 #==============================================================#
 #               PARSING COMMAND-LINE ARGUMENTS                 #

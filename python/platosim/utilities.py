@@ -107,9 +107,6 @@ def errorcode(API, message):
         sys.exit()
 
 
-
-
-
 def fileMatch(fileList, stringList):
     """
     fileMatch(fileList, stringList)
