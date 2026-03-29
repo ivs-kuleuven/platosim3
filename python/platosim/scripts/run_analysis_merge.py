@@ -38,9 +38,9 @@ opt_group.add_argument('--detrend',    action='store_true', help='Perform auto-p
 opt_group.add_argument('--bin_size',   metavar='FLOAT', type=float, help='Time bin size [sec]')
 opt_group.add_argument('--clip_sigma', metavar='FLOAT', type=float, help='Sigma-clip threshold')
 opt_group.add_argument('--flux_err',   action='store_true', help='Calculate flux errors')
-opt_group.add_argument('--file_gaps',  metavar='FILE', type=str, help='Use instrumentGAP.tab file')
+opt_group.add_argument('--file_gaps',  metavar='FILE', type=str, help='Path to "instrumentGAP.tab" file')
 opt_group.add_argument('-v', '--verbose', action='store_true', help='Flag print to bash')
-opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera data')
+opt_group.add_argument('-c', '--clean',   action='store_true', help='Flag to remove camera simulations')
 
 args = parser.parse_args()
 
@@ -83,13 +83,10 @@ filename_gap = Path(args.file_gaps).resolve()
 # Construct light curve object
 lcs = LightCurve(idir, 'multi')
 
-fig, ax = lcs.plot_multi(suffix='ftr', group=False, camera=False, quarter=False, 
-                         flux_median=144, alpha=0.5, figsize=(9,5))
-
 # Save simulation table
 if args.verbose:
     print('Saving simulation table')
-#ds = lcs.stat_sim_table(filename_tab)
+ds = lcs.stat_sim_table(filename_tab)
 
 # Merge ligth curves
 lc = lcs.merge(suffix='ftr',
