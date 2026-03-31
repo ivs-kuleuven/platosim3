@@ -2500,7 +2500,7 @@ class LightCurve(object):
               #-------------------- Mission level
               flux_offset=False,
               flux_error=False,
-              clip_sigma=None,
+              clip_sigma=False, clip_lower=4, clip_upper=4,
               stitch_segment=None,
               binsize=None,
     ):
@@ -2642,7 +2642,7 @@ class LightCurve(object):
         if clip_sigma:
             if verbose: print('Removing outliers')
             lc  = LightCurve(df0, mode="multi", path=self.path)
-            df0 = lc.clip(model='wotan', sigma_lower=clip_sigma, sigma_upper=clip_sigma,
+            df0 = lc.clip(model='wotan', sigma_lower=clip_lower, sigma_upper=clip_upper,
                           replace=True)
             df0 = df0.dropna()
 
@@ -2882,6 +2882,10 @@ class LightCurve(object):
             df = df0.reset_index()
             df = df.drop(columns='index')
 
+            # Create output folder if not exisitng
+            odir = ofile.parents[0]
+            odir.mkdir(parents=True, exist_ok=True)
+            
             # If requested save file
             if ofile:
                 df.to_feather(ofile)
