@@ -18,7 +18,7 @@ To accommodate PLATO's need of versatile simulations prior to mission launch - t
 ## Access and contribution
 
 We welcome new users and encourage contributions. Simply contact one of the following PlatoSim developers from KU Leuven:
-- Nicholas Jannsen (nicholas.jannsen@kuleuven.be)
+- Nicholas Jannsen (nicholasj@ing.iac.es)
 - Joris De Ridder (joris.deridder@kuleuven.be) 
 - Dries Seynaeve (dries.seynaeve@kuleuven.be) 
 
