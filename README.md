@@ -13,7 +13,14 @@
 
 ## Motivation
 
-To accommodate PLATO's need of versatile simulations prior to mission launch - that at the same time describe accurately the innovative but complex multi-telescope design - we here present Platosim, the end-to-end PLATO camera simulator specifically developed for purpose. PlatoSim allows the user to simulate photometric time series of CCD images and light curves in accordance to the expected observations of PLATO. In the context of the PLATO payload, PlatoSim uses a general formalism of modelling the stellar field and sky background, the short and long-term barycentric pixel displacement of the stellar sources, the cameras and their optics, the CCDs and their electronics, and all main random and systematic noise sources. With its strong predictive powers and diverse applicability, PlatoSim is key simulator for PLATO Mission Consortium.
+To accommodate PLATO's need of versatile simulations prior to mission launch - that at the same time describe
+accurately the innovative but complex multi-telescope design - we here present Platosim, the end-to-end PLATO camera
+simulator specifically developed for purpose. PlatoSim allows the user to simulate photometric time series of CCD
+images and light curves in accordance to the expected observations of PLATO. In the context of the PLATO payload,
+PlatoSim uses a general formalism of modelling the stellar field and sky background, the short and long-term
+barycentric pixel displacement of the stellar sources, the cameras and their optics, the CCDs and their
+electronics, and all main random and systematic noise sources. With its strong predictive powers and diverse
+applicability, PlatoSim is key simulator for PLATO Mission Consortium.
 
 ## Access and contribution
 
@@ -21,8 +28,6 @@ We welcome new users and encourage contributions. Simply contact one of the foll
 - Nicholas Jannsen (nicholas.jannsen@kuleuven.be)
 - Joris De Ridder (joris.deridder@kuleuven.be) 
 - Dries Seynaeve (dries.seynaeve@kuleuven.be) 
-
-*Note that in agreement with the regulations of the PLATO mission, you need a *Non Disclosure Agreement* (NDA) before we can give you access to PlatoSim.*
 
 ## Installation
 
