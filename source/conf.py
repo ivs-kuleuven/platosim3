@@ -74,7 +74,7 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #---------------------------------------
-html_theme = 'renku'
+html_theme = 'sphinx_book_theme'
 #---------------------------------------
 # import sphinx_readable_theme
 # html_theme = 'readable'
@@ -193,4 +193,5 @@ html_logo = "../figures/logo_platosim_crop.png"
 html_theme_options = {
     'logo_only': True,
     'display_version': False,
+    'body_max_width': '2500px', 
 }

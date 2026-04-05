@@ -1,7 +1,9 @@
 For Developers (from Source)
 ============================
 
-The scheme below shows an overview of the procedure to download, update, and build the PlatoSim software on your system yourself. This scheme is valid for developers who may want to contribute to the code at some point. Also the procedure to make your own modifications to the code available for others is described.
+The scheme below shows an overview of the procedure to download, update, and build the PlatoSim software on your system
+yourself. This scheme is valid for developers who may want to contribute to the code at some point. Also the procedure
+to make your own modifications to the code available for others is described.
 
 .. image:: ../figures/flowchart_installPlatoSimFromSource.png
    :align: center
@@ -34,7 +36,10 @@ The scheme below shows an overview of the procedure to download, update, and bui
 
 **Git**
 
-The PlatoSim code is under version control in GitHub. To be able to get the latest version of the code on your local machine and to share possible contributions with other people in the project, you need to install Git on your computer. Installation instructions can be found in the `Git reference documentation <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_.
+The PlatoSim code is under version control in GitHub. To be able to get the latest version of the code on your local
+machine and to share possible contributions with other people in the project, you need to install Git on your computer.
+Installation instructions can be found in the `Git reference documentation
+<https://git-scm.com/book/en/v2/Getting-Started-Installing-Git>`_.
 
 .. image:: ../figures/logo_git.png
    :align: center
@@ -43,8 +48,7 @@ The PlatoSim code is under version control in GitHub. To be able to get the late
 
 **GitHub**
 
-The PlatoSim code is located in a `private repository on GitHub <https://github.com/IvS-KULeuven/PlatoSim3>`_. To be able to access it, we have to grant you access explicitly. Please, send your GitHub username to the development team and you will be granted read access to the repository. You will then get an invitation by email to join.
-
+The PlatoSim code is located in a `public repository on GitHub <https://github.com/IvS-KULeuven/PlatoSim3>`_. 
 If you have not done so already, you can make an `account on GitHub <https://github.com/>`_ for free.
 
 .. image:: ../figures/logo_github.png
@@ -56,13 +60,18 @@ If you have not done so already, you can make an `account on GitHub <https://git
 
 To be able to install the dependencies and build the code, the following software must be installed on your computer:
 
-* `gcc <https://gcc.gnu.org/>`_ v5.1 or more recent, or `clang <https://clang.llvm.org/>`_ v3.3 or more recent
-* `CMake <https://cmake.org/>`_: cross-platform open-source build system to control the software compilation process (using simple platform and compiler independent configuration files)
-* `BLAS <http://www.openblas.net/>`_ and `LAPACK <https://netlib.org/lapack/>`_. Without these, the simulator will likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install them.
+* `gcc <https://gcc.gnu.org/>`_ v5.1 or more recent, or `clang <https://clang.llvm.org/>`_ v3.3 or more recent 
+* `CMake <https://cmake.org/>`_: cross-platform open-source build system to control the software compilation process 
+  (using simple platform and compiler independent configuration files) 
+* `BLAS <http://www.openblas.net/>`_ and `LAPACK <https://netlib.org/lapack/>`_. Without these, the simulator will 
+  likely be slower. These libraries come pre-installed on Mac OS X (so Mac users do not have to do anything). 
+  Many Linux distributions also standardly have these libraries installed or offer a package manager to easily install 
+  them.
 
 .. admonition:: Want to change the system default compiler?
 
-   If you want to use a different compiler than the system default to build the code, you have to export two additional environment variables, CCX and CC, as follows:
+   If you want to use a different compiler than the system default to build the code, you have to export two additional
+   environment variables, CCX and CC, as follows:
 
    .. code-block:: shell
 		   
@@ -86,7 +95,8 @@ To be able to install the dependencies and build the code, the following softwar
 *Forking & Cloning*
 -------------------
 
- The PlatoSim repository can be found on the `IvS-KULeuven GitHub pages <https://github.com/IvS-KULeuven/PlatoSim3>`_. This repository is referred to as *upstream*. This section describes the process shown in the diagram below.
+The PlatoSim repository can be found on the `IvS-KULeuven GitHub pages <https://github.com/IvS-KULeuven/PlatoSim3>`_.
+This repository is referred to as *upstream*. This section describes the process shown in the diagram below.
 
 .. image:: ../figures/github_forkAndClone.png
    :align: center
@@ -95,7 +105,11 @@ To be able to install the dependencies and build the code, the following softwar
 
 **Fork**
 
-To be able to not only use the code but also to contribute to it, you have to *fork* this repository. To do this, you have to go to the `upstream GitHub page <https://github.com/IvS-KULeuven/PlatoSim3>`_, shown in the figure below. Just press the ``Fork`` button at the top right (encircled in red in the screenshot above) and follow the instructions. Your personal copy of the PlatoSim repository will then show up on your personal GitHub pages. This copy is referred to as *origin*. 
+To be able to not only use the code but also to contribute to it, you have to *fork* this repository. To do this, you
+have to go to the `upstream GitHub page <https://github.com/IvS-KULeuven/PlatoSim3>`_, shown in the figure below. Just
+press the ``Fork`` button at the top right (encircled in red in the screenshot above) and follow the instructions. Your
+personal copy of the PlatoSim repository will then show up on your personal GitHub pages. This copy is referred to as
+*origin*. 
 
 .. image:: ../figures/github_forkPlatoSim.png
    :align: center
@@ -104,21 +118,28 @@ To be able to not only use the code but also to contribute to it, you have to *f
 
 **Clone**
 
-From there you can *clone* it to a designated directory on your local machine. The following command will download the source code folder called ``PlatoSim3``:
+From there you can *clone* it to a designated directory on your local machine. The following command will download the
+source code folder called ``PlatoSim3``:
 
 .. code-block:: shell
 
    git clone https://github.com/<Your GitHub username>/PlatoSim3.git
 
-It is possible that you will be asked for a usename and password. In that case, follow the next section *Credentials*.
+It is possible that you will be asked for a username and password. In that case, follow the next section *Credentials*.
 
-After you have downloaded PlatoSim's source code, you first have to install a few packages (so-called dependencies) before you can actually build and run PlatoSim (:ref:`see next section <install_source_dependencies>`).
+After you have downloaded PlatoSim's source code, you first have to install a few packages (so-called dependencies)
+before you can actually build and run PlatoSim (:ref:`see next section <install_source_dependencies>`).
 
-Note that it is also possible to clone the repository directly onto your local machine, without forking it first. Doing so you will be able to update the software but not to contribute to it, hence, we strongly discourage this approach. If you only want to use PlatoSim (without changing the code), you may want to follow the :doc:`user installation procedure <install_conda>` instead. 
+Note that it is also possible to clone the repository directly onto your local machine, without forking it first. Doing
+so you will be able to update the software but not to contribute to it, hence, we strongly discourage this approach. If
+you only want to use PlatoSim (without changing the code), you may want to follow the :doc:`user installation procedure
+<install_conda>` instead. 
 	 
 **GitHub credentials**
 
-When cloning the repository to your local machine your GitHub username and `personal acces tokens <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token>`_ will be needed. If you want your machine to remember these in the future, write the following command:
+When cloning the repository to your local machine your GitHub username and `personal acces tokens
+<https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token>`_
+will be needed. If you want your machine to remember these in the future, write the following command:
 
 .. code-block:: shell
 		

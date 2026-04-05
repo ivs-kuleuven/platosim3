@@ -1,7 +1,11 @@
 For Users (via Conda)
 =====================
 
-To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we use `Jenkins <https://www.jenkins.io/>`_ to automatically build PlatoSim. Jenkins enables you to download the latest successfully built version of the :ref:`master or develop branch <install_source_brancing>`, or any specific version(s) of these. See :ref:`A word about Jenkins <install_conda_jenkins>` for more information. The flowchart below summarises the steps you have to take.
+To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we use `Jenkins
+<https://www.jenkins.io/>`_ to automatically build PlatoSim. Jenkins enables you to download the latest successfully
+built version of the :ref:`master or develop branch <install_source_brancing>`, or any specific version(s) of these.
+See :ref:`A word about Jenkins <install_conda_jenkins>` for more information. The flowchart below summarises the steps
+you have to take.
 
 .. image:: ../figures/flowchart_installPlatoSimViaConda.png
    :align: center
@@ -22,21 +26,27 @@ To make life easier on the people who want to use PlatoSim without ever wanting 
 
 .. important::
    
-   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.10**.
+   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda
+   <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires
+   **Python version 3.11**.
 
 First, create a Conda environment (e.g. called ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n <environment name> python=3.10
+   conda create -n platosim python=3.11
 
 Activate your new conda environment:
 
 .. code-block:: shell
 
-   conda activate <environment name>		
+   conda activate platosim		
    
-It is advised to use multiple Conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. between ``platosim_master`` and ``platosim_develop``). We also recommend to create a new Conda environment, rather than trying to update your existing one, when you switch to a different version of Python. Find more information on how to use and manage `Conda environments <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
+It is advised to use multiple Conda environments if you want to be able to switch between versions and/or branches in a
+smooth way (e.g. between ``platosim_master`` and ``platosim_develop``). We also recommend to create a new Conda
+environment, rather than trying to update your existing one, when you switch to a different version of Python. Find
+more information on how to use and manage `Conda environments
+<https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
 
 
 
@@ -52,11 +62,8 @@ It is advised to use multiple Conda environments if you want to be able to switc
 *Installing* 
 ------------
 
-.. warning::
-
-   To install the PlatoSim software you need a set of credentials (**username** and **password**). If you have not received these, please contact one of the `PlatoSim developers <https://github.com/IvS-KULeuven/PlatoSim3>`_ and request them. Having the credentials at hand, use them in the installation procedure below by replacing the entries ``<username>`` and ``<password>`` with the given username and password, respectively.
-
-Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system your are running and will install the appropriate packages for you.
+Start by activating your desired Conda environment. The installation procedures below will automatically detect which
+operating system your are running and will install the appropriate packages for you.
 
 Before you install PlatoSim via conda, for the first time in this environment, type: 
 
@@ -64,19 +71,16 @@ Before you install PlatoSim via conda, for the first time in this environment, t
 		
    conda config --add channels conda-forge
    
-We recommend to install the ``master`` branch, unless you are interested in a feature that only exists on the ``develop`` branch. To install the latest version of the ``master`` branch use:
-
-.. code-block:: shell
-
-   conda install -c https://<username>:<password>@jenkins.miricle.org/platosim/ platosim
+We recommend to install the ``develop`` branch.
 
 To install the latest version of the ``develop`` branch, use:
 
 .. code-block:: shell
 
-   conda install -c https://<username>:<password>@jenkins.miricle.org/platosim.devel/ platosim
+   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
 
-To install a specific version of either the ``master`` or ``develop`` branch, simply append ``<version>=`` to the above commands. 
+To install a specific version of either the ``master`` or ``develop`` branch, simply append ``<version>=`` to the above
+commands. 
 
 
 
@@ -93,17 +97,18 @@ To install a specific version of either the ``master`` or ``develop`` branch, si
 *Updating* 
 ----------
 
-You may wish to update your installation when a new PlatoSim release becomes available. To update the ``master`` branch, simply use:
+You may wish to update your installation when a new PlatoSim release becomes available. To update the ``master``
+branch, simply use:
 
 .. code-block:: shell
 
-   conda update --force-reinstall -c  https://<username>:<password>@jenkins.miricle.org/platosim/ platosim
+   conda update --force-reinstall -c  https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
       
 Accordingly, if you want to update the ``develop`` branch, type:
 
 .. code-block:: shell
 
-   conda update --force-reinstall -c  https://<username>:<password>@jenkins.miricle.org/platosim.devel/ platosim
+   conda update --force-reinstall -c  https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
 
 
 

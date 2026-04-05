@@ -1,114 +1,345 @@
+
 <!DOCTYPE html>
-<html class="writer-html5" lang="en">
-<head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Parallel Computing &mdash; PlatoSim 3.5.4 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css" />
-      <link rel="stylesheet" type="text/css" href="_static/custom.css" />
-      <link rel="stylesheet" type="text/css" href="_static/fonts.css" />
 
+<html lang="en" data-content_root="./" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Parallel Computing &#8212; PlatoSim 3.5.4 documentation</title>
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
-        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <script src="_static/js/theme.js"></script>
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
+  </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=3c74b3bc" />
+  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
+
+    <script src="_static/documentation_options.js?v=51702ce4"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=fab101a9"></script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'platonium_cluster';</script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
-</head>
+    <link rel="search" title="Search" href="search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="3" />
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
 
-<body class="wy-body-for-nav"> 
-  <div class="wy-grid-for-nav">
-    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
-      <div class="wy-side-scroll">
-        <div class="wy-side-nav-search" >
+  
+  
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
 
-          
-          
-          <a href="index.html">
-            
-              <img src="_static/logo_platosim_crop.png" class="logo" alt="Logo"/>
-          </a>
-<div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
-    <input type="hidden" name="check_keywords" value="yes" />
-    <input type="hidden" name="area" value="default" />
-  </form>
+  
+  <dialog id="pst-search-dialog">
+    
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">General:</span></p>
-<ul>
+
+  
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+    
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/logo_platosim_crop.png" class="logo__image only-light" alt="PlatoSim 3.5.4 documentation - Home"/>
+    <img src="_static/logo_platosim_crop.png" class="logo__image only-dark pst-js-only" alt="PlatoSim 3.5.4 documentation - Home"/>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">General:</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="basic_quickstart.html">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_architecture.html">Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_troubleshooting.html">Troubleshooting</a></li>
 <li class="toctree-l1"><a class="reference internal" href="basic_acknowledgements.html">Acknowledgements</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
-<ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Installing &amp; Updating:</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="install_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_conda.html">For Users (via Conda)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install_source.html">For Developers (from Source)</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
-<ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Running PlatoSim</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="run_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_simulations.html">Run simulations</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_input.html">Input files</a></li>
 <li class="toctree-l1"><a class="reference internal" href="run_output.html">Output files</a></li>
 </ul>
-<p class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
-<ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">PLATOnium toolkit</span></p>
+<ul class="nav bd-sidenav">
 <li class="toctree-l1"><a class="reference internal" href="platonium_overview.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_prerequisites.html">Prerequisites</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_tutorials.html">Tutorials</a></li>
 <li class="toctree-l1"><a class="reference internal" href="platonium_pipeline_v2.html">Pipeline</a></li>
 </ul>
 
-        </div>
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
+  </div>
+
+
       </div>
-    </nav>
+      
+      <main id="main-content" class="bd-main" role="main">
+        
+        
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
-          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">PlatoSim</a>
-      </nav>
+<div class="sbt-scroll-pixel-helper"></div>
 
-      <div class="wy-nav-content">
-        <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
-  <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Parallel Computing</li>
-      <li class="wy-breadcrumbs-aside">
-            <a href="_sources/platonium_cluster.rst.txt" rel="nofollow"> View page source</a>
-      </li>
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article d-print-none">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</button></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/platonium_cluster.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
   </ul>
-  <hr/>
 </div>
-          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
-           <div itemprop="articleBody">
-             
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button pst-navbar-icon"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
+
+
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm pst-navbar-icon" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Parallel Computing</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#slurmsim">slurmsim</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#worker-environment">Worker environment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parallelise-varsim">Parallelise varsim</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parallelise-platonium">Parallelise platonium</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article">
+                  
   <section id="parallel-computing">
-<h1>Parallel Computing<a class="headerlink" href="#parallel-computing" title="Permalink to this heading"></a></h1>
+<h1>Parallel Computing<a class="headerlink" href="#parallel-computing" title="Link to this heading">#</a></h1>
 <p>PlatoSim3 as it is (in serial) will need to be submitted with the calculations as single-node jobs, whereas in parallel, multiple nodes can be put in use. We will here start with the simplest HPC usage example and gradually build ontop with advancing examples. All examples presented here can be found in <code class="docutils literal notranslate"><span class="pre">$PLATO_PROJECT_HOME/python/examples/HPC/</span></code>.</p>
 <div class="admonition attention">
 <p class="admonition-title">Attention</p>
 <p>PlatoSim do <strong>not</strong> support GPU parallelisation, only CPU parallelisation.</p>
 </div>
 <hr><section id="slurmsim">
-<span id="hpc-tutorial-slurmsim"></span><h2>slurmsim<a class="headerlink" href="#slurmsim" title="Permalink to this heading"></a></h2>
+<span id="hpc-tutorial-slurmsim"></span><h2>slurmsim<a class="headerlink" href="#slurmsim" title="Link to this heading">#</a></h2>
 <p><strong>Job script generator for platonium</strong></p>
 <p>To easily prepare larger batches of simulations with <code class="docutils literal notranslate"><span class="pre">platonium</span></code> that needs to run on a computing cluster, we here developed the script called <code class="docutils literal notranslate"><span class="pre">slurmsim</span></code>.</p>
 <p><strong>Usage function:</strong> To get an overview of its usage simply type:</p>
@@ -145,7 +376,7 @@
 <p>If the automatic generated job resources given in <code class="docutils literal notranslate"><span class="pre">run.slurm</span></code> doesn’t cut it, the job resources can safely be modified after need. It is recommend always to make a test run on your cluster using all CPUs of a single node. In this way you can easily extrapolate the resources needed for your job, since nodes (almost) run independently of each other on a cluster.</p>
 <hr></section>
 <section id="worker-environment">
-<span id="platonium-hpc-worker"></span><h2>Worker environment<a class="headerlink" href="#worker-environment" title="Permalink to this heading"></a></h2>
+<span id="platonium-hpc-worker"></span><h2>Worker environment<a class="headerlink" href="#worker-environment" title="Link to this heading">#</a></h2>
 <p>To submit the following job scripts we use the popular <a class="reference external" href="https://worker.readthedocs.io/en/latest/">worker</a> framework. The <a class="reference external" href="https://vlaams-supercomputing-centrum-vscdocumentation.readthedocs-hosted.com/en/latest/jobs/worker_framework.html">worker quick start</a> gives a good introduction to the usage of this framework, but notice similar frameworks can do eaxctly the same, and they might be more useful for your cluster setup.</p>
 <p>Submitting the job script is simply done by:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wsub<span class="w"> </span>-master<span class="w"> </span>-sbatch<span class="w"> </span>run.slurm<span class="w"> </span>-data<span class="w"> </span>data.txt
@@ -154,7 +385,7 @@
 <p>We here use the flag <code class="docutils literal notranslate"><span class="pre">-master</span></code> to specify that we want all CPUs to run the simulations, otherwise one of them will simply idle and only handle the job scheduling (which might be handy sometimes).</p>
 <hr></section>
 <section id="parallelise-varsim">
-<span id="hpc-tutorial-varsim"></span><h2>Parallelise varsim<a class="headerlink" href="#parallelise-varsim" title="Permalink to this heading"></a></h2>
+<span id="hpc-tutorial-varsim"></span><h2>Parallelise varsim<a class="headerlink" href="#parallelise-varsim" title="Link to this heading">#</a></h2>
 <p>We now arrive to the purpose of the file <code class="docutils literal notranslate"><span class="pre">data_hpc_starcat**.txt</span></code> which automatically is generated by <code class="docutils literal notranslate"><span class="pre">picsim</span></code>. This ascii file contains a parameterized list of the bulk paramters of the stellar PIC targets (starID, <span class="math notranslate nohighlight">\(T_{\rm eff}\)</span>, <span class="math notranslate nohighlight">\(M\)</span>, <span class="math notranslate nohighlight">\(R\)</span>) which for the purpose of parallel computing can be given as input to any <em>embarassingly parallel</em> frameworks such as <code class="docutils literal notranslate"><span class="pre">worker</span></code>.</p>
 <p>When scheduling a job with worker it will automatically estimate the number of single job items (i.e. the number of rows in your <code class="docutils literal notranslate"><span class="pre">data_hpc_starcat**.txt</span></code>) you have and try to schedule your job(s) in an optimal way. Assuming that you understand the general concept of a job script (as described in <a class="reference internal" href="run_hpc.html#hpc-intro-job"><span class="std std-ref">Job scripts</span></a>) the following shows an example of running <code class="docutils literal notranslate"><span class="pre">varsim</span></code> in parallel:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
@@ -194,7 +425,7 @@ mv<span class="w"> </span><span class="nv">$TEMDIR</span>/varsource_<span class=
 <p>Starting from the top we here use 1 node with 36 cores and requesting the maximum memory RAM (and storage for the current thin nodes) being 5 Gb (i.e. 180 Gb out of which 189 Gb is available). Next we make sure to make all path environments variables globally availble for any given cluster node that our job might run on. An important notice is that we use <code class="docutils literal notranslate"><span class="pre">$SCRATCH_NODE</span></code>, being the node’s own storage memory, to temporary store the data since saving it directly to the storage location <code class="docutils literal notranslate"><span class="pre">$SCRATC</span></code> would introduce some overhead due to slower I/O handling. Lastly, simply summit the job as seen above.</p>
 <hr></section>
 <section id="parallelise-platonium">
-<h2>Parallelise platonium<a class="headerlink" href="#parallelise-platonium" title="Permalink to this heading"></a></h2>
+<h2>Parallelise platonium<a class="headerlink" href="#parallelise-platonium" title="Link to this heading">#</a></h2>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/bin/bash</span>
 
 <span class="c1">#PBS -N job_test1</span>
@@ -248,31 +479,90 @@ mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$OUTDIR<
 </section>
 
 
-           </div>
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer d-print-none">
+                  
+<div class="prev-next-area">
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item"><div
+    id="pst-page-navigation-heading-2"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav id="pst-page-toc-nav" class="page-toc" aria-labelledby="pst-page-navigation-heading-2">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#slurmsim">slurmsim</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#worker-environment">Worker environment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parallelise-varsim">Parallelise varsim</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#parallelise-platonium">Parallelise platonium</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
           </div>
-          <footer>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By PlatoSim Developers
+</p>
 
-  <hr/>
-
-  <div role="contentinfo">
-    <p>&#169; Copyright KU Leuven.</p>
   </div>
+  
+  <div class="footer-item">
+    
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
-    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+  <p class="copyright">
+    
+      © Copyright KU Leuven.
+      <br/>
+    
+  </p>
 
-</footer>
-        </div>
-      </div>
-    </section>
   </div>
-  <script>
-      jQuery(function () {
-          SphinxRtdTheme.Navigation.enable(true);
-      });
-  </script> 
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
 
-</body>
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
 </html>
