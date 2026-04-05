@@ -11,7 +11,7 @@
 <!-- [![Image](https://img.shields.io/badge/pip%20install-transitleastsquares-blue.svg)]() -->
 <!-- [![Image](https://img.shields.io/badge/arXiv-1901.02015-blue.svg)]() -->
 
-## Motivation
+## Overview
 
 To accommodate PLATO's need of versatile simulations prior to mission launch - that at the same time describe
 accurately the innovative but complex multi-telescope design - we here present Platosim, the end-to-end PLATO camera
@@ -22,12 +22,7 @@ barycentric pixel displacement of the stellar sources, the cameras and their opt
 electronics, and all main random and systematic noise sources. With its strong predictive powers and diverse
 applicability, PlatoSim is key simulator for PLATO Mission Consortium.
 
-## Access and contribution
-
-We welcome new users and encourage contributions. Simply contact one of the following PlatoSim developers from KU Leuven:
-- Nicholas Jannsen (nicholasj@ing.iac.es)
-- Joris De Ridder (joris.deridder@kuleuven.be) 
-- Dries Seynaeve (dries.seynaeve@kuleuven.be) 
+Happy simulations - Joris, Dries, and Nich
 
 ## Installation
 
