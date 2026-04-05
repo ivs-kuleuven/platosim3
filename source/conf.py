@@ -193,5 +193,4 @@ html_logo = "../figures/logo_platosim_crop.png"
 html_theme_options = {
     'logo_only': True,
     'display_version': False,
-    'body_max_width': '2500px', 
 }
