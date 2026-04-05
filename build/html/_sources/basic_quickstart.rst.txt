@@ -1,17 +1,13 @@
 Quickstart
 ==========
 
-.. warning::
-
-   PlatoSim is currently only available to memebers of the PLATO Mission Consortium (with a signed Non-Disclosure Agreement: NDA). Thus, to install (or download) the PlatoSim software, please contact one of the PlatoSim developers (see our `GitHub page <https://github.com/IvS-KULeuven/PlatoSim3>`_) for the credentials: **<username>** and **<password>**.
-
 The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` using the following set of terminal commands to install the ``master`` branch:
 
 .. code-block:: shell
 		
-   conda create -n platosim python=3.10
+   conda create -n platosim python=3.11
    conda activate platosim
-   conda install -c https://<username>:<password>@jenkins.miricle.org/platosim/ platosim
+   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
 Create a working directory for which you want to store all your future PlatoSim projects (e.g. using ``platosim_workdir`` as our project folder and create a first project called ``quickstart``):
 
@@ -31,7 +27,7 @@ PlatoSim also requires a PSF file (which is not included in the default distribu
 
 .. code-block:: shell
 		
-   wget ftp://<username>:<password>@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 $PLATO_PROJECT_HOME/inputfiles
+   wget ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 $PLATO_PROJECT_HOME/inputfiles
 
 A simple test simulation from the command line looks like:
 

@@ -5,13 +5,13 @@ This section gives a detailed explaination on how to finalise your setup in orde
 
 **Extra Python packages**
 
-To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the ``pyproject.toml`` file is located (if you followed our suggestion during the installation, this would be ``$CONDA_PREFIX/python``). Depending on your needs, run the Poetry install command again but now with the additional argument(s):
+To use PLATOnium we only have to add a few more packages to our Conda environment using Poetry. Move to the directory where the ``pyproject.toml`` file is located (if you followed our suggestion during the installation, this would be ``$CONDA_PREFIX/python``). Run now the Poetry install command:
 
-- ``--with platonium``
-- ``--with platonium --with pipeline``
+.. code-block:: shell
 
-The first add-on command is sufficient for running the :doc:`PLATOnium tutorials <platonium_overview>`. Only add-on the second command if you want to run the computational bridge between PLATOnium and the :doc:`LESIA L1 prototype pipeline <platonium_pipeline>`.
-  
+   poetry install --with platonium
+   
+
 **Script executeables**
 
 Before you continue, verify that the following path variables are defined (preferably in a ``.bash_profile`` file that are read by the configuration file of your shell environment):

@@ -22,13 +22,13 @@ To make life easier on the people who want to use PlatoSim without ever wanting 
 
 .. important::
    
-   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.10**.
+   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.11**.
 
 First, create a Conda environment (e.g. called ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n <environment name> python=3.10
+   conda create -n <environment name> python=3.11
 
 Activate your new conda environment:
 
@@ -40,9 +40,6 @@ It is advised to use multiple Conda environments if you want to be able to switc
 
 
 
-
-
-
 .. raw:: html
 
    <hr>
@@ -51,10 +48,6 @@ It is advised to use multiple Conda environments if you want to be able to switc
 
 *Installing* 
 ------------
-
-.. warning::
-
-   To install the PlatoSim software you need a set of credentials (**username** and **password**). If you have not received these, please contact one of the `PlatoSim developers <https://github.com/IvS-KULeuven/PlatoSim3>`_ and request them. Having the credentials at hand, use them in the installation procedure below by replacing the entries ``<username>`` and ``<password>`` with the given username and password, respectively.
 
 Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system your are running and will install the appropriate packages for you.
 
@@ -68,13 +61,13 @@ We recommend to install the ``master`` branch, unless you are interested in a fe
 
 .. code-block:: shell
 
-   conda install -c https://<username>:<password>@jenkins.miricle.org/platosim/ platosim
+   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
 To install the latest version of the ``develop`` branch, use:
 
 .. code-block:: shell
 
-   conda install -c https://<username>:<password>@jenkins.miricle.org/platosim.devel/ platosim
+   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
 
 To install a specific version of either the ``master`` or ``develop`` branch, simply append ``<version>=`` to the above commands. 
 
@@ -97,13 +90,13 @@ You may wish to update your installation when a new PlatoSim release becomes ava
 
 .. code-block:: shell
 
-   conda update --force-reinstall -c  https://<username>:<password>@jenkins.miricle.org/platosim/ platosim
+   conda update --force-reinstall -c  https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
       
 Accordingly, if you want to update the ``develop`` branch, type:
 
 .. code-block:: shell
 
-   conda update --force-reinstall -c  https://<username>:<password>@jenkins.miricle.org/platosim.devel/ platosim
+   conda update --force-reinstall -c  https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
 
 
 

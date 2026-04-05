@@ -814,7 +814,7 @@ The following parameters are only applicable if ``Model = AnalyticNonGaussian``:
 
 .. warning::
 
-   Note that this very crude model was used for beta-testing and is thus not recommend!
+   Note that this very crude model was used for beta-testing and is thus not recommended!
 
 The PSF is an elongated Gaussian (the symmetry axes being parallel to the :math:`x` and :math:`y` axis), for which the width and the height are given at the centre of the FOV and at :math:`18^{\circ}` from the optical axis. The following parameters are only applicable if ``Model = AnalyticGaussian``:
 
