@@ -1,9 +1,10 @@
 For Developers (from Source)
 ============================
 
-.. warning::
+..
+   .. warning::
 
-   If you like to download PlatoSim directly from GitHub and become a developer, please raise a `GitHub issue <https://github.com/IvS-KULeuven/PlatoSim3/issues>`_ and we will add you to our list of developers as soon as possible. When you have been added, you can continue with the installation instructions below.
+      If you like to download PlatoSim directly from GitHub and become a developer, please raise a `GitHub issue <https://github.com/IvS-KULeuven/PlatoSim3/issues>`_ and we will add you to our list of developers as soon as possible. When you have been added, you can continue with the installation instructions below.
 
 The scheme below shows an overview of the procedure to download, update, and build the PlatoSim software on your system yourself. This scheme is valid for developers who may want to contribute to the code at some point. Also the procedure to make your own modifications to the code available for others is described.
 
@@ -132,7 +133,7 @@ PlatoSim can then be cloned to your local machine using the command:
 
 .. code-block:: shell
 
-   git clone https://"<USERNAME>:<ACCES_TOKEN>"@github.com/<your-GitHub-username>/PlatoSim3.git .
+   git clone https://"<USERNAME>:<ACCES_TOKEN>"@github.com/<your-GitHub-username>/PlatoSim3.git
    
 .. raw:: html
 
