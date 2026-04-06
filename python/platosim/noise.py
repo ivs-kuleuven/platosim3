@@ -29,7 +29,7 @@ from platosim.utilities    import errorcode
 #                        FREQUENCY DOMAIN                      #
 #--------------------------------------------------------------#
 
-def FFTnumpy(signal, timestep):
+def numpyFFT(signal, timestep):
     """Computes power spectrum of an equidistant time series
 
     The length of the time series need not be a power of 2 (zero padding is done
@@ -63,7 +63,7 @@ def FFTnumpy(signal, timestep):
     return freq, power
 
 
-def DFT(time, signal, f0=None, fn=None, df=None, full_output=False):
+def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
     """Computes the modulus square of the fourier transform.
 
     Unit: square of the unit of signal. Time points need not be equidistant.
@@ -107,7 +107,7 @@ def DFT(time, signal, f0=None, fn=None, df=None, full_output=False):
         return freqs, (ft.real**2 + ft.imag**2) * 4.0 / Ntime**2
 
 
-def DFTdiscrete(time, signal, freqs):
+def DFTpower2(time, signal, freqs):
     """Computes the power spectrum of a signal using a discrete Fourier transform.
 
     The main difference between DFTpower and DFTpower2, is that the latter allows
@@ -131,7 +131,7 @@ def DFTdiscrete(time, signal, freqs):
     return powerSpectrum * 4.0 / len(time)**2
 
 
-def PSDscipy(signal, time_interval=25, window='boxcar', nfft=None, one_sided=False,
+def scipyPSD(signal, time_interval=25, window='boxcar', nfft=None, one_sided=False,
              scaling='density'):
     """Compute Double Sided Power Spectral Density (PSD).
 
