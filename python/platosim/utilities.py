@@ -271,18 +271,6 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
         ftp.login(user=server, passwd='miSotalP')
         ftp.cwd(f'{ftp_subpath}')
         files = [filename]
-
-    elif server == 'platodata':
-        ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
-        ftp.cwd(f'PLATOSIM/{ftp_subpath}')
-        # Check if only one files is requested
-        if not permission:
-            if ftp_subpath:        
-                files = [ftp_filename.name] # within a subfolder
-            else:
-                files = [filename]          # in the base folder
-        else:
-            files = ftp.nlst()[2:]          # multiple files
     else:
         errorcode('error', f'Server name {server} is not valid!')
             
