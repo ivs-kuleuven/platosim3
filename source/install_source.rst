@@ -149,7 +149,7 @@ PlatoSim can then be cloned to your local machine using the command:
 
 .. code-block:: shell
 
-   git clone https://"<USERNAME>:<ACCES_TOKEN>"@github.com/<your-GitHub-username>/PlatoSim3.git .
+   git clone https://"<USERNAME>:<ACCES_TOKEN>"@github.com/<your-GitHub-username>/PlatoSim3.git
    
 .. raw:: html
 
@@ -250,7 +250,7 @@ To *pull* or *fetch* the latest version of the upstream software into your local
 
 This should give output similar to this:
 
-.. code-block::
+.. code-block:: shell
 
    origin    https://github.com/<your GitHub username>/PlatoSim3.git (fetch)
    origin    https://github.com/<your GitHub username>/PlatoSim3.git (push)
@@ -259,13 +259,13 @@ This should give output similar to this:
 
 If there's no sign of the upstream (the last two lines), you can add it with the following command:
 
-.. code-block::
+.. code-block:: shell
 
    git remote add upstream https://github.com/IvS-KULeuven/PlatoSim3.git
 
 In case you pointed upstream to the wrong location (i.e. you used the command from above with the wrong link), you can undo this by executing the following command in the the installation folder (or one of its sub-folders):
 
-.. code-block::
+.. code-block:: shell
 
    git remote rm upstream
 
@@ -291,7 +291,7 @@ In the course of the development process, the code in the upstream repository wi
 
 To get the latest version on your local machine, execute the following command for the ``develop`` and ``master`` branch, respectively:
 
-.. code-block::
+.. code-block:: shell
    
    git pull upstream/develop
    git pull upstream/master
@@ -320,38 +320,38 @@ The workflow to contribute to PlatoSim is shown schematically in the figure belo
    :align: center
    :width: 900
 
-**Pushing your changes**
+	   **Pushing your changes**
 
 If you have made local changes to some files that are already under version control or you have added new files, and you want to transfer these changes to the ``origin`` repository, you must first *stage* these files and then *commit* them.
 
 Staging a file can be done with the command:
 
-.. code-block::
-   
-   git add <relative/path/to/file>
+.. code-block:: shell
 
+   git add <relative/path/to/file>
+   
 To inspect the status of the files in your local repository, execute the following command:
 
-.. code-block::
+.. code-block:: shell
    
    git status
 
 To *commit* all staged files, execute the following command:
 
-.. code-block::
+.. code-block:: shell
    
    git commit -m "<commit-message>"
 
 We advise you not to squeeze to much into one commit and to write clear commit messages. Before pushing your commit(s) you shall always fetch the upstream and merge potential changes (and perhaps resolve merge conflicts) before pushing your changes to your local GitHub account. This can be done using:
 
-.. code-block::
+.. code-block:: shell
    
    git fetch upstream
    git merge upstream/develop
    
 You can now transfer the committed changes to the origin repository with the command:
 
-.. code-block::
+.. code-block:: shell
    
    git push origin develop
 
@@ -395,13 +395,13 @@ We have adopted the branching strategy of Vincent Driessen, which means that the
 
 To switch to a specific branch, use the command:
 
-.. code-block::
+.. code-block:: shell
    
    git checkout <branch-name>
 
 To grab all branches and get an overview, use the following commands:
 
-.. code-block::
+.. code-block:: shell
    
    git fetch
    git branch
@@ -412,13 +412,13 @@ The first command pulls all remote branches (not only the one you are currently 
 
 Release candidates and releases correspond to tagged versions of the master branch. To start using a specific release or release candidate, you have to check out the version of the master branch with a specific tag to a new branch, like this:
 
-.. code-block::
+.. code-block:: shell
    
    git checkout -b <new-branch-name> <tag-name>
 
 We will send around the tag name for new release candidates and releases once they become available. To get an overview of the available tags, use
 
-.. code-block::
+.. code-block:: shell
    
    git tag -l
    

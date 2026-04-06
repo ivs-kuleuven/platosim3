@@ -1,8 +1,7 @@
 Quickstart
 ==========
 
-The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` using the following set of
-terminal commands to install the ``develop`` branch:
+The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` using the following set of terminal commands to install the ``master`` branch:
 
 .. code-block:: shell
 		

@@ -41,14 +41,12 @@ picsim
 
 To speed up the process of running realistic simulations, a script called ``picsim`` (a.k.a. PIC of Destiny) is made available for the user. This script draw target and contaminant stars from the PLATO Input Catalogue (PIC) created by `Montalto et al. (2021) <https://arxiv.org/abs/2108.13712>`_. 
 
-The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.0.0 and from the `PIC 1.1.0 <https://archive.stsci.edu/hlsp/aspic>`_ (referenced as PLATO Fields). Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
+The script ``picsim`` can query stars from the Long-duration Observation Phases (LOPs) of the PIC 2.2.0.1 (referenced as PLATO Fields). Hence, in total four PLATO fields are available, defined by the equatorial coordinates of the platform orientation:
 
 - LOP South 2 (LOPS2): :math:`\ \ \ \ \ \   \alpha = \ \ 95.31043^{\circ}, \ \ \ \ \ \ \delta=-47.88693^{\circ}, \ \ \ \ \ \ \ \kappa=+13.9947^{\circ}`
 - LOP North 1 (LOPN1): :math:`\ \ \ \ \ \ \ \alpha = 277.18023^{\circ},    \ \ \ \ \ \ \delta=+52.85952^{\circ}, \ \ \ \ \ \ \ \kappa=-13.9947^{\circ}`
-- South PLATO Field (SPF): :math:`\alpha = \ \ 86.79870508^{\circ}, \, \delta=-46.39594703^{\circ}, \,  \kappa=+10.0^{\circ}`
-- North PLATO Field (NPF): :math:`\alpha = 265.08002279^{\circ},    \, \delta=+39.5836954^{\circ},  \ \ \kappa=-10.0^{\circ}`
 
-These catalogues compose more than :math:`300,000` PLATO targets from the samples (P1, P2, P4, and P5), of which more than :math:`8,000,000` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below illustrates all P1 sample stars from from the PIC 1.1.0 colour coded by their magnitude.
+These catalogues compose more than :math:`300,000` PLATO targets from the samples (P1, P2, P4, and P5), of which more than :math:`8,000,000` photometric contaminants are catalogued within a 60 arcsec radial distance from each target. The figure below illustrates all P1 sample stars colour coded by their magnitude.
 
 .. image:: ../figures/platonium_P1SampleAllsky.png
    :align: center
@@ -136,7 +134,7 @@ In order to help the process of generating variable input light curves for Plato
 * Exoplanet transits
 * Phase curve variations (due to occultation, Doppler beaming, and ellisoidal distorsion)
 
-The amplitude of each of these variable signals are derived using synthetic `PHOENIX <https://phoenix.astro.physik.uni-goettingen.de/>`_ spectra being convolved with the instrumental bandpass. The figure below shows an example of a generated noise-less light curve of a variable star with a Neptune-sized transiting planet. We refer the reader to the technical note `PLATO-KUL-PL-TN-0020 <https://issues.cosmos.esa.int/platowiki/display/PPWS/Simulated+datasets?preview=%2F36548784%2F56427070%2FPLATO-KUL-PL-TN-0020_MultiQuarterCameraSimulation.pdf>`_ for a more detailed description.
+The amplitude of each of these variable signals are derived using synthetic `PHOENIX <https://phoenix.astro.physik.uni-goettingen.de/>`_ spectra being convolved with the instrumental bandpass. The figure below shows an example of a generated noise-less light curve of a variable star with a Neptune-sized transiting planet.
 
 .. image:: ../figures/platonium_varsimSolarLike.png
    :align: center
@@ -233,8 +231,9 @@ To help introduce more realistic (i.e. more noisy) instrumental systematics, we 
   - ``instrumentPRE.txt`` : Pointing errors for each mission quarter pointing
   - ``instrumentAPE.txt`` : Alignment errors between cameras and the optical bench
   - ``instrumentTED.txt`` : Long-term camera drift due to Thermo-Elastic Distortion
-  - ``instrumentGAP.txt`` : Realistic distribution of observational down time
-  - ``instrumentGTT.txt`` : Gain-thermal transients events after each re-pointing
+  - ``instrumentGAP.tab`` : Realistic distribution of observational down time
+  ..
+     - ``instrumentGTT.txt`` : Gain-thermal transients events after each re-pointing
     
 **Usage function:** To get an overview of its usage simply type:
 
@@ -295,15 +294,16 @@ We draw these from a known event-distribution from the *Kepler* mission, where t
    :align: center
    :width: 550
 
-As the the spacecraft changes its orientation throughout the mission, the motion and/or orientation of the spacecraft will cause the components of each camera (TOU, CCDs, FEE, etc.) to undergo a temperature change. This will in turn result in a temporarily increase of electron counts. This phenomena is known as a *thermal transient*. In Simple Aperture Photometry (SAP) a thermal transient event manifests in a positive flux jump followed by a *reheating* process seen as an exponentially decrease in flux back to the count level as before the event. The main cause of thermal trasients is due to the temperature dependece of the CCD gain (and to second order on a slightly change of the camera focus). The reheating timescale depends on the duration of the interruption, i.e. typically maximally up to a few days.
+..
+   As the the spacecraft changes its orientation throughout the mission, the motion and/or orientation of the spacecraft will cause the components of each camera (TOU, CCDs, FEE, etc.) to undergo a temperature change. This will in turn result in a temporarily increase of electron counts. This phenomena is known as a *thermal transient*. In Simple Aperture Photometry (SAP) a thermal transient event manifests in a positive flux jump followed by a *reheating* process seen as an exponentially decrease in flux back to the count level as before the event. The main cause of thermal trasients is due to the temperature dependece of the CCD gain (and to second order on a slightly change of the camera focus). The reheating timescale depends on the duration of the interruption, i.e. typically maximally up to a few days.
 
-By default PlatoSim does not account for thermal transients, hence, this model is included here. Again the model parameters used are similar to that estimated for the *Kepler* mission. The following figure shows the transient model induced by the data gaps from the above figure:
-	   
-.. image:: ../figures/platonium_payloadGTT.png
-   :align: center
-   :width: 650
+   By default PlatoSim does not account for thermal transients, hence, this model is included here. Again the model parameters used are similar to that estimated for the *Kepler* mission. The following figure shows the transient model induced by the data gaps from the above figure:
 
-Note that gain-thermal transients only occur if the spacecraft orientation is changed (i.e. if the thermal profile of the spacecraft abruptly changes), which is not the case for events of large jitter noise due to the loss of fine guidance.
+   .. image:: ../figures/platonium_payloadGTT.png
+      :align: center
+      :width: 650
+
+   Note that gain-thermal transients only occur if the spacecraft orientation is changed (i.e. if the thermal profile of the spacecraft abruptly changes), which is not the case for events of large jitter noise due to the loss of fine guidance.
 	   
 	   
    
@@ -340,7 +340,7 @@ This script uses the PIC targets and their contaminants (created with ``picsim``
 	          ├── instrumentPRE.txt
 	          ├── instrumentAPE.txt
 	          ├── instrumentTED.txt
-	          ├── instrumentGaps.txt		  	      	      		  
+	          ├── instrumentGAP.tab		  	      	      		  
 	          ├── inputfile.yaml
 	          ├── starcat**targets.ftr
 	          ├── starcat**contaminants.ftr
@@ -411,4 +411,4 @@ In this example we simulate CCD 1, N-CAM 4.1 for the first exposure of mission q
    :align: center
    :width: 800
 
-The above example generates the upper left CCD image for which the LMC is located on. Depending on how many (millions of) stars that your star catalogue includes, a single exposure may take anything from 15 minutes to several hours. More information about the structure of the output files, please consult the technical note `PLATO-DLR-PL-TN-0108 <https://s2e2.cosmos.esa.int/confluence/display/PPWS/Simulated+datasets?preview=/173005308/528416806/PLATO-DLR-PL-TN-0108_i1.0draft1_DPS_simulations.pdf>`_.
+The above example generates the upper left CCD image for which the LMC is located on. Depending on how many (millions of) stars that your star catalogue includes, a single exposure may take anything from 15 minutes to several hours. More information about the structure of the output files, please consult the technical note `PLATO-DLR-PL-TN-0108 (only for PMC members) <https://s2e2.cosmos.esa.int/confluence/display/PPWS/Simulated+datasets?preview=/173005308/528416806/PLATO-DLR-PL-TN-0108_i1.0draft1_DPS_simulations.pdf>`_.

@@ -154,4 +154,4 @@ By setting the optional input parameter ``removeOutputFile`` to ``True``, any pr
 If PlatoSim raises an error message upon execution, please have a look the log messages before raising a new GitHub issue. The two most frequent *error codes* are:
 
 - **Error code -1**: The HDF5 file already exists, hence remove it and try again
-- **Error code 6**: Wrong formatting or typesetting of the YAML file or a supplementary file
+- **Error code -6**: Wrong formatting or typesetting of the YAML file or a supplementary file

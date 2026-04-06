@@ -10,12 +10,12 @@ simulation object in your Python scripts.
 If you run PlatoSim from the command line and have already existing YAML configuration files, you will potentially have
 issues (``errorcode 6`` will show up). In the PlatoSim distribution we provide a helper tool to migrate your YAML
 inputfiles to the new format. The tool `migtool.py
-<https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/python/platosim/script/migtool.py>`_ in the
+<https://github.com/IvS-KULeuven/PlatoSim3/blob/develop/python/platosim/scripts/migtool.py>`_ in the
 ``/python/platosim/script`` folder of the PlatoSim installation. This tool will compare your (old) YAML input file with
 the default YAML input file that is on your local system, i.e. ``/inputfiles/inputfile.yaml``. The command can be used
 as follows (assuming your are located in the PlatoSim project home folder):
 
-.. code-block::
+.. code-block:: shell
    
    migtool.py [-hv] [-o outputFilename] inputFilename
 
@@ -29,7 +29,7 @@ below.
 file is 0.01. Your value will be retained after the migration. The reason is that you probably have good reasons to
 have this value different from the default value, and you don't want to loose that during the migration.
 
-.. code-block::
+.. code-block:: shell
    
    CHECK - Value changed for CCD.FlatfieldPtPNoise from 0.016 to 0.01
 

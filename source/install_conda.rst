@@ -26,15 +26,13 @@ you have to take.
 
 .. important::
    
-   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda
-   <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires
-   **Python version 3.11**.
+   To be able to install PlatoSim via Conda you need to have the Python distribution `Anaconda <https://docs.continuum.io/anaconda/install/>`_ (or Miniconda) installed. The current Jenkins' build requires **Python version 3.11**.
 
 First, create a Conda environment (e.g. called ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n platosim python=3.11
+   conda create -n <environment name> python=3.11
 
 Activate your new conda environment:
 
@@ -50,9 +48,6 @@ more information on how to use and manage `Conda environments
 
 
 
-
-
-
 .. raw:: html
 
    <hr>
@@ -62,8 +57,7 @@ more information on how to use and manage `Conda environments
 *Installing* 
 ------------
 
-Start by activating your desired Conda environment. The installation procedures below will automatically detect which
-operating system your are running and will install the appropriate packages for you.
+Start by activating your desired Conda environment. The installation procedures below will automatically detect which operating system your are running and will install the appropriate packages for you.
 
 Before you install PlatoSim via conda, for the first time in this environment, type: 
 
@@ -71,7 +65,11 @@ Before you install PlatoSim via conda, for the first time in this environment, t
 		
    conda config --add channels conda-forge
    
-We recommend to install the ``develop`` branch.
+We recommend to install the ``master`` branch, unless you are interested in a feature that only exists on the ``develop`` branch. To install the latest version of the ``master`` branch use:
+
+.. code-block:: shell
+
+   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
 To install the latest version of the ``develop`` branch, use:
 

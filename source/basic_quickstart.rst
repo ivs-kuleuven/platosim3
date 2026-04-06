@@ -1,14 +1,13 @@
 Quickstart
 ==========
 
-The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` using the following set of
-terminal commands to install the ``develop`` branch:
+The easiest way to install PlatoSim is through our :doc:`Conda installation <install_conda>` using the following set of terminal commands to install the ``master`` branch:
 
 .. code-block:: shell
 		
    conda create -n platosim python=3.11
    conda activate platosim
-   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
+   conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
 Create a working directory for which you want to store all your future PlatoSim projects (e.g. using
 ``platosim_workdir`` as our project folder and create a first project called ``quickstart``):

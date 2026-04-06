@@ -12,7 +12,7 @@ Welcome to the PLATO Ecosystem: A Docker wrapper for PlatoSim3 and the LESIA L1 
 ---------------
 
 * Install docker and docker-compose following the instructions for your host OS.
-* Clone the `GitHub docker ecosystem <https://github.com/PLATO-Mission/docker_ecosystem>`_ repository to your server
+* Clone the `GitHub docker ecosystem <https://github.com/PLATO-Mission/docker_ecosystem>`_ repository to your server (request access to James)
 * Inside the ``docker_ecosystem`` folder clone the ``PlatoSim3`` repo (checkout whatever branch you currently want to use, e.g. develop)
 * Inside the ``docker_ecosystem`` folder create a folder called ``algos``
 * Inside the ``algos`` folder clone the LESIA L1 pipeline ``common`` repository
