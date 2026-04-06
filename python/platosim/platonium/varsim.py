@@ -152,17 +152,13 @@ from platosim.varsource import (Pulsator,
                                 DopplerBeaming,
                                 EllipsoidalDistortion)
 
-
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-
 class VarSim(object):
-
     """Class to generate noise-less light curves.
     """
-    
     def __init__(self, args):
         
         # CONSTANTS

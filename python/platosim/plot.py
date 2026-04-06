@@ -1498,159 +1498,6 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
     
     return fig, ax
 
-
-
-
-
-
-def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
-
-    # TODO Under development! Attempt to remove ligo.skymap.plot package
-    # https://github.com/lpsinger/ligo.skymap/blob/main/ligo/skymap/plot/allsky.py
-    
-    import numpy as np
-    from matplotlib.patches import Circle
-    from astropy.coordinates import SkyCoord
-    import matplotlib.pyplot as plt
-    from astropy.wcs import WCS
-
-    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
-
-    # Select field
-    
-    if pointingField == 'NPF': PF_gal = [65.0, 30.0]
-    if pointingField == 'SPF': PF_gal = [253.0, -30.0]
-    PF = SkyCoord(PF_gal[0], PF_gal[1], frame='galactic', unit='deg')  # [deg]
-
-    if system == 'icrs':
-        PF = PF.icrs  # [deg]
-        x = PF.ra.deg
-        y = PF.dec.deg
-        z = -8.5
-        xstring = 'RA---AIT'
-        ystring = 'DEC--AIT'
-    elif system == 'galactic':
-        x = PF.l.deg
-        y = PF.b.deg
-        z = 0
-        xstring = 'GLON'
-        ystring = 'GLAT'
-
-    wcs_spec =  {'CDELT1': -3.5,
-                 'CDELT2': 3.5,
-                 'CRPIX1': 8.5,
-                 'CRPIX2': 8.5,
-                 'CRVAL1': x,
-                 'CRVAL2': y,
-                 'CTYPE1': xstring,
-                 'CTYPE2': ystring,
-                 'CUNIT1': 'deg',
-                 'CUNIT2': 'deg'}
-    wcs = WCS(wcs_spec)
-
-    # Load PIC stars for each N-CAM visibility
-
-    PF06 = np.load(indir + f'{pointingField}-NCAM06.npy')
-    PF12 = np.load(indir + f'{pointingField}-NCAM12.npy')
-    PF18 = np.load(indir + f'{pointingField}-NCAM18.npy')
-    PF24 = np.load(indir + f'{pointingField}-NCAM24.npy')
-
-    starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
-    starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
-    starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
-    starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
-
-    if system == "icrs":
-        ra06, dec06 = starPF06.ra.deg, starPF06.dec.deg
-        ra12, dec12 = starPF12.ra.deg, starPF12.dec.deg
-        ra18, dec18 = starPF18.ra.deg, starPF18.dec.deg
-        ra24, dec24 = starPF24.ra.deg, starPF24.dec.deg
-    elif system == "galactic":
-        ra06, dec06 = starPF06.l.deg, starPF06.b.deg
-        ra12, dec12 = starPF12.l.deg, starPF12.b.deg
-        ra18, dec18 = starPF18.l.deg, starPF18.b.deg
-        ra24, dec24 = starPF24.l.deg, starPF24.b.deg
-    
-    # Start plotting
-    
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
-
-    # Plot PIC1.1.0 stars after N-CAM visibility
-
-    ax.plot(ra06, dec06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-    ax.plot(ra12, dec12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-    ax.plot(ra18, dec18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-    ax.plot(ra24, dec24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
-
-    # Plot stars and add legend scaled to the stellar magnitudes
-    
-    if magStars is not None and len(magStars) > 0:
-        maxMarkerSize = 30
-        dm = (max(magStars) - magStars) * maxMarkerSize
-        mag_range = np.arange(min(magStars), max(magStars)).astype(int)
-        dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
-        mark, color = 'o', 'gold'
-        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0]
-                  for i in range(len(dm_range))]
-        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
-                  title=r"P [mag]", fontsize=16, title_fontsize=16)
-    else:
-        dm, mark, color = 20, '*', 'none'
-
-    # Plot pointing of each camera group
-    
-    if showGroups:
-
-        # Plot pointing of the N-CAM groups
-        
-        raGroups, decGroups = rf.getCameraGroupCoordinates(x, y, z)
-        camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
-        for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
-            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
-                    mec='k', transform=ax.get_transform('world'), zorder=6)
-
-        # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
-        
-        ax.plot(x, y, '*', c='k', mfc='magenta', ms=25,
-                transform=ax.get_transform('world'), zorder=6)
-        # Plot F-CAM FOV as cicle
-        # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
-        #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
-        #         transform=ax.get_transform(system), zorder=6)
-        ax.scatter(x, y, s=115000, marker='o', edgecolor='magenta', facecolor='none',
-                   linewidth=2, transform=ax.get_transform(system), zorder=6)
-        # The problem with projecting shapes due to missing cos factor
-        # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
-        # https://github.com/astropy/regions/issues/76
-        # circle = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 18, fc='none', lw=2,
-        #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
-        #ax.add_patch()
-
-
-        
-    # ax.plot(x, y,  marker='.', linestyle='solid',  mfc='none', mec='magenta', ms=700,
-    #         transform=ax.get_transform(system), zorder=7)
-    
-    ax.grid('on', color='gray')
-    #ax.scalebar((0.05, 0.05), 10 * u.deg).label()
-    compass(ax, 0.95, 0.05, 0.1)
-    
-    #l = np.linspace(-10, 10, 100)
-    #b = np.zeros_like(l)
-    #gp = SkyCoord(l, b, frame='galactic', unit='deg').transform_to('icrs')
-
-    # add galactic plane
-    #ax.plot(gp.ra.deg, gp.dec.deg, c='w', lw=1, transform=ax.get_transform('icrs'))
-    #ax.set_xlim(0, 15)
-    #ax.set_ylim(0, 15)
-
-    return fig, ax
-
-
-
-
 #--------------------------------------------------------------#
 #                     POINTING ERROR SOURCES                   #
 #--------------------------------------------------------------#
@@ -2077,153 +1924,9 @@ def plotYawPitchRollJitter(time, signals, clabel, tpoint=100, lim=0.20,
 
     return fig, ax
 
-
-
-
-
-#--------------------------------------------------------------#
-#                        FREQUENCY ANALYSIS                    #
-#--------------------------------------------------------------#
-
-
-def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
-            title=False, xlim=False, ylim=False, linewidth=False, misreq=False):
-
-    """Plots the Power Spectral Density (PSD). 
-    
-    Alongside the data a median filter is plotted with a default carbox
-    length of 144 time points, corresponding to 1 hour precision if the
-    time series has a cadence of 25 seconds.
-
-    Parameters
-    ----------
-    freq : narray
-        Frequency points [Hz, mHz, or mizroHz]
-    psd : narray, list-narray
-        Either single signal array or a list of signal arrays
-    carbox : int (optional)
-        Length of median carbox filter. Default is 3600s/25s = 144. Also False to ignore.
-    title : str (optional)
-        Title for plot
-    labels : list-str (optinal)
-        List of string labels where the first is the xlabel and the rest is ylabels
-    xmin : float (optional)
-        Limit for x min. The x max limit is the Nyquist frequency
-    ylim : list-float (optional)
-        List of y min and max limit ["y-min", "y-max"]
-
-    Return
-    ------
-    Plot or/and saved plot to PNG.
-    """
-
-    # Handle the number of input data sets
-
-    if type(psd) == list:
-        numData = len(psd)
-    else:
-        numData = 1
-        freq = [freq]
-        psd = [psd]
-
-    # Handle axes units
-
-    if units is False:
-        units = ['$\mu$Hz', 'ppm']
-        scale = 1e6
-    else:
-        scale = 1
-
-    # Handle colors
-
-    if colors is False:
-        colors = ['tomato', 'darkorange', 'gold']
-        if numData > 3:
-            colors = cm.rainbow(np.linspace(0, 1, numData))
-
-    # Handle linewidths
-
-    if linewidth is False:
-        lw = 1
-    else:
-        lw = linewidth
-
-    # Create axes objects
-
-    axes = fig.add_subplot()
-
-    # Allow plotting multiple PSDs in consecutive subplots
-
-    for plot in np.arange(numData):
-
-        # Plot results
-
-        if labels is False:
-            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw)
-        else:
-            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw, label=labels[plot])
-
-        # Plot median filter if requested
-
-        if carbox:
-            perhour = carbox*25/3600
-            PSD_med = median_filter(psd[plot], carbox)
-            plt.plot(freq[plot], PSD_med, 'k-', lw=lw+1, label='{0}h median '.format(perhour))
-
-    # Plot mission requirements (from the red book)
-
-    if misreq:
-        plt.plot([3e-6*scale, 20e-6*scale], [21.4*scale, 0.23*scale],
-                 c='k', linestyle='--', lw=1, label='MPE requirement')
-        plt.plot([20e-6*scale, 4e-2*scale], [0.23*scale, 0.23*scale],
-                 c='k', linestyle='--', lw=1)
-
-    # Log scaling
-
-    plt.xscale("log")
-    plt.yscale("log")
-
-    # Latter settings
-
-    plt.ylabel(r'PSD [{}$^2$ {}'.format(units[1], units[0])+'$^{-1}$]')
-
-    # Set x-min limit
-
-    if xlim is not False:
-        plt.xlim(xlim[0], xlim[1])
-
-    # Set y limits
-
-    if ylim is not False:
-        plt.ylim(ylim[0], ylim[1])
-
-    # Set title
-
-    if title is not False and plot == 0:
-        plt.title(title, fontsize=fs)
-
-    if labels is not False or misreq is True:
-        plt.legend(loc='best')
-
-    # Remaining
-
-    plt.xlabel(r'Frequency [{}]'.format(units[0]))
-    plt.tight_layout()
-    plt.subplots_adjust(hspace = .001)
-    plt.grid()
-
-    # Finito!
-
-    return axes
-
-
-
-
-
 #--------------------------------------------------------------#
 #                          PHOTOMETRY                          #
 #--------------------------------------------------------------#
-
 
 def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     """Function normalize the input flux and change time units to days. 
@@ -2685,6 +2388,114 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 #                        FREQUENCY ANALYSIS                    #
 #--------------------------------------------------------------#
 
+def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
+            title=False, xlim=False, ylim=False, linewidth=False, misreq=False):
+
+    """Plots the Power Spectral Density (PSD). 
+    
+    Alongside the data a median filter is plotted with a default carbox
+    length of 144 time points, corresponding to 1 hour precision if the
+    time series has a cadence of 25 seconds.
+
+    Parameters
+    ----------
+    freq : narray
+        Frequency points [Hz, mHz, or mizroHz]
+    psd : narray, list-narray
+        Either single signal array or a list of signal arrays
+    carbox : int (optional)
+        Length of median carbox filter. Default is 3600s/25s = 144. Also False to ignore.
+    title : str (optional)
+        Title for plot
+    labels : list-str (optinal)
+        List of string labels where the first is the xlabel and the rest is ylabels
+    xmin : float (optional)
+        Limit for x min. The x max limit is the Nyquist frequency
+    ylim : list-float (optional)
+        List of y min and max limit ["y-min", "y-max"]
+
+    Return
+    ------
+    Plot or/and saved plot to PNG.
+    """
+    # Handle the number of input data sets
+    if type(psd) == list:
+        numData = len(psd)
+    else:
+        numData = 1
+        freq = [freq]
+        psd = [psd]
+
+    # Handle axes units
+    if units is False:
+        units = ['$\mu$Hz', 'ppm']
+        scale = 1e6
+    else:
+        scale = 1
+
+    # Handle colors
+    if colors is False:
+        colors = ['tomato', 'darkorange', 'gold']
+        if numData > 3:
+            colors = cm.rainbow(np.linspace(0, 1, numData))
+
+    # Handle linewidths
+    if linewidth is False:
+        lw = 1
+    else:
+        lw = linewidth
+
+    # Create axes objects
+    axes = fig.add_subplot()
+
+    # Allow plotting multiple PSDs in consecutive subplots
+    for plot in np.arange(numData):
+
+        # Plot results
+        if labels is False:
+            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw)
+        else:
+            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw, label=labels[plot])
+
+        # Plot median filter if requested
+        if carbox:
+            perhour = carbox*25/3600
+            PSD_med = median_filter(psd[plot], carbox)
+            plt.plot(freq[plot], PSD_med, 'k-', lw=lw+1, label='{0}h median '.format(perhour))
+
+    # Plot mission requirements (from the red book)
+    if misreq:
+        plt.plot([3e-6*scale, 20e-6*scale], [21.4*scale, 0.23*scale],
+                 c='k', linestyle='--', lw=1, label='MPE requirement')
+        plt.plot([20e-6*scale, 4e-2*scale], [0.23*scale, 0.23*scale],
+                 c='k', linestyle='--', lw=1)
+
+    # Log scaling
+    plt.xscale("log")
+    plt.yscale("log")
+
+    # Latter settings
+    plt.ylabel(r'PSD [{}$^2$ {}'.format(units[1], units[0])+'$^{-1}$]')
+
+    # Settings
+    if xlim is not False:
+        plt.xlim(xlim[0], xlim[1])
+    if ylim is not False:
+        plt.ylim(ylim[0], ylim[1])
+    if title is not False and plot == 0:
+        plt.title(title, fontsize=fs)
+    if labels is not False or misreq is True:
+        plt.legend(loc='best')
+
+    # Remaining
+    plt.xlabel(r'Frequency [{}]'.format(units[0]))
+    plt.tight_layout()
+    plt.subplots_adjust(hspace = .001)
+    plt.grid()
+
+    # Finito!
+    return axes
+
 
 def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
                     c='k', label='Simulation',
@@ -2728,28 +2539,28 @@ def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
         sampling = np.diff(dm.time)[0]
         freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling=scaling)
         ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model, alpha=0.7)
- 
+
+    x1, x2, x3 = 3, 20, freq[-1]
+    y1 = 50**2
     # Plot mission requirements (from the red book)
     if show_misreq:
         lw = 1.5
-        var = 3600e-6 * np.array([103, 71, 58, 50])**2
-        plt.plot([3, 20], [var[0]+50, var[0]], linestyle='-', lw=lw, label='Req. 06 N-CAM', c='royalblue')
-        plt.plot([3, 20], [var[1]+50, var[1]], linestyle='-', lw=lw, label='Req. 12 N-CAM', c='lime')
-        plt.plot([3, 20], [var[2]+50, var[2]], linestyle='-', lw=lw, label='Req. 18 N-CAM', c='yellow')
-        plt.plot([3, 20], [var[3]+50, var[3]], linestyle='-', lw=lw, label='Req. 24 N-CAM', c='red')
-        plt.plot([20, 4000], [var[0], var[0]], linestyle='-', lw=lw, c='royalblue')
-        plt.plot([20, 4000], [var[1], var[1]], linestyle='-', lw=lw, c='lime')
-        plt.plot([20, 4000], [var[2], var[2]], linestyle='-', lw=lw, c='yellow')
-        plt.plot([20, 4000], [var[3], var[3]], linestyle='-', lw=lw, c='red')
+        var = 3600e-6 * np.array([225, 103, 71, 58, 50])**2
+        plt.plot([x1, x3], [var[0],    var[0]], linestyle='-', lw=lw, c='m', label='Random Noise')
+        plt.plot([x1, x2], [var[1]+y1, var[1]], linestyle='-', lw=lw, label='Req. 06 N-CAM', c='royalblue')
+        plt.plot([x1, x2], [var[2]+y1, var[2]], linestyle='-', lw=lw, label='Req. 12 N-CAM', c='lime')
+        plt.plot([x1, x2], [var[3]+y1, var[3]], linestyle='-', lw=lw, label='Req. 18 N-CAM', c='yellow')
+        plt.plot([x1, x2], [var[4]+y1, var[4]], linestyle='-', lw=lw, label='Req. 24 N-CAM', c='red')
+        plt.plot([x2, x3], [var[1],    var[1]], linestyle='-', lw=lw, c='royalblue')
+        plt.plot([x2, x3], [var[2],    var[2]], linestyle='-', lw=lw, c='lime')
+        plt.plot([x2, x3], [var[3],    var[3]], linestyle='-', lw=lw, c='yellow')
+        plt.plot([x2, x3], [var[4],    var[4]], linestyle='-', lw=lw, c='red')
 
     # Plot noise level
     if noise_level:
-        plt.plot([3, 4000], [noise_level, noise_level],
-                 c='m', linestyle='--', lw=2, label='Noise level')
+        plt.plot([x1, x3], [noise_level, noise_level],
+                 c='c', linestyle='--', lw=2, label='Noise level')
         
-        #plt.plot([3e-6*scale, 4e-2*scale], [9/scale, 9/scale],
-        #         c='r', linestyle='--', lw=1, label='MPE requirement')
-
     # Settings
     if logx: ax.set_xscale('log')
     if logy: ax.set_yscale('log')
@@ -2759,6 +2570,195 @@ def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
     plt.tight_layout()
     return fig, ax
 
+
+
+def compute_double_sided_PSD(time_series,#: np.ndarray,
+                             time_interval=25,#: Union[int, float] = 25,
+                             detrend=False,#: Union[bool, str, int] = False,
+                             scipy=True): #bool = True) -> tuple[np.ndarray, np.ndarray]:
+    """Compute Double Sided Power Spectral Density (PSD).
+
+    PSD is simply a PS (Power Spectrum) divided by ENBW (Effective Noise Bandwidth).
+    This function computes a double sided PSD, so the negative frequencies are not
+    removed. Because of this the PS is not multiplied by a factor of 2 when scaling
+    it. The scaling only takes into account the sampling frequency and the the loss
+    of energy because of applying a window function. As the window is a boxcar,
+    we can simply use the length of the time series instead.
+
+    Args:
+        time_series ([np.ndarray]): time series data
+        time_interval (int, optional): Time interval of the time series in seconds. Defaults to 25.
+        detrend (bool or str or int, optional): Whether to apply de-trending or not.
+        scipy (bool, optional): Whether to use SciPy periodogram or NumPy FFT. Defaults to True.
+
+    Returns:
+        [tuple]: tuple containing frequency array, PSD array, and time series tuple
+    """
+    time = np.linspace(start=0,
+                       stop=len(time_series),
+                       num=len(time_series)) * time_interval
+
+    if scipy:
+        frequencies, psd = periodogram(time_series,
+                                       fs=1 / time_interval,
+                                       window='boxcar',
+                                       nfft=None,
+                                       detrend=detrend,
+                                       return_onesided=False,
+                                       scaling='density',
+                                       axis=-1)
+    else:
+        if detrend:
+            not_nan_ind = ~np.isnan(time_series)
+            if isinstance(detrend, str) and 'linear' in detrend:
+                print('Applying linear detrending...')
+
+                m, b, _, _, _ = stats.linregress(
+                    time[not_nan_ind], time_series[not_nan_ind])
+
+                time_series = time_series - (m * time + b)
+            elif isinstance(detrend, int):
+                print(f'Applying polymial order {detrend} detreding...')
+                model = np.polyfit(time[not_nan_ind],
+                                   time_series[not_nan_ind],
+                                   detrend)
+                predicted = np.polyval(model, time)
+
+                time_series = time_series - predicted
+            else:
+                raise NotImplementedError
+
+        fft_of_time_series = np.fft.fft(time_series)
+
+        # scaling - normally this would be 2 / (frequency * window_compensation)
+        # here we compute a double sided PSD, so we drop the factor 2
+        # instead of frequency we have time interval i.e. 1/frequency
+        # because we do not use a window function, instead of having
+        # a sum of squared samples of window function, we simply use the
+        # lenght of the input time series. Thus, the scaling here is
+        # time_interval / length of the data
+        # for more details, see
+        # https://dsp.stackexchange.com/questions/32187/what-should-be-the-correct-scaling-for-psd-calculation-using-tt-fft
+        # https://stackoverflow.com/questions/22338415/scipy-periodogram-terminology-confusion
+        scale = time_interval / time_series.shape[-1]
+
+        # psd is the absolute ps (fft of time series) squared
+        psd = scale * np.abs(fft_of_time_series)**2
+
+        frequencies = np.fft.fftfreq(time_series.shape[-1], time_interval)
+
+    idx = np.argsort(frequencies)
+    psd = psd[idx]
+    frequencies = frequencies[idx]
+
+    return frequencies, psd
+
+
+
+def create_performance_figure(data, EoL=False,
+                              freq_break=20e-6,
+                              min_freq=3e-6,
+                              max_freq=40e-3,
+                              residual_noise_floor=0.68e-6,
+                              random_noise_level=3.0e-6,
+                              residual_noise_top=50e-6):
+    """
+
+    Args:
+        data ([np.asarray]):
+        EoL Bool
+        freq_break ([float], optional): [description]. Defaults to 20e-6.
+        min_freq ([float], optional): [description]. Defaults to 3e-6.
+        max_freq ([type], optional): [description]. Defaults to 40e-3.
+        residual_noise_floor ([float], optional): [description]. Defaults to 0.68e-6.
+        random_noise_level ([float], optional): [description]. Defaults to 3.0e-6.
+        residual_noise_top ([float], optional): [description]. Defaults to 50e-6.
+        output_file ([str], optional): name of the output file.
+    """
+    if EoL:
+        output_file='mission_performance_asd_EoL.png'
+    else:
+        output_file='mission_performance_asd.png'
+
+    freq, psd = data
+
+    fig = plt.figure(figsize=(12, 8))
+
+    # plot the ASD
+    plt.plot(freq, psd, 'gray', alpha=0.5)
+
+    # plot binned ASD
+    m = 10
+    p = int(freq.size / m)
+    num = rebin1d(freq[0:p*m], p) / float(m)
+    binned = rebin1d(psd[0:p*m], p) / float(m)
+
+    plt.plot(num[1:], binned[1:], 'black',  lw=2)
+
+    # residual error line
+    plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
+               colors='red', linestyles='-')
+    # random noise line
+    plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
+               colors='magenta', linestyles='-')
+    # slope line from residual to random top level
+    x_values = np.linspace(min_freq, freq_break, 2)
+    y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
+    plt.plot(x_values, y_values, color='red', linestyle='-')
+
+    # dashed  guide lines
+    plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
+               linestyles='dashed', colors='blue')
+    plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
+               linestyles='dashed', colors='blue')
+    plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
+               linestyles='dashed', colors='blue')
+    plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
+               linestyles='dashed', colors='blue')
+    plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
+               linestyles='dashed', colors='blue')
+
+    # texts
+    freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
+    top_text = f'{int(residual_noise_top*1e6)}' + freq_units
+    plt.text(x=min_freq, y=residual_noise_top*1.25,
+             s=top_text,
+             ha='center')
+    random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
+    plt.text(x=5e-4, y=random_noise_level*1.25,
+             s=random_noise_text,
+             ha='center')
+    residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + \
+        freq_units
+    plt.text(x=5e-4, y=residual_noise_floor*1.25,
+             s=residual_error_text,
+             ha='center')
+
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.xlim(1e-6, 1e-1)
+    plt.ylim(1e-7, 1e-4)
+
+    # modify x tick points
+    ticks = [1e-6, min_freq, 1e-5, freq_break,
+             1e-4, 1e-3, 1e-2, max_freq, 1e-1]
+    labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
+              str(int(freq_break*1e6)) + '$\mu$Hz',
+              '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
+              str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
+    plt.xticks(ticks=ticks, labels=labels)
+
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
+
+    plt.tight_layout()
+    #plt.savefig(output_file, dpi=150)
+    
+
+def rebin1d(array, n):
+    nr = int(float(array.shape[0]) / float(n))
+    return (np.reshape(array, (n, nr))).sum(1)
 
 #--------------------------------------------------------------#
 #                        VARSIM PLOTS                          #

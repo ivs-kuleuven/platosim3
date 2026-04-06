@@ -1093,7 +1093,6 @@ General notes:
                     print('[DEBUG]: Adding bright star catalogue')
                 self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
                 filename = self.inputDir / f'bright_star_catalogue.csv'
-                #dx.reset_index(drop=True).to_feather(filename)
                 # Download file if not exisiting
                 if not filename.is_file():
                     print(f'Downloading {filename.name}')
