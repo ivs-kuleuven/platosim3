@@ -261,10 +261,10 @@ personal copy of the PlatoSim repository will then show up on your personal GitH
 <p><strong>Clone</strong></p>
 <p>From there you can <em>clone</em> it to a designated directory on your local machine. The following command will download the
 source code folder called <code class="docutils literal notranslate"><span class="pre">PlatoSim3</span></code>:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/&lt;Your GitHub username&gt;/PlatoSim3.git
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git clone https://github.com/&lt;your-GitHub-username&gt;/PlatoSim3.git
 </pre></div>
 </div>
-<p>It is possible that you will be asked for a username and password. In that case, follow the next section <em>Credentials</em>.</p>
+<p>It is possible that you will be asked for a username and password. In that case, follow the next section <em>GitHub credentials</em>.</p>
 <p>After you have downloaded PlatoSim’s source code, you first have to install a few packages (so-called dependencies)
 before you can actually build and run PlatoSim (<a class="reference internal" href="#install-source-dependencies"><span class="std std-ref">see next section</span></a>).</p>
 <p>Note that it is also possible to clone the repository directly onto your local machine, without forking it first. Doing
@@ -356,7 +356,7 @@ git pull upstream/master
 </pre></div>
 </div>
 <p>Note that this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the <code class="docutils literal notranslate"><span class="pre">/inputfiles</span></code> and the <code class="docutils literal notranslate"><span class="pre">/build</span></code> folder, where you can add files.</p>
-<p>Please note that you have to re-build the code each time you fetch software changes. How to do this is explained <a class="reference internal" href="#install-source-build"><span class="std std-ref">here</span></a>.</p>
+<p>Please note that you have to re-build the code each time you fetch (C++) software changes. How to do this is explained <a class="reference internal" href="#install-source-build"><span class="std std-ref">here</span></a>.</p>
 <hr></div>
 <div class="section" id="contribute-to-the-code">
 <span id="install-source-contribute"></span><h2><em>Contribute to the code</em><a class="headerlink" href="#contribute-to-the-code" title="Permalink to this headline">¶</a></h2>
@@ -429,11 +429,11 @@ git branch
 </div>
 <p><strong>Create a Conda environment</strong></p>
 <p>First, create a Conda environment (e.g. <code class="docutils literal notranslate"><span class="pre">platosim</span></code>):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda create -n &lt;environment name&gt; <span class="nv">python</span><span class="o">=</span>&lt;Python version&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda create -n &lt;environment-name&gt; <span class="nv">python</span><span class="o">=</span>&lt;Python-version&gt;
 </pre></div>
 </div>
 <p>Activate your new conda environment:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda activate &lt;environment name&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda activate &lt;environment-name&gt;
 </pre></div>
 </div>
 <p>It is advisable to use multiple conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. <code class="docutils literal notranslate"><span class="pre">platosim_master</span></code> and <code class="docutils literal notranslate"><span class="pre">platosim_develop</span></code>). Please note that when you switch to a different version of Python it is advised to create a new Conda environment rather than trying to update your existing one. Find more information on how to use and manage <a class="reference external" href="https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html">Conda environments</a>.</p>

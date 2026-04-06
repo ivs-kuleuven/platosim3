@@ -17,7 +17,7 @@ Notice all the above scripts share the same architecture for default I/O argumen
 * ``-v`` : Verbosity (a.k.a log level)
 * ``-p`` : Flag for plotting
 
-Furthermore, all scripts have an adjustable verbosity level (i.e. log level), which particularly becomes important when running simulations on a computing cluster. The verbosity is also identical to PlatoSim usage, with the exception of the added ``cluster mode`` and the removal of the PlatoSim log file with the exception of this action in ``debug mode``:
+Furthermore, all scripts have an adjustable verbosity level (i.e. log level), which particularly becomes important when running simulations on a computing cluster. The verbosity is also identical to PlatoSim usage, with the exception of the added ``cluster mode``, the removal of the YAML file copy, and the removal of the PlatoSim log file (with the exception of this action in ``debug mode``):
 
 * ``-v 0`` : Cluster mode: ``error``
 * ``-v 1`` : Warning mode: ``error``, ``warning``
@@ -64,13 +64,13 @@ These catalogues compose more than :math:`300,000` PLATO targets from the sample
 
   .. code-block:: shell
 
-     picsim --pic 100 P1 LOPN1 --group 1 --ncams 24 --project <project_name>
+     picsim --pic 100 P1 LOPN1 --group 1 --ncams 24 --project <project-name>
   
 * In our second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star:
 
   .. code-block:: shell
 
-     picsim --pic 100 P5 LOPN1 --dist 30 --dmag 8 --project <project_name>
+     picsim --pic 100 P5 LOPN1 --dist 30 --dmag 8 --project <project-name>
   
 * In our last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2:
 
@@ -88,7 +88,7 @@ Notice that for all examples shown, we parse the argument ``--project`` or ``-o`
 
 .. code-block:: shell
 
-   picsim --pic all all LOPS2 --incat </path/to/indir>/starcat**.ftr --project <project_name> -p
+   picsim --pic all all LOPS2 --incat </path/to/indir>/starcat**.ftr --project <project-name> -p
 
 Note we here use the asteriks ``**`` to specify that all files should start with ``starcat`` (which is the default output prefix of ``picsim``) and all files needs to be in feather format ``.ftr``. To make sure that all targets are selected we have here selected ``all`` for the two first mandatory arguments. Currently it is **not** possible to combine catalogues from different PLATO pointing fields.
 
@@ -96,13 +96,13 @@ Note we here use the asteriks ``**`` to specify that all files should start with
 
 .. code-block:: shell
 
-   picsim --simbad Mizar --dist 60 --dmag 5 --project <project_name> -p
+   picsim --simbad Mizar --dist 60 --dmag 5 --project <project-name> -p
 
 **Query a PLATO pointing field:** In order to generate realistic simulations of full-frame CCD images with PlatoSim, we have expanded the query method to include large celestial regions than combined cover a full PLATO field. Although this options queries stars from the Gaia DR3, it is just yet another `CDS/VizieR <https://vizier.cds.unistra.fr/viz-bin/VizieR>`_ catalogue, hence, this query option is doubted ``vizier``. Say we want to query Gaia stars from the LOPS2, simply use:
 
 .. code-block:: shell
 
-   picsim --vizier LOPS2 --project <project_name> -p
+   picsim --vizier LOPS2 --project <project-name> -p
 
 By default only Gaia star fainter than :math:`G < 15` mag are queried, but, like before, you can alter this. Note that generating stellar catalogues for fainter limiting magnitudes is possible, but such computations can take hours to days to compute (we warned!).
 

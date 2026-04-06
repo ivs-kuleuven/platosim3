@@ -123,9 +123,9 @@ source code folder called ``PlatoSim3``:
 
 .. code-block:: shell
 
-   git clone https://github.com/<Your GitHub username>/PlatoSim3.git
+   git clone https://github.com/<your-GitHub-username>/PlatoSim3.git
 
-It is possible that you will be asked for a username and password. In that case, follow the next section *Credentials*.
+It is possible that you will be asked for a username and password. In that case, follow the next section *GitHub credentials*.
 
 After you have downloaded PlatoSim's source code, you first have to install a few packages (so-called dependencies)
 before you can actually build and run PlatoSim (:ref:`see next section <install_source_dependencies>`).
@@ -298,7 +298,7 @@ To get the latest version on your local machine, execute the following command f
    
 Note that this will only work smoothly if you did not change any of the PlatoSim3 files or added files to the PlatoSim3 folders. The only exceptions are the ``/inputfiles`` and the ``/build`` folder, where you can add files.
 
-Please note that you have to re-build the code each time you fetch software changes. How to do this is explained :ref:`here <install_source_build>`.
+Please note that you have to re-build the code each time you fetch (C++) software changes. How to do this is explained :ref:`here <install_source_build>`.
 
 
 
@@ -449,13 +449,13 @@ First, create a Conda environment (e.g. ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n <environment name> python=<Python version>
+   conda create -n <environment-name> python=<Python-version>
 
 Activate your new conda environment:
 
 .. code-block:: shell
 
-   conda activate <environment name>		
+   conda activate <environment-name>		
    
 It is advisable to use multiple conda environments if you want to be able to switch between versions and/or branches in a smooth way (e.g. ``platosim_master`` and ``platosim_develop``). Please note that when you switch to a different version of Python it is advised to create a new Conda environment rather than trying to update your existing one. Find more information on how to use and manage `Conda environments <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
 
