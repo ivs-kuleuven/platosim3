@@ -43,7 +43,6 @@ import platosim.noise     as ns
 import platosim.utilities as ut
 from platosim.utilities import errorcode
 
-
 #==============================================================#
 #                        SOLAR-LIKE STARS                      #
 #==============================================================#
@@ -78,7 +77,6 @@ class StellarSpots(object):
     -------------
     Suzanne Aigrain : Aigrain et al. (2012)
     """
-
     def __init__(self, seed=False):
         
         # Random number generator
@@ -94,8 +92,6 @@ class StellarSpots(object):
         idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_varsim'
         self.t1 = Table.read(f'{idir}/varsim_meunier19a_t1.txt', format = 'ascii')
 
-
-        
     ####################################
     # FROM TEFF TO ACTIVITY PARAMETERS #
     ####################################

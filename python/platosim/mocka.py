@@ -774,8 +774,7 @@ def plot_ncam_hist(df, title=None):
     return fig, ax
 
 
-def plot_lc_io(path, star, batch, ID,
-               plot_input=True, figsize=(9,5)):
+def plot_lc_io(path, star, batch, ID, plot_input=True, figsize=(9,5)):
     
     # Choose simulation
     idir = f'{path}/{star}/{batch}'
@@ -794,7 +793,7 @@ def plot_lc_io(path, star, batch, ID,
         
     # Create varsource from pulsations
     if plot_input:
-        dx = pd.read_feather(f'{path}/{star}/varsource/pulsations/pulsations_{starID}_001.ftr')
+        dx = pd.read_feather(f'{path}/{star}/templates/pulsations/pulsations_{starID}_001.ftr')
         dv = pd.DataFrame()
         # Select correct power for signal creation
         if star in ['GDOR', 'SPB']:
@@ -831,7 +830,7 @@ def plot_lc_io_compact(path, star, batch, name, ID, plot_input=True, figsize=(9,
     
     # Create varsource from pulsations
     if plot_input:
-        dv = pd.read_csv(f'{path}/{star}/varsource/varsource/varsource_WD_{name}.txt', sep=' ', names=['time', 'dmag'])
+        dv = pd.read_csv(f'{path}/{star}/templates/varsource/varsource_{star}_{name}.txt', sep=' ', names=['time', 'dmag'])
         dv['time'] = dv.time / 86400
         dv['flux'] = (10**(-0.4*dv.dmag) - 1) * 1e3
         ax.plot(dv.time, dv.flux, '-', c='orange', lw=0.3)
@@ -866,7 +865,7 @@ def ft_io_compact(path, star, batch, name, ID):
     ]
 
     # Fetch pulsation modes (freq [mhHz], ampl [ppt, mma])
-    pfile = f'{path}/{star}/varsource/pulsations/pulsations_{name}.txt' 
+    pfile = f'{path}/{star}/templates/pulsations/pulsations_{star}_{name}.txt' 
     dp = pd.read_csv(pfile)
     dp.freq = ut.muhz2cpd(dp.freq)
     filename = Path(pfile).name
@@ -930,15 +929,11 @@ def plot_ft_io_compact(path, star, batch, name, ID, figsize=(9,5)):
 
 def plot_ft_io_compact_all(path, star, batch, name, figsize=(15, 10)):
 
-    if star == 'WD':
-        N = 20
-    elif star == 'SDBV':
-        N = 12
+    # Number of star IDs
+    N = 20
     n = int(N/4)
-    
-    fig = plt.figure(figsize=figsize)
     fs = 9
-    
+    fig = plt.figure(figsize=figsize)    
     for i in tqdm(range(1,N+1), bar_format=ut.tqdmBar()):
         df_freq, df_ampl, dv_freq, dv_ampl, flim, alim, dt = ft_io_compact(path, star, batch, name, i)
         ax = fig.add_subplot(n,n,i)

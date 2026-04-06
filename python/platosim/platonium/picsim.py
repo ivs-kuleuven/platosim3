@@ -211,6 +211,8 @@ General notes:
 
         # Check field
         field = ['LOPS2', 'LOPN1']
+        if self.field == 'LOPN1' and args.release in [None, 'PIC210']:
+            errorcode('error', f'{self.field} is not in PIC210 yet! Use "--release PIC200"')
         if self.field not in field:
             errorcode('error', f'{self.field} is not defined! Use {field}')
         
@@ -235,6 +237,7 @@ General notes:
                 self.numPIC = 175325 # Original: 175,597
             else:
                 errorcode('error', f'{self.field} is not defined! Use {LOPS2, LOPN1}')
+        # TODO The PIC110 is not used anymore, but change to PLATO-CS (PCS100)
         elif args.release == 'PIC110':
             self.pic = 'PIC110'
             self.mag_column = 'mag'
@@ -247,7 +250,7 @@ General notes:
             else:
                 errorcode('error', f'{self.field} is not defined! Use {SPF, NPF}')
         else:
-            errorcode('error', f'No release named {args.release}! Usage in [PIC210, PIC200, PIC110]')
+            errorcode('error', f'No release named {args.release}! Usage in [PIC210, PIC200]')
                 
         # Available samples for release
         if self.pic == 'PIC210':
@@ -839,7 +842,7 @@ General notes:
             
         # Set df to just the first row
         self.df = self.df_all.iloc[:1]
-
+        
         # If there are contaminants, set dc to the rest of the rows
         if len(self.df_all) > 1:
             self.dc = self.df_all.iloc[1:]
@@ -858,7 +861,26 @@ General notes:
             print(self.df)
             print(f'\nCatalogue for {self.simbad} contaminants:')
             print(self.dc)
-
+            
+        # Plot if requested
+        if self.plot:
+            c = 'yellow'
+            cat = SkyCoord(self.df.ra, self.df.dec, frame='icrs', unit=u.deg)
+            if cat.galactic.b < 0:
+                self.pic   = 'PIC210'
+                self.field = 'LOPS2'
+            else:
+                self.pic   = 'PIC200'
+                self.field = 'LOPN1'
+            # Plot targets in aitoff Galactic sky projection
+            fig, ax = pt.drawStarsInSkyAitoff(self.df.ra, self.df.dec, color=c, ms=50)
+            plt.show()
+            # Plot Zoom-in on FOV
+            fig, ax = pt.plotPlatoFOV(self.field, ncamStars=True, clabel=r'$P$ [mag]', s=150, lw=0.3)
+            ax.scatter(cat.ra.deg, cat.dec.deg, marker='o', c=c, ec='k',
+                       transform=ax.get_transform('icrs'), s=150)
+            plt.show()
+            
             
     def prologueSimbad(self):
         """Handle output for --simbad flag.
@@ -1093,7 +1115,6 @@ General notes:
                     print('[DEBUG]: Adding bright star catalogue')
                 self.inputDir = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
                 filename = self.inputDir / f'bright_star_catalogue.csv'
-                #dx.reset_index(drop=True).to_feather(filename)
                 # Download file if not exisiting
                 if not filename.is_file():
                     print(f'Downloading {filename.name}')
@@ -1286,7 +1307,7 @@ out_group.add_argument('--project',       type=str, metavar='NAME', help='Name o
 
 pic_group = parser.add_argument_group('PIC QUERY (PLATO FIELDS)')
 pic_group.add_argument('--pic',    type=str, nargs=3, metavar=('STARS', 'SAMPLE', 'FIELD'), action="append", help='Mandatory arguments (Check "--notes")')
-pic_group.add_argument('--release', type=str, metavar='STR',  help='PIC release [210 (default), 200]')
+pic_group.add_argument('--release', type=str, metavar='STR',  help='PIC release [PIC210 (default), PIC200]')
 pic_group.add_argument('--ncams',  type=int, metavar='INT',   help='N-CAM visibility [6, 12, 18, 24]')
 pic_group.add_argument('--group',  type=int, metavar='INT',   help='Camera-group w.r.t. Q1 [1, 2, 3, 4]')
 pic_group.add_argument('--mag',    type=str, metavar='RANGE', help='P magnitude range of PIC targets (float or dash-range)')
