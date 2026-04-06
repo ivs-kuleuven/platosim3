@@ -60,23 +60,23 @@ These catalogues compose more than :math:`300,000` PLATO targets from the sample
    
 **General examples:** To elaborate on the usage, we here show a few useful examples:
      
-* In our first example we draw 100 P1 stars from the LOPN1 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs:
+* In our first example we draw 100 P1 stars from the LOPS2 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs:
 
   .. code-block:: shell
 
-     picsim --pic 100 P1 LOPN1 --group 1 --ncams 24 --project <project-name>
+     picsim --pic 100 P1 LOPS2 --group 1 --ncams 24 --project <project-name>
   
-* In our second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star:
+* In our second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star. Note that the LOPN1 can only be used with the argument ``--release PIC200`` (where ``PIC210`` is the default):
 
   .. code-block:: shell
 
-     picsim --pic 100 P5 LOPN1 --dist 30 --dmag 8 --project <project-name>
+     picsim --pic 100 P5 LOPN1 --release PIC200 --dist 30 --dmag 8 --project <project-name>
   
 * In our last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2:
 
   .. code-block:: shell
 
-     picsim --pic all P1 LOPS2 --spec G  --lum V --mag 9.5-11.2 -o </path/to/outdir>   
+     picsim --pic all P1 LOPS2 --spec G --lum V --mag 9.5-11.2 -o </path/to/outdir>   
   
 Notice that for all examples shown, we parse the argument ``--project`` or ``-o`` which is needed in order to save the stellar catalogue to our project location. To lower the I/O writing between software packages, the stellar catalogues are saved to a binary format called `feather <https://arrow.apache.org/docs/python/feather.html>`_ (with file extension ``.ftr``). The two seperate catalogues are for the targets (``starcat**_target.ftr``) and contaminants (``starcat**_contaminant.ftr``). A log file is likewise created with the settings you used to generate the catalogue (in case you forget).
 

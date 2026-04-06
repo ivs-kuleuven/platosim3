@@ -229,18 +229,18 @@
 </div>
 <p><strong>General examples:</strong> To elaborate on the usage, we here show a few useful examples:</p>
 <ul>
-<li><p class="first">In our first example we draw 100 P1 stars from the LOPN1 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>picsim --pic <span class="m">100</span> P1 LOPN1 --group <span class="m">1</span> --ncams <span class="m">24</span> --project &lt;project-name&gt;
+<li><p class="first">In our first example we draw 100 P1 stars from the LOPS2 but only visibible by the N-CAMs of camera-group 1 and stars being observable with all 24 N-CAMs:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>picsim --pic <span class="m">100</span> P1 LOPS2 --group <span class="m">1</span> --ncams <span class="m">24</span> --project &lt;project-name&gt;
 </pre></div>
 </div>
 </li>
-<li><p class="first">In our second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>picsim --pic <span class="m">100</span> P5 LOPN1 --dist <span class="m">30</span> --dmag <span class="m">8</span> --project &lt;project-name&gt;
+<li><p class="first">In our second example we draw 100 P5 stars from the LOPN1 but limit here number of contaminants stars by only fetching stars with relative brightness smaller than 8 mag and within a maximum radial distance of 30 arcsec (i.e. within 2 pixels) from their target star. Note that the LOPN1 can only be used with the argument <code class="docutils literal notranslate"><span class="pre">--release</span> <span class="pre">PIC200</span></code> (where <code class="docutils literal notranslate"><span class="pre">PIC210</span></code> is the default):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>picsim --pic <span class="m">100</span> P5 LOPN1 --release PIC200 --dist <span class="m">30</span> --dmag <span class="m">8</span> --project &lt;project-name&gt;
 </pre></div>
 </div>
 </li>
 <li><p class="first">In our last example we select all P1 stars from the LOPS2 but limit our catalogue to only contain G dwarf main sequence stars within the PLATO passband magnitude range of 9.5-11.2:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>picsim --pic all P1 LOPS2 --spec G  --lum V --mag <span class="m">9</span>.5-11.2 -o &lt;/path/to/outdir&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>picsim --pic all P1 LOPS2 --spec G --lum V --mag <span class="m">9</span>.5-11.2 -o &lt;/path/to/outdir&gt;
 </pre></div>
 </div>
 </li>
