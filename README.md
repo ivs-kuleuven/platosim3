@@ -8,7 +8,9 @@ The documentation was set up following:
 * [The Sphinx documentation](https://www.sphinx-doc.org/en/master/index.html). 
 * [Installing a theme](https://sphinx-themes.org/sample-sites/sphinx-rtd-theme/).
 
-Note that sphinx 3.1 is required for the [markdown integration](https://www.sphinx-doc.org/en/master/usage/markdown.html) to work with the theme 'sphinx-rtd-theme'. However, note that there is a bug with sphinx-rtd-theme for the required sphinx version to use markdown.
+Note that sphinx 3.1 is required for the [markdown
+integration](https://www.sphinx-doc.org/en/master/usage/markdown.html) to work with the theme 'sphinx-rtd-theme'.
+However, note that there is a bug with sphinx-rtd-theme for the required sphinx version to use markdown.
 
 To keep the nice layout of the rtd-theme you need to downgrade sphinx to `pip install sphinx==1.8`
 

@@ -190,7 +190,8 @@ conda activate platosim
 conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 </pre></div>
 </div>
-<p>Create a working directory for which you want to store all your future PlatoSim projects (e.g. using <code class="docutils literal notranslate"><span class="pre">platosim_workdir</span></code> as our project folder and create a first project called <code class="docutils literal notranslate"><span class="pre">quickstart</span></code>):</p>
+<p>Create a working directory for which you want to store all your future PlatoSim projects (e.g. using
+<code class="docutils literal notranslate"><span class="pre">platosim_workdir</span></code> as our project folder and create a first project called <code class="docutils literal notranslate"><span class="pre">quickstart</span></code>):</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>mkdir -p <span class="nv">$HOME</span>/platosim_workdir/quickstart
 </pre></div>
 </div>
@@ -200,7 +201,10 @@ conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 <span class="nb">export</span> <span class="nv">PYTHONPATH</span><span class="o">=</span><span class="nv">$PYTHONPATH</span>:<span class="nv">$PLATO_PROJECT_HOME</span>/python
 </pre></div>
 </div>
-<p>PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you can download from our FTP site:</p>
+<dl class="docutils">
+<dt>PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you</dt>
+<dd>can download from our FTP site:</dd>
+</dl>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>wget ftp://plato:miSotalP@ftp.ster.kuleuven.be/PSF_Focus_0mu.hdf5 <span class="nv">$PLATO_PROJECT_HOME</span>/inputfiles
 </pre></div>
 </div>
@@ -216,7 +220,9 @@ conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 <span class="n">sim</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>We also recommend using <a class="reference internal" href="platonium_overview.html"><span class="doc">Platonium</span></a>, a user-friendly PlatoSim toolkit with lots of extra functionalities that help you create and run simulation projects very efficiently. Simply download this <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml">pyproject.toml</a> file and follow <a class="reference internal" href="platonium_prerequisites.html"><span class="doc">Platonium’s prerequisites</span></a>.</p>
+<p>We also recommend using <a class="reference internal" href="platonium_overview.html"><span class="doc">Platonium</span></a>, a user-friendly PlatoSim toolkit with lots of extra
+functionalities that help you create and run simulation projects very efficiently. Simply download this <a class="reference external" href="https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml">pyproject.toml</a> file and follow <a class="reference internal" href="platonium_prerequisites.html"><span class="doc">Platonium’s
+prerequisites</span></a>.</p>
 </div>
 
 

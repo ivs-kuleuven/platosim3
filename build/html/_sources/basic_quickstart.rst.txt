@@ -9,7 +9,8 @@ The easiest way to install PlatoSim is through our :doc:`Conda installation <ins
    conda activate platosim
    conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim/ platosim
 
-Create a working directory for which you want to store all your future PlatoSim projects (e.g. using ``platosim_workdir`` as our project folder and create a first project called ``quickstart``):
+Create a working directory for which you want to store all your future PlatoSim projects (e.g. using
+``platosim_workdir`` as our project folder and create a first project called ``quickstart``):
 
 .. code-block:: shell
 
@@ -23,7 +24,8 @@ Export the following paths (and add them to your bash file for future sessions):
    export PLATO_WORKDIR=$HOME/plato_workdir
    export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
    
-PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you can download from our FTP site:  
+PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you
+   can download from our FTP site:  
 
 .. code-block:: shell
 		
@@ -45,4 +47,8 @@ A simple test simulation from Python looks like:
    sim = Simulation('test', outputDir=odir)
    sim.run()
    
-We also recommend using :doc:`Platonium <platonium_overview>`, a user-friendly PlatoSim toolkit with lots of extra functionalities that help you create and run simulation projects very efficiently. Simply download this `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_ file and follow :doc:`Platonium's prerequisites <platonium_prerequisites>`.
+We also recommend using :doc:`Platonium <platonium_overview>`, a user-friendly PlatoSim toolkit with lots of extra
+functionalities that help you create and run simulation projects very efficiently. Simply download this `pyproject.toml
+<https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_ file and follow :doc:`Platonium's
+prerequisites <platonium_prerequisites>`.
+
