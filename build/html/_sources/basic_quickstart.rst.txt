@@ -24,8 +24,7 @@ Export the following paths (and add them to your bash file for future sessions):
    export PLATO_WORKDIR=$HOME/plato_workdir
    export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python
    
-PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you
-   can download from our FTP site:  
+PlatoSim also requires a PSF file (which is not included in the default distribution because of its size), which you can download from our FTP site:  
 
 .. code-block:: shell
 		

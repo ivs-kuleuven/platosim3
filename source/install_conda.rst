@@ -3,8 +3,8 @@ For Users (via Conda)
 
 To make life easier on the people who want to use PlatoSim without ever wanting to touch the code, we use `Jenkins
 <https://www.jenkins.io/>`_ to automatically build PlatoSim. Jenkins enables you to download the latest successfully
-built version of the :ref:`master or develop branch <install_source_brancing>`, or any specific version(s) of these.
-See :ref:`A word about Jenkins <install_conda_jenkins>` for more information. The flowchart below summarises the steps
+built version of the :ref:`master or develop branch <install_source_branching>`, or any specific version(s) of these.
+For more information, see the :ref:`section about Jenkins <install_conda_jenkins>`. The flowchart below summarises the steps
 you have to take.
 
 .. image:: ../figures/flowchart_installPlatoSimViaConda.png
@@ -32,7 +32,7 @@ First, create a Conda environment (e.g. called ``platosim``):
 
 .. code-block:: shell
 		
-   conda create -n <environment name> python=3.11
+   conda create -n <environment-name> python=3.11
 
 Activate your new conda environment:
 
@@ -77,8 +77,7 @@ To install the latest version of the ``develop`` branch, use:
 
    conda install -c https://plato:miSotalP@jenkins.miricle.org/platosim.devel/ platosim
 
-To install a specific version of either the ``master`` or ``develop`` branch, simply append ``<version>=`` to the above
-commands. 
+To install a specific version of either the ``master`` or ``develop`` branch, simply append ``platosim=<version>`` to the above commands. 
 
 
 
@@ -124,7 +123,7 @@ Accordingly, if you want to update the ``develop`` branch, type:
 *Python packages*
 -----------------
 
-Conda, for which Jenkins depends on, is unfortunately not capable of installing the full suite of Python packages needed to use PlatoSim's built-in Python interface. Thus, minimally you need to install the packages listed under the section ``tool.poetry.dependencies`` in the file `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_. As an alternative to installing each of the Python libraries one-by-one yourself using Conda/PyPi, in the following we show how to use `Poetry <https://python-poetry.org/>`_ to handle the package managing and install all packages with one command. Poetry manages your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. on a computing cluster).
+Conda, for which Jenkins depends on, is unfortunately not capable of installing the full suite of Python packages needed to use PlatoSim's built-in Python interface. Thus, minimally you need to install the packages listed under the section ``tool.poetry.dependencies`` in the file `pyproject.toml <https://github.com/IvS-KULeuven/PlatoSim3/blob/master/pyproject.toml>`_. As an alternative to installing each of the Python libraries one-by-one yourself using Conda/PyPi, in the following we show how to use `Poetry <https://python-poetry.org/>`_ to handle the package managing and install all packages in one command. Poetry manages your project installation easily over multiple platforms in a deterministic way, which has a clear advantage when you want to install an exact copy of your PlatoSim setup on a different machine (e.g. on a computing cluster).
 
 **Install Poetry**
 
