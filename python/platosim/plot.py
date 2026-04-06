@@ -2383,14 +2383,12 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 
     return axes
 
-
 #--------------------------------------------------------------#
 #                        FREQUENCY ANALYSIS                    #
 #--------------------------------------------------------------#
 
 def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
             title=False, xlim=False, ylim=False, linewidth=False, misreq=False):
-
     """Plots the Power Spectral Density (PSD). 
     
     Alongside the data a median filter is plotted with a default carbox
