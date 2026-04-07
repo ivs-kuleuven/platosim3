@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "platosim"
-version = "3.7.0"
+version = "3.7.1"
 description = "PlatoSim: An end-to-end PLATO camera simulator"
-authors = ["KU Leuven and the PlatoSim team <nicholas.jannsen@kuleuven.be>"]
+authors = ["KU Leuven and the PlatoSim team"]
 readme = "README.md"
 packages = [{include = "python/platosim"}]
 
