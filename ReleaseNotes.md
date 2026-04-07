@@ -1,139 +1,71 @@
-* Changelog PlatoSim 3.7.0
+* Changelog PlatoSim 3.7.1
 
 ** Improvements
 
-*** Added more tweaks for l1 pipeline
+*** Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4.
 
-*** Refactored aberration in Sky.cpp
+*** Chnaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
 
-*** Changed names in technical notebook
+*** Chnaged `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
 
-*** Cosmetic changes in Detector.cpp
+*** Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
 
-*** Modified applyPhotometry() in DetectorWithAnalyticNonGaussianPSF
+*** Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
 
-*** simfile.getApertureMask() now also return SPR
+*** Updated the orbit.txt file into oribit_prime_10_years.txt (See Issue #1163)
 
-*** Update the plot.py method used in plot.py
+*** Update of the technical notebooks
 
-*** Update sigma-clipping lower bound threshold for lightcurve.py
+*** Added multithreaded compilation of dependencies
 
-*** Speedup of lowess stitching algorithm of lightcurve.py
+*** Renameing lightcurve.star() to lightcurve.target() to be consistent with source not only being a star
 
-*** Upgrade picsim --vizier feature
+*** Changed how the initial number of occupied traps is determined for the Short et al model
 
-*** Lowess-Theil-Sen rebust detrending method added to lightcurve.py
+*** Changed the install.sh file so that it breaks when a dependency fails to install
 
-*** Move auto sigma selection for clip into platomium
+*** Made the BFE validation test more rebost for fainter targets
 
-*** Update F-Camera YAML parameters in simulation.py
+*** Added bias rows to the number of columns to read out in simulation.p
 
-*** Bugfix for platonium animation calling simfile.getApertureMask()
+*** Bugfix in digital staturation test
 
-*** Implemented a passband correction in varsim.py
+*** Bugfix in destructor of Detector
 
-*** Added parameters from the input yaml file to the HDF5 file
+*** Variable cycleTime in Straylight can now be non-integer
 
-*** Removed the use of "normal" in skyToPixelCoordinates in referenceFrames.py
-
-*** Update of pulsation amplitude distribution in varsource.py
-
-*** Changed how the number of traps for CTI are calculated.
-
-*** Interpolate aberration in between timesteps.
-
-*** Update the plato.py and patonium.py
-
-*** Import cumtrapz or cumulative_trapezoid based on scipy version
-
-*** Changed the comment for the gain nonlinearity in inputfile
-
-*** Update color plotting for Aitoff galactic sky projections
-
-*** getInfoOfStarWithID() in Sky.cpp now returns a tuple of doubles instead of tuple of ints
-
-*** In CMakeLists.txt changed doc string from C++11 to C++14
-
-*** Added option to disable O-C plot in detrend and clip plots
-
-*** Added function to query a target star based on its Gaia DR3 ID in starquery.py
-
-*** Update version of ligo.skymap to 2.0.0
-
-*** Cosmetic changes in referenceFrames.py
-
-*** Update starquery.py to include Gaia DR3 proper motion.
 
 
 
 
 ** Bug fixes
 
-*** Bugfix in varsource.py for using wrong time column
+*** Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows).
 
-*** Bugfix in lightcurve.py of NSR functions
+*** Bugfix of issue #1169 with birght stars in picsim
 
-*** Bugfix a conflict in pyproject.toml
+*** Bugfix in varsim for simulating only transits
 
-*** Fixed missing return value in ClosedLoopDetectorWithAnalyticNonGaussianPSF
+*** Bugfix of time determination in aberration (See Issue #1157)
 
-*** Bugfix in simulation.py when dealing with F-Camera
 
-*** Bugfix in lightcurve.py using 'single'
 
-*** Bugfix to varsim and varsource
-
-*** Bugfix to platonium using verbosity level 1
-
-*** Bugfix for fetching cadence in lightcurve.py
-
-*** Bugfix for platonium.py and payload.py
-
-*** Bugfix for model selection in detrending algorithm
-
-*** Bugfix of analysis script for PLATO-CS in platonium
-
-*** Bugfix of varsim's argparse string making it fail when consulting help
-
-*** Bugfix for parsing argument ted_ampl in payload.py
-
-*** Bugfix in Camera.cpp so that now star position has a value for every exposure
-
-*** Bugfix of using seed correctly for stellar flares
-
-*** Bugfix of varsim for mocka usage
-
-*** Bugfix of LPV and bCep model in varsim.py
-
-*** Bugfix in RR Lyrae and Cepheid model in varsource.py
-
-*** Bugfix in simulation.py createStarCatalogFileFromPixelCoordinates() when dealing with quaternions.
-
-*** Bugfix in getFlux in simfile.py, this output of this function was too low.
-
-*** Bugfix in platonium.py setting --cadence and using sim.useNormalCamera()
 
 
 ** New features/functionality
 
-*** Added straylight implementation for moon
+*** Added PIC 2.1.0.1 (LOPS2) to the available `picsim` catalogues.
 
-*** Added validation test for straylight
+*** Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
 
-*** Added magnitude dependent sigma-clipping value to platonium post-processing
+*** Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
 
-*** Added notebook for MOCKA
+*** Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`].
 
-*** Added validation test for SPR
+*** Added new section about the output files of the PLATOnium-L1 pipeline setup, plus updated figures and text in PLATOnium tutorials.
 
-*** Solar flare model implemented in varsim
+*** Added PRNU from file feature
 
-*** Added script for running platonium and varsim in parallel
+*** Added straylight feature
 
-*** Added new analysis script to merge PLATOnium light curves
-
-*** Added lightcurve.gaps method
-
-*** Added new Lesia L1 script to platonium
-
-*** Added script to generate a time series from pulsation modes of varsim.py
+*** Added bad pixel map feature
