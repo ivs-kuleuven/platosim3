@@ -17,11 +17,12 @@ import os
 import h5py
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+import ipywidgets as widgets
+import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.patches as patches
-import ipywidgets as widgets
+import matplotlib.patheffects as patheffects
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from astropy.io import fits
 
 # PlatoSim functions
@@ -233,14 +234,15 @@ class SimFile (object):
         parallelTransferTimeFast = self.getInputParameter("CCD", "ParallelTransferTimeFast") * 1e-6
 
         numColumnsBiasMap  = self.getInputParameter("SubField", "NumBiasPrescanColumns")
+        numBiasPrescanRows = self.getInputParameter("SubField", "NumBiasPrescanRows")
         numRowsSmearingMap = self.getInputParameter("SubField", "NumSmearingOverscanRows")
 
         # Both detector halves are read out simultaneously -> columns read out by the FEE:
         # - half of the CCD
         # - serial prescan
-        # - serial overscan (virtual)
+        # - parallel prescan
 
-        numColumnsReadout = numColumns / 2 + numColumnsBiasMap  #+ numRowsSerialOverScan
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows
 
         # How many rows will be actually read out by the FEE?
         # - Nominal mode: image area + parallel over-scan
@@ -465,24 +467,6 @@ class SimFile (object):
 
 
     
-    # def getIRNU(self):
-
-    #     """Get the Intra-pixel Response Non-Uniformity map from the HDF5 file.
-
-    #     To rebin the IRNU to the PRNU:
-
-    #     >>> Nrows, Ncols = 100, 100      # size in pixels of the subfield
-    #     >>> NsubPixels = 16              # 16^2 subpixels in 1 pixel
-    #     >>> assert(IRNU.shape == (Nrows*NsubPixels, Ncols*NsubPixels))
-    #     >>> PRNU = IRNU.reshape(Nrows, NsubPixels, Ncols, NsubPixels).sum(axis=3).sum(axis=1)
-    #     """
-
-    #     return self.getMap("IRNU", imageNr=0)
-
-
-
-
-    
     def getBackground(self):
 
         """Get the sky background map [photons/pixel/exposure]
@@ -534,15 +518,21 @@ class SimFile (object):
 
         return self.getMap("ThroughputMaps", imageNr=imageNr)
 
+
+
+
     
     def getStraylight(self):
-        """Get the straylight"""
 
-        sl = self.hdf5file["Straylight"]["Moon"][:]
-        return sl
+        """Get the straylight.
+        """
+
+        return self.hdf5file["Straylight"]["Moon"][:]
+
     
 
-        
+
+    
     def getImage(self, imageNr=False):
 
         """Get the pixel image.
@@ -1157,7 +1147,7 @@ class SimFile (object):
                 # Add radius column for extended ghosts
                 
                 if groupName == "StarPositions":
-                    # print(starID, row, col, Xmm, Ymm, flux)
+                    #print(starID, row, col, Xmm, Ymm, flux)
                     isNotValid = np.all([row != row, col != col, Xmm != Xmm, Ymm != Ymm])
                     if isNotValid:
                         return None, None, None, None, None, None
@@ -1170,7 +1160,7 @@ class SimFile (object):
         elif not groupByExposure:
 
             # Or grouped per star which is already sorted
-            
+
             star = list(self.hdf5file[groupName].keys())
             
             # Check if only a single image is requested and use that automatically
@@ -1211,20 +1201,27 @@ class SimFile (object):
         
         # If a cut in magnitude is required, get the magnitudes from the star input catalogue
 
-        inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
-        subFieldMag = mag[np.in1d(inputStarIDs, starID)]
+        try:
+            inputStarIDs, _, _, mag, _, _, _, _ = self.getStarCatalog()
+            subFieldMag = mag[np.in1d(inputStarIDs, starID)]
 
-        # If the min or max V magnitude is set to None, use the default values
+            # If the min or max V magnitude is set to None, use the default values
 
-        if minMag is None:
-            minMag = subFieldMag.min()
-        if maxMag is None:
-            maxMag = subFieldMag.max()
+            if minMag is None:
+                minMag = subFieldMag.min()
+            if maxMag is None:
+                maxMag = subFieldMag.max()
 
-        # Make the magnitude cut
+            # Make the magnitude cut
 
-        dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
+            dex = (subFieldMag >= minMag) & (subFieldMag <= maxMag)
 
+        except:
+
+            # If star position doesn't exist return all
+            
+            dex = np.arange(starID.shape[0])
+                
         # Return after stellar cut
 
         if groupName == "ExtendedGhostPositions":
@@ -1925,8 +1922,8 @@ class SimFile (object):
             # Extract the indices of the proper mask
 
             exposureGroupName = "Exposure{0:07d}".format(exposureNrOfMaskUpdate)
-            rowIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
-            colIndices = np.array(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
+            rowIndices = mask[starIDgroupName][exposureGroupName]["maskRowIndices"]
+            colIndices = mask[starIDgroupName][exposureGroupName]["maskColumnIndices"]
 
         # Else fetch all the indices for all mask updates
 
@@ -1946,8 +1943,6 @@ class SimFile (object):
                 exposureGroupName = "Exposure{0:07d}".format(exposureNrOfMaskUpdate[i])
                 rowIndices.append(mask[starIDgroupName][exposureGroupName]["maskRowIndices"])
                 colIndices.append(mask[starIDgroupName][exposureGroupName]["maskColumnIndices"])
-            rowIndices = np.array(rowIndices)
-            colIndices = np.array(colIndices)
 
         # Finito!
 
@@ -2051,8 +2046,9 @@ class SimFile (object):
     def showImage(self, imageNr=False, imgScale="percentile", clip=5.0,
                   showStarPositions=False, showPointLikeGhostPositions=False,
                   minMag=None, maxMag=None, showStarIDs=False, count='ADU',
-                  tarMarkerSize=200, showMaskOfStarID=None,
-                  useTitle=False, showGrid=False, colorBar=True, colorMap="cubehelix",
+                  tarMarkerSize=150, showMaskOfStarID=None,
+                  useTitle=False, showGrid=False,
+                  colorBar=True, colorMap="Blues_r",
                   origin="lower", fontSize=15, figsize=(8,8)):
 
         """Make a plot of the a requested image or the entire image cube in HDF5.
@@ -2181,7 +2177,7 @@ class SimFile (object):
         # Colorbar
         
         if colorBar:
-            cbar = fig.colorbar(imagePlot, extend='max', shrink=0.84, pad=0.015)
+            cbar = fig.colorbar(imagePlot, extend=None, shrink=0.84, pad=0.015)
             cbar.set_label(clabel, fontsize=fontSize, labelpad=3)
             cbar.ax.tick_params(labelsize=fontSize)
 
@@ -2217,7 +2213,7 @@ class SimFile (object):
             rowIndices, colIndices, _, _, _, _ = self.getApertureMask(showMaskOfStarID, imageNr)
             for k in range(len(rowIndices)):
                 rect = patches.Rectangle((colIndices[k], rowIndices[k]), 1, 1, linewidth=2.0,
-                                         edgecolor='royalblue', facecolor='none', hatch="/",
+                                         edgecolor='deeppink', facecolor='none', hatch="/",
                                          zorder=2)
                 ax.add_patch(rect)
         
@@ -2229,12 +2225,12 @@ class SimFile (object):
                                                                    maxMag=maxMag)
             # Set linewidth of marker
 
-            lw = 0.08 * fontSize
+            lw = 0.055 * fontSize
             
             # Allow differentiating between a target and its contaminants
             
             if showStarPositions == 'PIC':
-
+                # TODO we should use the flux zero point of 20.78?
                 mag = -2.5*np.log10(flux) + 25
                 ax.scatter(col[0], row[0], s=tarMarkerSize, marker='o', c='lime',
                            edgecolor='k', linewidth=lw, zorder=4)
@@ -2251,8 +2247,12 @@ class SimFile (object):
                 # Add magnitude label above star position
                 
                 for m,i,j in zip(mag[1:], col[1:], row[1:]):
-                    ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
-                    
+                    #ax.annotate(f'{m:.1f}', xy=(i-0.25, j+0.25), color='w', weight='bold')
+                    ax.text(i-0.27, j+0.25, f'{m:.1f}', color='w', fontsize=14,
+                        path_effects=[patheffects.withStroke(linewidth=1,
+                                                             foreground='k',
+                                                             capstyle="round")])
+
             # Or hightligth all stars the same
             
             else:
@@ -2446,7 +2446,9 @@ class SimFile (object):
 
 
     
-    def showPSF(self, datasetName, rebinToPixels=False, normalizeHighestPixelValue=False, showPixelGrid=False, colorBar=True, 
+    def showPSF(self, datasetName, rebinToPixels=False,
+                normalizeHighestPixelValue=False,
+                showPixelGrid=False, colorBar=True, 
                 colorMap="gist_stern", useTitle=False, figsize=(7,6)):
 
         """Plot the requested PSF.

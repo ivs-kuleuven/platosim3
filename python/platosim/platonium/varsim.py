@@ -96,8 +96,8 @@ more massive and more evolved than the Sun:
   - delta Scuti    (dSct)  [ToyModel, Bowman2018,   mocka]
   - gamma Doradus  (gDor)  [ToyModel, Gang2020,     mocka]
   - roAp star      (roAp)  [ToyModel]
-  - RR Lyrae       (RRLyr) [Bodi2023]
-  - Cepheid        (Ceph)  [Bodi2023]
+  - RR Lyrae       (RRLyr) [          Bodi2023,     mocka]
+  - Cepheid        (Ceph)  [          Bodi2023,     mocka]
 
 Names within the round brackets are benchmark stars ("--star <Object>").
 Names within the square brackets are the mode model ("--puls <Model>"):
@@ -108,11 +108,6 @@ Names within the square brackets are the mode model ("--puls <Model>"):
 Usage examples:
   $ varsim --star gDor --puls Gang2020 --quarter 1-8 -o </path/to/file> -p
 """
-
-# TODO models to implement
-# - LPV            (LPV)
-# - DAV/DBV        (WD)
-
 
 # Built-in
 import os
@@ -143,6 +138,7 @@ from ldtk import LDPSetCreator, TabulatedFilter
 # PlatoSim functions
 import platosim.plot      as pt
 import platosim.utilities as ut
+#import platosim.smbhb     as smbhb
 from platosim.utilities import errorcode
 from platosim.spectrum  import Spectrum
 from platosim.varsource import (Pulsator,
@@ -156,24 +152,19 @@ from platosim.varsource import (Pulsator,
                                 DopplerBeaming,
                                 EllipsoidalDistortion)
 
-
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-
 class VarSim(object):
-
     """Class to generate noise-less light curves.
     """
-    
     def __init__(self, args):
         
         # CONSTANTS
         
         self.Teff_sun = 5777.  # [K]
-        
-        
+                
         # I/O SETTINGS
 
         # Check if notes are requested
@@ -186,15 +177,32 @@ class VarSim(object):
         self.ofile  = args.ofile
         self.starID = None
         
-        # Star and planet mode
-        self.star   = args.star
-        self.binary = args.binary
+        # Star mode
+        self.star        = args.star
+        self.star_params = args.star_params
+
+        # Planet mode
         self.planet = args.planet
-        self.star_params   = args.star_params
         self.planet_params = args.planet_params
-
         #self.phase_curve = args.phase_curve TODO
+        
+        # Binary mode
+        self.binary = args.binary
 
+        # SMBHBB
+        self.smbhb = args.smbhb
+        self.smbhb_params = args.smbhb_params
+        
+        # Limb darkening model
+        self.ldms = ['linear', 'quadratic', 'squareroot', 'power2']
+        if args.ldm is None:
+            self.ldm = 'power2'
+        elif args.ldm not in self.ldms:
+            errorcode('error', f'Limb Darkening model "{args.ldm}" is not available!' +
+                      f'\nUse either: {self.ldms}')
+        else:
+            self.ldm = args.ldm
+            
         # Use Kallinger2014 by default
         if args.gran == None: 
             args.gran = 'Kallinger2014'
@@ -258,12 +266,11 @@ class VarSim(object):
             self.ofile = Path(self.ofile).resolve()
             
         # Add latex font if catalogue is saved
-        if self.ofile is None:
-            from platosim.matplotlibrc import setup
-            setup()
-        else:
-            from platosim.matplotlibrc import latex
-            latex()
+        from platosim.matplotlibrc import setup; setup()
+        # if self.ofile is None:
+        #     from platosim.matplotlibrc import setup; setup()
+        # else:
+        #     from platosim.matplotlibrc import latex; latex()
 
         # Data (download) for usage of varsim
         if not Path(self.idir + '/passband_plato.txt').is_file():
@@ -275,7 +282,6 @@ class VarSim(object):
             ut.downloadFromFTP('passband_kepler.txt',      self.idir)
             ut.downloadFromFTP('varsim_meunier19a_t1.txt', self.idir)
             ut.downloadFromFTP('varsim_mainFitsBiSON.txt', self.idir)
-
             
         # OBS PARAMETERS
 
@@ -338,10 +344,8 @@ class VarSim(object):
     #--------------------------------------------------------------#
     #                     BENCHMARK STARS/PLANETS                  #
     #--------------------------------------------------------------#
-
     
     def load_star(self, source):
-
         """Function to load benchmark stars used by varsim.
 
         NOTE in the following the astropy-units are required, however,
@@ -357,6 +361,8 @@ class VarSim(object):
         Stellar parameters {M, R, Teff, logg, Z}
         """
 
+        # Exoplanet host stars
+        
         if source == 'GJ1214':
             spec = 'M'
             lum  = 'V'
@@ -412,7 +418,7 @@ class VarSim(object):
             logg = 4.5
             Z    = 0.0
 
-        #----------------------------------
+        # Pulsating stars (MOCKA defaults)
 
         if source == 'bCep':
             M = 8.0 * u.M_sun
@@ -474,7 +480,6 @@ class VarSim(object):
 
 
     def load_exoplanet(self, source):
-
         """Module to load benchmark exoplanets to be used by varsim.
 
         NOTE in the following the astropy-units are required, however,
@@ -509,6 +514,8 @@ class VarSim(object):
            Day-night temperature contrast [astropy.units]
         """
 
+        # Confirmed planets from literature
+        
         if source == 'WASP-43b':  # K7 V
             # http://exoplanet.eu/catalog/wasp-43_b/
             params = {'t0': 1 * u.d,
@@ -561,8 +568,8 @@ class VarSim(object):
                       'Tn': 1757 * u.K,
                       'dT': (3144 - 1757) * u.K}
 
-        #--------------------------------------------
-
+        # Theoretical "hot" (low P) planets:
+        
         if source == 'hot-Earth':
             # 
             params = {'t0': 1 * u.d,
@@ -645,14 +652,52 @@ class VarSim(object):
             
         return params
         
+
+    def load_exomoon(self, source):
+        """Module to load benchmark exopmoon to be used by varsim.
+
+        NOTE in the following the astropy-units are required, however,
+        the the choice of units (e.g. seconds vs. hours) are optional. 
+
+        Parameters
+        ----------
+        R : float
+            Moon radius [astropy.units]
+        Mr : float
+            Planet-to-moon mass ratio [0, 1]
+        P : float
+           Orbital period [astropy.units]
+        tau : float
+            [0, 1] [astropy.units]
+        W : float
+            [0, 180] [astropy.units]
+        i : float
+            Orbital inclination [0, 90] [astropy.units]
+        e : float
+            Eccentricity (0-1)
+        w : float
+            Longitude of periastron [0, 360] [astropy.units]
+        """
+        
+        if source == 'pandora':
+            # Default example from Pandora tutorial
+            params = {'R'   : 5.0 * u.R_earth,
+                      'M'   : 10.0 * u.M_earth,
+                      'P'   : 0.3 * u.d,
+                      'tau' : 0.07,
+                      'W'   : 0.0  * u.deg,
+                      'i'   : 80.0 * u.deg,
+                      'e'   : 0.9,
+                      'w'   : 20.0 * u.deg}
+
+        return params
+
     
     #--------------------------------------------------------------#
     #                       STELLAR PARAMETERS                     #
     #--------------------------------------------------------------#
-
     
     def stellar_source(self):
-
         """Select the stellar paramters.
         """
 
@@ -728,7 +773,6 @@ class VarSim(object):
             
         # Print available stellar model parameters
         if self.verbose > 1:
-
             print(f"Stellar ID      : {self.star_source}")
             print(f"Spectral type   : {self.spec}")
             print(f"Stellar Teff    : {self.df.Teff_K:4.0f}")
@@ -739,17 +783,7 @@ class VarSim(object):
             print(f"Luminosity      : {self.df.L_Lsun:.2f}")
 
         
-    def binary_source(self):
-
-        """Select the stellar paramters of a binary system.
-        """
-
-        if self.verbose > 1:
-            errorcode('module', '\nBinary sources\n')
-
-        
     def stellar_spectrum(self):
-
         """Calculates the bolometric correction from high-res spectra.
         
         NOTE to compare theo L while using PhoenixAtmos, divide with np.pi
@@ -844,8 +878,8 @@ class VarSim(object):
 
         # Fetch passbands
         N = 10000
-        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True,n=N)
-        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True,n=N)
+        wave_a, tran_a = ut.get_passband(passband_a, response='absolute', interpolate=True, n=N)
+        wave_b, tran_b = ut.get_passband(passband_b, response='absolute', interpolate=True, n=N)
 
         # Fetch stellar spectrum
         wave_star = self.wvl_star / 10 # [AA -> nm]
@@ -866,8 +900,8 @@ class VarSim(object):
         wave_equi_b, flux_equi_b = ut.rebin3(wave_b, wave_star, flux_star)
 
         # Flux within passbands
-        flux_tran_a = flux_equi_a * tran_a
-        flux_tran_b = flux_equi_b * tran_b
+        flux_tran_a = flux_equi_a * tran_a * wave_equi_a
+        flux_tran_b = flux_equi_b * tran_b * wave_equi_b
 
         # Debug-------------------------------------------
         # plt.figure(figsize=(8,6))
@@ -1000,8 +1034,12 @@ class VarSim(object):
                 
         # Plot rsults
         if self.plot:
-            pt.plot_amplitude_spectrum(self.lc, numax=params_puls[0])
-
+            pt.plotGranOscAmplitudeSpectrum(self.lc, numax=params_puls[0])
+        
+        # Convert to relative flux [ppm -> pp1]
+        self.lc.gran = self.lc.gran / 1e6 + 1
+        self.lc.puls = self.lc.puls / 1e6 + 1
+            
 
     def solar_spots(self):
 
@@ -1043,7 +1081,7 @@ class VarSim(object):
             print(f'Inclination   : {params[9]:.3f} deg')
 
         # Store global variables
-        self.lc['spot'] = lc * 1e6
+        self.lc['spot'] = lc + 1
         self.df['B_V']       = params[0]
         self.df['logR_HK']   = params[1]
         self.df['AR_ARsun']  = params[2]
@@ -1058,8 +1096,7 @@ class VarSim(object):
         
         # Plot model
         if self.plot:
-            model.plot()
-            plt.show()
+            model.plot(); plt.show()
 
             
     def solar_flares(self):
@@ -1108,7 +1145,7 @@ class VarSim(object):
         lc, df = model.evaluate()
 
         # Store global variables
-        self.lc['flare']   = (lc - 1) * 1e6
+        self.lc['flare']   = lc
         self.df['R_flare'] = params[0]
         self.df['N_flare'] = params[1]
         
@@ -1155,7 +1192,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_spb(self):
@@ -1217,7 +1254,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
 
     def star_dsct(self):
@@ -1252,10 +1289,10 @@ class VarSim(object):
                 print('Generating mock object from toy model')
             model.initToyModel([5, 30], [0.01, 0.03])
 
-        # Return model [mag -> ppm]
+        # Return model [mag -> pp1]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
-
+        self.lc['puls'] = ut.fromMagToFlux(mag)
+        
 
     def star_gdor(self):
 
@@ -1313,7 +1350,7 @@ class VarSim(object):
 
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
         
     def star_roap(self):
@@ -1340,7 +1377,7 @@ class VarSim(object):
             print(f'Scaled amplitude    : {round(params[3],3)}')
         
         # Return model
-        self.lc['flux'] = model.evaluate(plot=args.plot)
+        self.lc['puls'] = model.evaluate(plot=args.plot)
         self.df['Prot_day'] = params[0]
         self.df['dphi_rad'] = params[1]
         self.df['Arel']     = params[2]
@@ -1386,7 +1423,7 @@ class VarSim(object):
 
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
         
 
     def star_ceph(self):
@@ -1420,7 +1457,7 @@ class VarSim(object):
                         
         # Return model [mag -> flux]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
 
         
     def star_lpv(self):
@@ -1450,19 +1487,23 @@ class VarSim(object):
             
         # Return model [mag -> ppm]
         mag = model.evaluate(plot=args.plot)
-        self.lc['flux'] = ut.fromMagToFlux(mag)
+        self.lc['puls'] = ut.fromMagToFlux(mag)
         
                 
     #--------------------------------------------------------------#
     #                          BINARY SYSTEMS                      #
     #--------------------------------------------------------------#
     
+    def binary_source(self):
+        """Select the stellar paramters of a binary system.
+        """
+        if self.verbose > 1:
+            errorcode('module', '\nBinary sources\n')
 
+            
     def binary_eb(self):
-
         """Function to generate a Eclipsing Binary (EB) light curve.
         """
-
         if self.verbose > 1:
             errorcode('module', '\nEclipsing binary\n')
 
@@ -1487,62 +1528,128 @@ class VarSim(object):
         self.lc['flux'] = ut.fromMagToFlux(mag)
 
 
-    def binary_smbh(self):
+    #--------------------------------------------------------------#
+    #                          SMBH BINARY                         #
+    #--------------------------------------------------------------#
 
+    def mode_smbhb(self):
+        """Given SMBH binary properties asign variable signal.
+        """
+        if self.verbose > 1:
+            errorcode('module', '\nSMBH binary\n')        
+        self.smbhb_source()
+        self.smbhb_model()
+        self.run_prolog()
+
+        
+    def load_smbhb(self, source):
+        """Module to load benchmark exoplanets to be used by varsim.
+        """
+        if source == 'Spikey':
+            # From Hu+2020
+            params = [
+                0.918,  # z
+                0.6528, # t0 [day]
+                1.144,  # P  [day]
+                81.95,  # i  [deg]
+                0.524,  # e  [0,1]
+                84.63,  # w  [deg]
+                7.4,    # logM1 [logM_sun]
+                6.7,    # logM2 [logM_sun]
+                0.89,   # L  [0,1]
+                2.09,   # alpha
+                0.0,    # vz [-c,c]
+                31,     # tau [day]
+                9.25    # sigma [ppt]
+            ]
+        return params
+
+
+    def smbhb_source(self):
+        """Select the stellar paramters.
+        """
+        # If stellar parameters are parsed
+        if self.smbhb_params:
+            self.smbhb = 'SMBHB'
+            params = self.smbhb_params[0]
+        else:
+            try:
+                params = self.load_smbhb(self.smbhb)
+            except UnboundLocalError:
+                errorcode('error', 'No SMBHB with that name! Check --smbhb entry')
+
+        # Store parameters
+        self.df['z']            = params[0]
+        self.df['t0_yr']        = params[1]
+        self.df['P_yr']         = params[2]
+        self.df['i_deg']        = params[3]
+        self.df['e']            = params[4]
+        self.df['w_deg']        = params[5]
+        self.df['logM1_logMsun'] = params[6]
+        self.df['logM2_logMsun'] = params[7]
+        self.df['L']            = params[8]
+        self.df['alpha']        = params[9]
+        self.df['vz_c']         = params[10]
+        self.df['tau_day']      = params[11]
+        self.df['sigma_ppt']    = params[12]
+        self.df['seed']         = self.seed
+
+        # Print available stellar model parameters
+        if self.verbose > 1:
+            print(f"Source name             : {self.smbhb}")
+            print(f"Redshift, z             : {self.df.z:.3f}")
+            print(f"Time of ephemeris, t0   : {self.df.t0_yr:.3f} yr")
+            print(f"Orbital period, P       : {self.df.P_yr:.3f} yr")
+            print(f"Inclination, i          : {self.df.i_deg:.3f} deg")
+            print(f"Eccentricity, e         : {self.df.e:.3f}")
+            print(f"Argument of periapse, w : {self.df.w_deg:.3f} deg")
+            print(f"Primary mass, logM1     : {self.df.logM1_logMsun:.3f} logMsun")
+            print(f"Secondary mass, logM2   : {self.df.logM2_logMsun:.3f} logMsun")
+            print(f"Luminosity fraction, L  : {self.df.L:.3f}")
+            print(f"Spectral index, alpha   : {self.df.alpha:.3f}")
+            print(f"Proper motion, vz       : {self.df.vz_c:.3f} c")
+            print(f"DRW time scale, tau     : {self.df.tau_day:.3f} day")
+            print(f"DRW amplitude, sigma    : {self.df.sigma_ppt:.3f} ppt")
+            
+    
+    def smbhb_model(self):
         """Function to generate a SMBH binary light curve.
 
         A Super Massive Black Hole (SMBH) binary system consist of several 
-        components, for which this model includes two of the effects:
+        components, for which this model includes the effects:
           1) The doppler boosting
-          2) The gravitational lensing effect
+          2) The gravitational self-lensing effect
           3) The stochastic quasar variability
-        """
-
-        if self.verbose > 1:
-            errorcode('module', '\nSMBH binary\n')
-
-        # Set the stellar source entry
-        self.star_source = 'SMBHB'
-            
+        """            
         # Fetch time array
-        time  = self.time.to('d').value
-        model = SMBHB(time, seed=self.seed)
+        time = self.time.to('d').value
 
-        # Fetch model parameters
-        P, A_beam, A_lens, phi, tmax, tdur = model.initToyModel()
+        # Initialise parameters
+        params = smbhb.model_params()
+        params.z     = self.df['z']
+        params.t0    = self.df['t0_yr']
+        params.P     = self.df['P_yr']
+        params.i     = self.df['i_deg']
+        params.e     = self.df['e']
+        params.w     = self.df['w_deg']
+        params.logM1 = self.df['logM1_logMsun']
+        params.logM2 = self.df['logM2_logMsun']
+        params.L     = self.df['L']
+        params.alpha = self.df['alpha']
+        params.vz    = self.df['vz_c']
+        params.tau   = self.df['tau_day']
+        params.sigma = self.df['sigma_ppt']
+        params.seed  = self.seed
 
-        if self.verbose > 1:
-            print(f'Model parameters of toy model:')
-            print(f'Orbital period     : {P:.3f} day')
-            print(f'Beaming amplitude  : {A_beam*1e3:.3f} mmag')
-            print(f'Lensing amplitude  : {A_lens*1e3:.3f} mmag')
-            print(f'Lens time maximum  : {tmax:.3f} day')
-            print(f'Lens time duration : {tdur:.3f} day')
-        
-        # Get model
-        flux, flux_beam, flux_lens = model.evalToyModel(P, A_beam, A_lens, phi, tmax, tdur) 
-
-        # plot light curve
-        if self.plot: model.plot()
-                
-        # Return light curve
-        self.lc['flux']      = flux
-        self.lc['flux_beam'] = flux_beam
-        self.lc['flux_lens'] = flux_lens
-
-        # Return parameters
-        self.df['P_day']         = P
-        self.df['A_beam_mag']    = A_beam
-        self.df['A_lens_mag']    = A_lens
-        self.df['tmax_lens_day'] = tmax
-        self.df['tdur_lens_day'] = tdur        
+        # Generate model
+        model = smbhb.model(params)
+        self.lc = model.light_curve(time, df=True)
 
         
     #--------------------------------------------------------------#
     #                          PLANET MODELS                       #
     #--------------------------------------------------------------#
-        
-        
+                
     def ldc(self):
 
         """Compute the Limb Darkening (LD) coefficients.
@@ -1576,24 +1683,41 @@ class VarSim(object):
         # Create the limb darkening profiles
         ps = sc.create_profiles()
 
-        # Estimate quadratic law coefficients
-        # Take care of occations when LDTk fails
+        # Determine law coefficients
+        # NOTE we only allow 2-term models
         try:
-            u, _ = ps.coeffs_qd(do_mc=True)
+            if self.ldm == 'linear':
+                u, _ = ps.coeffs_ln(do_mc=True)
+            elif self.ldm == 'quadratic':
+                u, _ = ps.coeffs_qd(do_mc=True)
+            elif self.ldm == 'squareroot':
+                u, _ = ps.coeffs_sq(do_mc=True)
+            elif self.ldm == 'power2':
+                u, _ = ps.coeffs_p2(do_mc=True)
         except:
-            self.ldc = [0.430, 0.170]
+            if self.ldm == 'linear':
+                self.ldc = [0.570]
+            elif self.ldm == 'quadratic':
+                self.ldc = [0.470, 0.153]
+            elif self.ldm == 'squareroot':
+                self.ldc = [0.334, 0.364]
+            elif self.ldm == 'power2':
+                self.ldc = [0.670, 0.759]
             errorcode('warning', 'LD coefficients failed for ' +
                       f'(Teff, logg, Z) = ({self.Teff}, {self.logg}, {self.Z}')
         else:
             self.ldc = u[0]
 
-        # Show parameters
-        if self.verbose > 1:
-            print(f"LD coefficients        : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
-
         # Store parameters
-        self.df['u1'] = self.ldc[0]
-        self.df['u2'] = self.ldc[1]
+        if len(self.ldc) == 1:
+            self.df['u1'] = self.ldc[0]
+            if self.verbose > 1:
+                print(f"LD {self.ldm} coefficients : {self.ldc[0]:.3f}")
+        else:
+            self.df['u1'] = self.ldc[0]
+            self.df['u2'] = self.ldc[1]
+            if self.verbose > 1:
+                print(f"LD {self.ldm} coefficients : {self.ldc[0]:.3f}, {self.ldc[1]:.3f}")
 
             
     def planet_model(self):
@@ -1619,7 +1743,7 @@ class VarSim(object):
         - The time seperation between transit and occultation in the following is a
           first order approximation in "e" by integrating "dt/dF".
         """
-
+        
         # Stellar parameters
         time = self.time.to('d')
         Ms   = self.M.to('kg')
@@ -1715,7 +1839,6 @@ class VarSim(object):
             xi = 0.
             Tn = 0.
             dT = 0.
-
             
         # ORBITAL DYNAMICS
 
@@ -1733,10 +1856,10 @@ class VarSim(object):
         # Transit and occultation times: Winn (2014) Eq. 14, 15 & 16
         ep = x/(1 + e*np.sin(w)) / u.rad
         em = x/(1 - e*np.sin(w)) / u.rad
-        t_tra_tot = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 + k)**2 - b_tra**2)/np.sin(i) ) * ep
-        t_tra_ful = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 - k)**2 - b_tra**2)/np.sin(i) ) * ep
-        t_occ_tot = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 + k)**2 - b_occ**2)/np.sin(i) ) * em
-        t_occ_ful = P/np.pi * np.arcsin( Rs/a * np.sqrt((1 - k)**2 - b_occ**2)/np.sin(i) ) * em
+        t_tra_tot = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 + k)**2 - b_tra**2)/np.sin(i)) * ep
+        t_tra_ful = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 - k)**2 - b_tra**2)/np.sin(i)) * ep
+        t_occ_tot = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 + k)**2 - b_occ**2)/np.sin(i)) * em
+        t_occ_ful = P/np.pi * np.arcsin(Rs/a * np.sqrt((1 - k)**2 - b_occ**2)/np.sin(i)) * em
         tau_tra = (t_tra_tot - t_tra_ful)/2.
         tau_occ = (t_occ_tot - t_occ_ful)/2.
 
@@ -1756,6 +1879,12 @@ class VarSim(object):
         # Show parameters apce
         if self.verbose > 1:
             errorcode('module', '\nPlanet eclipse model')
+
+        # Calculate LD coefficients
+        self.ldc()
+
+        # Show parameters apce
+        if self.verbose > 1:
             print('')
             print("Planet name            : {}".format(args.planet))
             print("Planet mass            : {:.2f}".format(Mp.to('M_earth')))
@@ -1804,7 +1933,8 @@ class VarSim(object):
         self.t0_tra_cen = t0_tra_cen
         self.t0_occ_cen = t0_occ_cen
         self.dt_c = dt_c
-
+        self.b_tra = float(b_tra)
+        
             
     def planet_transit(self):
 
@@ -1817,15 +1947,9 @@ class VarSim(object):
         Here we make sure to use consistent reference time unit.
         """
 
-        # Limb darkening model options:
-        if args.ldm:
-            limbDarkModel = args.lmd
-        else:
-            limbDarkModel = 'quadratic'
-
         # Initialize batman model
         batman_params = batman.TransitParams()
-        batman_params.limb_dark = limbDarkModel
+        batman_params.limb_dark = self.ldm
         batman_params.u   = self.ldc
         batman_params.t0  = self.t0.to('d').value
         batman_params.per = self.P.to('d').value
@@ -1836,12 +1960,12 @@ class VarSim(object):
         batman_params.rp  = (self.Rp.to('m')/self.R.to('m')).value
 
         # Model parameters for eclipse
-        #params.fp          = 0.001
-        #params.t_secondary = 0.5
+        #batman_params.fp          = 0.001
+        #batman_params.t_secondary = 0.5
         
         # Initializes transit model and extract light curve [ppm]
-        model = batman.TransitModel(batman_params, self.time.value)
-        self.lc['tran'] = (model.light_curve(batman_params) - 1) * 1e6
+        model = batman.TransitModel(batman_params, self.time.value) #,transittype='secondary')
+        self.lc['tran'] = model.light_curve(batman_params)
 
         # True anomaly at each time: This will be used in our custom models later
         self.nu = model.get_true_anomaly()
@@ -1851,7 +1975,8 @@ class VarSim(object):
 
         # Print to bash
         if self.verbose > 1:
-            print(f"Mid-transit depth  : {np.abs(np.min(self.lc.tran)):.1f} ppm")
+            depth = np.abs(np.min((self.lc.tran-1)*1e6))
+            print(f"Mid-transit depth  : {depth:.1f} ppm")
 
 
     def planet_occultation(self):
@@ -1873,8 +1998,7 @@ class VarSim(object):
         """
 
         # TODO small fix until module is tested again!
-        lc_occu = np.zeros(len(self.time))
-        self.lc['occu'] = lc_occu.tolist()
+        self.lc['occu'] = np.ones(len(self.time))
         return
 
         
@@ -1991,9 +2115,7 @@ class VarSim(object):
         # Assign and calculate model
         model_beam.assignValue(params_beam)
         lc_beam, self.A_beam = model_beam.evaluate(self.time, self.nu)
-
-        # Combine models
-        self.lc['beam'] = lc_beam.tolist()
+        self.lc['beam'] = lc_beam / 1e6 + 1
 
 
     def planet_ellipsoidal(self):
@@ -2020,38 +2142,145 @@ class VarSim(object):
         # Assign and calculate model
         model_elli.assignValue(params_elli)
         lc_elli, self.A_elli = model_elli.evaluate(self.time, self.nu)
-
-        # Combine models
-        self.lc['elli'] = lc_elli.tolist()
+        self.lc['elli'] = lc_elli / 1e6 + 1
 
         
     def plot_phase_curve(self):
 
         # Plot exoplanet model
         if (self.time[-1] >= self.P.to('d') + self.t0.to('d')):
-            fig = plt.figure(figsize=(13, 10))
-            # Adjust times
-            lc_exo = self.lc['tran'] + self.lc['occu'] + self.lc['beam'] + self.lc['elli']
-            pt.plot_orbital_phase_curve(fig, self.time.value,
-                                        self.lc['tran'].to_numpy(),
-                                        self.lc['occu'].to_numpy(),
-                                        self.lc['beam'].to_numpy(),
-                                        self.lc['elli'].to_numpy(),
-                                        lc_exo.to_numpy(),
-                                        self.t0.to('d').value,
-                                        self.P.to('d').value,
-                                        self.dt_c.to('d').value,
-                                        self.t0_tra_cen.to('d').value,
-                                        self.t_tra_tot.to('d').value,
-                                        self.t0_occ_cen.to('d').value,
-                                        self.t_occ_tot.to('d').value,
-                                        self.A_beam, self.A_elli)
+            fig, ax = pt.plotOrbitalPhaseCurve(self.time.value,
+                                               self.lc['tran'].to_numpy(),
+                                               self.lc['occu'].to_numpy(),
+                                               self.lc['beam'].to_numpy(),
+                                               self.lc['elli'].to_numpy(),
+                                               self.t0.to('d').value,
+                                               self.P.to('d').value,
+                                               self.dt_c.to('d').value,
+                                               self.t0_tra_cen.to('d').value,
+                                               self.t_tra_tot.to('d').value,
+                                               self.t0_occ_cen.to('d').value,
+                                               self.t_occ_tot.to('d').value,
+                                               self.A_beam, self.A_elli)
+            plt.show()
             
         elif (self.time[-1] < self.P.to('d') + self.t0.to('d')):
             errorcode('warning',
                       'No phase plot, time series is shorter than the orbital period!')
 
 
+    def moon_transit(self):
+
+        """Model exomoon transits.
+
+        In the following the exomoon transits are being modelled with Pandora:
+        https://github.com/hippke/Pandora
+
+        NOTE: t0 and P can principly be anything as long as they are consistant. 
+        Here we make sure to use consistent reference time unit.
+
+        FIXME This module are under construction!
+        """
+
+        import pandoramoon as pandora
+        params = pandora.model_params()
+
+        #time = self.time.to('d')
+
+        # if args.moon_params is None:
+
+        #     # Load exoplanet parameters [SI units]
+        #     try:
+        #         params = self.load_exoplanet(args.planet)
+        #     except UnboundLocalError:
+        #         errorcode('error', 'No planet with that name! Check --planet entry')
+        #     else:
+        #         t0 = params['t0'].to('s')
+        #         P  = params['P'].to('s')
+        #         e  = params['e']
+        #         i  = params['i'].to('rad')
+        #         w  = params['w'].to('rad')
+        #         Rp = params['rp'].to('m')
+        #         Mp = params['mp'].to('kg')
+        #         xi = params['xi']
+        #         Tn = params['Tn'].to('K').value
+        #         dT = params['dT'].to('K').value
+            
+        # else:
+
+            # # Load exoplanet parameters [SI units]
+            # params = args.planet_params[0]
+            # t0 = (params[0] * u.d).to('s')
+            # P  = (params[1] * u.d).to('s')
+            # e  = params[2]
+            # i  = (params[3] * u.deg).to('rad')
+            # w  = (params[4] * u.deg).to('rad')
+            # Rp = (params[5] * u.R_earth).to('m')
+            # Mp = (params[6] * u.M_earth).to('kg')
+            # xi = 0.
+            # Tn = 0.
+            # dT = 0.
+        
+        # Stellar parameters
+        params.R_star = self.R.to('m').value
+        params.u1     = self.ldc[0]
+        params.u2     = self.ldc[1]
+        
+        # Planet parameters
+        params.per_bary       = self.P.to('d').value
+        params.a_bary         = self.a.to('m').value / self.R.to('m').value
+        params.r_planet       = self.Rp.to('m').value / self.R.to('m').value
+        params.b_bary         = self.b_tra
+        params.t0_bary        = self.t0.to('d').value
+        params.t0_bary_offset = 0  # [days]
+        params.M_planet       = self.Mp.to('kg').value
+        params.w_bary         = self.w.to('deg').value
+        params.ecc_bary       = self.e
+        
+        # Moon parameters
+        params_moon = self.load_exomoon(args.moon)
+        print(params_moon)
+        params.r_moon = params_moon['R'].to('m').value / self.R.to('m').value
+        params.M_moon = 0.05395 * params.M_planet  # [0..1]
+        params.per_moon = 0.3 # [days]
+        params.tau_moon = 0.07  # [0..1]
+        params.Omega_moon = 0  # [0..180]
+        params.i_moon = 80  # [0..180]
+        params.e_moon = 0.9  # [0..1]
+        params.w_moon = 20  # [deg]
+        
+
+        # Other model paramters
+        params.epochs = 3  # [int]
+        params.epoch_duration = 0.6  # [days]
+        params.cadences_per_day = 250  # [int]
+        params.epoch_distance = 365.26   # [days]
+        params.supersampling_factor = 1  # [int]
+        params.occult_small_threshold = 0.1  # [0..1]
+        params.hill_sphere_threshold = 1.2
+
+        time = pandora.time(params).grid()
+
+        model = pandora.moon_model(params)
+
+        flux_total, flux_planet, flux_moon = model.light_curve(time)
+
+        noise_level = 100e-6  # Gaussian noise to be added to the generated data
+        noise = np.random.normal(0, noise_level, len(time))
+        testdata = noise + flux_total
+        yerr = np.full(len(testdata), noise_level)
+
+        plt.figure()
+        plt.plot(time, flux_planet, color="blue")
+        plt.plot(time, flux_moon, color="red")
+        plt.plot(time, flux_total, color="black")
+        plt.scatter(time, testdata, color="black", s=0.5)
+        plt.xlabel("Time (days)")
+        plt.ylabel("Relative flux")
+        plt.xlim(min(time), min(time)+params.epoch_duration)
+        plt.show()
+        exit()
+        
     #--------------------------------------------------------------#
     #                      PROLOGUE AND SAVING                     #
     #--------------------------------------------------------------#
@@ -2071,39 +2300,47 @@ class VarSim(object):
 
         # If all signals are ignored then it is a constant star
         if ((args.gran is False or args.puls is False) and
-            args.spot is False and args.flare is False):
+            args.spot is False and args.flare is False and
+            args.planet_params is False):
             self.star = 'constant'
 
-        # Combine all signals for solar-like stars
-        if (not self.star in stars and
-            not self.binary in binaries and
-            self.mocka_solar == True):
+        elif args.smbhb or args.smbhb_params:
+            fig, ax = smbhb.plot_model(self.lc)
+            if self.plot: plt.show()
+            self.lc.time *= 86400
 
-            # Granulation and pulsation are additive
-            self.lc['flux'] = np.zeros(len(self.lc.time))
+        # Combine all signals any other variable source
+        else:
+            # Empty array to store flux [pp1]
+            self.lc['flux'] = np.ones(len(self.lc.time))
+
+            # Stellar variability
             if 'gran' in self.lc:
-                self.lc['flux'] += self.lc.gran
+                self.lc['flux'] += (self.lc.gran - 1)
             if 'puls' in self.lc:
-                self.lc['flux'] += self.lc.puls
+                self.lc['flux'] += (self.lc.puls - 1)
             if 'spot' in self.lc:
-                self.lc['flux'] += self.lc.spot
+                self.lc['flux'] += (self.lc.spot - 1)
             if 'flare' in self.lc:
-                self.lc['flux'] += self.lc.flare
-                
-            # Convert to relative flux to multiply with transits
-            self.lc['flux'] = self.lc['flux'] / 1e6 + 1 
-            
-            # Spots and transits are multiplicative
-            if 'tran' in self.lc:
-                self.lc['flux'] *= (self.lc.tran / 1e6 + 1)
+                self.lc['flux'] += (self.lc.flare - 1)
 
-            # Plot combined light curve [flux -> ppm]
-            if self.plot and self.star != 'constant':
-                lc = self.lc
-                lc.flux = (lc.flux - 1) * 1e6
-                fig, ax = pt.plot_final_lc(lc)
-                plt.show()
-                                            
+            # Planet/binary variability
+            if 'tran' in self.lc:
+                flux_planet = self.lc.tran
+                if 'occu' in self.lc:
+                    flux_planet += (self.lc.occu - 1)
+                if 'beam' in self.lc:
+                    flux_planet += (self.lc.beam - 1)
+                if 'elli' in self.lc:
+                    flux_planet += (self.lc.elli - 1)
+
+                # Spots and transits are multiplicative
+                self.lc['flux'] *= flux_planet
+
+            # Plot combined light curve
+            fig, ax = pt.plotVarsimLC(self.lc)
+            if self.plot and self.lc.shape[1] > 3: plt.show()
+                
         # SAVE DATA
 
         if self.ofile:
@@ -2112,12 +2349,11 @@ class VarSim(object):
             ofile_parameters = self.ofile.parents[0] / f'{self.ofile.stem}_parameters.ftr'
             ofile_components = self.ofile.parents[0] / f'{self.ofile.stem}_components.ftr'
             ofile_pulsations = self.ofile.parents[0] / f'{self.ofile.stem}_pulsations.ftr'
-
-            # Convert to magnitude [mag]
-            df = self.lc.flux.to_numpy() 
-            dm = - 2.5 * np.log10(df)            
-                
-            # Save light curve
+            ofile_lightcurve = self.ofile.parents[0] / f'{self.ofile.stem}_lightcurve.png'
+            
+            # Save light curve [pp1 -> mag]
+            df = self.lc.flux.to_numpy()
+            dm = -2.5 * np.log10(df)                        
             if self.verbose > 1:
                 print(f'Saving file : {self.ofile}')
             data = np.transpose([self.lc['time'], dm])
@@ -2138,14 +2374,21 @@ class VarSim(object):
             
             # Save pulsation modes for MOCKA
             if args.puls == 'mocka':
-                try: self.dm
-                except AttributeError: return
+                try:
+                    self.dm
+                except AttributeError:
+                    return
                 else:
                     if self.verbose > 1:
                         print(f'Saving file : {ofile_pulsations}')                
                     self.dm.to_feather(ofile_pulsations)
 
+            # Save final plot
+            if self.verbose > 1:
+                print(f'Saving file : {ofile_lightcurve}')            
+            fig.savefig(ofile_lightcurve, bbox_inches='tight', dpi=200)
 
+            
     #--------------------------------------------------------------#
     #                         SOFTWARE MODES                       #
     #--------------------------------------------------------------#
@@ -2201,24 +2444,27 @@ class VarSim(object):
 
             # Solar-like stars
             elif args.star or args.star_params:
+                if args.gran and args.puls:
+                    v.solar_granosc()
                 if args.spot:
                     v.solar_spots()
                 if args.flare is not False:
                     v.solar_flares()
-                if args.gran and args.puls:
-                    v.solar_granosc()
                     
-            # Include exoplanet
-            if args.planet or args.planet_params:
-                v.ldc()
-                v.planet_model()
-                v.planet_transit()
-                v.planet_occultation()
-                v.planet_beaming()
-                v.planet_ellipsoidal()
-                if args.plot and args.kul20 is None:
-                    v.plot_phase_curve()
+        # Include exoplanet
+        if args.planet or args.planet_params:
+            v.planet_model()
+            v.planet_transit()
+            v.planet_occultation()
+            v.planet_beaming()
+            v.planet_ellipsoidal()
+            if args.plot and args.kul20 is None:
+                v.plot_phase_curve()
 
+            # Include exomoon
+            if args.moon:
+                v.moon_transit()
+                    
         # Combine and save
         self.run_prolog()
 
@@ -2304,7 +2550,7 @@ class VarSim(object):
         self.odir.mkdir(parents=True, exist_ok=True)
 
         # NOTE hard-coded VSC directory
-        vsc_scratch = f'/scratch/leuven/341/vsc34166/platosim/mocka/{starType}/varsource/{starDir}'
+        vsc_scratch = f'/scratch/leuven/341/vsc34166/platosim/{project}/{starType}/varsource/{starDir}'
         
         # Select target star
         df_i = df0.loc[self.starID-1]
@@ -2535,7 +2781,7 @@ class VarSim(object):
                     if self.df.spec == 'M' and starType in [None, 'solar_puls', 'solar_spot', 'solar_flare']:
                         starType = 'dwarf_red'
                         
-            # Just as a sanity check, stop script if none has been selected
+            # Just as a sanity check, select SPV if nothing else
             if starType == None:
                 starType = 'SPV'
 
@@ -2647,17 +2893,25 @@ star_group.add_argument('--spot',     metavar='MODEL', type=str, help='Model of 
 star_group.add_argument('--flare',    metavar='MODEL', type=str, help='Model of stellar flares [ToyModel, Doorsselaere2017, no]')
 star_group.add_argument('--pulslist', metavar='FILE',  type=str, help='Use file with pulsations [frequencies/(c/d), amplitudes/dmag, phases/rad]')
 
-star_group = parser.add_argument_group('BINARY PARAMETERS')
-star_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
-#star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
-#                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
-
 planet_group = parser.add_argument_group('PLANET PARAMETERS')
 planet_group.add_argument('--planet', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
 planet_group.add_argument('--planet_params', action='append', type=float, nargs=7, metavar=('t0', 'P', 'e', 'i', 'w', 'Rp', 'Mp'),
                           help='Planet model parameters (check --notes)')
 #planet_group.add_argument('--phase_curve', action='store_true', help='Flag orbital phase curve (occultation, beaming, ellipsoidal)')
-planet_group.add_argument('--ldm',   metavar='MODEL', type=str, help='Limb darkening model [quadratic]')
+planet_group.add_argument('--ldm',  metavar='MODEL', type=str, help='Limb darkening model [power2, squareroot, quadratic, linear]')
+planet_group.add_argument('--moon', metavar='NAME',  type=str, help='Benchmark moon (check --notes)')
+
+
+binary_group = parser.add_argument_group('BINARY PARAMETERS')
+binary_group.add_argument('--binary', metavar='NAME', type=str, help='Benchmark eclipsing binary (check --notes)')
+#star_group.add_argument('--binary_params', action='append', type=float, nargs=5, metavar=('M', 'R', 'Teff', 'logg', 'Z'),
+#                        help='Stellar model parameters with units [M/Msun, R/Rsun, Teff/K, logg/rel, Z/rel]')
+
+smbhb_group = parser.add_argument_group('PLANET PARAMETERS')
+smbhb_group.add_argument('--smbhb', metavar='NAME', type=str, help='Benchmark planet (check --notes)')
+smbhb_group.add_argument('--smbhb_params', action='append', type=float, nargs=13,
+                         metavar=('z', 't0', 'P', 'e', 'i', 'w', 'logM', 'q', 'L', 'alpha', 'vz', 'tau', 'sigma'),
+                         help='SMBH binary model parameters (check --notes)')
 
 mode_group = parser.add_argument_group('DISTRIBUTION MODES')
 mode_group.add_argument('--kul20', metavar='INT',   type=int, help='Option designed for KUL-TN-20 [0, 1, 2, 3]')
@@ -2687,6 +2941,10 @@ elif args.kul20:
 # Default mode for binaries
 elif args.binary:
     v.mode_binary()
+
+# Default mode for binaries
+elif args.smbhb or args.smbhb_params:
+    v.mode_smbhb()
     
 # Default mode for single stars
 else:

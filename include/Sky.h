@@ -55,7 +55,7 @@ class Sky
         void aberrateSelectedGhostOrigPositions(Platform &platform, string aberrationCorrectionType, double startTime);
         tuple<unsigned int, double, double, double> getSelectedGhostOrig(unsigned int n);
 
-        double time0;
+        double orbitStartTime;
         double zodiacalFlux(double RA, double dec, double lambda1, double lambda2);
         double zodiacalFlux(double RA, double dec, vector<double> &lambda, vector<double> &throughput);
         double stellarBackgroundFlux(double RA, double dec, double lambda1, double lambda2);

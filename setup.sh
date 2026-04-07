@@ -69,6 +69,12 @@ else
     cp -rf $PLATONIUM/../scripts/migtool.py $CONDA_PREFIX/bin/migtool
     cp -rf $PLATONIUM/../scripts/pdshow.py  $CONDA_PREFIX/bin/pdshow
 
+    chmod +x $CONDA_PREFIX/bin/picsim
+    chmod +x $CONDA_PREFIX/bin/varsim
+    chmod +x $CONDA_PREFIX/bin/payload
+    chmod +x $CONDA_PREFIX/bin/platonium
+    chmod +x $CONDA_PREFIX/bin/migtool
+    chmod +x $CONDA_PREFIX/bin/pdshow
     
     # LESIA PIPELINE
     

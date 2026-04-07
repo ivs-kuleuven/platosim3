@@ -1039,7 +1039,6 @@ void Camera::exposeDetectorWithSkyBackground(Detector &detector, double startTim
 
     if (userGivenSkyBackground < 0.0)
     {
-
         const double energyOfOnePhoton = Constants::CLIGHT * Constants::HPLANCK / (throughputLambdaC * 1.e-9);                // [J]
         const double lambda1 = (throughputLambdaC - throughputBandwidth/2.0) * 1.e-9;                                         // [m]
         const double lambda2 = (throughputLambdaC + throughputBandwidth/2.0) * 1.e-9;                                         // [m]
@@ -1385,7 +1384,14 @@ pair<double, double> Camera::distortedToUndistortedFocalPlaneCoordinates(double 
 
 
 
-
+/**
+  * @brief 
+  *
+  * @param[in] skyBackground
+  * @param[in] transmissionEfficiency
+  *
+  * @return None
+  */
 void Camera::addSkybackgroundAndTransmissionEfficiency(double skyBackground, double transmissionEfficiency)
 {
     skyBackgroundValues.push_back(skyBackground);
@@ -1444,7 +1450,7 @@ double Camera::getFocalLength()
  * @param[in]  xFP  Focal plane x-coordinate [mm]
  * @param[in]  yFP  Focal plane y-coordinate [mm]
  *
- * @return     flux: flux value of the background at xFP, yFP
+ * @return     flux: flux value of the background at xFP, yFP   [phot/exposure]
  */
 double Camera::getBackgroundFlux(double xFP, double yFP, Detector &detector, double startTime, double exposureTime, double readoutTimeBeforeNextExposure)
  {

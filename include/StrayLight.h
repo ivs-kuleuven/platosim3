@@ -21,7 +21,7 @@
 
 
 class Camera;
-class Detector;
+
 
 struct GridPoint
 {
@@ -40,7 +40,8 @@ class StrayLight : public HDF5Writer
 {
   public:
     StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
-                                                     Camera &camera, Detector &detector);
+                                                     Camera &camera);
+    // ~StrayLight();
     void configure(ConfigurationParameters &configParam);
     double getStrayLightMoon(double time);
 
@@ -83,7 +84,6 @@ protected:
 
     int AZs[5];
     Camera &camera;
-    Detector &detector;
 };
 
 
