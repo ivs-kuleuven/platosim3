@@ -9,7 +9,6 @@ Checklist to update for a future release:
 * Update the "version" in the file `pyproject.toml`
 * Check all for a successful run of all Jupyter notebooks in `docs/tutorials` (runs with `poetry install` package management)
 
-
 ## Upcoming release
 
 <!-- 3.7.1 -->
@@ -17,15 +16,44 @@ Checklist to update for a future release:
 
 ### Fixed
 
+### Changed
+
+### Added
+
+### Removed
+
+
+<!-- 3.7.1 -->
+<!-- ***** -->
+
+## 07/04/2026: 3.7.1
+
+### Fixed
+
 * Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows).
+* Bugfix of issue #1169 with birght stars in picsim
+* Bugfix in varsim for simulating only transits
+* Bugfix of time determination in aberration (See Issue #1157)
 
 ### Changed
 
-* Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4. 
+* Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4.
 * Chnaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
 * Chnaged `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
 * Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
 * Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
+* Updated the orbit.txt file into oribit_prime_10_years.txt (See Issue #1163)
+* Update of the technical notebooks
+* Added multithreaded compilation of dependencies
+* Renameing lightcurve.star() to lightcurve.target() to be consistent with source not only being a star
+* Changed how the initial number of occupied traps is determined for the Short et al model
+* Changed the install.sh file so that it breaks when a dependency fails to install
+* Made the BFE validation test more rebost for fainter targets
+* Added bias rows to the number of columns to read out in simulation.p
+* Bugfix in digital staturation test
+* Bugfix in destructor of Detector
+* Variable cycleTime in Straylight can now be non-integer
+
 
 ### Added
 
@@ -34,11 +62,18 @@ Checklist to update for a future release:
 * Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
 * Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`].
 * Added new section about the output files of the PLATOnium-L1 pipeline setup, plus updated figures and text in PLATOnium tutorials.
+* Added PRNU from file feature
+* Added straylight feature
+* Added bad pixel map feature
+
 
 ### Removed
 
 * Removed `Dockerfile.txt` from base as this is redundant with the new LESIA L1 pipeline Docker installation.
 * Removed `inputfile_FCAM_required.yaml` as file was outdated. New strategy is to use Python to setup a F-CAM simulations using: `simulation.useFastCamera()`.
+* Removed old orbit.txt file
+* Removing descartes dependency
+
 
 <!-- 3.7.0 -->
 <!-- ***** -->
