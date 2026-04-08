@@ -22,7 +22,9 @@ barycentric pixel displacement of the stellar sources, the cameras and their opt
 electronics, and all main random and systematic noise sources. With its strong predictive powers and diverse
 applicability, PlatoSim is key simulator for PLATO Mission Consortium.
 
+
 Happy simulations - Joris, Dries, and Nich
+
 
 ## Installation
 
