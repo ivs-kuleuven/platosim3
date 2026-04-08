@@ -4,7 +4,7 @@ Checklist to update for a future release:
 
 * Check that Conda installation of PlatoSim works (`master` and `develop` branch)
 * Check that test harness returns only `Success` statements
-* Check Python package installation `poetry install --with sphinx`    in a fresh Conda environment
+* Check Python package installation `poetry install --with docs`      in a fresh Conda environment
 * Check Python package installation `poetry install --with platonium` in a fresh Conda environment
 * Update the "version" in the file `pyproject.toml`
 * Check all for a successful run of all Jupyter notebooks in `docs/tutorials` (runs with `poetry install` package management)
@@ -31,9 +31,12 @@ Checklist to update for a future release:
 ### Fixed
 
 * Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows).
-* Bugfix of issue #1169 with birght stars in picsim
-* Bugfix in varsim for simulating only transits
-* Bugfix of time determination in aberration (See Issue #1157)
+* Fixed issue #1169: Bugfix when including bright (Yale) stars in `picsim.py`.
+* Fixed issue #1157: Bugfix of time determination in aberration.
+* Fixed issue #1150: Issue with F-CAM simulations due to overload of HDF5 RAM memory.
+* Bugfix in `varsim.py` for simulating only transits.
+* Bugfix in digital staturation test.
+* Bugfix in destructor of Detector.
 
 ### Changed
 
@@ -42,21 +45,20 @@ Checklist to update for a future release:
 * Chnaged `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
 * Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
 * Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
-* Updated the orbit.txt file into oribit_prime_10_years.txt (See Issue #1163)
-* Update of the technical notebooks
-* Added multithreaded compilation of dependencies
-* Renameing lightcurve.star() to lightcurve.target() to be consistent with source not only being a star
-* Changed how the initial number of occupied traps is determined for the Short et al model
-* Changed the install.sh file so that it breaks when a dependency fails to install
-* Made the BFE validation test more rebost for fainter targets
-* Added bias rows to the number of columns to read out in simulation.p
-* Bugfix in digital staturation test
-* Bugfix in destructor of Detector
+* Changed how the initial number of occupied traps is determined for the Short et al model.
+* Changed the `install.sh` file so that it breaks when a dependency fails to install.
+* Changed `lightcurve.star()` to `lightcurve.target()` to be consistent with source not only being a star.
+* Updated the `orbit.txt` file into `oribit_prime_10_years.txt` (See Issue #1163).
+* Updated the technical Jupyter notebooks.
+* Updated the BFE validation test more rebost for fainter targets.
+* Updated the `setup.sh` file to file so that it breaks when a dependency fails to install.
 * Variable cycleTime in Straylight can now be non-integer
-
 
 ### Added
 
+* Merged `sovt1` branch into `develop`. New features to setup the spacecraft in `platonium.py` according to latest performance tests.
+* Added bias rows to the number of columns to read out in `simulation.py`.
+* Added multithreaded compilation of dependencies.
 * Added PIC 2.1.0.1 (LOPS2) to the available `picsim` catalogues.
 * Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
 * Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
@@ -66,14 +68,12 @@ Checklist to update for a future release:
 * Added straylight feature
 * Added bad pixel map feature
 
-
 ### Removed
 
 * Removed `Dockerfile.txt` from base as this is redundant with the new LESIA L1 pipeline Docker installation.
 * Removed `inputfile_FCAM_required.yaml` as file was outdated. New strategy is to use Python to setup a F-CAM simulations using: `simulation.useFastCamera()`.
-* Removed old orbit.txt file
-* Removing descartes dependency
-
+* Removed old `orbit.txt` file.
+* Removing `descartes` dependency.
 
 <!-- 3.7.0 -->
 <!-- ***** -->

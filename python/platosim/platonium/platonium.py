@@ -641,6 +641,18 @@ class PLATOnium(object):
         else:
             # Setting time series to full quarter (assuming a 1-day break)
             self.numExposures = round((ut.quarter() - 1) * 86400 / self.cadence)
+
+        # Secure that F-CAM simulations do not crash due to HDF5 memory overload!
+        if not self.normal and self.numExposures > 1071360:
+            if (sim['ControlHDF5Content/WritePixelMaps'] or
+                sim['ControlHDF5Content/WriteBiasMaps'] or
+                sim['ControlHDF5Content/WriteSmearingMaps']):
+                errorcode('error', 'A maximum of 1,071,360 F-CAM imagettes can be simulated! ' +
+                          'Use --nexp (--tdur) and --bxep (--bdur) to split quarter ' +
+                          'into 3 smaller data chunks (maximum of 31 days each). E.g.:\n' +
+                          '--nexp 1071360\n' +
+                          '--nexp 1071360 --bexp 1071360\n' +
+                          '--nexp 978413  --bexp 2142720\n')
             
         # Secure correct zero-point flux for passband
         # Values are from: docs/technical/DLR-TN-0113/zero_point.ipynb
