@@ -41,8 +41,8 @@ Checklist to update for a future release:
 ### Changed
 
 * Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4.
-* Chnaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
-* Chnaged `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
+* Chaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
+* Changed `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
 * Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
 * Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
 * Changed how the initial number of occupied traps is determined for the Short et al model.
