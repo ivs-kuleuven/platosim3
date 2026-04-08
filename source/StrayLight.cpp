@@ -31,8 +31,8 @@ std::ostream& operator<<(std::ostream& os, const Time &obj)
  *
  */
 StrayLight::StrayLight(ConfigurationParameters &configParam, HDF5File &hdf5File,
-                       Camera &camera, Detector &detector)
-  : HDF5Writer(hdf5File), camera(camera), detector(detector)
+                       Camera &camera)
+  : HDF5Writer(hdf5File), camera(camera)
 {
     // Parse the parameters from the configuration file.
 
@@ -54,7 +54,7 @@ void StrayLight::configure(ConfigurationParameters &configParam)
     numExposure         = configParam.getInteger("ObservingParameters/NumExposures");
     beginExposures      =
         configParam.getInteger("ObservingParameters/BeginExposureNr");
-    cycleTime           = configParam.getInteger("ObservingParameters/CycleTime");
+    cycleTime           = configParam.getDouble("ObservingParameters/CycleTime");
     pixelSize           = configParam.getDouble("CCD/PixelSize") * 1e-6;  // [m]
 
     // Get the coordinates of the telescope reference frame
@@ -69,17 +69,17 @@ void StrayLight::configure(ConfigurationParameters &configParam)
 
     // Get the time in the orbit file that corresponds to exposure number 0.
 
-    time0 = configParam.getString("StrayLight/Time0");
+    time0 = configParam.getString("Sky/StrayLight/Time0");
 
         // Read in the positions of the file and save them into the vectors.
 
     std::string orbitPath =
-        configParam.getAbsoluteFilename("StrayLight/FilePath");
+        configParam.getAbsoluteFilename("Sky/StrayLight/FilePath");
     readInFile(orbitPath, sc_positions, moon_positions, sun_positions);
 
     // Read in the PSTRadiance file and save it into vectors.
 
-    std::string pstRadiancePath = configParam.getAbsoluteFilename("StrayLight/PstRadiancePath");
+    std::string pstRadiancePath = configParam.getAbsoluteFilename("Sky/StrayLight/PstRadiancePath");
     getPSTRadiance(pstRadiancePath);
 
     // TODO: We should read this in from the input file once we add the option

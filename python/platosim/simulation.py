@@ -83,10 +83,15 @@ class Simulation(object):
         else:
             self.readConfigurationFile( self.originalInputFilesLocation + "/inputfile.yaml" )
 
+        # Placeholders for True and False statements
+
+        self.true  = [True, "yes", "1"]
+        self.false = [False, "no", "0"]
 
 
 
 
+        
     def setSimulatorLocation(self):
 
         """Set the location of the simulation.
@@ -111,8 +116,8 @@ class Simulation(object):
             self.platosimBuildLocation = self.platosimLocation + "/bin"
 
         else:
-            raise Exception("Unexpected directory structure for this PLATO Simulator" +
-                            "distribution: no build nor bin sub-directory in PLATO_PROJECT_HOME")
+            raise Exception("Unexpected directory structure for this PlatoSim distribution: " +
+                            "No build nor bin sub-directory in $PLATO_PROJECT_HOME")
 
         # This is the location of the original input files as distributed by the PLATO Simulator
 
@@ -122,6 +127,7 @@ class Simulation(object):
 
 
 
+        
     @property
     def outputDir(self):
 
@@ -152,7 +158,7 @@ class Simulation(object):
         self.hasTargetLocation = True
 
         if self.debug:
-            print(f"DEBUG: output dir set to {path}")
+            print(f"DEBUG: output directory set to {path}")
 
 
 
@@ -254,10 +260,11 @@ class Simulation(object):
         # E.g. "PSF/MappedGaussian/Sigma" into [PSF, MappedGaussian, Sigma]
 
         if key.find('/') == -1:
-            parentNodeName, nodeName = key, None            # FIXME: parentNodeName assigned but never used
-            print("usage: the given parameter name (key) should " +
-                  "include the group name of the group that contains the parameter.")
-            print("E.g in 'Camera/PlateScale', Camera is the group, PlateScale is the parameter.")
+            # FIXME: parentNodeName assigned but never used
+            parentNodeName, nodeName = key, None
+            print("Usage: the given parameter name (key) should include the group name " +
+                  "of the group that contains the parameter. E.g in 'Camera/PlateScale', " +
+                  "'Camera' is the group, 'PlateScale' is the parameter.")
             return None
         else:
             nodeNames = key.split("/")
@@ -374,16 +381,31 @@ class Simulation(object):
                    "found in input yaml file")
              return False
 
-        # If there are only 34nodes in the path, we're finished after setting its value
+        # If there are only 4 nodes in the path, we're finished after setting its value
 
         if len(nodeNames) == 4:
             self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]] = item
             return True
 
-        # If we arrive here, there are at least 5 nodes in the path.
+
+        # If we arrive here, there are at least 5 nodes in the path, check if 5th parent node exists
+
+        if nodeNames[4] not in self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]]:
+             print("ERROR: no node with the name " +
+                   f"{nodeNames[0]}/{nodeNames[1]}/{nodeNames[2]}/{nodeNames[3]}/{nodeNames[4]} " +
+                   "found in input yaml file")
+             return False
+
+        # If there are only 5 nodes in the path, we're finished after setting its value
+
+        if len(nodeNames) == 5:
+            self.yamlDocument[nodeNames[0]][nodeNames[1]][nodeNames[2]][nodeNames[3]][nodeNames[4]] = item
+            return True
+
+        # If we arrive here, there are at least 6 nodes in the path.
         # Issue a not-implemented error message.
 
-        print(f"ERROR: detected 5 or more nodes in the path {key}")
+        print(f"Error: Not Implemented: detected 6 or more nodes in the path {key}")
         return False
 
 
@@ -719,14 +741,14 @@ class Simulation(object):
           Total gain = 1 / (gainFFE * gainCCD) = 25 e-/ADU
         """
         
-        if performance == 'required':
+        if performance == "required":
             # CCD gain F/E side: (min, max) = (1.8, 2.5)
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.15")    # [microV/e-]
             self.__setitem__("CCD/Gain/RefValueRight", "2.15")    # [microV/e-]
             self.__setitem__("FEE/Gain/RefValueLeft",  "0.0186")  # [ADU/microV]
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")  # [ADU/microV]
 
-        elif performance == 'designed':
+        elif performance in ["expected", "designed"]:
             # CCD gain F side (min, max) = (2.08, 2.28) -> 2.18 microV/e- 
             # CCD gain E side (min, max) = (2.04, 2.26) -> 2.15 microV/e-
             self.__setitem__("CCD/Gain/RefValueLeft",  "2.18")
@@ -735,7 +757,8 @@ class Simulation(object):
             self.__setitem__("FEE/Gain/RefValueRight", "0.0186")
 
         else:
-            raise ValueError("Not valid entry! Use either 'required' or 'designed'")
+            raise ValueError("Not valid performance entry! " +
+                             "Use either ['required', 'expected', 'designed']")
         
         return
 
@@ -779,14 +802,15 @@ class Simulation(object):
             darkStability = 5.0
             DSNU          = 15.0
 
-        elif performance == "designed":
+        elif performance in ["expected", "designed"]:
             readNoiseCCD  = ut.evalLinReg(times, np.array([23.2,   25.0]), timeFromBOL)
             darkCurrent   = ut.evalLinReg(times, np.array([ 0.544,  4.0]), timeFromBOL)
             darkStability = 0.7
             DSNU          = 13.0
             
         else:
-            raise ValueError("Not valid entry! Usage in ['required', 'designed']")
+            raise ValueError("Not valid performance entry! " +
+                             "Use either ['required', 'expected', 'designed']")
 
         # Set all parameters from above
         
@@ -814,12 +838,35 @@ class Simulation(object):
         self.__setitem__("CCD/NumRows",                   "4510")
         self.__setitem__("ObservingParameters/CycleTime", "25")
 
+        # NOTE These are the same for all requirements
+
+        self.__setitem__("Camera/ThroughputLambdaC",   "750")        
+        self.__setitem__("Camera/ThroughputBandwidth", "500")
+        
         # If requested, select basic input parameters from MPD
 
-        if performance in ["required", "designed"]:
+        if performance in ["required", "expected", "designed"]:
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL)
+
+        # Other wavelength dependent parameters
             
+        if performance == 'required':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8125")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7941")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6267")
+
+        elif performance == 'expected':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8752")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8752")
+            # TODO No QE values for the "as designed" scenario in MPDB! We use "as designed":
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6552")
+
+        elif performance == 'designed':
+            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8700")
+            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8700")
+            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.6552")
+     
         return
 
 
@@ -833,7 +880,6 @@ class Simulation(object):
         Parameters
         ----------
         
-
         The parameters are from the Mission Parameter Database:
         http://ptoops02.esac.esa.int/mpdb/home
         
@@ -854,8 +900,8 @@ class Simulation(object):
         self.__setitem__("CCD/NumColumns",                "4510")
         self.__setitem__("CCD/NumRows",                   "2255")
         self.__setitem__("ObservingParameters/CycleTime", "2.5")
-        
-        # If requested, select basic input parameters from MPD
+
+        # If requested, set parameters that are independent of the filter
         
         if performance in ["required", "designed"]:
 
@@ -863,30 +909,73 @@ class Simulation(object):
             
             self.useDetectorGain(performance)
             self.useTimeDependentDetectorNoise(performance, timeFromBOL, camera="Fast")
-
+        
         # Select time and wavelength dependent parameters
-
+        # NOTE the 'as designed' tranmission efficiency is identical for both F-CAMs
+        
         if passband == "blue":
-            self.__setitem__("Camera/ThroughputBandwidth",                  "165")
-            self.__setitem__("Camera/ThroughputLambdaC",                    "600")
-            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7899")
-            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7684")
-            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.7315")
 
-        if passband == "red":
-            self.__setitem__("Camera/ThroughputBandwidth",                  "335")
-            self.__setitem__("Camera/ThroughputLambdaC",                    "832")
-            self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8198")
-            self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8040")
-            self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.4923")
+            # Parameters that are the same for all requirements
+            self.__setitem__("ObservingParameters/Fluxm0", "1.195e8")
+            
+            if performance == 'required':
+                self.__setitem__("Camera/ThroughputLambdaC",   "578")
+                self.__setitem__("Camera/ThroughputBandwidth", "145")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6745")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6549")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8505")     
+                
+            elif performance == 'expected':
+                self.__setitem__("Camera/ThroughputLambdaC",   "585")                
+                self.__setitem__("Camera/ThroughputBandwidth", "165")                
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6566")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6566")
+                # TODO No QE values for the "as expected" scenario in MPDB! We use designed:   
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8986")
 
+            elif performance == 'designed':
+                self.__setitem__("Camera/ThroughputLambdaC",   "600")
+                self.__setitem__("Camera/ThroughputBandwidth", "200")
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8578")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8578")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.8986")
+                
+        elif passband == "red":
+
+            # Parameters that are the same for all requirements
+            self.__setitem__("ObservingParameters/Fluxm0", "0.923e8")
+            self.__setitem__("Camera/ThroughputLambdaC",   "833")                
+            self.__setitem__("Camera/ThroughputBandwidth", "335")
+           
+            if performance == 'required':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.6980")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.6845")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.5184")
+
+            elif performance == 'expected':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.7266")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.7266")
+                # TODO No QE values for the "as expected" scenario in MPDB! We use designed:
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.5344")
+                
+            elif performance == 'designed':
+                self.__setitem__("Telescope/TransmissionEfficiency/BOL",        "0.8604")
+                self.__setitem__("Telescope/TransmissionEfficiency/EOL",        "0.8604")
+                self.__setitem__("CCD/QuantumEfficiency/MeanQuantumEfficiency", "0.5344")
+
+        else:
+            errorcode('warning', 'Wrong passband name, use either "blue" or "red"!')    
+            
         return
 
 
 
 
     
-    def setSubfieldAroundPixelCoordinates(self, ccdCode, xCCDpixel, yCCDpixel, subfieldSizeX, subfieldSizeY, normal=None):
+    def setSubfieldAroundPixelCoordinates(self, ccdCode,
+                                          xCCDpixel, yCCDpixel,
+                                          subfieldSizeX, subfieldSizeY,
+                                          normal=None):
 
         """Set the subfield around pixel coordinates.
         
@@ -913,7 +1002,9 @@ class Simulation(object):
         """
 
         raStar, decStar = rf.pixelToSkyCoordinates(self, ccdCode, xCCDpixel, yCCDpixel)
-        success = self.setSubfieldAroundSkyCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY, normal)
+        success = self.setSubfieldAroundSkyCoordinates(raStar, decStar,
+                                                       subfieldSizeX, subfieldSizeY,
+                                                       normal)
         return success
 
 
@@ -972,11 +1063,13 @@ class Simulation(object):
                                                4510 - subfieldSizeY)
 
 
-        
 
 
 
-    def setSubfieldAroundSkyCoordinates(self, raStar, decStar, subfieldSizeX, subfieldSizeY, normal=None):
+    def setSubfieldAroundSkyCoordinates(self, raStar, decStar,
+                                        subfieldSizeX, subfieldSizeY,
+                                        normal=None, ccd=None,
+                                        returnInfo=False):
 
         """Set subfield around stellar coordinates
 
@@ -990,12 +1083,12 @@ class Simulation(object):
 
         Notes
         -----
-        - This function calls the calculateSubfieldAroundCoordinates() function in
-          reference frames.
-        - It is assumed that the configuration parameters in the sim object contains
-          a correct (ra, dec)  of the platform, a correct (azimuth, tilt) of the telescope,
-          a valid values for the focal length, the plate scale, the pixel size, and that
-          the switch to include distortion or not is set correctly
+        - This function calls the referenceFrames.calculateSubfieldAroundCoordinates().
+        - It is assumed that the configuration parameters in the sim object contains:
+          * A correct platform pointing {alpha, delta, kappa}
+          * A correct telescope pointing {tilt, azimuth{
+          * A valid values for the {focal length, late scale, pixel size}
+          * That the switch to include distortion or not is set correctly
         - The function does not set the exposure time, nor the focal length source, etc.
 
         Parameters
@@ -1008,74 +1101,72 @@ class Simulation(object):
             Width (i.e. number of columns) of the subiield [pixels]
         subfieldSizeY : int
             Height (i.e. number of rows) of the sub-field [pixels]
-        normal : 
+        normal : bool
             Is depricated and should no longer be used.
-        
+        ccd : dict
+            Dictionary with CCD configuration (see referenceFrames.CCD() dict)
+        returnInfo : bool
+            See Return section below.
 
         Return
         ------
-        bool : True if the entire subfield fit on one of the 4 (pre-defined) CCDs,
-               False otherwise.
-
-        Example
-        -------
-        >>> import numpy as np
-        >>> from platosim.simulation import Simulation 
-        >>> sim = Simulation("run001")                                     # Using default inputfile.yaml
-        >>> raStar = np.deg2rad(90.0)                                      # [rad]
-        >>> decStar = np.deg2rad(-48.0)                                    # [rad]
-        >>> subfieldSizeX, subfieldSizeY = 8,8                             # [pixels]
-        >>> success = sim.setSubfieldAroundCoordinates(raStar, decStar, subfieldSizeX, subfieldSizeY)
-        >>> print(success)
+        If returnInfo is False : bool
+            True if subfield fit on one of the CCDs. Else False.
+        If returnInfo is True : list
+            List containing [ccdCode [str], xCCD [intra-pixel], yCCD [intra-pixel]] 
         """
 
-        # Find the platform orientation [rad]
+        # Find the platform pointing [rad]
 
         if self["Platform/Orientation/Source"] == "Angles":
-            raPlatform  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
-            decPlatform = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
-            solarPanelOrientation = np.deg2rad(float(self["Platform/Orientation/Angles/SolarPanelOrientation"]))         # [rad]
+            alpha  = np.deg2rad(float(self["Platform/Orientation/Angles/RAPointing"]))
+            delta = np.deg2rad(float(self["Platform/Orientation/Angles/DecPointing"]))
+            kappa = np.deg2rad(self["Platform/Orientation/Angles/SolarPanelOrientation"])
         else:
             q_EQ2PLM = self["Platform/Orientation/Quaternion/Components"]
-            raPlatform, decPlatform, solarPanelOrientation = rf.platformAnglesFromQuaternion(q_EQ2PLM)                   # [rad]
+            alpha, delta, kappa = rf.platformAnglesFromQuaternion(q_EQ2PLM)
 
-        # Find out some instrumental characteristics from the sim object
+        # Find instrumental characteristics from the sim object
         
         telescopeGroupID = self["Telescope/GroupID"]
         if telescopeGroupID == "Custom":
-            azimuthTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
-            tiltTelescope    = np.deg2rad(float(self["Telescope/TiltAngle"]))
+            azimTelescope = np.deg2rad(float(self["Telescope/AzimuthAngle"]))
+            tiltTelescope = np.deg2rad(float(self["Telescope/TiltAngle"]))
         elif telescopeGroupID == "Fast":
-            azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][4])
-            tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][4])
+            azimTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][4])
+            tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][4])
         else:
-            azimuthTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
-            tiltTelescope    = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
+            azimTelescope = np.deg2rad(self["CameraGroups/AzimuthAngle"][telescopeGroupID-1])
+            tiltTelescope = np.deg2rad(self["CameraGroups/TiltAngle"][telescopeGroupID-1])
 
-        focalLength     = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0  # [m] -> [mm]
-        focalPlaneAngle = np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
+        focalLength     = float(self["Camera/FocalLength/ConstantValue"]) * 1000.0 # [m]->[mm]
+        focalPlaneAngle =np.deg2rad(float(self["Camera/FocalPlaneOrientation/ConstantValue"]))
         pixelSize       = float(self["CCD/PixelSize"])
         normalCamera    = self["Telescope/GroupID"] != "Fast"
 
-        # TODO: This should be removed in the next major release, together with the normal argument in this function.
+        # TODO This should be removed in the next major release, together with the normal
+        #      argument in this function.
+        
         if normal is not None:
-                warnings.warn("\nThe optional argument: normal is depricated is no longer used.\nThis value will from now on be derived from the value of Simulation[Telescope/GroupID].", category=DeprecationWarning, stacklevel=2)
-                if not normal == normalCamera:
-                    warnings.warn("\nThe value for the argument normal is not consistent with the one specified in the Simulation[Telescope/GroupID].\nThis function will use the specified normal value, but keep in mind that this is different from the one defined in the inputfile.", category=DeprecationWarning, stacklevel=2)
-                    normalCamera = normal
+            warnings.warn("\nThe optional argument 'normal' is depricated! It is now " +
+                          "derived from the value of 'Simulation[Telescope/GroupID]'.",
+                          category=DeprecationWarning, stacklevel=2)
+            if not normal == normalCamera:
+                warnings.warn("\nThe value for the argument 'normal' is not consistent with" +
+                              " the one specified in the 'Simulation[Telescope/GroupID]'. " +
+                              "This function will use the specified normal value, but keep " +
+                              "in mind that this is different from value in the inputfile.",
+                              category=DeprecationWarning, stacklevel=2)
+                normalCamera = normal
                 
-                
-
-        # If the psf is MappedFromFile we need to include mapped field distortion
+        # If the PSF is MappedFromFile we need to include mapped field distortion
 
         if self["PSF/Model"] == "MappedFromFile":
             includeFieldDistortion = True
             mappedDistortion       = True
             pathToPsfFile          = self["PSF/MappedFromFile/Filename"]
             distortionCoefficients = None
-        elif (self["Camera/IncludeFieldDistortion"] == "yes" or
-              self["Camera/IncludeFieldDistortion"] == "1"   or
-              self["Camera/IncludeFieldDistortion"] == True):
+        elif self["Camera/IncludeFieldDistortion"] in self.true:
             includeFieldDistortion = True
             mappedDistortion       = False
             pathToPsfFile          = None
@@ -1085,58 +1176,62 @@ class Simulation(object):
             mappedDistortion       = False
             pathToPsfFile          = None
             distortionCoefficients = None
-
+            
         # Compute the position of the subfield. xPix and yPix are the CCD coordinates
         # of the star, given a 4510x4510 CCD [colNumber, rowNumber]. The function below
         # also checks if the subfield fits entirely on the CCD. If not: ccdCode is None.
+
+        if ccd is None: ccd = rf.CCD()
         
-        ccdCode, xPix, yPix = rf.calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY,
-                                                                    raStar, decStar,
-                                                                    raPlatform, decPlatform,
-                                                                    solarPanelOrientation,
-                                                                    tiltTelescope, azimuthTelescope,
-                                                                    focalPlaneAngle,
-                                                                    focalLength, pixelSize,
-                                                                    includeFieldDistortion, normalCamera,
-                                                                    mappedDistortion,
-                                                                    distortionCoefficients,
-                                                                    pathToPsfFile)
-
-        if ccdCode == None:
-            return False
-
-        CCDSizeX         = rf.CCD[ccdCode]["Ncols"]
-        CCDSizeY         = rf.CCD[ccdCode]["Nrows"]
-        CCDOriginOffsetX = rf.CCD[ccdCode]["zeroPointXmm"]
-        CCDOriginOffsetY = rf.CCD[ccdCode]["zeroPointYmm"]
-        CCDOrientation   = rf.CCD[ccdCode]["angle"]
-
-        # Fetch CCD code and pixel coordinates (account for field distortion if included)
-
-        infoCCD = rf.getCCDandPixelCoordinates(raStar, decStar,
-                                               raPlatform, decPlatform, solarPanelOrientation,
-                                               tiltTelescope, azimuthTelescope,
-                                               focalPlaneAngle, focalLength, pixelSize,
-                                               includeFieldDistortion, normalCamera,
-                                               mappedDistortion, distortionCoefficients,
-                                               pathToPsfFile)
-        ccdCode, xCCD, yCCD = infoCCD[0], infoCCD[1], infoCCD[2]
+        data = rf.calculateSubfieldAroundCoordinates(
+            subfieldSizeX, subfieldSizeY,
+            raStar, decStar,
+            alpha, delta, kappa,
+            tiltTelescope, azimTelescope,
+            focalPlaneAngle, focalLength, pixelSize,
+            includeFieldDistortion, normalCamera,
+            mappedDistortion, distortionCoefficients,
+            pathToPsfFile, ccd=ccd, returnFPA=returnInfo,
+        )
         
-        # F-Cam can drop the F suffix  for the CCD position (1F, 2F,.. -> 1, 2,..)
-        if not normalCamera:
-            ccdCode = ccdCode[0]
+        if data[0] == None:
+            if returnInfo:
+                return None, None, None, None, None
+            else:
+                return False
+        else:
+            ccdCode = data[0]
+            xCCD    = data[1]
+            yCCD    = data[2]
+            if returnInfo:
+                xFP = data[3]
+                yFP = data[4]
 
         # If we arrive here, there is no problem accommodating the entire sufield on the CCD
 
-        self["Telescope/AzimuthAngle"] = np.rad2deg(azimuthTelescope)
-        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
-        self["CCD/Position"]      = str(ccdCode)
-        self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
-        self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
-        self["CCD/Orientation"]   = str(np.rad2deg(CCDOrientation))
+        self["CCD/Position"] = str(ccdCode)
 
-        self["CCD/NumColumns"] = CCDSizeX
-        self["CCD/NumRows"]    = CCDSizeY
+        # Drop suffix for F-CAM (1F, 2F,.. -> 1, 2,..)
+        
+        if not normalCamera:
+            ccdCode = ccdCode[0]
+        
+        # Alter CCD geometry if requested
+        
+        if self["CCD/Position"] != "Custom":
+            CCDOriginOffsetX = ccd[ccdCode]["zeroPointXmm"]
+            CCDOriginOffsetY = ccd[ccdCode]["zeroPointYmm"]
+            CCDOrientation   = ccd[ccdCode]["angle"]
+            CCDSizeX         = ccd[ccdCode]["Ncols"]
+            CCDSizeY         = ccd[ccdCode]["Nrows"]
+            self["CCD/OriginOffsetX"] = str(CCDOriginOffsetX)
+            self["CCD/OriginOffsetY"] = str(CCDOriginOffsetY)
+            self["CCD/Orientation"]   = str(np.rad2deg(CCDOrientation))
+            self["CCD/NumColumns"]    = CCDSizeX
+            self["CCD/NumRows"]       = CCDSizeY
+
+        self["Telescope/AzimuthAngle"] = np.rad2deg(azimTelescope)
+        self["Telescope/TiltAngle"]    = np.rad2deg(tiltTelescope)
 
         if telescopeGroupID == "Fast":
             self["CCD/FirstRowExposed"] = str(2255)
@@ -1145,7 +1240,7 @@ class Simulation(object):
 
         self["SubField/NumRows"]    = str(subfieldSizeY)
         self["SubField/NumColumns"] = str(subfieldSizeX)
-
+        
         # Secure that the target centrally for even-pixel subfields
 
         dy = yCCD - int(yCCD)
@@ -1158,13 +1253,16 @@ class Simulation(object):
         if (subfieldSizeX % 2 == 0):
             if dx >= 0.5:
                 subfieldSizeX -= 1
-                        
-        self["SubField/ZeroPointRow"]    = str(yPix - int(subfieldSizeY/2))
-        self["SubField/ZeroPointColumn"] = str(xPix - int(subfieldSizeX/2))
+
+        self["SubField/ZeroPointRow"]    = str(int(yCCD) - int(subfieldSizeY/2))
+        self["SubField/ZeroPointColumn"] = str(int(xCCD) - int(subfieldSizeX/2))
 
         # That's it
-
-        return True
+        
+        if returnInfo:
+            return ccdCode, xCCD, yCCD, xFP, yFP
+        else:
+            return True
 
 
 
@@ -1571,6 +1669,7 @@ class Simulation(object):
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]    # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]  # [pixels]
+        numBiasPrescanRows = self["SubField/NumBiasPrescanRows"]       # [pixels]
 
         # Both detector halves are read out simultaneously
         # -> columns read out by the FEE:
@@ -1578,7 +1677,7 @@ class Simulation(object):
         # 		- serial pre-scan
         # 		- (serial over-scan)
 
-        numColumnsReadout = numColumns / 2 + numColumnsBiasMap # + numRowsSerialOverScan
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows
 
         # How many rows will be actually read out by the FEE?
         # 	- nominal mode: image area + parallel over-scan

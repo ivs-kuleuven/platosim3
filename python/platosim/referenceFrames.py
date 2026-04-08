@@ -12,30 +12,41 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# Placeholders for True and False statements
 
-# CCD configuration
-#
-# ccdCode:      1, 2, 3, 4: nominal cameras; 1F, 2F, 3F, 4F: fast cameras
-# Ncols:        Number of exposed columns (column number varies along x-coordinate)
-# Nrows:        Number of exposed rows (row number varies along y-coordinate)
-# firstRow:     First row that is exposed. For the nominal cams this is simply row 0.
-#               For the fast cams, the exposed rows are rows 2255 until 4510, after the exposure
-#               are then frame-transfered to rows 0 until 2254.
-# zeroPointXmm: x-coordinate of the (0,0) pixel of the CCD, in the FP' reference frame [mm]
-# zeroPointYmm: y-coordinate of the (0,0) pixel of the CCD, in the FP' reference frame [mm]
-# angle:        gamma_{ccd} [rad]: orientation angle of the CCD in the FP' reference frame
+true  = [True, "yes", "1"]
+false = [False, "no", "0"]
 
-CCD = \
-{
-    '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi},
-    '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 3*np.pi/2},
-    '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
-    '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi/2},
-    '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi},
-    '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 3*np.pi/2},
-    '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
-    '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi/2}
-}
+
+
+
+
+def CCD():
+
+    """Fetch default CCD configuration.
+
+    This directionary contains the parameters:
+      - ccdCode      : {1, 2, 3, 4} for N-CAMs ({1F, 2F, 3F, 4F} for F-CAMs)
+      - Ncols        : Number of exposed pixel columns (column number varies along X-coord)
+      - Nrows        : Number of exposed pixel rows (row number varies along Y-coord)
+      - firstRow     : First row that is exposed [pixel]. For the N-CAMs this is simply row 0.
+                       For the F-CAMs the exposed rows are rows 2255 until 4510, 
+                       After the exposure are then frame-transfered to rows 0 until 2254.
+      - zeroPointXmm : X-coord of the (0,0) pixel of the CCD, in the FP reference frame [mm]
+      - zeroPointYmm : Y-coord of the (0,0) pixel of the CCD, in the FP reference frame [mm]
+      - angle        : Orientation angle of the CCD in the FP reference frame (gamma_ccd) [rad]
+    """
+    return {
+        '1'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi},
+        '2'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 3*np.pi/2},
+        '3'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
+        '4'  : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 0,    'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi/2},
+        '1F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi},
+        '2F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 3*np.pi/2},
+        '3F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': 0},
+        '4F' : {'Nrows': 4510, 'Ncols': 4510, 'firstRow': 2255, 'zeroPointXmm':  -1.3, 'zeroPointYmm': +82.48, 'angle': np.pi/2}
+    }
+
 
 
 
@@ -43,6 +54,7 @@ CCD = \
 def eprint(*args, **kwargs):
 
     """Print to stderr rather than to stdout. 
+    
     Useful to debug since all tests are ran with stdout suppressed. 
     """
     print(*args, file=sys.stderr, **kwargs)
@@ -476,7 +488,9 @@ def platformToSkyCoordinates(xPLM, yPLM, zPLM, raPlatform, decPlatform, solarPan
 
 
 
-def skyToFocalPlaneCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation, tiltAngle, azimuthAngle,
+def skyToFocalPlaneCoordinates(raStar, decStar,
+                               raPlatform, decPlatform, solarPanelOrientation,
+                               tiltAngle, azimuthAngle,
                                focalPlaneAngle, focalLength):
 
     """From equatorial to focal plane reference system.
@@ -703,7 +717,7 @@ def focalPlaneToSkyCoordinates(xFP, yFP, raPlatform, decPlatform, solarPanelOrie
 
 
 
-def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLength):
+def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLength, ccd=None):
 
     """From pixel to focal plane coordinates.
 
@@ -733,9 +747,13 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
         Azimuth angle from the X-axis of the reference CCD [rad]
     """
 
-    ccdZeroPointX = CCD[ccdCode]["zeroPointXmm"]
-    ccdZeroPointY = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle      = CCD[ccdCode]["angle"]
+    # Fetch CCD dictorionary
+
+    if ccd is None: ccd = CCD()
+    
+    ccdZeroPointX = ccd[ccdCode]["zeroPointXmm"]
+    ccdZeroPointY = ccd[ccdCode]["zeroPointYmm"]
+    ccdAngle      = ccd[ccdCode]["angle"]
 
     xFPmm, yFPmm = pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
                                                 ccdZeroPointX, ccdZeroPointY, ccdAngle)
@@ -748,7 +766,7 @@ def pixelCoordinates2FocalPlaneAngles(xCCD, yCCD, ccdCode, pixelSize, focalLengt
 
 
 
-def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, ccdCode, pixelSize, focalLength):
+def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, ccdCode, pixelSize, focalLength, ccd=None):
 
     """From focal plane angles to pixel coordinates.
 
@@ -778,9 +796,13 @@ def focalPlaneAngles2pixelCoordinates(angleFromOpticalAxis, azimuthFromXAxis, cc
         Real-valued y-coordinates on the CCD (row) [pix]
     """
 
-    ccdZeroPointX = CCD[ccdCode]["zeroPointXmm"]
-    ccdZeroPointY = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle      = CCD[ccdCode]["angle"]
+    # Fetch CCD dictorionary
+
+    if ccd is None: ccd = CCD()
+
+    ccdZeroPointX = ccd[ccdCode]["zeroPointXmm"]
+    ccdZeroPointY = ccd[ccdCode]["zeroPointYmm"]
+    ccdAngle      = ccd[ccdCode]["angle"]
 
     xFPmm, yFPmm = focalPlaneCoordinatesFromGnomonicRadialDistance(angleFromOpticalAxis,
                                                                    focalLength,
@@ -1490,13 +1512,13 @@ def focalPlaneCoordinatesFromGnomonicRadialDistance(angularDistance, focalLength
 
     # That's it!
     
-    return xFP,yFP
+    return xFP, yFP
 
 
 
 
 
-def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
+def computeCCDcornersInFocalPlane(ccdCode, pixelSize, ccd=None):
 
     """Compute CCD corners in focal plane.
 
@@ -1520,22 +1542,26 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
         Y-coordinates of each of the corners in the FP' reference system [mm]
     """
 
+    # Fetch CCD dictorionary
+
+    if ccd is None: ccd = CCD()
+
     # Get the pixel coordinates of the 4 corners of the exposed part of the CCD
     # Note that the x-direction corresponds to the CCD columns,
     # and the y-direction to the CCD rows.
 
-    Nrows = CCD[ccdCode]["Nrows"]
-    Ncols = CCD[ccdCode]["Ncols"]
-    firstRow = CCD[ccdCode]["firstRow"]
+    Nrows    = ccd[ccdCode]["Nrows"]
+    Ncols    = ccd[ccdCode]["Ncols"]
+    firstRow = ccd[ccdCode]["firstRow"]
 
     cornersXpix = np.array([0.0, Ncols, Ncols, 0.0])
     cornersYpix = np.array([firstRow, firstRow, Nrows, Nrows])
 
     # Convert to the x,y coordinates in the FP' reference frame
 
-    zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = CCD[ccdCode]["angle"]
+    zeroPointXmm = ccd[ccdCode]["zeroPointXmm"]
+    zeroPointYmm = ccd[ccdCode]["zeroPointYmm"]
+    ccdAngle     = ccd[ccdCode]["angle"]
 
     cornersXmm, cornersYmm = pixelToFocalPlaneCoordinates(cornersXpix, cornersYpix, pixelSize,
                                                           zeroPointXmm, zeroPointYmm, ccdAngle)
@@ -1548,11 +1574,13 @@ def computeCCDcornersInFocalPlane(ccdCode, pixelSize):
 
 
 
-
-def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPanelOrientation,
-                              tiltAngle, azimuthAngle, focalPlaneAngle, focalLength, pixelSize,
-                              includeFieldDistortion, normal, mappedDistortion=False,
-                              distortionCoefficients=None, pathToPsfFile=None):
+def getCCDandPixelCoordinates(raStar, decStar,
+                              raPlatform, decPlatform, solarPanelOrientation,
+                              tiltAngle, azimuthAngle,
+                              focalPlaneAngle, focalLength, pixelSize,
+                              includeFieldDistortion, normal,
+                              mappedDistortion=False, distortionCoefficients=None,
+                              pathToPsfFile=None, ccd=None, returnFPA=False):
 
     """Get the CCD and pixel coordinates given a normal or fast (not custom) camera.
 
@@ -1611,13 +1639,13 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
     # Make sure that for the respective field distortion the proper information is given.
 
-    if (includeFieldDistortion or includeFieldDistortion == "yes"):
+    if includeFieldDistortion in true:
         if (mappedDistortion and pathToPsfFile is None):
-            print("Error: If mapped field distortion should be taken into account, " +
+            print("ERROR: If mapped field distortion should be taken into account, " +
                   "a path to the psf file should be given")
             return
-        elif ( (not mappedDistortion) and distortionCoefficients is None):
-            print("Error: If analytic field distortion should be taken into account, " +
+        elif ( (mappedDistortion in false) and distortionCoefficients is None):
+            print("ERROR: If analytic field distortion should be taken into account, " +
                   "the distortionCoefficients should be given")
             return
 
@@ -1637,39 +1665,54 @@ def getCCDandPixelCoordinates(raStar, decStar, raPlatform, decPlatform, solarPan
 
     if (includeFieldDistortion == True) or (includeFieldDistortion == "yes"):
         if mappedDistortion:
-            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, pathToPsfFile, focalLength)
+            xFPmm, yFPmm = mappedUndistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
+                                                                             pathToPsfFile,
+                                                                             focalLength)
         else:
-            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm, distortionCoefficients, focalLength)
+            xFPmm, yFPmm = undistortedToDistortedFocalPlaneCoordinates(xFPmm, yFPmm,
+                                                                       distortionCoefficients,
+                                                                       focalLength)
 
+    # Fetch CCD dictorionary
+
+    if ccd is None: ccd = CCD()
+    
     # Find out if this falls on a CCD, and if yes which one.
     # Our approach: try each of the CCDs. Not elegant, but robust!
-
+            
     for ccdCode in ccdCodes:
 
         # Compute the position of the star in pixel coordinates, for the current CCD,
         # disregarding the physical extend of the CCD
 
-        zeroPointXmm = CCD[ccdCode]["zeroPointXmm"]
-        zeroPointYmm = CCD[ccdCode]["zeroPointYmm"]
-        ccdAngle     = CCD[ccdCode]["angle"]
+        zeroPointXmm = ccd[ccdCode]["zeroPointXmm"]
+        zeroPointYmm = ccd[ccdCode]["zeroPointYmm"]
+        ccdAngle     = ccd[ccdCode]["angle"]
+        Nrows        = ccd[ccdCode]["Nrows"]
+        Ncols        = ccd[ccdCode]["Ncols"]
+        firstRow     = ccd[ccdCode]["firstRow"]
 
-        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize, zeroPointXmm, zeroPointYmm, ccdAngle)
+        xCCDpix, yCCDpix = focalPlaneToPixelCoordinates(xFPmm, yFPmm, pixelSize,
+                                                        zeroPointXmm, zeroPointYmm,
+                                                        ccdAngle)
 
         # Check if the star falls on the exposed area of the CCD. If not: go to next CCD
-
-        Nrows = CCD[ccdCode]["Nrows"]
-        Ncols = CCD[ccdCode]["Ncols"]
-        firstRow = CCD[ccdCode]["firstRow"]
 
         if (xCCDpix < 0)      or (yCCDpix < firstRow): continue
         if (xCCDpix >= Ncols) or (yCCDpix >= Nrows):   continue
 
         # If we arrive here, we found a CCD on which the star is located
-        return ccdCode, xCCDpix, yCCDpix
+        if returnFPA:
+            return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
+        else:
+            return ccdCode, xCCDpix, yCCDpix
 
     # If we arrive here, the star does not fall on any CCD
 
-    return None, None, None
+    if returnFPA:
+        return None, None, None, None, None
+    else:
+        return None, None, None
 
 
 
@@ -1824,7 +1867,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
                                        focalPlaneAngle, focalLength, pixelSize,
                                        includeFieldDistortion, normal,
                                        mappedDistortion=False, distortionCoefficients=None,
-                                       pathToPsfFile=None ):
+                                       pathToPsfFile=None, ccd=None, returnFPA=False):
 
     """Calculate location of subfield around equatorial coordinates.
 
@@ -1873,7 +1916,7 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
     normal : bool
         True for the normal camera configuration, False for the fast cameras
     mappedDistortion : bool
-        True if we want mapped distortion (mapped from file psf) False if we have analytic psfs
+        True if we want mapped distortion (mapped from file psf) False if we have analytic PSF
     distortionCoefficients : list
         Coefficients of the polynomial describing the distortion for anlytic psf
     pathToPsfFile : str
@@ -1905,39 +1948,61 @@ def calculateSubfieldAroundCoordinates(subfieldSizeX, subfieldSizeY, raStar, dec
                   "the distortionCoefficients should be given")
             return
 
+    # Fetch CCD dictorionary
+
+    if ccd is None: ccd = CCD()
+    
     # Find out on which CCD the star falls, and the corresponding pixel coordinates
-    ccdCode, xCCDpix, yCCDpix = getCCDandPixelCoordinates(raStar, decStar,
-                                                          raPlatform, decPlatform,
-                                                          solarPanelOrientation,
-                                                          tiltTelescope, azimuthTelescope,
-                                                          focalPlaneAngle, focalLength,
-                                                          pixelSize, includeFieldDistortion, normal,
-                                                          mappedDistortion, distortionCoefficients,
-                                                          pathToPsfFile)
 
-    # If the CCD code is None, the star does not fall on any ccd -> error
+    data = getCCDandPixelCoordinates(raStar, decStar,
+                                     raPlatform, decPlatform,
+                                     solarPanelOrientation,
+                                     tiltTelescope, azimuthTelescope,
+                                     focalPlaneAngle, focalLength,
+                                     pixelSize,
+                                     includeFieldDistortion,
+                                     normal,
+                                     mappedDistortion,
+                                     distortionCoefficients,
+                                     pathToPsfFile, ccd,
+                                     returnFPA=returnFPA)
 
-    if ccdCode is None:
-        return None, None, None
+    # If the CCD code is None, the star does not fall on any ccd
 
-    # If the star does fall on a CCD, check if it's not too close to the edge for the subfield to
-    # be completely on the CCD.
+    if data[0] is None:
+        if returnFPA:
+            return None, None, None, None, None
+        else:
+            return None, None, None
+    else:
+        ccdCode = data[0]
+        xCCDpix = data[1]
+        yCCDpix = data[2]
+        if returnFPA:
+            xFPmm = data[3]
+            yFPmm = data[4]
 
-    xCCDpix = int(xCCDpix)               # integer values
-    yCCDpix = int(yCCDpix)
-    firstRow = CCD[ccdCode]["firstRow"]  # different from nominal than for fast cams
-    Ncols = CCD[ccdCode]["Ncols"]
-    Nrows = CCD[ccdCode]["Nrows"]
+    # If the star does fall on a CCD, check if it's not too close to the edge
+    # for the subfield to be completely on the CCD.
 
-    if (xCCDpix - subfieldSizeX/2 < 0           or
-        xCCDpix + subfieldSizeX/2 - 1 > Ncols-1 or
-        yCCDpix - subfieldSizeY/2 < firstRow    or
-        yCCDpix + subfieldSizeY/2 - 1 > Nrows-1):
+    xCCD     = int(xCCDpix)
+    yCCD     = int(yCCDpix)
+    firstRow = ccd[ccdCode]["firstRow"]
+    Ncols    = ccd[ccdCode]["Ncols"]
+    Nrows    = ccd[ccdCode]["Nrows"]
+
+    if (xCCD - subfieldSizeX/2 < 0           or
+        xCCD + subfieldSizeX/2 - 1 > Ncols-1 or
+        yCCD - subfieldSizeY/2 < firstRow    or
+        yCCD + subfieldSizeY/2 - 1 > Nrows-1):
         return None, None, None
 
     # That's it!
 
-    return ccdCode, xCCDpix, yCCDpix
+    if returnFPA:
+        return ccdCode, xCCDpix, yCCDpix, xFPmm, yFPmm
+    else:
+        return ccdCode, xCCDpix, yCCDpix
 
 
 
@@ -2050,7 +2115,7 @@ def skyToPixelCoordinates(sim, raStar, decStar, normal=None):
 
 
 
-def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
+def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix, ccd=None):
 
     """From pixel to equatorial coordinates.
 
@@ -2135,9 +2200,13 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
         azimuthTelescope = np.deg2rad(float(sim["CameraGroups/AzimuthAngle"][idx]))
         tiltTelescope    = np.deg2rad(float(sim["CameraGroups/TiltAngle"][idx]))
 
-    ccdZeroPointX = CCD[ccdCode]['zeroPointXmm']
-    ccdZeroPointY = CCD[ccdCode]['zeroPointYmm']
-    ccdAngle      = CCD[ccdCode]['angle']
+    # Fetch CCD dictorionary
+
+    if ccd is None: ccd = CCD()
+        
+    ccdZeroPointX = ccd[ccdCode]['zeroPointXmm']
+    ccdZeroPointY = ccd[ccdCode]['zeroPointYmm']
+    ccdAngle      = ccd[ccdCode]['angle']
 
     # Get the focal plane coordinates
 
@@ -2161,10 +2230,6 @@ def pixelToSkyCoordinates(sim, ccdCode, xCCDpix, yCCDpix):
     # That's it!
 
     return ra, dec
-
-
-
-
 
 
 
@@ -2212,34 +2277,3 @@ def perturbPlatformPointing(x, y, z, ra, dec):
     # That's it!
     
     return np.dot(R,A).T
-
-
-
-
-
-# def matrixMisalignment(x, y, z):
-
-#     """TODO not used yet
-#     Parameters
-#     ----------
-
-#     Return
-#     ------
-#     """
-
-#     r11 = + np.cos(x)*np.cos(z) - np.sin(x)*np.sin(z)*np.sin(y)
-#     r12 = - np.cos(x)*np.sin(z) - np.sin(x)*np.cos(z)*np.cos(y)
-#     r13 = + np.sin(x)*np.sin(z)
-#     r21 = + np.sin(x)*np.cos(z) + np.cos(x)*np.sin(z)*np.cos(y)
-#     r22 = - np.sin(x)*np.sin(z) - np.cos(x)*np.cos(z)*np.cos(y)
-#     r23 = - np.cos(x)*np.sin(z)
-#     r31 = + np.sin(z)*np.sin(y)
-#     r32 = + np.cos(z)*np.sin(y)
-#     r33 = - np.cos(y)
-    
-#     R = np.array([[r11, r12, r13],
-#                   [r21, r22, r23],
-#                   [r31, r32, r33]])
-
-#     # 
-#     return R

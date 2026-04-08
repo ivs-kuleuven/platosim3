@@ -17,30 +17,25 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 from scipy.signal import periodogram
 from pathlib import Path
+from numba import njit
 
 # PlatoSim imports
 import platosim.plot            as pt
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf
 from platosim.utilities    import errorcode
-from platosim.matplotlibrc import latex
-latex()
-
-from numba import njit
-
 
 #--------------------------------------------------------------#
 #                        FREQUENCY DOMAIN                      #
 #--------------------------------------------------------------#
 
-
 def numpyFFT(signal, timestep):
-    """
-    Computes power spectrum of an equidistant time series 'signal'
-    using the FFT algorithm. The length of the time series need not
-    be a power of 2 (zero padding is done automatically).
-    Normalisation is such that a signal A*sin(2*pi*nu_0*t)
+    """Computes power spectrum of an equidistant time series
+
+    The length of the time series need not be a power of 2 (zero padding is done
+    automatically). Normalisation is such that a signal A*sin(2*pi*nu_0*t)
     gives power A^2 at nu=nu_0  (IF nu_0 is in the 'freq' array)
+    
     @param signal: the time series [0..Ntime-1]
     @type signal: ndarray
     @param timestep: time step fo the equidistant time series
@@ -48,16 +43,13 @@ def numpyFFT(signal, timestep):
     @return: frequencies and the power spectrum
     @rtype: array,array
     """
-
     # Compute the FFT of a real-valued signal. If N is the number
     # of points of the original signal, 'Nfreq' is (N/2+1).
-
     fourier = np.fft.rfft(signal)
     Ntime = len(signal)
     Nfreq = len(fourier)
 
     # Compute the power
-
     power = np.abs(fourier)**2 * 4.0 / Ntime**2
 
     # Compute the frequency array.
@@ -65,19 +57,13 @@ def numpyFFT(signal, timestep):
     # with in total as many points as in the 'fourier' array.
     # Then rescale the array that it goes from 0 to the Nyquist frequency
     # which is 0.5/timestep
-
     freq = np.arange(float(Nfreq)) / (Nfreq-1) * 0.5 / timestep
 
     # That's it!
-
     return freq, power
 
 
-
-
-
 def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
-
     """Computes the modulus square of the fourier transform.
 
     Unit: square of the unit of signal. Time points need not be equidistant.
@@ -103,7 +89,6 @@ def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
     power : ndarray
         Amplitudes of DFT power spectrum
     """
-
     freqs = np.arange(f0, fn, df)
     Ntime = len(time)
     Nfreq = int(np.ceil((fn-f0)/df))
@@ -122,11 +107,7 @@ def DFTpower(time, signal, f0=None, fn=None, df=None, full_output=False):
         return freqs, (ft.real**2 + ft.imag**2) * 4.0 / Ntime**2
 
 
-    
-
-
 def DFTpower2(time, signal, freqs):
-
     """Computes the power spectrum of a signal using a discrete Fourier transform.
 
     The main difference between DFTpower and DFTpower2, is that the latter allows
@@ -141,7 +122,6 @@ def DFTpower2(time, signal, freqs):
     @return: power spectrum. Unit: square of unit of 'signal'
     @rtype: ndarray
     """
-
     powerSpectrum = np.zeros(len(freqs))
 
     for i, freq in enumerate(freqs):
@@ -151,6 +131,39 @@ def DFTpower2(time, signal, freqs):
     return powerSpectrum * 4.0 / len(time)**2
 
 
+def scipyPSD(signal, time_interval=25, window='boxcar', nfft=None, one_sided=False,
+             scaling='density'):
+    """Compute Double Sided Power Spectral Density (PSD).
+
+    PSD is simply a PS (Power Spectrum) divided by ENBW (Effective Noise Bandwidth).
+    This function computes a double sided PSD, so the negative frequencies are not
+    removed. Because of this the PS is not multiplied by a factor of 2 when scaling
+    it. The scaling only takes into account the sampling frequency and the the loss
+    of energy because of applying a window function. As the window is a boxcar,
+    we can simply use the length of the time series instead.
+
+    Args:
+        time_series ([np.ndarray]): time series data
+        time_interval (int, optional): Time interval of the time series in seconds. Defaults to 25.
+        detrend (bool or str or int, optional): Whether to apply de-trending or not.
+        scipy (bool, optional): Whether to use SciPy periodogram or NumPy FFT. Defaults to True.
+
+    Returns:
+        [tuple]: tuple containing frequency array, PSD array, and time series tuple
+    """
+    time = np.linspace(0, len(signal), len(signal)) * time_interval
+    freq, psd = periodogram(signal,
+                            fs=1/time_interval,
+                            window=window,
+                            nfft=nfft,
+                            return_onesided=one_sided,
+                            scaling=scaling,
+                            axis=-1)
+    idx = np.argsort(freq)
+    psd = psd[idx]
+    freq = freq[idx]
+
+    return freq, psd
 
 
 
@@ -192,51 +205,9 @@ def astropyLombScargle(times, signal, f0=0, fn=0, df=0, norm='amplitude'):
         
     return f1, s1
 
-
-
-
-
-def compute_double_sided_PSD(time_series, time_interval=25):
-    """Compute Double Sided Power Spectral Density (PSD).
-
-    PSD is simply a PS (Power Spectrum) divided by ENBW (Effective Noise Bandwidth).
-    This function computes a double sided PSD, so the negative frequencies are not
-    removed. Because of this the PS is not multiplied by a factor of 2 when scaling
-    it. The scaling only takes into account the sampling frequency and the the loss
-    of energy because of applying a window function. As the window is a boxcar,
-    we can simply use the length of the time series instead.
-
-    Args:
-        time_series ([np.ndarray]): time series data
-        time_interval (int, optional): Time interval of the time series in seconds. Defaults to 25.
-        detrend (bool or str or int, optional): Whether to apply de-trending or not.
-        scipy (bool, optional): Whether to use SciPy periodogram or NumPy FFT. Defaults to True.
-
-    Returns:
-        [tuple]: tuple containing frequency array, PSD array, and time series tuple
-    """
-    time = np.linspace(start=0,
-                       stop=len(time_series),
-                       num=len(time_series)) * time_interval
-
-    freq, psd = periodogram(time_series,
-                            fs=1 / time_interval,
-                            window='boxcar',
-                            nfft=None,
-                            return_onesided=False,
-                            scaling='density',
-                            axis=-1)
-    idx = np.argsort(freq)
-    psd = psd[idx]
-    freq = freq[idx]
-
-    return freq, psd
-
-
 #--------------------------------------------------------------#
 #                          TIME DOMAIN                         #
 #--------------------------------------------------------------#
-
 
 def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=False):
 
@@ -280,8 +251,7 @@ def timeSeriesFromFourier(time, freq, ampl, phase, power=1, plot=False, title=Fa
     A = np.max(np.abs(signal))
     signal = (1 + signal / A)**power
     signal = signal / np.max(signal)
-    signal = A * (signal - np.mean(signal))
-    #signal = A * ( (1 + signal/A)**power - 1 )
+    signal = - A * (signal - np.mean(signal))
 
     # If requested, plot model 
     if plot:
@@ -519,12 +489,12 @@ def plotNoisePeakSNR(path, cadence, quarters, fap=0.1, bins=50, figsize=(8,5)):
 
     # Load file with SNR values    
     
-    filename = f'{path}/snr_quarters{quarters}_cadence{cadence}.ftr'
+    filename = f'{path}/snr_quarters{quarters}.ftr'
     dx = pd.read_feather(filename)
-
-    # Calculate requested FAP
+    dx = dx[f'snr{cadence}']
     
-    snr_fap = st.hist_fap(dx.snr, fap=fap)[0]
+    # Calculate requested FAP
+    snr_fap = st.hist_fap(dx, fap=fap)[0]
 
     # Start plotting
 
@@ -780,6 +750,8 @@ def modelRedNoise(time, timescale, varscale, kickscale=100, n_warmup=2000, seed=
     # Set the kick (= excitation) timestep to be one 100th of the
     # shortest noise time scale (i.e. kick often enough).
 
+    timescale = np.sqrt(timescale)
+    
     kicktimestep = min(timescale) / kickscale
     currenttime  = time[0] - kicktimestep
     
@@ -1258,12 +1230,12 @@ def getTED(quarter, model="poly", wheel_offloading=False, ampl=2,
     # Plot figure above     
     if plot: plt.show()
 
-    # Save data in one big drift text file for PlatoSim
+    # Save data in one big drift ascii file for PlatoSim
     if ofile:
-        df_1.to_csv(f'{ofile[:-4]}_group1.txt', sep=" ", header=False, index=False)
-        df_2.to_csv(f'{ofile[:-4]}_group2.txt', sep=" ", header=False, index=False)
-        df_2.to_csv(f'{ofile[:-4]}_group3.txt', sep=" ", header=False, index=False)
-        df_4.to_csv(f'{ofile[:-4]}_group4.txt', sep=" ", header=False, index=False)
+        df_1.to_csv(f'{ofile[:-4]}_group1.csv', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group2.csv', sep=" ", header=False, index=False)
+        df_2.to_csv(f'{ofile[:-4]}_group3.csv', sep=" ", header=False, index=False)
+        df_4.to_csv(f'{ofile[:-4]}_group4.csv', sep=" ", header=False, index=False)
         fig.savefig(f'{ofile[:-4]}.png', bbox_inches='tight', dpi=200)
 
 

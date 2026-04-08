@@ -38,15 +38,13 @@ import platosim.noise     as ns
 import platosim.slurm     as sm
 import platosim.utilities as ut
 from platosim.utilities import errorcode
-
+from platosim.matplotlibrc import setup; setup()
 
 #==============================================================#
 #                         BEGIN CLASS                          #
 #==============================================================#
 
-
 class Payload(object):
-
     """Class to generate a realistic setup for multi-camera simulations.
     
     This class makes it straight forward to generate a realistic random
@@ -54,7 +52,6 @@ class Payload(object):
     all the necessary files needed to launch the simulations on a high
     performance computing cluster.
     """
-
     def __init__(self, filename, mode="single", ncam=False):
         
         # Global parameters
@@ -63,8 +60,9 @@ class Payload(object):
         
         # Flags
         self.plot = args.plot
+        self.gain = args.gain
         self.aocs = args.aocs
-
+        
         # Optional parameters
         self.seed = args.seed
 
@@ -107,11 +105,16 @@ class Payload(object):
             self.fileNamePRE = f"{self.odir}/instrumentPRE.txt"
             self.fileNameAPE = f"{self.odir}/instrumentAPE.txt"
             self.fileNameTED = f"{self.odir}/instrumentTED.txt"
-            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
             self.fileNameGAP = f"{self.odir}/instrumentGAP.ftr"
+            self.fileNameACS = f"{self.odir}/instrumentACS.txt"
             self.fileNameGTT = f"{self.odir}/instrumentGTT.txt"
         else:
-            self.fileNameGAP = self.fileNameGTT = self.fileNamePRE = self.fileNameAPE = self.fileNameACS = self.fileNameTED = False
+            self.fileNamePRE = False
+            self.fileNameAPE = False
+            self.fileNameTED = False
+            self.fileNameGAP = False
+            self.fileNameACS = False
+            self.fileNameGTT = False
 
         # Number of images in a quarter
         self.nimg = round(ut.year() / 4 / 25)
@@ -180,54 +183,51 @@ class Payload(object):
         t1 = round(tQ * (self.Q[-1])     * self.day2sec)
         self.time = np.arange(t0, t1, 25)
 
-
-
-
                         
     def createInputYAML(self):
-
         """Function to copy and adjust a yaml ready to launch.
         """
-
         if self.odir:
             ut.copyInputYAML(self.field, self.odir)
 
 
-    
-
-
     def createParamFile(self):
-
         """Function to create a job script to be used on the VSC.
         """
-        
         if self.odir:
-            filename = f"{self.odir}/{self.prefix}_ncam.data"
+
+            # Files with mission quarters
+            
+            filename = f"{self.odir}/{self.prefix}_ncam_v1.data"
             if self.verbose > 1:
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, self.G, self.C, self.Q,
                             fcam=False, ofile=filename)
-
-            filename = f"{self.odir}/{self.prefix}_ncam_new.data"
-            if self.verbose > 1:
-                print(f"Creating HPC parameterization file  : {filename}")
-            sm.getParamFileNew(self.N, self.G, self.C,
-                               fcam=False, ofile=filename)
             
-            filename = f"{self.odir}/{self.prefix}_fcam.data"
+            filename = f"{self.odir}/{self.prefix}_fcam_v1.data"
             if self.verbose > 1:
                 print(f"Creating HPC parameterization file  : {filename}")
             sm.getParamFile(self.N, range(5,6), range(1,3), self.Q,
                             fcam=True, ofile=filename)
 
+            # Files without mission quarters
+            
+            filename = f"{self.odir}/{self.prefix}_ncam_v2.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, self.G, self.C, None,
+                            fcam=False, ofile=filename)
+            
+            filename = f"{self.odir}/{self.prefix}_fcam_v2.data"
+            if self.verbose > 1:
+                print(f"Creating HPC parameterization file  : {filename}")
+            sm.getParamFile(self.N, range(5,6), range(1,3), None,
+                            fcam=True, ofile=filename)
 
-
-
+            
     def createJobScript(self):
-
         """Function to create a job script to be used on the VSC.
         """
-
         if self.odir:
             errorcode('module', f'\nJob script for parallisation\n')
             filename = f"{self.odir}/{self.prefix}.slurm"
@@ -237,15 +237,11 @@ class Payload(object):
                             ofile=filename)
 
 
-
-
                             
     def createPRE(self):
-
         """Function to create a Pointing Repeatability Error (PRE) file.
         Used to realistically include errors for each pointing.
         """
-
         # Generete PRE file
         if self.verbose > 1:
             errorcode('module', '\nPointing repeatability error (PRE)')
@@ -254,12 +250,8 @@ class Payload(object):
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNamePRE}")
 
-        
 
-
-        
     def createAPE(self):
-
         """Function to create a Absolute Pointing Error (APE) file.
         Used to realistically include camera misalignments errors.
         """
@@ -273,16 +265,11 @@ class Payload(object):
             print(f"File saved: {self.fileNameAPE}")
 
 
-        
-
-
     def createGain(self):
-
         """Function to create a gain variation file.
         Used to realistically include gain variations for CCD and FEE.
         TODO under struction!
         """
-
         # Generete APE file
         if self.verbose > 1:
             errorcode('module', '\nCCD and FEE gain variations')
@@ -291,16 +278,24 @@ class Payload(object):
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNameAPE}")
 
-
-
-
         
-    def createGAP(self):
+    def createTED(self):
+        """Function to create a Thermo-Elastic Distortion (TED) file.
+        """        
+        # Generate TED file
+        if self.verbose > 1:
+            errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
+        ns.getTED(self.Q, ofile=self.fileNameTED, ampl=self.ted_ampl,
+                  wheel_offloading=False,
+                  seed=self.seed, table=self.table, plot=self.plot)
+        if self.odir and self.verbose > 1:
+            print(f"File saved: {self.fileNameTED}")
 
+
+    def createGAP(self):
         """Function to create a time columns including Data Gaps.
         Used to include data gaps relavant for space mission orbiting in L2.
         """
-
         # Generate a data-gap file
         if self.verbose > 1:
             errorcode('module', '\nData gaps and Downtime\n')
@@ -312,42 +307,29 @@ class Payload(object):
         if self.odir and self.verbose > 1:
             print(f"File saved: {self.fileNameGAP}")
 
-        # Generate thermal transient file
-        if self.verbose > 1:
-            errorcode('module', '\nGain-Thermal Transients (GTT)\n')
-            print('Modelling gain-trasients using exponential decay')
-        ns.temperatureTransients(self.time, self.t0, self.td, tempCCD=203.5,
-                                 ofile=self.fileNameGTT, plot=self.plot)
-        if self.odir and self.verbose > 1:
-            print(f"File saved: {self.fileNameGTT}")
-
-        
-
-
-        
-    def createTED(self):
-
-        """Function to create a Thermo-Elastic Distortion (TED) file.
-        """
-        
-        # Generate TED file
-        if self.verbose > 1:
-            errorcode('module', '\nThermo-Elastic Distortion (TED)\n')
-        ns.getTED(self.Q, ofile=self.fileNameTED, ampl=self.ted_ampl,
-                  wheel_offloading=False,
-                  seed=self.seed, table=self.table, plot=self.plot)
-        if self.odir and self.verbose > 1:
-            print(f"File saved: {self.fileNameTED}")
-
             
-
+    def createGTT(self):
+        """Function to create a time columns including Gain Transients.
+        Used to include flux changes after repointing due to changing 
+        thermal environment. NOTE that this was seen for Kepler but is
+        not expected to be a significant problem for Plato.
+        """
+        # Generate GTT file
+        if self.gain and self.odir:
+            if self.verbose > 1:
+                errorcode('module', '\nGain-Thermal Transients (GTT)\n')
+                print('Modelling gain-trasients using exponential decay')
+                ns.temperatureTransients(self.time, self.t0, self.td, tempCCD=203.5,
+                                         ofile=self.fileNameGTT, plot=self.plot)
+            if self .odir and self.verbose > 1:
+                print(f"File saved: {self.fileNameGTT}")
 
         
     def createACS(self):
-
         """Function to create a Attitude and orbit Control System (ACS) jitter file. 
+        NOTE platonium takes care of using the same seed and hence generating
+        a AOCS time series beforehand is not strictly necessary.
         """
-        
         # Generate ACS file
         if self.aocs and self.odir:
             if self.verbose > 1:
@@ -358,10 +340,7 @@ class Payload(object):
             if self.odir and self.verbose > 1:
                 print(f"File saved: {self.fileNameACS}")
 
-
-
-
-            
+                
 #--------------------------------------------------------------#
 #                PARSING COMMAND-LINE ARGUMENTS                #
 #--------------------------------------------------------------#
@@ -384,8 +363,10 @@ obs_group.add_argument('--group',    metavar='INT', type=str, help='Group   numb
 obs_group.add_argument('--camera',   metavar='INT', type=str, help='Camera  number: 1, 2, ... (Default: 1-6 = all)')
 obs_group.add_argument('--quarter',  metavar='INT', type=str, help='Quarter number: 1, 2, .. (Default: 1-8 = 2yr)')
 obs_group.add_argument('--ted_ampl', metavar='FLOAT', type=float, help='Approx max amplitude of TED model (Default: 5 arcsec)')
+# TODO implement wheel-offloading events
 #obs_group.add_argument('--wheel_', metavar='FLOAT', type=float, help='Approx max amplitude of TED model (Default: 5 arcsec)')
 obs_group.add_argument('--seed',     metavar='INT',   type=int,   help='Seed to reproduce results (Default: None)')
+obs_group.add_argument('--gain',     action='store_true', help='Flag to generate a gain thermal transient file')
 obs_group.add_argument('--aocs',     action='store_true', help='Flag to generate a red noise AOCS jitter file')
 
 args = parser.parse_args()
@@ -408,6 +389,7 @@ x.createPRE()
 x.createAPE()
 x.createTED()
 x.createGAP()
+x.createGTT()
 x.createACS()
 
 # Finish with output

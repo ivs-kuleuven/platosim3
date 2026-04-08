@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
-
 """
 Python modules that contain some general utilities that are commonly
 used by the PlatoSim and PLATOnium.
 """
 
 # Built-in
-
 import os
 import sys
 import math
@@ -18,7 +16,6 @@ from pathlib import Path
 from zipfile import ZipFile
 
 # PlatoSim standard
-
 import numpy as np
 import pandas as pd
 from matplotlib.colors import Normalize, LogNorm
@@ -28,73 +25,60 @@ from scipy.stats import gaussian_kde
 from scipy import constants as c
 
 # Backward compatability
-
 try:
     from scipy.integrate import cumulative_trapezoid
 except ImportError:
     # Versions of scipy < 1.6 use a different name
     from scipy.integrate import cumtrapz as cumulative_trapezoid
 
-
 #--------------------------------------------------------------#
 #                        UNIT FUNCTIONS                        #
 #--------------------------------------------------------------#
 
-
 def day():
-
     """Return 1 day in seconds.
     """
-
     return 86400
 
 
-
-
-
 def year():
-
     """Return 1 year in seconds.
     """
-    
     return 31556926
 
 
-
-
-
 def quarter():
-
     """Return 1 mission quarter in days.
     """
-    
     return year() / (4 * day())
 
 
-
-
-
 def rng(seed=None):
-
     """Choose seed for randomness
     """
-
     if seed is None:
         return np.random.default_rng()
     else:
         return np.random.default_rng(seed=seed)        
 
-
-
-
     
+def getHomeDir(path=''):
+    """Fetch PlatoSim home and working directory.
+    """    
+    return Path(os.getenv('PLATO_PROJECT_HOME')) / path
+
+
+def getWorkDir(path=''):
+    """Fetch PlatoSim home and working directory.
+    """    
+    return Path(os.getenv('PLATO_WORKDIR')) / path
+
+
 #--------------------------------------------------------------#
 #                        BASH FUNCTIONS                        #
 #--------------------------------------------------------------#
 
-
 def errorcode(API, message):
-
     """Function to colour code error messages within a code.
 
     Parameters
@@ -121,9 +105,6 @@ def errorcode(API, message):
     if API == 'error':
         print(Style.BRIGHT + Fore.RED + '[Error]: ' + message + Style.RESET_ALL)
         sys.exit()
-
-
-
 
 
 def fileMatch(fileList, stringList):
@@ -290,18 +271,6 @@ def downloadFromFTP(filename, outputDir=False, server='plato'):
         ftp.login(user=server, passwd='miSotalP')
         ftp.cwd(f'{ftp_subpath}')
         files = [filename]
-
-    elif server == 'platodata':
-        ftp.login(user=server, passwd='i9Pidw1bXIFShGYb0jI8')
-        ftp.cwd(f'PLATOSIM/{ftp_subpath}')
-        # Check if only one files is requested
-        if not permission:
-            if ftp_subpath:        
-                files = [ftp_filename.name] # within a subfolder
-            else:
-                files = [filename]          # in the base folder
-        else:
-            files = ftp.nlst()[2:]          # multiple files
     else:
         errorcode('error', f'Server name {server} is not valid!')
             
@@ -435,14 +404,23 @@ def votable2pandas(votable):
 
     """Function to convert a votable to a pandas data frame.
 
-    From: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
+    Resource: https://gist.github.com/icshih/52ca49eb218a2d5b660ee4a653301b2b
     """
 
     table = votable.get_first_table().to_table(use_names_over_ids=True)
-
     return table.to_pandas()
 
-    
+
+def pdWeightedAverage(df, value, weight):
+
+    """Function to calculate a weighted average
+    """    
+
+    val = df[value]
+    wt  = df[weight]
+    return (val * wt).sum() / wt.sum()
+
+
 #--------------------------------------------------------------#
 #                       NUMPY OPERATIONS                       #
 #--------------------------------------------------------------#
@@ -522,7 +500,6 @@ def convolve(data0, filtertype, n):
 
 
 
-
 def normalize(signal, factor=1e6, length=-1):
 
     """Normalize a signal with the option to factorize it.
@@ -543,9 +520,8 @@ def normalize(signal, factor=1e6, length=-1):
         Normalized relative signal is returned. Default unit in [ppm].
     """
 
-    relative_signal = (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
+    return (signal / np.nanmedian(signal[:int(length)]) - 1) * factor
 
-    return relative_signal
 
 
 
@@ -762,6 +738,23 @@ def imageNorm(inputArray, norm="linear", sigma=2, scale_min=None, scale_max=None
 #--------------------------------------------------------------#
 
 
+def massLuminosityRelation(R, Teff):
+
+    """Calculate mass using M-L relation.
+
+    Using the Teff in the mass-luminosity relation, one can find
+    the stellar mass for a main sequence dwarf star. Method valid
+    for (0.43 < M/Msun < 2)
+
+    Notes
+    -----
+    Reference from:
+    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+    """
+    return R**(1/2) * Teff/5777.
+
+
+
 def radialDistance(alpha1, delta1, alpha2, delta2):
 
     """Radial distance between two equatorial coordinates.
@@ -793,23 +786,64 @@ def radialDistance(alpha1, delta1, alpha2, delta2):
     return np.rad2deg(np.arccos(cosR))
 
 
-    
 
-
-def massLuminosityRelation(R, Teff):
-
-    """Calculate mass using M-L relation.
-
-    Using the Teff in the mass-luminosity relation, one can find
-    the stellar mass for a main sequence dwarf star. Method valid
-    for (0.43 < M/Msun < 2)
-
-    Notes
-    -----
-    Reference from:
-    https://en.wikipedia.org/wiki/Mass%E2%80%93luminosity_relation
+def getContaminants(dt, dc, column='PIC', radius=45):
+    """Match contaminating sources from dc to targets of dt.
     """
-    return R**(1/2) * Teff/5777.
+    from tqdm import tqdm
+    
+    # Query radial distance [arcsec]
+    x = radius/3600.
+
+    # Loop over each target
+    
+    for i in tqdm(range(dt.shape[0]), bar_format=tqdmBar()):
+        # Select target star
+        dt_i = dt.iloc[i]
+
+        # Fetch smaller region around target
+        dc_i = dc[(dc.ra  > dt_i.ra  - x) & (dc.ra  < dt_i.ra  + x) &
+                  (dc.dec > dt_i.dec - x) & (dc.dec < dt_i.dec + x)]
+        dc_i = dc_i.reset_index(drop=True)
+        
+        # Remove target star if present
+        dc_i = dc_i.drop(dc_i[dc_i[column] == dt_i[column]].index)
+
+        # Find radial distance [arcsec] 
+        dc_i['dis'] = radialDistance(dt_i.ra, dt_i.dec, dc_i.ra, dc_i.dec).to_numpy() * 3600.
+        dc_i = dc_i.sort_values(by=['dis'])
+        dc_i = dc_i.reset_index(drop=True)
+
+        # Set contaminant ID to target ID
+        dc_i[column] = dt_i[column]
+
+        # Save to a new df
+        if i == 0:
+            df = dc_i
+        else:
+            df = pd.concat([df, dc_i])
+
+    # Save to feather files
+    return df.reset_index(drop=True)
+
+
+
+def cart2pol(x, y):
+    """Transformation from cartesian to polar coordinates.
+
+    Parameters
+    ----------
+    x,y : float, ndarray
+        Cartesian coordinates.
+
+    Return
+    ------
+    phi,rho : float, ndarray
+        Polar coordinates.
+    """    
+    phi = np.rad2deg(np.arctan2(y, x)) - 180
+    rho = np.sqrt(x**2 + y**2)
+    return (phi, rho)
 
 
 
@@ -836,45 +870,83 @@ def mm2pixels(distanceMm, focalLength, plateScale):
                       plateScale * c.degree / c.arcsec)
     return distancePixels
 
-    
-#--------------------------------------------------------------#
-#                        PLATO SPECIFIC                        #
-#--------------------------------------------------------------#
 
 
-def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
-                throughputBandwidth=400, transmissionEfficiency=0.76,
-                lightCollectingArea=0.01131, quantumEfficiency=0.87):
 
-    """Compute the stellar flux given the instrumental characteristics.
+
+def cpd2muhz(freq):
+
+    """Convert cycles/day to muHz.
 
     Parameters
     ----------
-    Vmag : float
-        Johnson-Cousin V magnitude
-    exposureTime : float
-        Exposure time (without the readout) [s]
-    fluxm0 : float
-        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
-    throughputBandwidth : float 
-        Throughput FWHM value in the passband [nm]
-    transmissionEfficiency : 
-        Transmission efficiency in the passband [0, 1]
-    lightCollectingArea : float
-        The aperture of the cameras [m^2]
-    quantumEfficiency : float
-        Quantum efficiency of the detector [0, 1]
+    freq : float, ndarray
+        Frequency [cpd]
 
     Return
     ------
+    freq : float, ndarray
+        Frequency [muHz]
+    """    
+    return 1e6/86400 * freq
+
+
+
+
+def muhz2cpd(freq):
+
+    """Convert muHz to cycles/day.
+
+    Parameters
+    ----------
+    freq : float, ndarray
+        Frequency [muHz]
+
+    Return
+    ------
+    freq : float, ndarray
+        Frequency [cpd]
+    """    
+    return 86400/1e6 * freq
+
+
+
+
+def ppt2mmag(flux):
+
+    """Convert relative flux [ppt] to relative magnitude [mmag].
+
+    Parameters
+    ----------
     flux : float
-        Instrumental stellar flux [e-/exposure]
+        Input flux [ppt]
+
+    Return
+    ------
+    mag : ndarray
+        Relative magnitude [mmag]
+    """    
+    return 2.5 * np.log10(flux/1e3 + 1) * 1e3
+
+
+
+
+
+def mmag2ppt(dmag):
+
+    """Convert relative magnitude [mmag] to relative flux [ppt].
+
+    Parameters
+    ----------
+    dmag : float
+        Input magnitude [mmag]
+
+    Return
+    ------
+    flux : ndarray
+        Relative flux [ppt]
     """
-
-    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
-                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
-
-    return photonFlux * quantumEfficiency
+    return (10**(dmag / 2.5 / 1e3) - 1) * 1e3
 
 
 
@@ -925,6 +997,7 @@ def fromMagToRelativeFlux(mag, norm=1e6):
 
 
 
+
 def normFlux(flux, norm=1e3):
 
     """Convert magnitude to relative flux
@@ -945,6 +1018,44 @@ def normFlux(flux, norm=1e3):
     return (flux / np.nanmedian(flux) - 1) * norm
 
 
+#--------------------------------------------------------------#
+#                        PLATO SPECIFIC                        #
+#--------------------------------------------------------------#
+
+
+def stellarFlux(Vmag, exposureTime, fluxm0=1.00238e8,
+                throughputBandwidth=400, transmissionEfficiency=0.76,
+                lightCollectingArea=0.01131, quantumEfficiency=0.87):
+
+    """Compute the stellar flux given the instrumental characteristics.
+
+    Parameters
+    ----------
+    Vmag : float
+        Johnson-Cousin V magnitude
+    exposureTime : float
+        Exposure time (without the readout) [s]
+    fluxm0 : float
+        Photon flux of a V=0 G2V star [phot/s/m^2/nm]
+    throughputBandwidth : float 
+        Throughput FWHM value in the passband [nm]
+    transmissionEfficiency : 
+        Transmission efficiency in the passband [0, 1]
+    lightCollectingArea : float
+        The aperture of the cameras [m^2]
+    quantumEfficiency : float
+        Quantum efficiency of the detector [0, 1]
+
+    Return
+    ------
+    flux : float
+        Instrumental stellar flux [e-/exposure]
+    """
+
+    photonFlux = (fluxm0 * throughputBandwidth * transmissionEfficiency *
+                  lightCollectingArea * pow(10.0, -0.4 * Vmag) * exposureTime)
+
+    return photonFlux * quantumEfficiency
 
 
 
@@ -1046,7 +1157,7 @@ def passbandConversionG2P(mag, BP_RP, inverse=False, camera='normal', stage='dwa
 
 
     
-def getPointingField(name, unit='deg'):
+def getPointingField(name, unit='deg', system='icrs'):
 
     """Function to fetch pointing field coordinates.
 
@@ -1067,10 +1178,10 @@ def getPointingField(name, unit='deg'):
     Sky coordinates (alpha, delta, kappa) [deg]
     """
 
-    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000],  # PIC 1.1
-          'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1
-          'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0
-          'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC 2.0
+    PF = {'NPF':   [265.08002279,  39.5836954,  -10.0000],  # PIC 1.1.0
+          'SPF':   [ 86.79870508, -46.39594703,  10.0000],  # PIC 1.1.0
+          'LOPN1': [277.18023,     52.85952,    -13.9947],  # PIC 2.0.0
+          'LOPS2': [ 95.31043,    -47.88693,     13.9947],  # PIC >= 2.0.0
           'KUL20': [ 86.79870508, -46.39594703,  0.0]}      # TN of KUL20
 
     # Check data field exists
@@ -1078,7 +1189,7 @@ def getPointingField(name, unit='deg'):
     try:
         p = PF[name]
     except KeyError:
-        errorcode('error', 'Not valid PLATO field! Options: {LOPS2, LOPN1, SPF, NPF}')
+        errorcode('error', 'Not valid Plato field! Use {LOPS2, LOPN1, SPF, NPF}')
 
     # Convert units and return
     
@@ -1186,7 +1297,8 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
-
+    
+    FIXME These limits do not seem to match Borner+2024
     TODO update gain values for F-CAMs
     """
 
@@ -1195,49 +1307,42 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
     if camType == 'normal':
         texp = 21.
         tcyc = 25.
-        gain = 0.03 # 0.0186 * 2.15   # [ADU/e-]
     else:
         texp = 2.1
         tcyc = 2.5
-        gain = 0.05
 
+    # FEE + CCD gains [ADU/e-]
+    gain = 2.18 * 0.0186 
+        
     # Flux of stars [e-/s]
     
     if passband == "V":
-        f0 = 1.00179e8 *2
+        f0 = 1.00179e8
         f = 10**(-0.4 * mag) * f0
-        
+
     elif passband == 'P':
         # The P passband zero-point
         if camType == 'normal':
-            zp   = 21 #20.77
+            zp = 20.77
         if camType == 'fastblue':
             zp = 20.18
         if camType == 'fastred':
             zp = 19.81
         # Calculate flux
         f = 10**(-0.4 * (mag - zp))
-        
-        #f0 = 7.324509159344043e7
-        #f = 10**(-0.4 * mag) * f0
-        
+
     else:
         errorcode('error', f'Wrong {camType} name!')
 
     # Observed total flux [ADU/exp]
 
-    flux = f * tcyc * gain
-
+    
     # SNR from pure photon noise and NSR from uncorrelated noise.
     # Gaussian statistic gives sigma --> sigma/sqrt(N)
-
-    nsr = 1e6 / np.sqrt(flux * ncam * ntra * tdur)
-
-    # Correction needed for PLATO passband
-    
-    if passband == 'P':
-        nsr *= 0.7324478224428527
-    
+    #tdur = (tdur / tcyc) * texp
+    flux = f * tdur * gain * texp
+    nsr  = 1e6 / np.sqrt(flux * ncam * ntra)
+        
     return nsr 
 
 
@@ -1245,7 +1350,7 @@ def getPhotonNoiseLimitNSR(mag, passband='P', camType='normal', ncam=1, ntra=1, 
 
 
 def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
-                               tdur=3600, bg=2250, ncam=1):
+                               tdur=3600, bg=124, ncam=1):
 
     """NSR estimate in the photon noise limit of bright stars.
 
@@ -1271,6 +1376,8 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
     ------
     NSR : float, narray
         NSR only valid for the photon noise limit.
+
+    FIXME doesn't seem to be correct!
     """
 
     # The passband zero-point flux
@@ -1288,9 +1395,14 @@ def getBackgroundNoiseLimitNSR(mag, passband='P', camType='normal',
         errorcode('error', f'Wrong {camType} name!')
         
     # Method cf. Matuszewskic+2023 
-    f = 10**(-0.4 * mag) * f0
-    
-    return np.sqrt(bg**2 / f**2 * tdur) / np.sqrt(ncam)
+    gain = 2.5 * 0.0185
+    tcyc = 25
+    texp = 21
+    tdur = (tdur / tcyc) * texp
+
+    f = 10**(-0.4 * mag) * f0 * gain
+
+    return np.sqrt((bg/f)**2 * tdur) / np.sqrt(ncam)
 
 
 
@@ -1489,9 +1601,9 @@ def copyInputYAML(field, odir):
             filedata = filedata.replace('inputfiles/starcatalog.txt', field)
             filedata = filedata.replace('1.00179e8       #', '0.73244782244e8 #')
             filedata = filedata.replace( 'NumColumns:                      100',
-                                        f'NumColumns:                      7  ')
+                                        f'NumColumns:                      8  ')
             filedata = filedata.replace( 'NumRows:                         100',
-                                        f'NumRows:                         7  ')
+                                        f'NumRows:                         8  ')
             filedata = filedata.replace('IncludePhotometry:               no ',
                                         'IncludePhotometry:               yes')
             filedata = filedata.replace('MaskUpdateInterval:              14.0',
@@ -1569,7 +1681,9 @@ def copyVizierInputYAML(field, odir):
             filedata = filedata.replace('IncludeCosmicsInSmearingMap:     yes',
                                         'IncludeCosmicsInSmearingMap:     no')
             filedata = filedata.replace('IncludeCosmicsInBiasMap:         yes',
-                                        'IncludeCosmicsInBiasMap:         no')
+                                        'IncludeCosmicsInBiasMap:         no') 
+            filedata = filedata.replace('IncludeStrayLight:             yes',
+                                        'IncludeStrayLight:             no')           
             filedata = filedata.replace('UseJitter:                       yes',
                                         'UseJitter:                       no')
             filedata = filedata.replace('IncludeAberrationCorrection:     yes',
@@ -1642,329 +1756,3 @@ def copyVizierInputYAML(field, odir):
             # Write the file out again
             with open(yaml_new, 'w') as file:
                 file.write(filedata)
-
-
-                
-#--------------------------------------------------------------#
-#        FUNCTIONS TO GENERATE THE PIC-VARSIM CATALOGS         #
-#--------------------------------------------------------------#
-
-
-def loadNumpyTargetsPIC110(inputFileTar):
-
-    """Function to load PIC110 numpy binary catalogue. 
-
-    This is a debrecated function used prior to PlatoSim 3.6.0.
-    The columns loaded below are the following:
-
-    PICidDR1   : PIC-ID-DR1 from Gaia DR2
-    ra         : ICRS RA
-    decl       : ICRS Dec
-    gaiaV      : De-reddened V mag from Gaia colour photometry
-    sampleFlag : Bitmaskdefining PIC samples
-    teff       : Stellar effective temperature [K]
-    radius     : Stellar radius [R_sun]
-    mass       : Stellar mass [M_sun]
-    nCameraObs : EOL number of cameras seeing the star
-    """
-
-    # TARGETS
-    
-    df = pd.DataFrame()
-    pic_tar = np.load(inputFileTar)
-    df['PIC']    = pic_tar[:,0].astype(float).astype(int)
-    df['ra']     = pic_tar[:,1].astype(np.float64)
-    df['dec']    = pic_tar[:,2].astype(np.float64)
-    df['mag']    = pic_tar[:,3].astype(np.float64)
-    df['sample'] = pic_tar[:,4].astype(float).astype(int)
-    df['Teff']   = pic_tar[:,5].astype(np.float64)
-    df['R']      = pic_tar[:,6].astype(np.float64)
-    df['M']      = pic_tar[:,7].astype(np.float64)
-    df['ncams']  = pic_tar[:,8].astype(float).astype(int)
-    df['field']  = pic_tar[:,9].astype(str)
-    df = df.iloc[1:]
-    df = df.reset_index(drop=True)
-
-    # CONTAMINANTS
-    
-    dc = pd.DataFrame()
-    pic_con = np.load(inputFileCon)
-    dc['PIC'] = pic_con[:,0].astype(float).astype(int)
-    dc['ra']  = pic_con[:,1].astype(float)
-    dc['dec'] = pic_con[:,2].astype(float)
-    dc['mag'] = pic_con[:,4].astype(float)
-    dc['dis'] = pic_con[:,3].astype(float)
-    
-    return df, dc
-
-
-
-
-
-def createPIC110(path):
-
-    """Create the PIC110 feather files used by 'picsim'.
-
-    This function loads the original PIC110 catalogue that contains
-    the PIC targets and stellar contaminant. It then selects the 
-    right columns and saves them to a binary feather file. Note that
-    the original input folders needs to be parsed.
-
-    Execution
-    ---------
-    >> from platosim.platonium.picsim import createPIC110
-    >> createPIC110(<path/to/pLOPS2PIC2.0.0.1-t>)
-    >> createPIC110(<path/to/pLOPN1PIC2.0.0.1-t>)
-    """
-
-    # PIC TARGETS
-
-    # Load ascii catalogue
-    data = np.genfromtxt(f'{path}/filename.csv', delimiter=',',
-                        usecols=[0, 3, 5, 53, 55, 56, 58, 60, 71])
-    df = pd.DataFrame()
-    df['PIC']    = data[:,0].astype(float).astype(int)
-    df['ra']     = data[:,1].astype(np.float64)
-    df['dec']    = data[:,2].astype(np.float64)
-    df['mag']    = data[:,3].astype(np.float64)
-    df['Teff']   = data[:,5].astype(np.float64)
-    df['R']      = data[:,6].astype(np.float64)
-    df['M']      = data[:,7].astype(np.float64)
-    df['ncams']  = data[:,8].astype(float).astype(int)
-    df['sample'] = data[:,4].astype(float).astype(int)
-
-    # String field needs to be loaded seperately: PLATO field: N=North, S=South
-    df['field'] = np.loadtxt(inputFileTar.with_suffix('.csv'), delimiter=',',
-                             usecols=[68], dtype=str)
-
-    # Drop nan rows
-    df = df.dropna()
-
-    # Store columns
-    col_sample = df['sample']
-    df = df.drop(columns=['sample'])
-    df['sample'] = col_sample
-
-    # Select PIC sample
-    # NOTE 2 is stated in documentation but 3 is correct..
-    df['sample'] = df['sample'].replace([1, 3, 4, 8], ['P1', 'P2', 'P4', 'P5'])
-
-    # Change camera numbers
-    df['ncams'] = df['ncams'].replace([5, 11, 16, 17, 22], [6, 12, 18, 18, 24])
-
-    # Convert V Jonhson-Cousin to P passband
-    df['mag'] = ut.passbandConversionV2P(df.mag, df.Teff)
-
-    # Select catalogues
-    ds = df[df.field == 'S']
-    dn = df[df.field == 'N']
-
-    # Drop field before saving
-    ds = ds.drop(columns=['field'])
-    dn = dn.drop(columns=['field'])
-
-    # Reset indices
-    ds = ds.reset_index(drop=True)
-    dn = ds.reset_index(drop=True)
-
-    # Save to feather files
-    ds.to_feather('PIC110_SPF_targets.ftr')
-    dn.to_feather('PIC110_NPF_targets.ftr')
-
-
-    # PIC CONTAMINATS
-
-    # Load data
-    # NOTE The PIC is the target to which the contaminants refers to
-    data = np.loadtxt(inputFileCon.with_suffix('.csv'), delimiter=',',
-                      skiprows=1, usecols=[2, 6, 8, 5, 19])
-    dc =pd.DataFrame()
-    dc['PIC'] = data[:,0].astype(float).astype(int)
-    dc['ra']  = data[:,1].astype(np.float64)
-    dc['dec'] = data[:,2].astype(np.float64)
-    dc['mag'] = data[:,4].astype(np.float64)
-    dc['dis'] = data[:,3].astype(float).astype(int)
-
-    # Convert Vmag to Pmag using host star Teff
-    # NOTE assumption needed for PlatoSim!
-    for i in tqdm(range(len(dc)), bar_format=ut.tqdmBar()):
-        df_i = df[df.PIC == dc.PIC.iloc[i]]
-        dc.mag.iloc[i] = ut.passbandConversionV2P(dc.mag.iloc[0], df_i.Teff)
-
-    # Sort after pointing
-    ds = df[(ds.dec < 0)]
-    dn = df[(df.dec > 0)]
-
-    # Save to feather files
-    ds.to_feather('PIC110_SPF_contaminants.ftr')
-    dn.to_feather('PIC110_NPF_contaminants.ftr')
-
-
-
-
-
-def createPIC200(path):
-
-    """Create the PIC200 feather files used by 'picsim'.
-
-    This function loads the original PIC200 catalogue that contains
-    the PIC targets and stellar contaminant. It then selects the 
-    right columns and saves them to a binary feather file. Note that
-    the original input folders needs to be parsed.
-
-    Execution
-    ---------
-    >> from platosim.platonium.picsim import createPIC200
-    >> createPIC200(<path/to/pLOPS2PIC2.0.0.1-t>)
-    >> createPIC200(<path/to/pLOPN1PIC2.0.0.1-t>)
-    """
-
-    from tqdm import tqdm
-    
-    field = path[-18:-13]
-    odir  = Path(os.getenv("PLATO_PROJECT_HOME")) / 'inputfiles/data_picsim'
-    
-    # TARGETS
-
-    # Load targets
-    print('Creating PIC target catalogue')
-    tfile = f'p{field}PICtarget2.0.0.1-t.vot'
-    votable = parse(f'{path}/{tfile}')
-    df0 = ut.votable2pandas(votable)
-
-    # Write relevant columns to df
-    df = pd.DataFrame()
-    df['PIC']   = df0.PICid
-    df['ra']    = df0.RAdeg
-    df['dec']   = df0.DEdeg
-    df['mag']   = df0.PlatoMagNCAM
-    df['PBmag'] = df0.PlatoMagFCAMb
-    df['PRmag'] = df0.PlatoMagFCAMr
-    df['Teff']  = df0.Teff
-    df['R']     = df0.Radius
-    df['M']     = df0.Mass
-    df['ncams'] = df0.BOLnCameraObs
-    df['sample'] = df0.BOLsourceFlag
-    
-    # Remove NaNs
-    df = df.dropna()
-
-    # Rename sample after their bit value
-    df['sample'] = df['sample'].replace([10, 14, 16, 8], ['P1', 'P2', 'P4', 'P5'])  
-
-    # Remove the remaining bit values
-    df = df.drop(df[df['sample'].isin([40, 42, 46, 48])].index)
-
-    # No need to keep more an integer value for Teff
-    df = df.astype({'Teff':'int'})
-    
-    # Save to feather files
-    df = df.reset_index(drop=True)
-    
-    df.to_feather(f'{odir}/PIC200_{field}_targets.ftr')
-    print('Done with PIC targets')
-
-    # CONTAMINANTS
-
-    # File is huge hence read only one column at the time
-    print('Loading PIC contaminants')
-    cfile = f'p{field}PICcontaminant2001t.csv'
-
-    # Create data frame
-    dc  = pd.DataFrame()
-    dc['PIC']   = pd.read_csv(f'{path}/{cfile}', usecols=['PICcontaminantId'])
-    dc['ra']    = pd.read_csv(f'{path}/{cfile}', usecols=['RAdeg'])
-    dc['dec']   = pd.read_csv(f'{path}/{cfile}', usecols=['DEdeg'])
-    dc['Gmag']  = pd.read_csv(f'{path}/{cfile}', usecols=['Gmag'])
-    dc['BPmag'] = pd.read_csv(f'{path}/{cfile}', usecols=['BPmag'])
-    dc['RPmag'] = pd.read_csv(f'{path}/{cfile}', usecols=['RPmag'])
-
-    # Remove NaNs
-    dc = dc.dropna()
-
-    # Use Gaia colours to convert to PLATO bandpass
-    dc['mag']   = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag)
-    dc['PBmag'] = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag, camera='fast_blue')
-    dc['PRmag'] = ut.passbandConversionG2P(dc.Gmag, dc.BPmag-dc.RPmag, camera='fast_red')
-
-    # Remove Gaia filters again
-    dc = dc.drop(columns=['Gmag', 'BPmag', 'RPmag'])
-
-    # Fetch all contaminants within 45 arcsec from target
-    print('Sorting PIC contaminants after PIC targets:')
-    print('This will take approximately 18 hours!')
-    for i in tqdm(range(df.shape[0]), bar_format=ut.tqdmBar()):
-
-        # Select target star
-        df_i = df.iloc[i]
-
-        # Fetch smaller region around target
-        x = 45/3600.
-        dc_i = dc[(dc.ra  > df_i.ra  - x) & (dc.ra  < df_i.ra  + x) &
-                  (dc.dec > df_i.dec - x) & (dc.dec < df_i.dec + x)]
-
-        # Remove target star if present
-        dc_i = dc_i.drop(dc_i[dc_i.PIC == df_i.PIC].index)
-
-        # Find radial distance [arcsec] 
-        dc_i['dis'] = ut.radialDistance(df_i.ra, df_i.dec,
-                                        dc_i.ra.to_numpy(), dc_i.dec.to_numpy()) * 3600.
-        dc_i = dc_i.sort_values(by=['dis'])
-
-        # Set PIC contaminant name to PIC target name
-        dc_i.PIC = df_i.PIC
-
-        # Save to a new df
-        if i == 0:
-            dc0 = dc_i
-        else:
-            dc0 = pd.concat([dc0, dc_i])
-
-    # Save to feather files
-
-    dc0 = dc0.reset_index(drop=True)
-    dc0.to_feather(f'{odir}/PIC200_{field}_contaminants.ftr')
-
-
-
-
-
-def getContaminants(dt, dc, column='PIC', radius=45):
-
-    from tqdm import tqdm
-    
-    # Query radial distance [arcsec]
-    x = radius/3600.
-
-    # Loop over each target
-    
-    for i in tqdm(range(dt.shape[0]), bar_format=tqdmBar()):
-
-        # Select target star
-        dt_i = dt.iloc[i]
-
-        # Fetch smaller region around target
-        dc_i = dc[(dc.ra  > dt_i.ra  - x) & (dc.ra  < dt_i.ra  + x) &
-                  (dc.dec > dt_i.dec - x) & (dc.dec < dt_i.dec + x)]
-        dc_i = dc_i.reset_index(drop=True)
-        
-        # Remove target star if present
-        dc_i = dc_i.drop(dc_i[dc_i[column] == dt_i[column]].index)
-
-        # Find radial distance [arcsec] 
-        dc_i['dis'] = radialDistance(dt_i.ra, dt_i.dec, dc_i.ra, dc_i.dec).to_numpy() * 3600.
-        dc_i = dc_i.sort_values(by=['dis'])
-        dc_i = dc_i.reset_index(drop=True)
-
-        # Set contaminant ID to target ID
-        dc_i[column] = dt_i[column]
-
-        # Save to a new df
-        if i == 0:
-            df = dc_i
-        else:
-            df = pd.concat([df, dc_i])
-
-    # Save to feather files
-
-    return df.reset_index(drop=True)                

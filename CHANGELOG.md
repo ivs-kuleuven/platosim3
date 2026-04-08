@@ -1,9 +1,18 @@
 # Changelog for PlatoSim
 
-<!-- ?.?.? -->
-<!-- ***** -->
+Checklist to update for a future release:
+
+* Check that Conda installation of PlatoSim works (`master` and `develop` branch)
+* Check that test harness returns only `Success` statements
+* Check Python package installation `poetry install --with docs`      in a fresh Conda environment
+* Check Python package installation `poetry install --with platonium` in a fresh Conda environment
+* Update the "version" in the file `pyproject.toml`
+* Check all for a successful run of all Jupyter notebooks in `docs/tutorials` (runs with `poetry install` package management)
 
 ## Upcoming release
+
+<!-- 3.7.1 -->
+<!-- ***** -->
 
 ### Fixed
 
@@ -11,83 +20,139 @@
 
 ### Added
 
-<!-- 3.7.0 -->
+### Removed
+
+
+<!-- 3.7.1 -->
 <!-- ***** -->
+
+## 07/04/2026: 3.7.1
 
 ### Fixed
 
-* Bugfix in varsource.py for using wrong time column
-* Bugfix in lightcurve.py of NSR functions
-* Bugfix a conflict in pyproject.toml
-* Fixed missing return value in ClosedLoopDetectorWithAnalyticNonGaussianPSF
-* Bugfix in simulation.py when dealing with F-Camera
-* Bugfix in lightcurve.py using 'single'
+* Fixed issue #1087: Correction of the readout time not accounting for the parallel prescan (bias rows).
+* Fixed issue #1169: Bugfix when including bright (Yale) stars in `picsim.py`.
+* Fixed issue #1157: Bugfix of time determination in aberration.
+* Fixed issue #1150: Issue with F-CAM simulations due to overload of HDF5 RAM memory.
+* Bugfix in `varsim.py` for simulating only transits.
+* Bugfix in digital staturation test.
+* Bugfix in destructor of Detector.
+
+### Changed
+
+* Changed YAML with new wavelength depedent values for the N-CAM as reqired BOL calculated from MPDB frozen v.4.
+* Chaged `simulation.useFastCamera()` to properly update YAML entry `Fluxm0` for blue and red filter of F-CAMs.
+* Changed `simulation.useNormalCamera()` to properly update YAML entry `Fluxm0` for N-CAMs.
+* Changed `slurm.getParamerisationFile()` in order to return SLURM parameterisation csv file the two most commen use cases.
+* Changed `starquery.gaiaQueryCone()` to have similar functionality (i.e. returning same columns) as `starquery.gaiaQueryRegion()`.
+* Changed how the initial number of occupied traps is determined for the Short et al model.
+* Changed the `install.sh` file so that it breaks when a dependency fails to install.
+* Changed `lightcurve.star()` to `lightcurve.target()` to be consistent with source not only being a star.
+* Updated the `orbit.txt` file into `oribit_prime_10_years.txt` (See Issue #1163).
+* Updated the technical Jupyter notebooks.
+* Updated the BFE validation test more rebost for fainter targets.
+* Updated the `setup.sh` file to file so that it breaks when a dependency fails to install.
+* Variable cycleTime in Straylight can now be non-integer
+
+### Added
+
+* Merged `sovt1` branch into `develop`. New features to setup the spacecraft in `platonium.py` according to latest performance tests.
+* Added bias rows to the number of columns to read out in `simulation.py`.
+* Added multithreaded compilation of dependencies.
+* Added PIC 2.1.0.1 (LOPS2) to the available `picsim` catalogues.
+* Added additional Limb Darkening (LD) models to varsim.py [linear, quadratic, square-root, power-2].
+* Added new arument `--field` to `platonium.py` in order to specify which stellar catalogue to use as input if multiple exists.
+* Added new unit conversions to `utilities.py`: [`cpd2muhz`, `muhz2cpd`, `ppt2mmag`, `mmag2ppt`].
+* Added new section about the output files of the PLATOnium-L1 pipeline setup, plus updated figures and text in PLATOnium tutorials.
+* Added PRNU from file feature
+* Added straylight feature
+* Added bad pixel map feature
+
+### Removed
+
+* Removed `Dockerfile.txt` from base as this is redundant with the new LESIA L1 pipeline Docker installation.
+* Removed `inputfile_FCAM_required.yaml` as file was outdated. New strategy is to use Python to setup a F-CAM simulations using: `simulation.useFastCamera()`.
+* Removed old `orbit.txt` file.
+* Removing `descartes` dependency.
+
+<!-- 3.7.0 -->
+<!-- ***** -->
+
+## 27/03/2025: 3.7.0
+
+### Fixed
+
+* Bugfix in `varsource.py` for using wrong time column
+* Bugfix in `lightcurve.py` of NSR functions
+* Bugfix a conflict in `pyproject.toml`
+* Fixed missing return value in `ClosedLoopDetectorWithAnalyticNonGaussianPSF`
+* Bugfix in `simulation.py` when dealing with F-Camera
+* Bugfix in `lightcurve.py` using 'single'
 * Bugfix to varsim and varsource
 * Bugfix to platonium using verbosity level 1
 * Bugfix for fetching cadence in lightcurve.py
-* Bugfix for platonium.py and payload.py
+* Bugfix for `platonium.py` and `payload.py`
 * Bugfix for model selection in detrending algorithm
-* Bugfix of analysis script for PLATO-CS in platonium
+* Bugfix of analysis script for PLATO-CS in `platonium.py`
 * Bugfix of varsim's argparse string making it fail when consulting help
 * Bugfix for parsing argument ted_ampl in payload.py
 * Bugfix in Camera.cpp so that now star position has a value for every exposure
 * Bugfix of using seed correctly for stellar flares
-* Bugfix of varsim for mocka usage
-* Bugfix of LPV and bCep model in varsim.py
-* Bugfix in RR Lyrae and Cepheid model in varsource.py
-* Bugfix in simulation.py createStarCatalogFileFromPixelCoordinates() when dealing with quaternions.
-* Bugfix in getFlux in simfile.py, this output of this function was too low.
-* Bugfix in platonium.py setting --cadence and using sim.useNormalCamera()
+* Bugfix of `varsim` for mocka usage
+* Bugfix of LPV and bCep model in `varsim.py`
+* Bugfix in RR Lyrae and Cepheid model in `varsource.py`
+* Bugfix in `simulation.py` `createStarCatalogFileFromPixelCoordinates()` when dealing with quaternions.
+* Bugfix in `getFlux` in `simfile.py`, this output of this function was too low.
+* Bugfix in platonium.py setting `--cadence` and using `sim.useNormalCamera()`
 
 ### Changed
 
-* Added more tweaks for l1 pipeline
-* Refactored aberration in Sky.cpp
-* Changed names in technical notebook
-* Cosmetic changes in Detector.cpp
-* Modified applyPhotometry() in DetectorWithAnalyticNonGaussianPSF
-* simfile.getApertureMask() now also return SPR
-* Update the plot.py method used in plot.py
-* Update sigma-clipping lower bound threshold for lightcurve.py
-* Speedup of lowess stitching algorithm of lightcurve.py
-* Upgrade picsim --vizier feature
-* Lowess-Theil-Sen rebust detrending method added to lightcurve.py
-* Move auto sigma selection for clip into platomium
-* Update F-Camera YAML parameters in simulation.py
-* Bugfix for platonium animation calling simfile.getApertureMask()
-* Implemented a passband correction in varsim.py
-* Added parameters from the input yaml file to the HDF5 file
-* Removed the use of "normal" in skyToPixelCoordinates in referenceFrames.py
-* Update of pulsation amplitude distribution in varsource.py
+* Added more tweaks for l1 pipeline.
+* Refactored aberration in `Sky.cpp`.
+* Changed names in technical notebook.
+* Cosmetic changes in `Detector.cpp`.
+* Modified `applyPhotometry()` in `DetectorWithAnalyticNonGaussianPSF`.
+* `simfile.getApertureMask()` now also return SPR.
+* Update the plot method used in `plot.py`.
+* Update sigma-clipping lower bound threshold for `lightcurve.py`.
+* Speedup of lowess stitching algorithm of `lightcurve.py`.
+* Upgrade `picsim.py --vizier` feature.
+* Lowess-Theil-Sen rebust detrending method added to `lightcurve.py`.
+* Move auto sigma selection for clip into `platomium.py`.
+* Update F-Camera YAML parameters in `simulation.py`.
+* Bugfix for platonium animation calling `simfile.getApertureMask()`.
+* Implemented a passband correction in `varsim.py`.
+* Added parameters from the input yaml file to the HDF5 file.
+* Removed the use of `normal` in `referenceFrames.skyToPixelCoordinates()`.
+* Update of pulsation amplitude distribution in `varsource.py`.
 * Changed how the number of traps for CTI are calculated.
 * Interpolate aberration in between timesteps.
-* Update the plato.py and patonium.py
-* Import cumtrapz or cumulative_trapezoid based on scipy version
-* Changed the comment for the gain nonlinearity in inputfile
-* Update color plotting for Aitoff galactic sky projections
-* getInfoOfStarWithID() in Sky.cpp now returns a tuple of doubles instead of tuple of ints
-* In CMakeLists.txt changed doc string from C++11 to C++14
-* Added option to disable O-C plot in detrend and clip plots
-* Added function to query a target star based on its Gaia DR3 ID in starquery.py
-* Update version of ligo.skymap to 2.0.0
-* Cosmetic changes in referenceFrames.py
+* Update the `playload.py` and `patonium.py`.
+* Import `cumtrapz` or `cumulative_trapezoid` based on `scipy` version.
+* Changed the comment for the gain nonlinearity in inputfile.
+* Update color plotting for Aitoff galactic sky projections.
+* `getInfoOfStarWithID()` in `Sky.cpp` now returns a tuple of doubles instead of tuple of ints.
+* In `CMakeLists.txt` changed doc string from C++11 to C++14.
+* Added option to disable O-C plot in detrend and clip plots.
+* Added function to query a target star based on its Gaia DR3 ID in `starquery.py`.
+* Update version of `ligo.skymap` to 2.0.0.
+* Cosmetic changes in `referenceFrames.py`.
 * Update starquery.py to include Gaia DR3 proper motion.
 * Redundant time column in `ACS`, `StellarPositions`, and `GhostPositions` should be been removed and added as an individual time column (see addition below). This is breaking backward compatible change only for users that do not use the `SimFile.py` class.
 
 ### Added
 
-* Added straylight implementation for moon
-* Added validation test for straylight
-* Added magnitude dependent sigma-clipping value to platonium post-processing
-* Added notebook for MOCKA
-* Added validation test for SPR
-* Solar flare model implemented in varsim
-* Added script for running platonium and varsim in parallel
-* Added new analysis script to merge PLATOnium light curves
-* Added lightcurve.gaps method
-* Added new Lesia L1 script to platonium
-* Added script to generate a time series from pulsation modes of varsim.py
-
+* Added straylight implementation for moon.
+* Added validation test for straylight.
+* Added magnitude dependent sigma-clipping value to platonium post-processing.
+* Added notebook for MOCKA.
+* Added validation test for SPR.
+* Solar flare model implemented in `varsim.py`.
+* Added script for running `platonium.py` and `varsim.py` in parallel.
+* Added new analysis script to merge PLATOnium light curves.
+* Added `lightcurve.gaps` method.
+* Added new Lesia L1 script to `platonium.py`.
+* Added script to generate a time series from pulsation modes of `varsim.py`
 
 
 <!-- 3.6.1 -->
@@ -109,7 +174,10 @@
 * Small errors in documentation
 * Reduce time it takes to run the validation tests. (Issue #869)
 * Removed declared but unused variables in Sky.cpp
-
+* Updates to the online documentation (mainly typos).
+* PLATOnium/varsim: Stellar spot modulations has a factor of two too low amplitude. Now the model is much more representative for the expected level of stellar activity.
+* PLATOnium/varsim: This method has changed its structure slightly regarding the parsed arguments.
+* The verbosity level for all methods in the PLATOnium toolkit (picsim, varsim, payload, and platonium) has changed to be inline with the usage of PlatoSim (except for the `verbose=0` which is designed for running simulations on a computing cluster). 
 
 ### Added
 
@@ -119,16 +187,6 @@
 * Added non-linear gain.
 * Generally a lot of small bugfixes for the PLATOnium toolkit has been made (Issue #776, #883, #884, #885, #886, #887, #888, #889, #898, #908, #914 #916).
 * Jupyter tutorial notebooks did not work for user without a functional LaTeX installation (configured through `.matplotlibrc`). Now the module `import matplotlibrc` checks if the user has a valid LaTeX installation, and if so, activates the LaTeX rendering, and if not, fall back to normal text rendering.
-
-### Changed
-
-* Updates to the online documentation (mainly typos).
-* PLATOnium/varsim: Stellar spot modulations has a factor of two too low amplitude. Now the model is much more representative for the expected level of stellar activity.
-* PLATOnium/varsim: This method has changed its structure slightly regarding the parsed arguments.
-* The verbosity level for all methods in the PLATOnium toolkit (picsim, varsim, payload, and platonium) has changed to be inline with the usage of PlatoSim (except for the `verbose=0` which is designed for running simulations on a computing cluster). 
-
-### Added
-
 * PLATOnium/picsim: now has the option to create a stellar catalogue for a given target in the CDS/Simbad database.
 * PLATOnium/picsim: now has the option to create a stellar catalogue for an entire PLATO pointing field. This can e.g. be used as input to generate full-frame CCD images.
 * PLATOnium/platonium: can now simulate full-frame CCD images.
@@ -137,8 +195,7 @@
 * PLATOnium/platonium: can now perform a simple detrending and stitching to the on-board light curves produced by PlatoSim. 
 * Added complete documentation on how to use Poetry to install PLATOnium (for users and developers).
 * Added ocumentation about how to setup PLATOnium to run the L1 proto-pipeline. 
-  
->>>>>>> upstream/develop
+
 
 <!-- 3.6.0 -->
 <!-- ***** -->
@@ -197,7 +254,7 @@
 
 ### Changed
 
-* Changed implementation of mappded distortion
+* Changed implementation of mapped distortion
 
 ### Added
 

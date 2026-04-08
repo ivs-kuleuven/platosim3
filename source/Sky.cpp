@@ -74,8 +74,13 @@ Sky::Sky(ConfigurationParameters &configParams)
     // The path of the file  should have been set in configure().
     if (includeAberrationCorrection)
     {
-	time0 = configParams.getDouble("Camera/AberrationCorrection/StartTime")+configParams.getDouble("ObservingParameters/BeginExposureNr")*configParams.getDouble("ObservingParameters/CycleTime");
-	double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
+        // time0  is the begin time of the exposure in [s]. It is measured w.r.t. the zero-point that is mentioned
+        // the spacecraft orbit file, which is 2014-06-30T12:00:00.000. The start time of exposure # 0 w.r.t. this zero-point
+        // is stated in the yaml inputfile in "Camera/AberrationCorrection/StartTime", expressed in [s].
+      orbitStartTime = configParams.getDouble("Camera/AberrationCorrection/StartTime");
+      double time0 = orbitStartTime
+	+ configParams.getDouble("ObservingParameters/BeginExposureNr") * configParams.getDouble("ObservingParameters/CycleTime");
+      double endTime   = time0 + configParams.getDouble("ObservingParameters/NumExposures") * configParams.getDouble("ObservingParameters/CycleTime");
 
         ifstream orbitFile(orbitPlatoFile);
         if (orbitFile.is_open())
@@ -98,13 +103,14 @@ Sky::Sky(ConfigurationParameters &configParams)
 
                 istringstream buffer(line);
                 vector<double> numbers((istream_iterator<double>(buffer)), istream_iterator<double>());
-		if (time0 <= numbers[1])
+                if (time0 <= numbers[1])
                 {
                     valarray<double> v = {numbers[5], numbers[6], numbers[7]};
-		    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
-                    if (numbers[1] > endTime){break;}
+                    orbitDB.push_back(make_tuple(numbers[1], v, numbers[8]));    // (time, [v1, v2, v3], |v|)
+                            if (numbers[1] > endTime){break;}
                 }
             }
+
             if (orbitDB.size() == 0.)
             {
                 Log.error("Sky: no values between start and end time in orbitPlatoFile");
@@ -526,7 +532,7 @@ void Sky::aberrateSelectedPositions(Platform &platform, vector<unsigned int> &se
 
     for (unsigned int i = 0; i < orbitDB.size(); i++)
     {
-        if (std::get<0>(orbitDB.at(i)) <= time0 + startTime)
+        if (std::get<0>(orbitDB.at(i)) <= orbitStartTime + startTime)
         {
             speed = std::get<2>(orbitDB.at(i));
             v = std::get<1>(orbitDB.at(i));

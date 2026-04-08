@@ -10,8 +10,8 @@ import os
 
 # PlatoSim standard
 import h5py
+import shapely.plotting as sp
 import shapely.geometry as sg
-import descartes
 from tqdm import tqdm
 from ipywidgets import interact
 import numpy as np
@@ -36,8 +36,13 @@ import astropy.units as u
 import platosim.noise           as ns
 import platosim.utilities       as ut
 import platosim.referenceFrames as rf                                
-from platosim.matplotlibrc import setup
-setup()
+
+# Update plots
+import getpass
+if getpass.getuser() == 'nicholas':
+    from platosim.matplotlibrc import setup_paper; setup_paper()
+else:
+    from platosim.matplotlibrc import setup; setup()
 
 # Hard-code values
 aa = 0.5  # Alpha transparency
@@ -47,9 +52,8 @@ lw = 0.5  # Line-width
 pt = 0.1  # Percentage
 
 # Define some nice colors
-colors_sea = ['purple', 'royalblue', 'lightseagreen', 'limegreen']
+colors_sea = ['royalblue', 'lightseagreen', 'limegreen']
 colors_hot = ['tomato', 'darkorange', 'gold']
-colors_new = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
 
 
 #--------------------------------------------------------------#
@@ -159,6 +163,29 @@ def slider(imagePlot, images, Nimg, label="Image number"):
 
 
 
+def compass(ax, x, y, size):
+    
+    """Add a compass to indicate the north and east directions.
+
+    Parameters
+    ----------
+    x, y : float
+        Position of compass vertex in axes coordinates.
+    size : float
+        Size of compass in axes coordinates.
+    """
+    xy = x, y
+    scale = ax.wcs.pixel_scale_matrix
+    scale /= np.sqrt(np.abs(np.linalg.det(scale)))
+    self.annotate(label, xy, xy + size * n,
+                  self.transAxes, self.transAxes,
+                  ha='center', va='center',
+                  arrowprops=dict(arrowstyle='<-', shrinkA=0.0, shrinkB=0.0))
+
+
+
+
+    
 def moveColorbarExponent(x_offs=0, y_offs=1, dig=0, side='left', omit_last=False):
 
     """Move scientific notation exponent from top to the side.
@@ -483,7 +510,7 @@ def drawSubfieldInFocalPlane(ccdCode, xCCD, yCCD, subfieldSizeX, subfieldSizeY, 
 
 
 
-def drawStarInFocalPlane(sim, raStar, decStar):
+def drawStarInFocalPlane(sim, raStar, decStar, ccd=None):
 
     """Draw a star given by the equatorial coordinates in the focal plane.
 
@@ -537,7 +564,7 @@ def drawStarInFocalPlane(sim, raStar, decStar):
     xFPmm, yFPmm = rf.skyToFocalPlaneCoordinates(raStar, decStar, raPlatform,
                                                  decPlatform, solarPanelOrientation,
                                                  tiltTelescope, azimuthTelescope,
-                                                 focalPlaneAngle, focalLength)
+                                                 focalPlaneAngle, focalLength, ccd)
 
     if includeFieldDistortion:
         if isMapped:
@@ -555,18 +582,19 @@ def drawStarInFocalPlane(sim, raStar, decStar):
                                                        focalPlaneAngle, focalLength,
                                                        pixelSize, includeFieldDistortion,
                                                        normal, isMapped,
-                                                       distortionCoefficients, pathToPsfFile)
+                                                       distortionCoefficients,
+                                                       pathToPsfFile, ccd)
 
     if ccdCode == None:
         print ("Warning: DrawStarInFocalPlane(): The star doesn't fall on any of the CCDs.")
     else:
-        drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize)
+        drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize, ccd)
 
 
 
 
 
-def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
+def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize, ccd=None):
 
     """Plot a pixel from a particular CCD in the focal plane. 
 
@@ -590,12 +618,14 @@ def drawPixelInFocalPlane(ccdCode, xCCD, yCCD, pixelSize):
     None
     """
 
+    if ccd is None: ccd = rf.CCD()
+
     # Compute the position of the star in pixel coordinates, for the current CCD, 
     # disregarding the physical extend of the CCD
 
-    zeroPointXmm = rf.CCD[ccdCode]["zeroPointXmm"]
-    zeroPointYmm = rf.CCD[ccdCode]["zeroPointYmm"]
-    ccdAngle     = rf.CCD[ccdCode]["angle"]
+    zeroPointXmm = ccd[ccdCode]["zeroPointXmm"]
+    zeroPointYmm = ccd[ccdCode]["zeroPointYmm"]
+    ccdAngle     = ccd[ccdCode]["angle"]
 
     xFPmm, yFPmm = rf.pixelToFocalPlaneCoordinates(xCCD, yCCD, pixelSize,
                                                    zeroPointXmm, zeroPointYmm, ccdAngle)
@@ -667,13 +697,13 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
     ccdCodes      = ["1", "2", "3", "4"]
     tiltAngles    = sim['CameraGroups/TiltAngle'][:numGroups]           # [deg]
     azimuthAngles = sim['CameraGroups/AzimuthAngle'][:numGroups]        # [deg]
-    fovDegrees    = 19.6 #sim['CCD/RelativeTransmissivity/RadiusFOV']         # [deg]
+    fovDegrees    = sim['CCD/RelativeTransmissivity/RadiusFOV'] + 1     # [deg]
     focalLength   = sim['Camera/FocalLength/ConstantValue'] * 1e3       # [mm]
     pixelSize     = sim['CCD/PixelSize']                                # [micron]
     plateScale    = sim['Camera/PlateScale'] * pixelSize                # [arcsec]
 
     # Find actual FOV in pixel and mm
-    
+
     fovPixels  = fovDegrees / plateScale * c.degree / c.arcsec
     fovMm      = focalLength * np.tan(np.radians(fovDegrees))
 
@@ -777,13 +807,13 @@ def drawStarInCCDfocalPlane(fig, sim, xCCD, yCCD, refCcdCode, refGroup,
                                 -(yPixels[group] - offsetY)).buffer(fovPixels))
     for index in range(numCorners):
         one = circles[index].intersection(circles[index])
-        ax.add_patch(descartes.PolygonPatch(one, fc='gray', ec='none', alpha=0.2))
+        ax.add_patch(sp.patch_from_polygon(one, facecolor='gray', alpha=0.08))
         two = circles[index].intersection(circles[(index + 1) % numCorners])
-        ax.add_patch(descartes.PolygonPatch(two, fc='gray', ec='none', alpha=0.1))
+        ax.add_patch(sp.patch_from_polygon(two, facecolor='gray', alpha=0.08))
         three = circles[index].intersection(circles[(index + 1) % numCorners]).intersection(circles[(index + 2) % numCorners])
-        ax.add_patch(descartes.PolygonPatch(three, fc='gray', ec='none', alpha=0.05))
+        ax.add_patch(sp.patch_from_polygon(three, facecolor='gray', alpha=0.08))
     four = circles[0].intersection(circles[1]).intersection(circles[2]).intersection(circles[3])
-    ax.add_patch(descartes.PolygonPatch(four, fc='gray', ec='none', alpha=0.03))
+    ax.add_patch(sp.patch_from_polygon(four, facecolor='gray', alpha=0.08))        
 
     # Plot CCD footprint ontop
 
@@ -1020,9 +1050,9 @@ def drawStarsInSkyMollweide(fig, ra, dec):
 
 
 
-def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
-                         cbarOrientation=None, cbarMap='rainbow', color='r',
-                         title=None, fs=20, figsize=(13, 9)):
+def drawStarsInSkyAitoff(raStars, decStars, column=None, skymapFile=None, color='r', ms=1,
+                         cbarLabel=None, cbarOrientation=None, cbarMap='rainbow',
+                         title=None, fs=15, figsize=(13, 9)):
 
     """Project a catalog of stars on the sky in a Aitoff Galactic projection.
 
@@ -1077,10 +1107,6 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     # Plot Aitoff projection in Galactic coordinates
 
     fig, ax = fig
-    if len(raStars) <= 1e2: ms = 3.
-    if len(raStars) >= 1e2 and len(raStars) < 1e3: ms = 1.3
-    if len(raStars) >= 1e3 and len(raStars) < 1e5: ms = 1.
-    if len(raStars) >= 1e5: ms = 0.1
 
     # Plot Galactic map as background (e.g. Gaia DR3)
     
@@ -1093,35 +1119,45 @@ def drawStarsInSkyAitoff(raStars, decStars, magStars=None, skymapFile=None,
     # Add the sky projection ontop as transparent layer
     
     axes = fig.add_subplot(111, projection='aitoff', facecolor='none')
-
-    # Change cbarMap if no magnitudes are provided
-
-    if magStars is None:
-        cbarMap = None
         
     # Plot the targets on the sky (autumn_r, rainbow)
 
-    if magStars is not None:
-        im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=magStars,
-                         s=ms, cmap=cbarMap, zorder=3)
+    if column is not None:
+
+        if column.name in ['ncam', 'ncams']:
+            # Fetch custom discrete colorbar used by matplotlib
+            sep = 1
+            cbins = np.arange(column.min(), column.max()+2, sep)
+            ticks = cbins - 0.5
+            norm  = discretizeColorbar(cbins=cbins, cmap=cbarMap)
+            im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=column,
+                             s=ms, cmap=cbarMap, norm=norm, zorder=3)
+            cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
+            cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax,
+                                ticks=ticks, boundaries=cbins, format='%1i')
+        else:
+            im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=column,
+                             s=ms, cmap=cbarMap, zorder=3)
+            
+            # Vertical or horizontal colorbar showing magnitudes
+            if cbarLabel is None:
+                cbarLabel = r'PLATO passband, $P$'            
+
+            if cbarOrientation == 'vertical':
+                cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
+                cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
+            else:
+                cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
+                cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
+
+        # Set colobar for all
+        cbar.set_label(cbarLabel, fontsize=fs)
+        cbar.ax.tick_params(labelsize=fs)
+        
     else:
         im = plt.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian, c=color,
                          s=ms, zorder=3)
         
-    # Vertical or horizontal colorbar showing magnitudes
-
-    if magStars is not None:
-        if cbarOrientation == 'vertical':
-            cbarax = fig.add_axes([0.805, 0.2, 0.02, 0.57])
-            cbar = plt.colorbar(im, orientation='vertical', cax=cbarax, extend='both')
-            cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-            cbar.ax.tick_params(labelsize=fs)
-        else:
-            cbarax = fig.add_axes([0.25, 0.08, 0.525, 0.03])
-            cbar = plt.colorbar(im, orientation='horizontal', cax=cbarax, extend='both')
-            cbar.set_label(r'PLATO passband, $P$', fontsize=fs)
-            cbar.ax.tick_params(labelsize=fs)
-
     # Change the tick labels so that they are 0->360, rather than -180->+180
     
     tickLabels = np.array([150, 120, 90, 60, 30, 0, 330, 300, 270, 240, 210])
@@ -1221,40 +1257,18 @@ def skyProjection(fig, longitude, latitude, origin=0, projection="mollweide"):
 
 
 
-
-
-
-def compass(ax, x, y, size):
-    
-    """Add a compass to indicate the north and east directions.
-
-    Parameters
-    ----------
-    x, y : float
-        Position of compass vertex in axes coordinates.
-    size : float
-        Size of compass in axes coordinates.
-    """
-    xy = x, y
-    scale = ax.wcs.pixel_scale_matrix
-    scale /= np.sqrt(np.abs(np.linalg.det(scale)))
-    self.annotate(label, xy, xy + size * n,
-                  self.transAxes, self.transAxes,
-                  ha='center', va='center',
-                  arrowprops=dict(arrowstyle='<-', shrinkA=0.0, shrinkB=0.0))
-            # for n, label, ha, va in zip(scale, 'EN',
-            #                             ['right', 'center'],
-            #                             ['center', 'bottom'])]
-
-
-
-
             
-def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
-                 raStars=0, decStars=0, magStars=None, ms=2, aa=1,
+def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
+                 # Settings without colorbar
+                 raStars=0, decStars=0, magStars=None, ms=2, aa=1, ec='k',
+                 # Settings with colorbar
                  c=None, clabel=None, cmap='Spectral', s=40, lw=0.1,
-                 showGroups=False, showFcamFOV=False, showLegend=False, ncamStars=False,
-                 title=None, fs=20, figsize=(9,9)):
+                 # Settings for add-ons
+                 ncamStars=False, ncamMap='PIC210',
+                 showGalactic=False, aa_gal=0.01,
+                 showGroups=False, showFcamFOV=False,
+                 # General settings
+                 showLegend=False, title=None, fs=20, figsize=(9,9)):
 
     """Plot a PLATO pointing field in the sky.
 
@@ -1298,70 +1312,97 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
 
     import ligo.skymap.plot
 
-    # Fetch PIC catalogue
+    # Fetch N-CAM map if requested
 
-    if pointingField in ['SPF', 'NPF']:
-        catalogName  = 'PIC110'
-    elif pointingField in ['LOPS2', 'LOPN1']:
-        catalogName = 'PIC200'
+    if ncamMap == 'PIC210':
+        if pointingField not in ['LOPS2']:
+            ut.errorcode('error', 'Not valid pointing for PIC210! Choose [LOPS2]')
+    elif ncamMap in ['PIC200', 'PLATO-CS']:
+        if pointingField not in ['LOPS2', 'LOPN1']:
+            ut.errorcode('error', f'Not valid pointing for {ncamMap}! Choose [LOPS2, LOPN1]')        
+    elif ncamMap == 'PIC110':
+        if pointingField not in ['SPF', 'NPF']:
+            ut.errorcode('error', 'Not valid pointing for PIC110! Choose [SPF, NPF]')
     else:
-        errorcode('error', 'Not valid pointing! Choose [LOPS2, LOPN1, SPF, NPF]')
-        
+        ut.errorcode('error', 'Not valid N-CAM map! Choose [PIC210, PIC200, PIC110, PLATO-CS]')
+                
     # Select field [deg]
 
     alpha, delta, kappa = ut.getPointingField(pointingField) 
-
-    if system == 'icrs':
-        PF = SkyCoord(alpha, delta, frame='icrs', unit='deg')
+    PF = SkyCoord(alpha, delta, frame='icrs', unit='deg')
+    if system == 'icrs':    
         view = 'astro'
+        xPF, yFP = PF.ra.deg, PF.dec.deg
     elif system == 'galactic':
-        PF = SkyCoord(alpha, delta, frame='galactic', unit='deg')
         view = system
-
-    # START PLOT
+        PF = PF.transform_to(system)
+        xPF, yPF = PF.l.deg, PF.b.deg
+        
+    # Define figure
     
     fig = plt.figure(figsize=figsize)
     ax = plt.axes(projection=f'{view} degrees zoom', center=PF,
                   radius=f'{fovSize} deg', rotate='180 deg')
-        
-    # Load PIC stars for each N-CAM visibility
+    tax = ax.get_transform('world')
+    
+    # Plot N-CAM visibility flower
 
     if ncamStars is not False:
 
+        # Load PIC target stars
         if isinstance(ncamStars, pd.DataFrame):
             df = ncamStars
         else:
             idir = os.getenv('PLATO_PROJECT_HOME') + '/inputfiles/data_picsim'
-            df = pd.read_feather(f'{idir}/{catalogName}_{pointingField}_targets.ftr')
+            if ncamMap in ['PIC210', 'PIC200', 'PIC110']:
+                df = pd.read_feather(f'{idir}/{ncamMap}_{pointingField}_targets.ftr')
+            elif ncamMap == 'PLATO-CS':
+                df = pd.read_feather(f'{idir}/starcat_PlatoCS_NCAM_{pointingField}.ftr')
+                df = df.loc[::5]
             
-        PF06 = df[df['ncams'] == 6]
-        PF12 = df[df['ncams'] == 12]
-        PF18 = df[df['ncams'] == 18]
-        PF24 = df[df['ncams'] == 24]
+        # NOTE Backward compatible
+        try:
+            ncam = df.ncam
+        except AttributeError:
+            ncam = df.ncams
 
-        starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame=system, unit='deg')
-        starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame=system, unit='deg')
-        starPF18 = SkyCoord(PF18.ra*u.deg, PF18.dec*u.deg, frame=system, unit='deg')
-        starPF24 = SkyCoord(PF24.ra*u.deg, PF24.dec*u.deg, frame=system, unit='deg')
-
+        # Plot sources after N-CAM visibility
+        PF06 = df[ncam == 6]
+        PF12 = df[ncam == 12]
+        PF18 = df[ncam == 18]
+        PF24 = df[ncam == 24]
+        starPF06 = SkyCoord(PF06.ra*u.deg, PF06.dec*u.deg, frame='icrs', unit='deg')
+        starPF12 = SkyCoord(PF12.ra*u.deg, PF12.dec*u.deg, frame='icrs', unit='deg')
+        starPF18 = SkyCoord(PF18.ra*u.deg, PF18.dec*u.deg, frame='icrs', unit='deg')
+        starPF24 = SkyCoord(PF24.ra*u.deg, PF24.dec*u.deg, frame='icrs', unit='deg')
         if system == "icrs":
             x06, y06 = starPF06.ra.deg, starPF06.dec.deg
             x12, y12 = starPF12.ra.deg, starPF12.dec.deg
             x18, y18 = starPF18.ra.deg, starPF18.dec.deg
             x24, y24 = starPF24.ra.deg, starPF24.dec.deg
         elif system == "galactic":
+            starPF06 = starPF06.transform_to(system)
+            starPF12 = starPF12.transform_to(system)
+            starPF18 = starPF18.transform_to(system)
+            starPF24 = starPF24.transform_to(system)
             x06, y06 = starPF06.l.deg, starPF06.b.deg
             x12, y12 = starPF12.l.deg, starPF12.b.deg
             x18, y18 = starPF18.l.deg, starPF18.b.deg
             x24, y24 = starPF24.l.deg, starPF24.b.deg
-    
-        # Plot PIC1.1.0 stars after N-CAM visibility
-        t = ax.get_transform(system)
-        ax.plot(x06, y06, '.', c='skyblue',     transform=t, ms=ms, zorder=1)
-        ax.plot(x12, y12, '.', c='deepskyblue', transform=t, ms=ms, zorder=2)
-        ax.plot(x18, y18, '.', c='dodgerblue',  transform=t, ms=ms, zorder=3)
-        ax.plot(x24, y24, '.', c='royalblue',   transform=t, ms=ms, zorder=4)
-    
+        ax.plot(x06, y06, '.', c='skyblue',     transform=tax, ms=ms, zorder=1)
+        ax.plot(x12, y12, '.', c='deepskyblue', transform=tax, ms=ms, zorder=1)
+        ax.plot(x18, y18, '.', c='dodgerblue',  transform=tax, ms=ms, zorder=1)
+        ax.plot(x24, y24, '.', c='royalblue',   transform=tax, ms=ms, zorder=1)
+
+    # Plot transparent layer of Galactic footprint
+
+    if showGalactic:
+        # Convert to galactic coordinates
+        starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
+        starPF = starPF.transform_to('galactic')
+        ax.scatter(starPF.l.deg, starPF.b.deg, transform=ax.get_transform('world'),
+                   s=2, alpha=aa_gal, marker='.', c='k', ec='none', zorder=2)
+        
     # Plot stars and add legend scaled to the stellar magnitudes
     
     if magStars is not None and len(magStars) > 0:
@@ -1380,63 +1421,60 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     # Plot all stars
 
     if raStars is not None:
-        starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame=system, unit='deg')
+        starPF = SkyCoord(raStars*u.deg, decStars*u.deg, frame='icrs', unit='deg')
+
+        # Select system
+        if system == 'icrs':
+            xStarPF, yStarPF = starPF.ra.deg, starPF.dec.deg
+        elif system == 'galactic':
+            starPF = starPF.transform_to(system)
+            xStarPF, yStarPF = starPF.l.deg, starPF.b.deg
+
+        # Plot
         if c is None:
-            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
-                                 transform=ax.get_transform('world'), 
-                                 s=dm, alpha=aa, marker=mark, c=color, ec='k', lw=lw, zorder=5)
+            scatter = ax.scatter(xStarPF, yStarPF, s=dm, c=color, alpha=aa,
+                                 transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
         else:
-            scatter = ax.scatter(starPF.ra.deg, starPF.dec.deg,
-                                 transform=ax.get_transform('world'), 
-                                 c=c, cmap=cmap, marker=mark, s=s, ec='k', lw=lw, zorder=5)
+            scatter = ax.scatter(xStarPF, yStarPF, s=s, c=c, cmap=cmap,
+                                 transform=tax, marker=mark, ec=ec, lw=lw, zorder=5)
             cbar = plt.colorbar(scatter, extend='both', pad=0.01, shrink=0.8)
             cbar.set_label(clabel)
-
+            
     # Plot pointing of each camera group
-    
-    if showGroups:
 
-        # Show N-CAM groups
+    if showGroups:
+        # Fetch pointing of N-CAM groups
         raGroups, decGroups = rf.getCameraGroupCoordinates(np.deg2rad(alpha),
                                                            np.deg2rad(delta),
                                                            np.deg2rad(kappa))
-        camPointing = SkyCoord(np.rad2deg(raGroups)*u.deg,
-                               np.rad2deg(decGroups)*u.deg,
-                               frame='icrs', unit='deg')  
+        ncamPointing = SkyCoord(np.rad2deg(raGroups)*u.deg,
+                                np.rad2deg(decGroups)*u.deg,
+                                frame='icrs', unit='deg')
+        
+        # Plot pointing of each camera group
+        msGroups = 8
         for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
-            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=10, color=c,
-                    mec='k', transform=ax.get_transform('world'), zorder=6, label=f'Group {i+1}')
-        
-        # Plot pointing F-CAM group (i.e. platform pointing)
-        
-        ax.plot(PF.ra.deg, PF.dec.deg, '*', c='k', mfc='magenta', ms=20,
-                transform=ax.get_transform('world'), zorder=6)
-
+            if system == 'icrs':
+                ncamX, ncamY = ncamPointing[i].ra.deg, ncamPointing[i].dec.deg
+            elif system == 'galactic':
+                ncamPointing = ncamPointing.transform_to(system)
+                ncamX, ncamY = ncamPointing[i].l.deg, ncamPointing[i].b.deg
+            ax.plot(ncamX, ncamY, 'o', c=c, mec='k', ms=msGroups,
+                    transform=tax, zorder=6, label=f'Group {i+1}')
+        ax.plot(xPF, yPF, '*', c='magenta', mec='k',
+                ms=msGroups+8, transform=tax, zorder=6)
 
     # Plot F-CAM FOV as cicle 
         
     if showFcamFOV:
-        
-        # ax.plot(PF.ra.deg, PF.dec.deg,  marker='.',
-        #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
-        #         transform=ax.get_transform(system), zorder=6)
-        ax.scatter(PF.ra.deg, PF.dec.deg, s=85e3, marker='o',
-                   edgecolor='magenta', facecolor='none', linewidth=2,
+        ax.scatter(xPF, yPF, s=8e4, marker='o',
+                   edgecolor='magenta', facecolor='none', linewidth=1.5,
                    transform=ax.get_transform(system), zorder=6)
-        # ax.scatter(raGroups[3]*u.deg, decGroups[3]*u.deg, s=85e3, marker='o',
-        #            edgecolor='r', facecolor='none', linewidth=2,
-        #            transform=ax.get_transform(system), zorder=6)
-        # The problem with projecting shapes due to missing cos factor
-        # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
-        # https://github.com/astropy/regions/issues/76
-        # circle = patches.Circle((PF.ra.deg, PF.dec.deg), 18, fc='none', lw=2,
-        #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
-        #ax.add_patch()
 
     # Add-on's
     
-    ax.scalebar((0.05, 0.05), 10 * u.deg).label()
-    ax.compass(0.95, 0.05, 0.1)
+    ax.scalebar((0.03, 0.03), 10 * u.deg).label()
+    ax.compass(0.97, 0.03, 0.1)
     ax.grid(color='gray')
     
     # Settings
@@ -1444,9 +1482,13 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     if showLegend and showGroups:
         ax.legend(loc='upper right')    
     if title is not None:
-        ax.set_title(title, fontsize=fs+2, pad=10)        
-    ax.set_xlabel('RA',  fontsize=fs)
-    ax.set_ylabel('Dec', fontsize=fs)
+        ax.set_title(title, fontsize=fs+2, pad=10)
+    if system == 'icrs':        
+        xlab, ylab = 'RA', 'Dec'
+    elif system == 'galactic':
+        xlab, ylab = r'Longitude, $l$', 'Latitude, $b$'
+    ax.set_xlabel(xlab, fontsize=fs)
+    ax.set_ylabel(ylab, fontsize=fs)
     plt.xticks(fontsize=fs)
     plt.yticks(fontsize=fs)
     ax.tick_params(axis='both', labelsize=fs)
@@ -1455,159 +1497,6 @@ def plotPlatoFOV(pointingField, system="icrs", fovSize=30,
     # Return figure
     
     return fig, ax
-
-
-
-
-
-
-def plot_test(pointingField, raStars=0, decStars=0, magStars=None, system="icrs",
-                 showGroups=False, skymap=None, title=None, fs=20, figsize=(9,9)):
-
-    # TODO Under development! Attempt to remove ligo.skymap.plot package
-    # https://github.com/lpsinger/ligo.skymap/blob/main/ligo/skymap/plot/allsky.py
-    
-    import numpy as np
-    from matplotlib.patches import Circle
-    from astropy.coordinates import SkyCoord
-    import matplotlib.pyplot as plt
-    from astropy.wcs import WCS
-
-    indir = os.getenv('PLATO_PROJECT_HOME') + '/python/platosim/picsim/'
-
-    # Select field
-    
-    if pointingField == 'NPF': PF_gal = [65.0, 30.0]
-    if pointingField == 'SPF': PF_gal = [253.0, -30.0]
-    PF = SkyCoord(PF_gal[0], PF_gal[1], frame='galactic', unit='deg')  # [deg]
-
-    if system == 'icrs':
-        PF = PF.icrs  # [deg]
-        x = PF.ra.deg
-        y = PF.dec.deg
-        z = -8.5
-        xstring = 'RA---AIT'
-        ystring = 'DEC--AIT'
-    elif system == 'galactic':
-        x = PF.l.deg
-        y = PF.b.deg
-        z = 0
-        xstring = 'GLON'
-        ystring = 'GLAT'
-
-    wcs_spec =  {'CDELT1': -3.5,
-                 'CDELT2': 3.5,
-                 'CRPIX1': 8.5,
-                 'CRPIX2': 8.5,
-                 'CRVAL1': x,
-                 'CRVAL2': y,
-                 'CTYPE1': xstring,
-                 'CTYPE2': ystring,
-                 'CUNIT1': 'deg',
-                 'CUNIT2': 'deg'}
-    wcs = WCS(wcs_spec)
-
-    # Load PIC stars for each N-CAM visibility
-
-    PF06 = np.load(indir + f'{pointingField}-NCAM06.npy')
-    PF12 = np.load(indir + f'{pointingField}-NCAM12.npy')
-    PF18 = np.load(indir + f'{pointingField}-NCAM18.npy')
-    PF24 = np.load(indir + f'{pointingField}-NCAM24.npy')
-
-    starPF06 = SkyCoord(PF06[:,0]*u.deg, PF06[:,1]*u.deg, frame=system, unit='deg')
-    starPF12 = SkyCoord(PF12[:,0]*u.deg, PF12[:,1]*u.deg, frame=system, unit='deg')
-    starPF18 = SkyCoord(PF18[:,0]*u.deg, PF18[:,1]*u.deg, frame=system, unit='deg')
-    starPF24 = SkyCoord(PF24[:,0]*u.deg, PF24[:,1]*u.deg, frame=system, unit='deg')
-
-    if system == "icrs":
-        ra06, dec06 = starPF06.ra.deg, starPF06.dec.deg
-        ra12, dec12 = starPF12.ra.deg, starPF12.dec.deg
-        ra18, dec18 = starPF18.ra.deg, starPF18.dec.deg
-        ra24, dec24 = starPF24.ra.deg, starPF24.dec.deg
-    elif system == "galactic":
-        ra06, dec06 = starPF06.l.deg, starPF06.b.deg
-        ra12, dec12 = starPF12.l.deg, starPF12.b.deg
-        ra18, dec18 = starPF18.l.deg, starPF18.b.deg
-        ra24, dec24 = starPF24.l.deg, starPF24.b.deg
-    
-    # Start plotting
-    
-    fig = plt.figure(figsize=figsize)
-    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8], projection=wcs)
-
-    # Plot PIC1.1.0 stars after N-CAM visibility
-
-    ax.plot(ra06, dec06, '.', c='skyblue',     transform=ax.get_transform(system), ms=1, zorder=1)
-    ax.plot(ra12, dec12, '.', c='deepskyblue', transform=ax.get_transform(system), ms=1, zorder=2)
-    ax.plot(ra18, dec18, '.', c='dodgerblue',  transform=ax.get_transform(system), ms=1, zorder=3)
-    ax.plot(ra24, dec24, '.', c='royalblue',   transform=ax.get_transform(system), ms=1, zorder=4)
-
-    # Plot stars and add legend scaled to the stellar magnitudes
-    
-    if magStars is not None and len(magStars) > 0:
-        maxMarkerSize = 30
-        dm = (max(magStars) - magStars) * maxMarkerSize
-        mag_range = np.arange(min(magStars), max(magStars)).astype(int)
-        dm_range  = (max(magStars) - mag_range) * maxMarkerSize/10
-        mark, color = 'o', 'gold'
-        handle = [plt.plot([],[], "o", c='gray', ms=dm_range[i], ls="")[0]
-                  for i in range(len(dm_range))]
-        ax.legend(handles=handle, labels=mag_range.tolist(), loc='upper right',
-                  title=r"P [mag]", fontsize=16, title_fontsize=16)
-    else:
-        dm, mark, color = 20, '*', 'none'
-
-    # Plot pointing of each camera group
-    
-    if showGroups:
-
-        # Plot pointing of the N-CAM groups
-        
-        raGroups, decGroups = rf.getCameraGroupCoordinates(x, y, z)
-        camPointing = SkyCoord(raGroups*u.deg, decGroups*u.deg, frame='icrs', unit='deg')  
-        for i, c in zip(range(4), ['b', 'limegreen', 'yellow', 'r']):
-            ax.plot(camPointing[i].ra.deg, camPointing[i].dec.deg, 'o', ms=13, color=c,
-                    mec='k', transform=ax.get_transform('world'), zorder=6)
-
-        # Plot F-CAM and platform pointing (PIC1.1.0 and PIC2.0.0)
-        
-        ax.plot(x, y, '*', c='k', mfc='magenta', ms=25,
-                transform=ax.get_transform('world'), zorder=6)
-        # Plot F-CAM FOV as cicle
-        # ax.plot(PF_icrs.ra.deg, PF_icrs.dec.deg,  marker='.',
-        #         linestyle='solid', mfc='none', mec='magenta', ms=700, lw=3,
-        #         transform=ax.get_transform(system), zorder=6)
-        ax.scatter(x, y, s=115000, marker='o', edgecolor='magenta', facecolor='none',
-                   linewidth=2, transform=ax.get_transform(system), zorder=6)
-        # The problem with projecting shapes due to missing cos factor
-        # https://nbviewer.org/gist/cdeil/1df42de70326d577e7964be15b2a7396
-        # https://github.com/astropy/regions/issues/76
-        # circle = patches.Circle((PF_icrs.ra.deg, PF_icrs.dec.deg), 18, fc='none', lw=2,
-        #                         transform=ax.get_transform('icrs'), ec='magenta', zorder=7)
-        #ax.add_patch()
-
-
-        
-    # ax.plot(x, y,  marker='.', linestyle='solid',  mfc='none', mec='magenta', ms=700,
-    #         transform=ax.get_transform(system), zorder=7)
-    
-    ax.grid('on', color='gray')
-    #ax.scalebar((0.05, 0.05), 10 * u.deg).label()
-    compass(ax, 0.95, 0.05, 0.1)
-    
-    #l = np.linspace(-10, 10, 100)
-    #b = np.zeros_like(l)
-    #gp = SkyCoord(l, b, frame='galactic', unit='deg').transform_to('icrs')
-
-    # add galactic plane
-    #ax.plot(gp.ra.deg, gp.dec.deg, c='w', lw=1, transform=ax.get_transform('icrs'))
-    #ax.set_xlim(0, 15)
-    #ax.set_ylim(0, 15)
-
-    return fig, ax
-
-
-
 
 #--------------------------------------------------------------#
 #                     POINTING ERROR SOURCES                   #
@@ -2035,159 +1924,12 @@ def plotYawPitchRollJitter(time, signals, clabel, tpoint=100, lim=0.20,
 
     return fig, ax
 
-
-
-
-
-#--------------------------------------------------------------#
-#                        FREQUENCY ANALYSIS                    #
-#--------------------------------------------------------------#
-
-
-def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
-            title=False, xlim=False, ylim=False, linewidth=False, misreq=False):
-
-    """Plots the Power Spectral Density (PSD). 
-    
-    Alongside the data a median filter is plotted with a default carbox
-    length of 144 time points, corresponding to 1 hour precision if the
-    time series has a cadence of 25 seconds.
-
-    Parameters
-    ----------
-    freq : narray
-        Frequency points [Hz, mHz, or mizroHz]
-    psd : narray, list-narray
-        Either single signal array or a list of signal arrays
-    carbox : int (optional)
-        Length of median carbox filter. Default is 3600s/25s = 144. Also False to ignore.
-    title : str (optional)
-        Title for plot
-    labels : list-str (optinal)
-        List of string labels where the first is the xlabel and the rest is ylabels
-    xmin : float (optional)
-        Limit for x min. The x max limit is the Nyquist frequency
-    ylim : list-float (optional)
-        List of y min and max limit ["y-min", "y-max"]
-
-    Return
-    ------
-    Plot or/and saved plot to PNG.
-    """
-
-    # Handle the number of input data sets
-
-    if type(psd) == list:
-        numData = len(psd)
-    else:
-        numData = 1
-        freq = [freq]
-        psd = [psd]
-
-    # Handle axes units
-
-    if units is False:
-        units = ['$\mu$Hz', 'ppm']
-        scale = 1e6
-    else:
-        scale = 1
-
-    # Handle colors
-
-    if colors is False:
-        colors = ['tomato', 'darkorange', 'gold']
-        if numData > 3:
-            colors = cm.rainbow(np.linspace(0, 1, numData))
-
-    # Handle linewidths
-
-    if linewidth is False:
-        lw = 1
-    else:
-        lw = linewidth
-
-    # Create axes objects
-
-    axes = fig.add_subplot()
-
-    # Allow plotting multiple PSDs in consecutive subplots
-
-    for plot in np.arange(numData):
-
-        # Plot results
-
-        if labels is False:
-            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw)
-        else:
-            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw, label=labels[plot])
-
-        # Plot median filter if requested
-
-        if carbox:
-            perhour = carbox*25/3600
-            PSD_med = median_filter(psd[plot], carbox)
-            plt.plot(freq[plot], PSD_med, 'k-', lw=lw+1, label='{0}h median '.format(perhour))
-
-    # Plot mission requirements (from the red book)
-
-    if misreq:
-        plt.plot([3e-6*scale, 20e-6*scale], [21.4*scale, 0.23*scale],
-                 c='k', linestyle='--', lw=1, label='MPE requirement')
-        plt.plot([20e-6*scale, 4e-2*scale], [0.23*scale, 0.23*scale],
-                 c='k', linestyle='--', lw=1)
-
-    # Log scaling
-
-    plt.xscale("log")
-    plt.yscale("log")
-
-    # Latter settings
-
-    plt.ylabel(r'PSD [{}$^2$ {}'.format(units[1], units[0])+'$^{-1}$]')
-
-    # Set x-min limit
-
-    if xlim is not False:
-        plt.xlim(xlim[0], xlim[1])
-
-    # Set y limits
-
-    if ylim is not False:
-        plt.ylim(ylim[0], ylim[1])
-
-    # Set title
-
-    if title is not False and plot == 0:
-        plt.title(title, fontsize=fs)
-
-    if labels is not False or misreq is True:
-        plt.legend(loc='best')
-
-    # Remaining
-
-    plt.xlabel(r'Frequency [{}]'.format(units[0]))
-    plt.tight_layout()
-    plt.subplots_adjust(hspace = .001)
-    plt.grid()
-
-    # Finito!
-
-    return axes
-
-
-
-
-
 #--------------------------------------------------------------#
 #                          PHOTOMETRY                          #
 #--------------------------------------------------------------#
 
-
 def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
-
     """Function normalize the input flux and change time units to days. 
-
-    NOTE: Function tailored to PLATOniums output format feather!
 
     Parameters
     ----------
@@ -2204,14 +1946,13 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
     ------
     fig, ax : objects
         Axes matplotlib.pyplot handle object to be modified by the user.
-    """
 
+    NOTE: Function tailored to PLATOniums output format feather!
+    """
     # Create matplotlib object
-    
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # Plot the input variable source
-    
     if "flux_err" in df.columns:
         ax.errorbar(df["time"], df["flux"], yerr=df["flux_err"],
                     fmt=".", color='k', ecolor='darkgray', elinewidth=1,
@@ -2220,40 +1961,39 @@ def plotPhotometry(df, time_unit=False, flux_unit=False, figsize=(8,5)):
         ax.plot(df["time"], df["flux"], 'k.', ms=5, alpha=aa, label="Raw flux", zorder=1)
 
     # Plot a median filter
-    
     if "flux_med" in df.columns:
-        ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw, label='1h mdeian', zorder=2)
+        ax.plot(df["time"], df["flux_med"], '-', c='royalblue', lw=lw,
+                label='1h mdeian', zorder=2)
     
     # Show binned mean points if requested
-    
     if "flux_bin" in df.columns:
         binsize = 1
-        ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k', label=f'{binsize}h bins', zorder=3)
+        ax.plot(df["time"], df["flux_bin"], 'ro', ms=8, mec='k',
+                label=f'{binsize}h bins', zorder=3)
             
     # Settings
-    
     ax.set_xlim(df["time"].iloc[0], df["time"].iloc[-1])
     ax.set_xlabel(f"Time [{time_unit}]")
     ax.set_ylabel(f"Flux [{flux_unit}]")
     ax.legend(loc='best')
 
-    # That's it!
-    
+    # That's it!    
     return fig, ax
 
 
-
-    
-
-
-def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
-                       yscale="log", cmap="rainbow",
-                       show_targets=False,
+def plotNSRvsMagnitude(df,
+                       column=False,
+                       residuals=False,
+                       passband='P',
+                       yscale="log",
+                       cmap="rainbow",
+                       show_ncam_requirements=False,
                        show_ncam_noise_limits=False,
                        show_saturation_limits=False,
-                       grid=False, legend=False, cbar_extend=None,
+                       grid=False,
+                       legend=False,
+                       cbar_extend=None,
                        figsize=(10,6)):
-
     """Plot the NSR vs. Magnitude for a star catalogue.
 
     Parameters
@@ -2280,9 +2020,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     axes : object
         Axes matplotlib.pyplot handle object to be modified by the user
     """
-    
     # Create matplotlib object
-    
     fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     # Secure a small offset in x axis to show data
@@ -2290,34 +2028,31 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     ax.set_xlim(df.mag.min()-dx, df.mag.max()+dx)
 
     # Define global colormap
-    
     cmap = plt.cm.get_cmap(cmap)
     
     # Set figure labels
-
     if passband == 'P':
         xlabel = r'PLATO magnitude, $\mathcal{P}$'
     elif passband == 'V':
         xlabel = r'Johnson-Cousin magnitude, $V$'
     else:
-        errorcode('error', 'Not valid passband: options ["P", "V"]')
+        ut.errorcode('error', 'Not valid passband: options ["P", "V"]')
     ax.set_xlabel(xlabel)
     ylabel = r'NSR [ppm h$^{-1/2}$]'
     
     # Handle colorbar and make discrete
-    
     if column in ("group", "camera", "quarter", "ncam", "ncon", "flag"):
-
         # Fetch custom discrete colorbar used by matplotlib
         sep =1
         cbins = np.arange(df[column].min(), df[column].max()+2, sep)
         ticks = cbins + 0.5
         norm  = discretizeColorbar(cbins=cbins, cmap=cmap)
     else:
+        cbins = None
+        ticks = None
         norm = None
     
     # Distinguish between the NSR or O-C plot
-    
     if residuals in ("camera", "system"):
         ax.set_ylabel('NSR Residuals [ppm]')
         if yscale == "log":
@@ -2325,35 +2060,31 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
                             c=df[column], cmap=cmap, norm=norm)
         else:
             im = ax.scatter(df["mag"], df["res"], s=5, zorder=1,
-                            c=df[column], cmap=cmap, norm=norm)
-            
+                            c=df[column], cmap=cmap, norm=norm)            
     elif column:
         im = ax.scatter(df["mag"], df["NSR"], s=3, alpha=1, zorder=1,
                         c=df[column], cmap=cmap, norm=norm)
         ax.set_ylabel(ylabel)
-        
     else:
+        im = False
         ax.plot(df["mag"], df["NSR"], 'k.', alpha=0.7, zorder=1)
         ax.set_ylabel(ylabel)
         
     # Extra settings for colorbar after image generation
-
     if column == 'rOA':
         column_label = r'$\vartheta_{\rm OA}$ [deg]'
     else:
         column_label = column
     
-    if norm is None:
+    if im and norm is None:
         cb = plt.colorbar(im, extend=cbar_extend, pad=0.01)
         cb.set_label(column_label)
     else:
-
         # Change label
         if column == 'ncam':
             column_label = r'$n_{\rm CAM}$'
         elif column == 'ncon':
             column_label = r'$n_{\rm contaminants}$'
-            
         # Plot the colorbar
         cb = plt.colorbar(im, extend=cbar_extend, pad=0.01, spacing='proportional',
                           ticks=ticks, boundaries=cbins, format='%1i')
@@ -2364,15 +2095,8 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         # if (df[column].max() - df[column].min()) > 24:
         #     for label in cb.ax.yaxis.get_ticklabels()[::2]:
         #         label.set_visible(False)
-
-    # Highlight single stars
-    
-    if show_targets and column == 'ncon' and residuals == 'multi':
-        dc = df.loc[df.ncon == 0]
-        ax.scatter(dc.mag, dc.NSR, s=3, color=cmap(0.0), zorder=1)
                 
     # Plot saturation limits
-    
     if show_saturation_limits:
         ax.axvline(x=8.5, color="k", alpha=0.7, linestyle=':',  zorder=0,
                    label='Onset of saturation')
@@ -2380,16 +2104,13 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
                    label='Moderate saturation')
 
     # Plot requirements
-        
-    if residuals == "camera":
+    if show_ncam_requirements == "camera":
         ax.axhline(y=108, c="darkorange", ls="--", label="AOCS camera req.: 108 ppm", zorder=0)
         if yscale == "linear":
             ax.axhline(y=-108, c="darkorange", ls="--")
-            
-    elif residuals == "system":
+    elif show_ncam_requirements == "system":
         ax.axhline(y=9, c="red", ls="--", label="AOCS system req.: 9 ppm", zorder=0)
-        
-    elif residuals == "multi" and 'ncam' in df:
+    elif show_ncam_requirements == "multi" and 'ncam' in df:
         for nsr, ncam, color in zip([100, 70, 58, 50],
                                     [6, 12, 18, 24],
                                     [0.0, 0.33, 0.66, 0.999]):
@@ -2398,44 +2119,44 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
         ax.axvline(x=11, color="k", lw=1, alpha=0.5, linestyle='-', zorder=0)
 
     # Plot noise limits
-
     if show_ncam_noise_limits:
-        
         # Magnitude range
         mag = np.linspace(0, 20, 100)
-
-        # 
+        # Auto selection of level
         if show_ncam_noise_limits == 1:
             ncam  = 1
             level = 'camera'
         else:
             ncam  = 24
             level = 'instrument'
-        
         # Jitter noise
+        if legend == 'SMBHB':
+            lab = None
+        else:
+            lab = 'Jitter noise'
         rms = 0.04
         noise_jitter = ut.getJitterNoiseLimitNSR(rms, tdur=3600, camType='normal')
         ax.axhline(y=noise_jitter, c="deeppink", ls="--", lw=1.5, zorder=2,
-                   label='Jitter noise')
-
+                       label=lab)
         # Photon noise
         ncams = show_ncam_noise_limits
         noise_photon = ut.getPhotonNoiseLimitNSR(mag, passband=passband, ncam=ncams)
         ax.plot(mag, noise_photon, '-.', c='deeppink', lw=1.5, zorder=2,
                 label='Photon noise')
-        
         # Background and readout noise
         noise_background = ut.getBackgroundNoiseLimitNSR(mag, passband=passband, ncam=ncam)
         ax.plot(mag, noise_background, ':', c='deeppink', lw=1.5, zorder=2,
-                label='Sky and read noise')
-
+                label='Sky/read noise')
         # Combine and plot
+        if legend == 'SMBHB':
+            lab = 'Noise model'
+        else:
+            lab = r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model"
         noise = np.sqrt(noise_jitter**2 + noise_photon**2 + noise_background**2)
         ax.plot(mag, noise, '-', c='orange', lw=2,  zorder=2,
-                label=r"$n_{\rm CAM}=\,$"+f"{show_ncam_noise_limits} noise model")
+                label=lab)
         
     # Force all yticks for log plot
-
     ax.set_yscale(yscale)
     if (df["NSR"].max() - df["NSR"].min()) < 900:
         subticks = [.1, .2, .3, .4, .5, .6, .7, .8, .9] 
@@ -2448,11 +2169,7 @@ def plotNSRvsMagnitude(df, column=False, residuals=False, passband='P',
     if legend: ax.legend(loc='upper left')
 
     # Return axes objects
-    
     return fig, ax
-
-
-
 
 
 #--------------------------------------------------------------#
@@ -2547,7 +2264,7 @@ def plotTeffvsRadius(ds, df_dK, df_dG, df_dF,
     ax.legend(h, l, ncol=3, loc='upper left', prop={'size':12},
                columnspacing=0.5, handletextpad=0)
 
-    # That's it!
+    # Finito!
 
     return fig, ax
 
@@ -2598,7 +2315,6 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
     axes[0,0].hist(magTar, binlistTar, facecolor='b', edgecolor='b', fill=True, alpha=0.3)
     axes[0,0].set_title('Magnitude distribution of PIC targets')
     axes[0,0].set_xlabel(r'$P$ passband')
-    #axes[0,0].set_xlabel(r'$V$ Johnson-Cousin')
     axes[0,0].set_ylabel('Number of stars')
     axes[0,0].locator_params(axis='y', integer=True)
     axes[0,0].tick_params(axis='x', which='minor', bottom=True, top=False)
@@ -2615,7 +2331,6 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 
     axes[0,1].hist(magCon, binlistCon, facecolor='m', edgecolor='m', fill=True, alpha=0.3)
     axes[0,1].set_title('Magnitude distribution of PIC contaminants')
-    #axes[0,1].set_xlabel(r'$V$ Johnson-Cousin')
     axes[0,1].set_xlabel(r'$P$ passband')
     axes[0,1].set_ylabel('Number of stars')
     axes[0,1].tick_params(axis='x', which='minor', bottom=True, top=False)
@@ -2628,9 +2343,10 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 
     numbinCon  = 1 + int(np.max(numConPerTar)/50)
     binsizeNum = int((np.max(numConPerTar) - 0) / numbinCon) + 2
-    binlistNum = np.linspace(-0.5, np.max(numConPerTar)+0.5, binsizeNum)  # -0.5 because num x-axis
+    binlistNum = np.linspace(-0.5, np.max(numConPerTar)+0.5, binsizeNum)
 
-    axes[1,0].hist(numConPerTar, binlistNum, facecolor='g', edgecolor='g', fill=True, log=True, alpha=0.3)
+    axes[1,0].hist(numConPerTar, binlistNum, facecolor='g', edgecolor='g',
+                   fill=True, log=True, alpha=0.3)
     axes[1,0].yaxis.set_major_formatter(ScalarFormatter())
     axes[1,0].set_title('Number distribution of contaminants per target')
     axes[1,0].set_xlabel('Number of contaminants')
@@ -2641,13 +2357,14 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
     axes[1,0].tick_params(axis='y', which='major', left=True, right=False)
     axes[1,0].grid(axis='y', color='gray', alpha=0.3)
 
-    # Prepare bins and plot distance distribution of contaminants in respect to their target star
+    # Prepare bins and plot distance distribution of contaminants wrt their target star
 
     distbinCon  = 1.0
-    binsizeDist = int((np.max(distCon) - np.min(distCon)) / distbinCon) + 2  # +1 extra because zero is rare
+    binsizeDist = int((np.max(distCon) - np.min(distCon)) / distbinCon) + 2
     binlistDist = np.linspace(round(np.min(distCon)), round(np.max(distCon)), binsizeDist)
 
-    axes[1,1].hist(distCon, binlistDist, facecolor='orange', edgecolor='orange', fill=True, alpha=0.4)
+    axes[1,1].hist(distCon, binlistDist, facecolor='orange', edgecolor='orange',
+                   fill=True, alpha=0.4)
     axes[1,1].set_title('Distance distribution of contaminants')
     axes[1,1].set_xlabel('Distances [arcsec]')
     axes[1,1].set_ylabel('Number of stars')
@@ -2666,13 +2383,385 @@ def plotStellarSampleDistributions(fig, magRange, magTar, magCon, numConPerTar, 
 
     return axes
 
+#--------------------------------------------------------------#
+#                        FREQUENCY ANALYSIS                    #
+#--------------------------------------------------------------#
+
+def plotPSD(fig, freq, psd, carbox=144, units=False, labels=False, colors=False,
+            title=False, xlim=False, ylim=False, linewidth=False, misreq=False):
+    """Plots the Power Spectral Density (PSD). 
+    
+    Alongside the data a median filter is plotted with a default carbox
+    length of 144 time points, corresponding to 1 hour precision if the
+    time series has a cadence of 25 seconds.
+
+    Parameters
+    ----------
+    freq : narray
+        Frequency points [Hz, mHz, or mizroHz]
+    psd : narray, list-narray
+        Either single signal array or a list of signal arrays
+    carbox : int (optional)
+        Length of median carbox filter. Default is 3600s/25s = 144. Also False to ignore.
+    title : str (optional)
+        Title for plot
+    labels : list-str (optinal)
+        List of string labels where the first is the xlabel and the rest is ylabels
+    xmin : float (optional)
+        Limit for x min. The x max limit is the Nyquist frequency
+    ylim : list-float (optional)
+        List of y min and max limit ["y-min", "y-max"]
+
+    Return
+    ------
+    Plot or/and saved plot to PNG.
+    """
+    # Handle the number of input data sets
+    if type(psd) == list:
+        numData = len(psd)
+    else:
+        numData = 1
+        freq = [freq]
+        psd = [psd]
+
+    # Handle axes units
+    if units is False:
+        units = ['$\mu$Hz', 'ppm']
+        scale = 1e6
+    else:
+        scale = 1
+
+    # Handle colors
+    if colors is False:
+        colors = ['tomato', 'darkorange', 'gold']
+        if numData > 3:
+            colors = cm.rainbow(np.linspace(0, 1, numData))
+
+    # Handle linewidths
+    if linewidth is False:
+        lw = 1
+    else:
+        lw = linewidth
+
+    # Create axes objects
+    axes = fig.add_subplot()
+
+    # Allow plotting multiple PSDs in consecutive subplots
+    for plot in np.arange(numData):
+
+        # Plot results
+        if labels is False:
+            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw)
+        else:
+            plt.plot(freq[plot], psd[plot], '-', c=colors[plot], lw=lw, label=labels[plot])
+
+        # Plot median filter if requested
+        if carbox:
+            perhour = carbox*25/3600
+            PSD_med = median_filter(psd[plot], carbox)
+            plt.plot(freq[plot], PSD_med, 'k-', lw=lw+1, label='{0}h median '.format(perhour))
+
+    # Plot mission requirements (from the red book)
+    if misreq:
+        plt.plot([3e-6*scale, 20e-6*scale], [21.4*scale, 0.23*scale],
+                 c='k', linestyle='--', lw=1, label='MPE requirement')
+        plt.plot([20e-6*scale, 4e-2*scale], [0.23*scale, 0.23*scale],
+                 c='k', linestyle='--', lw=1)
+
+    # Log scaling
+    plt.xscale("log")
+    plt.yscale("log")
+
+    # Latter settings
+    plt.ylabel(r'PSD [{}$^2$ {}'.format(units[1], units[0])+'$^{-1}$]')
+
+    # Settings
+    if xlim is not False:
+        plt.xlim(xlim[0], xlim[1])
+    if ylim is not False:
+        plt.ylim(ylim[0], ylim[1])
+    if title is not False and plot == 0:
+        plt.title(title, fontsize=fs)
+    if labels is not False or misreq is True:
+        plt.legend(loc='best')
+
+    # Remaining
+    plt.xlabel(r'Frequency [{}]'.format(units[0]))
+    plt.tight_layout()
+    plt.subplots_adjust(hspace = .001)
+    plt.grid()
+
+    # Finito!
+    return axes
+
+
+def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
+                    c='k', label='Simulation',
+                    cm='orange', label_model='Model',
+                    show_misreq=True, noise_level=None,
+                    numax=False, title=False, logx=True, logy=True,
+                    figsize=(9,6)):
+    """Plot Power Spectral Density (PSD) for solar-like star.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Data frame with observed light cuvre (time [s], flux [norm]). 
+    dm : pd.DataFrame
+        Data frame with model light curve (time [s], flux [norm]).
+    scaling : str
+        scipy.periodogram scaling argument {'density', 'spectrum'}.
+    **kwargs
+
+    Return
+    ------
+    matplotlib.pyplot handles (fig, ax)
+    """
+    # Convert flux to ppm
+    df = df0.copy()
+    df.time = df.time / 1e6
+    df.flux = (df.flux - 1) * 1e6
+    # Compute PSD up to Nyquist frequency
+    sampling = np.diff(df.time)[0]
+    freq, psd = periodogram(df.flux, 1/sampling, scaling=scaling)
+
+    # Start plotting data and model
+    fig, ax = plt.subplots(1, 1, figsize=figsize)    
+    ax.plot(freq, psd, '-', c=c, lw=lw, label=label)
+    if isinstance(dm0, pd.DataFrame):
+        # Convert units
+        dm = dm0.copy()
+        dm.time = dm.time / 1e6
+        dm.flux = (dm.flux - 1) * 1e6
+        # Compute PSD up to Nyquist frequency
+        sampling = np.diff(dm.time)[0]
+        freq_model, psd_model = periodogram(dm.flux, 1/sampling, scaling=scaling)
+        ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model, alpha=0.7)
+
+    x1, x2, x3 = 3, 20, freq[-1]
+    y1 = 50**2
+    # Plot mission requirements (from the red book)
+    if show_misreq:
+        lw = 1.5
+        var = 3600e-6 * np.array([225, 103, 71, 58, 50])**2
+        plt.plot([x1, x3], [var[0],    var[0]], linestyle='-', lw=lw, c='m', label='Random Noise')
+        plt.plot([x1, x2], [var[1]+y1, var[1]], linestyle='-', lw=lw, label='Req. 06 N-CAM', c='royalblue')
+        plt.plot([x1, x2], [var[2]+y1, var[2]], linestyle='-', lw=lw, label='Req. 12 N-CAM', c='lime')
+        plt.plot([x1, x2], [var[3]+y1, var[3]], linestyle='-', lw=lw, label='Req. 18 N-CAM', c='yellow')
+        plt.plot([x1, x2], [var[4]+y1, var[4]], linestyle='-', lw=lw, label='Req. 24 N-CAM', c='red')
+        plt.plot([x2, x3], [var[1],    var[1]], linestyle='-', lw=lw, c='royalblue')
+        plt.plot([x2, x3], [var[2],    var[2]], linestyle='-', lw=lw, c='lime')
+        plt.plot([x2, x3], [var[3],    var[3]], linestyle='-', lw=lw, c='yellow')
+        plt.plot([x2, x3], [var[4],    var[4]], linestyle='-', lw=lw, c='red')
+
+    # Plot noise level
+    if noise_level:
+        plt.plot([x1, x3], [noise_level, noise_level],
+                 c='c', linestyle='--', lw=2, label='Noise level')
+        
+    # Settings
+    if logx: ax.set_xscale('log')
+    if logy: ax.set_yscale('log')
+    ax.set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
+    ax.set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
+    ax.legend(ncol=1, loc='best')
+    plt.tight_layout()
+    return fig, ax
 
 
 
+def compute_double_sided_PSD(time_series,#: np.ndarray,
+                             time_interval=25,#: Union[int, float] = 25,
+                             detrend=False,#: Union[bool, str, int] = False,
+                             scipy=True): #bool = True) -> tuple[np.ndarray, np.ndarray]:
+    """Compute Double Sided Power Spectral Density (PSD).
+
+    PSD is simply a PS (Power Spectrum) divided by ENBW (Effective Noise Bandwidth).
+    This function computes a double sided PSD, so the negative frequencies are not
+    removed. Because of this the PS is not multiplied by a factor of 2 when scaling
+    it. The scaling only takes into account the sampling frequency and the the loss
+    of energy because of applying a window function. As the window is a boxcar,
+    we can simply use the length of the time series instead.
+
+    Args:
+        time_series ([np.ndarray]): time series data
+        time_interval (int, optional): Time interval of the time series in seconds. Defaults to 25.
+        detrend (bool or str or int, optional): Whether to apply de-trending or not.
+        scipy (bool, optional): Whether to use SciPy periodogram or NumPy FFT. Defaults to True.
+
+    Returns:
+        [tuple]: tuple containing frequency array, PSD array, and time series tuple
+    """
+    time = np.linspace(start=0,
+                       stop=len(time_series),
+                       num=len(time_series)) * time_interval
+
+    if scipy:
+        frequencies, psd = periodogram(time_series,
+                                       fs=1 / time_interval,
+                                       window='boxcar',
+                                       nfft=None,
+                                       detrend=detrend,
+                                       return_onesided=False,
+                                       scaling='density',
+                                       axis=-1)
+    else:
+        if detrend:
+            not_nan_ind = ~np.isnan(time_series)
+            if isinstance(detrend, str) and 'linear' in detrend:
+                print('Applying linear detrending...')
+
+                m, b, _, _, _ = stats.linregress(
+                    time[not_nan_ind], time_series[not_nan_ind])
+
+                time_series = time_series - (m * time + b)
+            elif isinstance(detrend, int):
+                print(f'Applying polymial order {detrend} detreding...')
+                model = np.polyfit(time[not_nan_ind],
+                                   time_series[not_nan_ind],
+                                   detrend)
+                predicted = np.polyval(model, time)
+
+                time_series = time_series - predicted
+            else:
+                raise NotImplementedError
+
+        fft_of_time_series = np.fft.fft(time_series)
+
+        # scaling - normally this would be 2 / (frequency * window_compensation)
+        # here we compute a double sided PSD, so we drop the factor 2
+        # instead of frequency we have time interval i.e. 1/frequency
+        # because we do not use a window function, instead of having
+        # a sum of squared samples of window function, we simply use the
+        # lenght of the input time series. Thus, the scaling here is
+        # time_interval / length of the data
+        # for more details, see
+        # https://dsp.stackexchange.com/questions/32187/what-should-be-the-correct-scaling-for-psd-calculation-using-tt-fft
+        # https://stackoverflow.com/questions/22338415/scipy-periodogram-terminology-confusion
+        scale = time_interval / time_series.shape[-1]
+
+        # psd is the absolute ps (fft of time series) squared
+        psd = scale * np.abs(fft_of_time_series)**2
+
+        frequencies = np.fft.fftfreq(time_series.shape[-1], time_interval)
+
+    idx = np.argsort(frequencies)
+    psd = psd[idx]
+    frequencies = frequencies[idx]
+
+    return frequencies, psd
+
+
+
+def create_performance_figure(data, EoL=False,
+                              freq_break=20e-6,
+                              min_freq=3e-6,
+                              max_freq=40e-3,
+                              residual_noise_floor=0.68e-6,
+                              random_noise_level=3.0e-6,
+                              residual_noise_top=50e-6):
+    """
+
+    Args:
+        data ([np.asarray]):
+        EoL Bool
+        freq_break ([float], optional): [description]. Defaults to 20e-6.
+        min_freq ([float], optional): [description]. Defaults to 3e-6.
+        max_freq ([type], optional): [description]. Defaults to 40e-3.
+        residual_noise_floor ([float], optional): [description]. Defaults to 0.68e-6.
+        random_noise_level ([float], optional): [description]. Defaults to 3.0e-6.
+        residual_noise_top ([float], optional): [description]. Defaults to 50e-6.
+        output_file ([str], optional): name of the output file.
+    """
+    if EoL:
+        output_file='mission_performance_asd_EoL.png'
+    else:
+        output_file='mission_performance_asd.png'
+
+    freq, psd = data
+
+    fig = plt.figure(figsize=(12, 8))
+
+    # plot the ASD
+    plt.plot(freq, psd, 'gray', alpha=0.5)
+
+    # plot binned ASD
+    m = 10
+    p = int(freq.size / m)
+    num = rebin1d(freq[0:p*m], p) / float(m)
+    binned = rebin1d(psd[0:p*m], p) / float(m)
+
+    plt.plot(num[1:], binned[1:], 'black',  lw=2)
+
+    # residual error line
+    plt.hlines(y=residual_noise_floor, xmin=freq_break, xmax=max_freq,
+               colors='red', linestyles='-')
+    # random noise line
+    plt.hlines(y=random_noise_level, xmin=min_freq, xmax=max_freq,
+               colors='magenta', linestyles='-')
+    # slope line from residual to random top level
+    x_values = np.linspace(min_freq, freq_break, 2)
+    y_values = np.linspace(residual_noise_top, residual_noise_floor, 2)
+    plt.plot(x_values, y_values, color='red', linestyle='-')
+
+    # dashed  guide lines
+    plt.vlines(x=freq_break, ymin=1e-8, ymax=residual_noise_floor,
+               linestyles='dashed', colors='blue')
+    plt.vlines(x=max_freq, ymin=1e-8, ymax=residual_noise_floor,
+               linestyles='dashed', colors='blue')
+    plt.vlines(x=min_freq, ymin=1e-8, ymax=residual_noise_top,
+               linestyles='dashed', colors='blue')
+    plt.hlines(y=residual_noise_floor, xmin=1e-10, xmax=freq_break,
+               linestyles='dashed', colors='blue')
+    plt.hlines(y=residual_noise_top, xmin=1e-8, xmax=min_freq,
+               linestyles='dashed', colors='blue')
+
+    # texts
+    freq_units = r' $\frac{\mathrm{ppm}}{\sqrt{\mu\mathrm{Hz}}}$'
+    top_text = f'{int(residual_noise_top*1e6)}' + freq_units
+    plt.text(x=min_freq, y=residual_noise_top*1.25,
+             s=top_text,
+             ha='center')
+    random_noise_text = f'Random Noise\n(incl. photonic stellar reference noise)\n{random_noise_level*1e6}' + freq_units
+    plt.text(x=5e-4, y=random_noise_level*1.25,
+             s=random_noise_text,
+             ha='center')
+    residual_error_text = f'Residual Errors\n{round(residual_noise_floor*1e6, 2)}' + \
+        freq_units
+    plt.text(x=5e-4, y=residual_noise_floor*1.25,
+             s=residual_error_text,
+             ha='center')
+
+    plt.xscale('log')
+    plt.yscale('log')
+
+    plt.xlim(1e-6, 1e-1)
+    plt.ylim(1e-7, 1e-4)
+
+    # modify x tick points
+    ticks = [1e-6, min_freq, 1e-5, freq_break,
+             1e-4, 1e-3, 1e-2, max_freq, 1e-1]
+    labels = ['$10^{-6}$', str(int(min_freq*1e6)) + '$\mu$Hz', '$10^{-5}$',
+              str(int(freq_break*1e6)) + '$\mu$Hz',
+              '$10^{-4}$', '$10^{-3}$', '$10^{-2}$',
+              str(int(max_freq*1e3)) + 'mHz', '$10^{-1}$']
+    plt.xticks(ticks=ticks, labels=labels)
+
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel(r'Amplitude Spectral Density $(\mu\mathrm{Hz})^{-\frac{1}{2}}$')
+
+    plt.tight_layout()
+    #plt.savefig(output_file, dpi=150)
+    
+
+def rebin1d(array, n):
+    nr = int(float(array.shape[0]) / float(n))
+    return (np.reshape(array, (n, nr))).sum(1)
 
 #--------------------------------------------------------------#
 #                        VARSIM PLOTS                          #
 #--------------------------------------------------------------#
+
 
 def plotSED(wvl, wvl1_in, wvl2_in, wvl_equi,
             flux, flux1_in, flux2_in, flux_equi,
@@ -2684,6 +2773,7 @@ def plotSED(wvl, wvl1_in, wvl2_in, wvl_equi,
     fig, ax = plt.subplots(2, 1, figsize=(8,7))
 
     # Teff labels
+    
     Teff0 = r'$T_{\mathrm{eff}}$' + f' = {int(Teff_upper)} K'
     Teff1 = r'$T_{\mathrm{eff}}$' + f' = {int(Teff)} K'
     Teff2 = r'$T_{\mathrm{eff}}$' + f' = {int(Teff_lower)} K'
@@ -2704,8 +2794,10 @@ def plotSED(wvl, wvl1_in, wvl2_in, wvl_equi,
     # Plot the final equidistant grid used for further calculations
 
     ymax1 = flux_equi.max() + flux_equi.max() * 0.3
-    ax[1].plot(wvl,      flux,      c=cc[1], lw=0.5, alpha=0.9, label='Interpolated grid: '+Teff1)
-    ax[1].plot(wvl_equi, flux_equi, c=cc[3], lw=2.0, alpha=1.0, label=r'Equidistant grid in passband')
+    ax[1].plot(wvl,      flux,      c=cc[1], lw=0.5, alpha=0.9,
+               label=f'Interpolated grid: {Teff1}')
+    ax[1].plot(wvl_equi, flux_equi, c=cc[3], lw=2.0, alpha=1.0,
+               label=r'Equidistant grid in passband')
     ax[1].fill_between((0,      wvl_equi[0]), 0, ymax0, facecolor='gray', alpha=0.2)
     ax[1].fill_between((wvl_equi[-1], 13000), 0, ymax0, facecolor='gray', alpha=0.2)
     ax[1].set_xlim(wvl_equi[0]-1000, wvl_equi[-1]+1000)
@@ -2720,20 +2812,15 @@ def plotSED(wvl, wvl1_in, wvl2_in, wvl_equi,
     plt.tight_layout(h_pad=0.15)
     plt.show()
 
-    # from platosim.matplotlibrc import setup_paper
-    # setup_paper()    
-    #odir = '/lhome/nicholas/Nextcloud/paperPlatoGmode/figures'
-    #fig.savefig(f'{odir}/BolometricCorrection.png', bbox_inches='tight', dpi=200)
-
     # Finito!
     
     return fig, ax
 
 
 
-    
 
-def plot_amplitude_time_series(time, signal_gran, signal_puls):
+
+def plotGranOscTimeSeries(time, signal_gran, signal_puls):
 
     """Plot bolometric luminosity amplitude timeseries.
     """
@@ -2742,7 +2829,7 @@ def plot_amplitude_time_series(time, signal_gran, signal_puls):
 
     # Correct time points from Ms to days
 
-    time = time * 1e6 / 86400.
+    time = time * 1e6 / 86400
     
     # Plot
 
@@ -2754,9 +2841,9 @@ def plot_amplitude_time_series(time, signal_gran, signal_puls):
     # Limits
 
     ax1.set_xlim(0, time[-1])
-    ax1.set_ylim(signal_gran.min() - signal_gran.std(), signal_gran.max() + signal_gran.std())
-    ax2.set_ylim(signal_puls.min() - signal_puls.std(), signal_puls.max() + signal_puls.std())
-    ax3.set_ylim(signal_total.min()-signal_total.std(), signal_total.max()+ signal_total.std())
+    ax1.set_ylim(signal_gran.min() - signal_gran.std(), signal_gran.max() +signal_gran.std())
+    ax2.set_ylim(signal_puls.min() - signal_puls.std(), signal_puls.max() +signal_puls.std())
+    ax3.set_ylim(signal_total.min()-signal_total.std(), signal_total.max()+signal_total.std())
 
     # Labels
 
@@ -2777,7 +2864,7 @@ def plot_amplitude_time_series(time, signal_gran, signal_puls):
 
 
 
-def plot_amplitude_spectrum(df, numax, title=False):
+def plotGranOscAmplitudeSpectrum(df, numax, title=False):
 
     """Plot Power Spectral Density (PSD) for solar-like star.
 
@@ -2806,17 +2893,23 @@ def plot_amplitude_spectrum(df, numax, title=False):
     freq_puls, psd_puls = periodogram(df.puls, 1/sampling, scaling='density')
     freq_gran *= 1e6  # [muHz]
     freq_puls *= 1e6  # [muHz]
-
+    psd = psd_gran + psd_puls
+    
     # PLOT SEPERATE
 
     fig, ax = plt.subplots(2, 1, figsize=(9,8))
-
+    
     # Plot global model
-
+    freq_min = 1e2
+    freq_max = np.max(freq_gran)
+    dex_min = ut.findNearestIndex(freq_puls, freq_min)
+    dex_max = ut.findNearestIndex(freq_puls, freq_max)
+    psd_min = np.median(psd_puls[dex_min:dex_max])
+    psd_max = np.max(psd[dex_min:dex_max]) * 2
     ax[0].plot(freq_gran, psd_gran, "-", c='royalblue', lw=0.3, label="Granulation")
     ax[0].plot(freq_puls, psd_puls, "-", c='orange', lw=0.3, label="Pulsations")
-    ax[0].set_xlim(1e2, np.max(freq_gran))
-    ax[0].set_ylim(1e0, 1e8)
+    ax[0].set_xlim(freq_min, freq_max)
+    ax[0].set_ylim(psd_min, psd_max)
     ax[0].set_xscale('log')
     ax[0].set_yscale('log')
     ax[0].set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
@@ -2825,10 +2918,18 @@ def plot_amplitude_spectrum(df, numax, title=False):
 
     # Plot zoom in on p-modes
 
-    lab1 = "Stochastic oscillations" 
-    ax[1].plot(freq_puls, psd_gran+psd_puls, "-", c='k', lw=0.3, label=lab1)
-    ax[1].set_xlim(numax-500, numax+500)
-    ax[1].set_ylim(1e5, 0.5e8)
+    lab1 = "Stochastic oscillations"
+    dx = numax * 0.2
+    freq_min = numax-dx
+    freq_max = numax+dx
+    if freq_min < 0: freq_min = 0
+    dex_min = ut.findNearestIndex(freq_puls, freq_min)
+    dex_max = ut.findNearestIndex(freq_puls, freq_max)
+    psd_min = np.median(psd[dex_min:dex_max])
+    psd_max = np.max(psd[dex_min:dex_max]) * 2
+    ax[1].plot(freq_puls, psd, "-", c='k', lw=0.3, label=lab1)
+    ax[1].set_xlim(freq_min, freq_max)
+    ax[1].set_ylim(psd_min, psd_max)
     ax[1].set_yscale('log')
     ax[1].set_xlabel(r"Frequency, $\nu$ [$\mu$Hz]")
     ax[1].set_ylabel(r"PSD [ppm$^2$ $\mu$Hz$^{-1}$]")
@@ -2842,8 +2943,8 @@ def plot_amplitude_spectrum(df, numax, title=False):
 
 
 
-def plot_passband_ldc(wvl_int_plato, tran_int_plato, grid_no,
-                      mu_trunc, intensity_VTA_trunc, LD_values, ldc):
+def plotPassbandLDC(wvl_int_plato, tran_int_plato, grid_no,
+                    mu_trunc, intensity_VTA_trunc, LD_values, ldc):
 
     """Plot the limb darkening coefficients of the PLATO passband.
     """
@@ -2898,9 +2999,9 @@ def plot_passband_ldc(wvl_int_plato, tran_int_plato, grid_no,
 
 
     
-def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_final,
-                             t0, P, dt_c, t_tra_cen, t_tra_tot, t_occ_cen, t_occ_tot,
-                             A_beam, A_elli, colors=None):
+def plotOrbitalPhaseCurve(time, lc_tra, lc_occ, lc_beam, lc_elli,
+                          t0, P, dt_c, t_tra_cen, t_tra_tot, t_occ_cen, t_occ_tot,
+                          A_beam, A_elli, colors=None, figsize=(13, 10)):
 
     """Plot a orbital phase curve of exoplanet.
     """
@@ -2908,8 +3009,17 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     # Input parameters
 
     pp = 0.05
-    if colors is None: colors = colors_new
+    if colors is None:
+        colors = ['royalblue', 'limegreen', 'darkorange', 'tomato', 'gold']
 
+    # Convert units
+    
+    lc_tra  = (lc_tra  - 1) * 1e6
+    lc_occ  = (lc_occ  - 1) * 1e6
+    lc_beam = (lc_beam - 1) * 1e6
+    lc_elli = (lc_elli - 1) * 1e6
+    lc_exo  = lc_tra + lc_occ + lc_beam + lc_elli
+        
     # Phase-fold light curve
     # TODO Implement ourselves
     
@@ -2929,6 +3039,8 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     dex_occ = (time >= t_occ_min) * (time < t_occ_max)
 
     # Setup
+
+    fig = plt.figure(figsize=figsize)
     
     plt.subplots_adjust(wspace=0.15, hspace=0.20)
     fig.text(0.5, 0.92, 'Time [days]', ha='center', fontsize=fs)
@@ -2938,35 +3050,28 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     # Final light curve in time
 
     ax0 = fig.add_subplot(4,2,(1,2))
-    # Plot
     ax0.axvline(t0,      color='gray', linestyle='--')
     ax0.axvline(t0+dt_c, color='gray', linestyle=':')
-    ax0.plot(time, lc_final/1e6+1, 'k-')
-    # Axes
+    ax0.plot(time, lc_exo, 'k-')
     ax0.xaxis.set_label_position('top')
     ax0.xaxis.tick_top()
-    ymin, ymax = getAxesMinMax(y=lc_final/1e6+1)
+    ymin, ymax = getAxesMinMax(y=lc_exo)
     ax0.set_ylim(ymin, ymax)
     ax0.set_xlim(time[0], time[-1])
-    # Color fill areas of interest
     ax0.fill_between((t_tra_min, t_tra_max), ymin, ymax, facecolor=colors[0], alpha=0.3)
     ax0.fill_between((t_occ_min, t_occ_max), ymin, ymax, facecolor=colors[1], alpha=0.2)
     ax0.ticklabel_format(style='plain', useOffset=False)
-    # Labels
     ax0.set_ylabel('Relative Flux')
 
     # Transit
 
     ax1 = fig.add_subplot(4,2,3)
-    # Plot
     ax1.plot(time[dex_tra], lc_tra[dex_tra], '-', c=colors[0], label='Transit')
     ax1.legend(loc='upper center')
-    # Text
     x_pos     = t_tra_max - t_tra_tot*1.3
     delta_tra = np.max(lc_tra[dex_tra]) - np.min(lc_tra[dex_tra])
     y_pos     = np.max(lc_tra[dex_tra]) - delta_tra/2.
     ax1.text(x_pos, y_pos, r'$\delta_{\mathrm{tra}}=%.1f$ ppm' % delta_tra, fontsize=fs-4)
-    # Axes
     ax1.set_xlim(time[dex_tra][0], time[dex_tra][-1])
     ax1.set_ylim(getAxesMinMax(y=lc_tra))
     ax1.xaxis.set_label_position('top')
@@ -2975,15 +3080,12 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     # Occultation and phase curve
 
     ax2 = fig.add_subplot(4,2,4)
-    # Plot
     ax2.plot(time[dex_occ], lc_occ[dex_occ], '-', c=colors[1], label='Occultation')
     ax2.legend(loc='upper center')
-    # Text
     x_pos     = t_occ_max - t_occ_tot*1.3
     delta_occ = np.max(lc_occ[dex_occ]) - np.min(lc_occ[dex_occ])
     y_pos     = np.max(lc_occ[dex_occ]) - delta_occ/2.
     ax2.text(x_pos, y_pos, r'$\delta_{\mathrm{occ}}=%.1f$ ppm' % delta_occ, fontsize=fs-4)
-    # Axes
     ax2.set_xlim(time[dex_occ][0], time[dex_occ][-1])
     ax2.set_ylim(getAxesMinMax(y=lc_occ))
     ax2.xaxis.set_label_position('top')
@@ -2992,16 +3094,13 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     # Beaming and Ellipsoidal
 
     sort = np.argsort(phase)
-
     ax3 = fig.add_subplot(4,2,(5,6))
-    # Lines
     ax3.axhline(0.00, color='gray', linestyle='--')
     ax3.axvline(0.00, color='gray', linestyle='--')
     ax3.axvline(0.25, color='gray', linestyle=':')
     ax3.axvline(0.50, color='gray', linestyle='-.')
     ax3.axvline(0.75, color='gray', linestyle=':')
     ax3.axvline(1.00, color='gray', linestyle='--')
-    # Plots
     ax3.plot(phase[sort], lc_beam[sort], '-', c=colors[2], ms=ms, label='Beaming')
     ax3.plot(phase[sort], lc_elli[sort], '-', c=colors[3], ms=ms, label='Ellipsoidal')
     ypos_max   = np.max([lc_beam, lc_elli])
@@ -3010,21 +3109,18 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax3.text(0.347, ypos_text0, r'$A_{\mathrm{beam}}=%.3f$ ppm' % A_beam, fontsize=fs-4)
     ax3.text(0.360, ypos_text1, r'$A_{\mathrm{elli}}=%.3f$ ppm' % A_elli, fontsize=fs-4)
     ax3.legend(loc='upper left')
-    # Axes
     ax3.xaxis.set_major_formatter(plt.NullFormatter())
     ax3.set_xlim(0-pp, 1+pp)
 
     # Combined model
 
     ax4 = fig.add_subplot(4,2,(7,8))
-    # Lines
     ax4.axvline(0.00, color='gray', linestyle='--', zorder=0)
     ax4.axvline(0.25, color='gray', linestyle=':',  zorder=1)
     ax4.axvline(0.50, color='gray', linestyle='-.', zorder=2)
     ax4.axvline(0.75, color='gray', linestyle=':',  zorder=3)
     ax4.axvline(1.00, color='gray', linestyle='--', zorder=4)
-    # Text labels
-    ymin, ymax = getAxesMinMax(y=lc_final - lc_tra)
+    ymin, ymax = getAxesMinMax(y=lc_exo - lc_tra)
     ydif = (ymax-ymin)*pp
     ypos_text = ymax + ydif + ymax*pt
     ax4.text(0.00-0.02, ypos_text, 'Transit',     fontsize=fs-5)
@@ -3032,67 +3128,76 @@ def plot_orbital_phase_curve(fig, time, lc_tra, lc_occ, lc_beam, lc_elli, lc_fin
     ax4.text(0.50-0.03, ypos_text, 'Occultation', fontsize=fs-5)
     ax4.text(0.25-0.03, ypos_text, 'Quadrature',  fontsize=fs-5)
     ax4.text(0.75-0.03, ypos_text, 'Quadrature',  fontsize=fs-5)
-    # Plot
-    yy = lc_final/(np.max(lc_final)+np.max(lc_final*2*pt))
-    ax4.plot(phase[sort], lc_final[sort], 'k-', zorder=5, label='Combined Model')
-    ax4.scatter(phase, lc_final, marker='o', s=5, c=cm.hot(yy), ec='None', zorder=6)
-    # Axes
+    yy = lc_exo/(np.max(lc_exo)+np.max(lc_exo*2*pt))
+    ax4.plot(phase[sort], lc_exo[sort], 'k-', zorder=5, label='Combined Model')
+    ax4.scatter(phase, lc_exo, marker='o', s=5, c=cm.hot(yy), ec='None', zorder=6)
     ax4.set_ylim(ymin-ydif, ymax+ydif)
     ax4.set_xlim(0-pp, 1+pp)
     ax4.legend(loc='upper left')
 
-    # That's it!
+    # Finito!
     
-    plt.show()
+    return fig, [ax0, ax1, ax2, ax4]
 
 
 
     
     
-def plot_final_lc(lc, figsize=(9,8)):
+def plotVarsimLC(lc, figsize=False):
 
     """Plot noise-less light curve from file produced with varsim.
     """
 
-    # Fetch component or set to zero
-    zeros = np.zeros(len(lc['time']))
-    if 'gran'  not in lc: lc.gran  = zeros.tolist()
-    if 'puls'  not in lc: lc.puls  = zeros.tolist()
-    if 'spot'  not in lc: lc.spot  = zeros.tolist()
-    if 'flare' not in lc: lc.flare = zeros.tolist()    
-    if 'tran'  not in lc: lc.tran  = zeros.tolist()
-
     # Handle time units
     time = lc.time / 86400.
+    colors = ['purple', 'royalblue', 'lightseagreen', 'limegreen',
+              'orange', 'tomato', 'deeppink']
 
-    # Make sure p mode plot is valid
-    if ('gran' not in lc) and ('puls' not in lc):
-        p_modes = zeros.tolist()
-    else:
-        p_modes = lc.gran + lc.puls
+    # Check for planet model
+    if 'tran' in lc:
+        if 'occu' in lc:
+            lc.tran += (lc.occu - 1)
+            lc = lc.drop(columns=['occu'])
+        if 'beam' in lc:
+            lc.tran += (lc.beam - 1)
+            lc = lc.drop(columns=['beam'])
+        if 'elli' in lc:
+            lc.tran += (lc.elli - 1)
+            lc = lc.drop(columns=['elli'])
+    
+    # Auto adjust figure
+    n = lc.shape[1] - 1
+    if not figsize: figsize = (11, 2*n)
 
     # Start plotting
-    
-    fig, ax = plt.subplots(5, 1, figsize=figsize, sharex=True)
+    fig, ax = plt.subplots(n, 1, figsize=figsize, sharex=True)
 
-    ax[0].plot(time, p_modes,  '-', c=colors_sea[0], label='Gran + Puls')
-    ax[1].plot(time, lc.spot,  '-', c=colors_sea[1], label='Spots')
-    ax[2].plot(time, lc.flare, '-', c=colors_sea[2], label='Flares')
-    ax[3].plot(time, lc.tran,  '-', c=colors_sea[3], label='Transits')
-    ax[4].plot(time, lc.flux,  '-', c='k',           label='Combined')
+    if lc.flux.abs().max() > 0.01:
+        norm = 1e3
+        lab  = 'ppt'
+    else:
+        norm = 1e6
+        lab  = 'ppm'
     
-    for i in range(4):
+    for i,signal in zip(range(n), lc.columns[1:]):
+        flux = (lc[signal] - 1) * norm
+        if signal == 'flux':
+            ax[i].plot(time, flux, '-', c='k', label='Combined')
+        else:
+            ax[i].plot(time, flux, '-', c=colors[i], label=signal)
         ax[i].set_xlim(time.iloc[0], time.iloc[-1])
-        ax[i].legend(loc="lower right")
+        ax[i].legend(loc="upper right")
 
     plt.xlabel('Time [days]')
-    fig.text(0.01, 0.5, 'Relative flux [ppm]', va='center', rotation='vertical')    
+    fig.text(0.01, 0.5, f'Relative flux [{lab}]', va='center', rotation='vertical')    
     plt.tight_layout(h_pad=0.0, w_pad=1)
     
     return fig, ax
 
 
-
+#--------------------------------------------------------------#
+#                     PLOTS FOR CORE SCIENCE                   #
+#--------------------------------------------------------------#
 
 
 def plotTimesPlanetsHZ():
@@ -3228,8 +3333,6 @@ def plotTimesPlanetsHZ():
                    '%.2f' % p[0][2].to('min').value[i], '%.2f' % p[0][3].to('min').value[i],
                    '%.2f' % p[2][0].to('d').value[i], '%.2f' % p[2][1].to('d').value[i]])
 
-    print(t)
-    exit()
     # Plot figure showing results
 
     fig = plt.figure(figsize=(4.3,5))

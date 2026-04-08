@@ -56,9 +56,18 @@ Simulation::Simulation(string inputFilename, string outputFilename)
 
         Log.info("Simulation: create a connected detector factory instance");
 
-        // create a specific empty hdf5 output file
-
-        hdf5File = new ClosedLoopHDF5File();
+        // In the closed-loop case, data is sent over the network and normally not stored locally
+        if (configParams.nodeExists("ControlHDF5Content/GenerateRealHdf5") && 
+                configParams.getBoolean("ControlHDF5Content/GenerateRealHdf5"))
+        {
+            // create a regular HDF5 file only if configured to do so
+            hdf5File = new HDF5File();
+        } 
+        else
+        {
+            // create a specific empty hdf5 output file otherwise
+            hdf5File = new ClosedLoopHDF5File();
+        }
 
     }
     else
@@ -346,28 +355,25 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
                 throw ConfigurationException("Simulation: Unknown readout mode specification in configuration file");
         }
 
-        double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;			  // [ns] -> [s]
-        double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;		  // [µs] -> [s]
+        double serialTransferTime = configParams.getDouble("CCD/SerialTransferTime") * 1E-9;		  // [ns] -> [s]
+        double parallelTransferTime = configParams.getDouble("CCD/ParallelTransferTime") * 1E-6;	  // [µs] -> [s]
         double parallelTransferTimeFast = configParams.getDouble("CCD/ParallelTransferTimeFast") * 1E-6;  // [µs] -> [s]
 
 
-
-    int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
-    int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
-
+	int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
+	int numBiasPrescanRows = configParams.getInteger("SubField/NumBiasPrescanRows");        // [pixels]
+	int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
 
 
         double readoutTimeBeforeNextExposure, readoutTimeDuringNextExposure;
-
-
 
         // Both detector halves are read out simultaneously
         // -> columns read out by the FEE:
         //              - half of the CCD
         //              - serial pre-scan
-        //              - (serial over-scan)
+        //              - Parallel pre-scan
 
-        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap; // + numRowsSerialOverScan
+        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows;
 
         // How many rows will be actually read out by the FEE?
         //      - nominal mode: image area + parallel over-scan
@@ -852,7 +858,6 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addDouble("SerialTransferTime");
     addDouble("ParallelTransferTime");
     addDouble("ParallelTransferTimeFast");
-    addDouble("FlatfieldNoiseRMS");
     addDouble("NominalOperatingTemperature");
     addString("Temperature");
     addString("TemperatureFileName");
@@ -874,6 +879,15 @@ void Simulation::writeInputParametersToHDF5(ConfigurationParameters &configParam
     addBoolean("IncludeDigitalSaturation");
     addBoolean("IncludeQuantisation");
     addBoolean("IncludeGainNonlinearity");
+    subGroup = "CCD/Flatfield";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("Source");
+    subGroup = "CCD/Flatfield/FromFile";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("FilePath");
+    subGroup = "CCD/Flatfield/FromRedNoise";
+    hdf5File->createGroup(parentGroup + "/" + subGroup);
+    addString("FlatfieldNoiseRMS");
     subGroup = "CCD/BFE";
     hdf5File->createGroup(parentGroup + "/" + subGroup);
     addString("CoefficientsFileName");
