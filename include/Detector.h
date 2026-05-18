@@ -131,6 +131,9 @@ class Detector: public HDF5Writer
         virtual void applyDigitalSaturation();
         virtual void applyOverAndUnderShoot();
 
+        void generateBadPixelMap();
+        void applyBadPixelMap();
+
         StrayLight *straylight;
         void applySimpleCTImodel();
         void applyShort2013CTImodel(string map);
@@ -150,6 +153,7 @@ class Detector: public HDF5Writer
         virtual void writeCosmicHitsToHDF5WhenGroupByExposure(int exposureNr);
         virtual void writeBackgroundMapToHDF5();
         virtual void writeCTIToHDF5();
+        void writeBadPixelMapToHDF5();
 
         double getRowEdgeFOV(int column);
 
@@ -181,7 +185,11 @@ class Detector: public HDF5Writer
         arma::Mat<float> smearingMap;            // Smearing map (i.e. over-scan strip)
         arma::Mat<float> biasMapLeft;            // Bias map (i.e. pre-scan strip) for the left detector half
         arma::Mat<float> biasMapRight;           // Bias map (i.e. pre-scan strip) for the right detector half
-        arma::Mat<float> throughputMap;          // Throughput efficiency map, due to vignetting, particulate & molecular contamination, and quantum efficiency
+        arma::Mat<float> throughputMap;          // Throughput efficiency map, due to
+                                                 // vignetting, particulate & molecular
+                                                 // contamination, and quantum efficiency
+        arma::Mat<int> badPixelMap;
+    
 
         double missionDuration;                  // Duration of the PLATO Mission, used for degrading parameters      [s]
 
@@ -218,6 +226,7 @@ class Detector: public HDF5Writer
                                                  // in the subfield
         bool includeStraylight;                  // Wheter or not to include straylight
                                                  // in the subfield
+        bool includeBadPixelMap; 
         bool includeCosmicsInSmearingMap;        // Whether or not to include cosmic hits in the (physical) overscan region
         bool includeCosmicsInBiasMap;            // Whether or not to include cosmic hits in the (virtual) prescan region
         bool groupByExposure;                    
@@ -286,7 +295,9 @@ class Detector: public HDF5Writer
         bool writeThroughputMaps;                // Whether or not to write the throughput maps to the HDF5 file, for each exposure
         bool writeFlatfieldMap;                  // Whether or not to write the flatfield map to the HDF5 file, for each exposure  
         bool writeCosmics;                       // Whether or not to write the cosmics row, column and flux to the HDF5 file, for each exposure
-        bool writeCTI;                           // Whether or not to write the BOL/EOL trap density maps for each species to the HDF5 file
+        bool writeCTI;                           // Whether or not to write the BOL/EOL trap density maps
+                                                 // for each species to the HDF5 file
+        bool writeBadPixelMap;                   // Wheter or not to write the bad pixel map
 
         string CTImodel;
         double meanCte;                          // Mean charge-transfer efficiency  (in [0,1])
@@ -334,6 +345,7 @@ class Detector: public HDF5Writer
         int beginExposureNr;                     // Sequential number of the very first exposure. See yaml input file.
         int finalExposureNr;                     // Sequential number of the very last exposure: beginExposureNr + numExposures
 
+        double badPixelParameter;
         double nominalOperatingTemperature;
         double internalTime;
 
@@ -341,6 +353,7 @@ class Detector: public HDF5Writer
         long readoutNoiseSeed;
         long photonNoiseSeed;
         long cosmicSeed;
+        long badPixelSeed;
 
         mt19937 darkSignalGenerator;
         mt19937 darkNoiseGenerator;
@@ -353,6 +366,8 @@ class Detector: public HDF5Writer
         mt19937 cosmicTrailLengthGenerator;
         mt19937 cosmicIntensityGenerator;
         mt19937 decimalNumCosmicHitsGenerator;
+        mt19937 badPixelGenerator;
+    
 
         normal_distribution<double> darkSignalDistribution;
         normal_distribution<double> darkNoiseDistribution;
@@ -365,6 +380,7 @@ class Detector: public HDF5Writer
         uniform_real_distribution<double> cosmicTrailLengthDistribution;
         skew_normal_distribution cosmicIntensityDistribution;
         uniform_real_distribution<double> decimalNumCosmicHitsDistribution;
+        bernoulli_distribution badPixelDistribution;
 
         Camera &camera;
         FrontEndElectronics *frontEndElectronics;

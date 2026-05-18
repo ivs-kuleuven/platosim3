@@ -1,3 +1,4 @@
+
 #include "Detector.h"
 
 /**
@@ -13,7 +14,6 @@
  *
  * \return reference to itself
  **/
-
 IntegralOfAnalyticSignalResponse& IntegralOfAnalyticSignalResponse::addPart(double ox, double oy, double h, double sigma, double r, double rho, double phi)
 {
     using Faddeeva::erf;
@@ -192,6 +192,8 @@ Detector::Detector(ConfigurationParameters &configParam,
     smearingMap.zeros(numRowsSmearingMap, numColumnsPixelMap);
     throughputMap.ones(numRowsPixelMap, numColumnsPixelMap);
 
+    badPixelMap.ones(numRows, numColumns);
+
     if (!constantSkyBackground)
     {
         // Initialize the background map
@@ -246,7 +248,13 @@ Detector::Detector(ConfigurationParameters &configParam,
     cosmicIntensityGenerator.seed(cosmicSeed + 5);
     decimalNumCosmicHitsGenerator.seed(cosmicSeed + 6);
 
+    badPixelGenerator.seed(badPixelSeed);
+
     decimalNumCosmicHitsDistribution = uniform_real_distribution<double>(0, 1);
+
+    badPixelDistribution = bernoulli_distribution(1-badPixelParameter);
+    generateBadPixelMap();
+    
 }
 
 
@@ -301,7 +309,12 @@ Detector::~Detector()
     if (includeStraylight)
     {
         hdf5File.writeStraylight(straylightValues);
-        delete straylight;        
+        delete straylight;
+    }
+
+    if (writeBadPixelMap)
+    {
+        writeBadPixelMapToHDF5();
     }
 
     flushOutput();
@@ -552,6 +565,7 @@ void Detector::updateParameters(double time)
     constantSkyBackground           = configParam.getBoolean("Sky/SkyBackground/UseConstantSkyBackground");
     includeGainNonlinearity         = configParam.getBoolean("CCD/IncludeGainNonlinearity");
     includeStraylight               = configParam.getBoolean("Sky/StrayLight/IncludeStrayLight");
+     includeBadPixelMap             = configParam.getBoolean("CCD/BadPixelMap/includeBadPixelMap");
 
     if (includeRelativeTransmissivity)
     {
@@ -626,6 +640,13 @@ void Detector::updateParameters(double time)
         throw ConfigurationException("Detector: Unkown CTI model specification in configuration file");
     }
 
+     // We only need to read in the bad pixel parameter if bad pixels should be included
+
+     if (includeBadPixelMap)
+     {
+         badPixelParameter = configParam.getDouble("CCD/BadPixelMap/badPixelParameter");
+     }
+
     // Configuration parameters for the HDF5 file output
 
     writePixelMaps      = configParam.getBoolean("ControlHDF5Content/WritePixelMaps");
@@ -634,13 +655,17 @@ void Detector::updateParameters(double time)
     writeThroughputMaps = configParam.getBoolean("ControlHDF5Content/WriteThroughputMaps");
     writeCosmics        = configParam.getBoolean("ControlHDF5Content/WriteCosmics");
     writeCTI            = configParam.getBoolean("ControlHDF5Content/WriteCTI");
-    writeBackgroundMap  = configParam.getBoolean("ControlHDF5Content/WriteBackgroundMap") && !constantSkyBackground;
+    writeBackgroundMap =
+        configParam.getBoolean("ControlHDF5Content/WriteBackgroundMap") &&
+        !constantSkyBackground;
+
+     writeBadPixelMap  = includeBadPixelMap && configParam.getBoolean("ControlHDF5Content/WriteBadPixelMap");
 
     // Configuration parameters for the noise source random seeds
 
     readoutNoiseSeed    = configParam.getLong("RandomSeeds/ReadOutNoiseSeed");
     photonNoiseSeed     = configParam.getLong("RandomSeeds/PhotonNoiseSeed");
-
+    badPixelSeed        = configParam.getLong("RandomSeeds/BadPixelSeed");
     darkSignalSeed      = configParam.getLong("RandomSeeds/DarkSignalSeed");
 
     // Get the sequential number of the very first exposure
@@ -1322,6 +1347,47 @@ void Detector::addDarkSignal(float exposureTime)
 
 
 
+/**
+ *
+ * \brief: Generate the bad pixel map for the entire CCD
+ *
+ * \note: The bad pixels follow a Bernoulli distribution.
+ *  
+ */ 
+void Detector::generateBadPixelMap()
+{
+    for (unsigned int row=0; row < numRows; row++)
+    {
+        for (unsigned int col = 0; col < numColumns; col++)
+        {
+            badPixelMap(row, col) = badPixelDistribution(badPixelGenerator);
+        }
+    }
+}
+
+
+
+
+
+
+
+/**
+ *
+ * /brief: Include the bad pixel in the subfield
+ *
+ * /note: We select the bad pixel from the subfield from the bad pixel ccd map.
+ *
+ */ 
+void Detector::applyBadPixelMap()
+{
+    int subFieldEndPointRow    = subFieldZeroPointRow + numRowsPixelMap - 1;
+    int subFieldEndPointColumn = subFieldZeroPointColumn+numColumnsPixelMap-1;
+
+    pixelMap = pixelMap % badPixelMap.submat(subFieldZeroPointRow,
+                                             subFieldZeroPointColumn,
+                                             subFieldEndPointRow, subFieldEndPointColumn);
+}
+
 
 
 
@@ -1437,6 +1503,19 @@ void Detector::readOut(float exposureTime)
     {
         Log.debug("Detector: no quantisation applied.");
     }
+
+    // Apply the bad pixels
+
+    if (includeBadPixelMap)
+    {
+        Log.debug("Detector: applying bad pixel map.");
+        applyBadPixelMap();
+    }
+    else
+    {
+        Log.debug("Detector: no bad pixel map applied.");
+    }
+
 }
 
 
@@ -3459,6 +3538,11 @@ void Detector::initHDF5Groups()
       {
         hdf5File.createGroup("/Straylight");
       }
+
+    if (writeBadPixelMap)
+    {
+        hdf5File.createGroup("/BadPixelMap");
+    }
 }
 
 
@@ -3469,6 +3553,26 @@ void Detector::initHDF5Groups()
 
 
 
+/**
+ * \brief: Write the bad pixel map for subfield and entire CCD to the HDF5 file.
+ */ 
+void Detector::writeBadPixelMapToHDF5()
+{
+    arma::Mat<float> badPixelCCDMap =
+        arma::conv_to<arma::Mat<float>>::from(badPixelMap);
+    badPixelCCDMap.transform([](double val) {return (val > 0.5) ? 0. : 1.; });
+    hdf5File.writeArray("/BadPixelMap", "CCD", badPixelCCDMap);
+
+    unsigned int subFieldLastPointRow = subFieldZeroPointRow + numRowsPixelMap;
+    unsigned int subFieldLastPointColumn = subFieldZeroPointColumn + numColumnsPixelMap;
+
+
+    arma::Mat<float> badPixelSubfieldMap =
+        arma::conv_to<arma::Mat<float>>::from(
+                badPixelCCDMap.submat(subFieldZeroPointRow, subFieldZeroPointColumn, subFieldLastPointRow - 1, subFieldLastPointColumn - 1));
+
+    hdf5File.writeArray("/BadPixelMap", "Subfield", badPixelSubfieldMap);
+}
 
 
 /**
