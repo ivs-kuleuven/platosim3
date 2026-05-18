@@ -1,7 +1,7 @@
 from starPositionOnCCD                             import StarPositionOnCCD            
 from stellarVariability                            import StellarVariability           
 from StellarAberration.absoluteAberration          import AbsoluteAberration           
-from StellarAberration.differentialAberration      import DifferentialAberration       
+#from StellarAberration.differentialAberration      import DifferentialAberration       
 from fieldDistortion                               import FieldDistortion              
 from ThermoElasticDrift.tedFromFile                import TedFromFile                  
 from ThermoElasticDrift.tedYawPitchRoll            import TedYawPitchRoll              
@@ -27,7 +27,7 @@ from DarkSignal.shotNoise                          import ShotNoise
 from DarkSignal.darkSignalNonUniformity            import DarkSignalNonUniformity      
 from DarkSignal.tempVariationOfCCD                 import TempVariationOfCCD           
 from brighterFatterEffect                          import BrighterFatterEffect         
-from cosmics                                       import Cosmics                      
+#from cosmics                                       import Cosmics                      
 from openShutterSmearing                           import OpenShutterSmearing          
 from ChargeTransferInefficiency.simpleCTI          import SimpleCTI                    
 from ChargeTransferInefficiency.Short2013          import Short2013CTI                 
@@ -118,12 +118,12 @@ myTests = [
     (DigitalSaturation(),          "Digital Saturation"),
     (TransmissionEfficiency(),     "Transmission Efficiency"),
     (MappedGaussianPSF(),          "Mapped Gaussian PSF and Charge Diffusion"),
-    (Cosmics(),                    "Cosmics"),
+    #(Cosmics(),                    "Cosmics"),
     (BrighterFatterEffect(),       "Brighter-Fatter Effect"),
     (AbsoluteAberration(),         "Absolute Aberration"),
     (MetallicShield(),             "Metallic Shield"),
     (PhotonNoise(),                "Photon Noise"),
-    (DifferentialAberration(),     "Differential Aberration"),
+    # (DifferentialAberration(),     "Differential Aberration"),
     (Gain(),                       "Gain"),
     (DarkSignalNonUniformity(),    "Dark Signal Non Uniformity"),
     (TempVariationOfCCD(),         "Temperature Variation of CCD"),

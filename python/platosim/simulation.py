@@ -1669,7 +1669,8 @@ class Simulation(object):
 
         numColumnsBiasMap =  self["SubField/NumBiasPrescanColumns"]    # [pixels]
         numRowsSmearingMap = self["SubField/NumSmearingOverscanRows"]  # [pixels]
-        numBiasPrescanRows = self["SubField/NumBiasPrescanRows"]       # [pixels]
+        # numBiasPrescanRows = self["SubField/NumBiasPrescanRows"]       # [pixels]
+        numBiasPrescanColumns = self["SubField/NumBiasPrescanColumns"] # [pixels]
 
         # Both detector halves are read out simultaneously
         # -> columns read out by the FEE:
@@ -1677,7 +1678,7 @@ class Simulation(object):
         # 		- serial pre-scan
         # 		- (serial over-scan)
 
-        numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows
+        numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanColumns
 
         # How many rows will be actually read out by the FEE?
         # 	- nominal mode: image area + parallel over-scan
