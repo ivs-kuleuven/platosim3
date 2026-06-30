@@ -403,8 +403,9 @@ class LightCurve(object):
         
         # Check if any file was found
         if error and len(files) == 0:
-            errorcode('error', f'No files found with suffix {suffix}! ' +
+            errorcode('warning', f'No files found with suffix {suffix}! ' +
                       f'Check path: {self.filename}')
+            return None
             
         return files
 
