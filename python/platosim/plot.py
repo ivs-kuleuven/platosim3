@@ -1357,7 +1357,7 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
             if ncamMap in ['PIC210', 'PIC200', 'PIC110']:
                 df = pd.read_feather(f'{idir}/{ncamMap}_{pointingField}_targets.ftr')
             elif ncamMap == 'PLATO-CS':
-                df = pd.read_feather(f'{idir}/starcat_PlatoCS_NCAM_{pointingField}.ftr')
+                df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
                 df = df.loc[::5]
             
         # NOTE Backward compatible
@@ -1397,6 +1397,15 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
     # Plot transparent layer of Galactic footprint
 
     if showGalactic:
+        skip = 5
+        df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
+        # if ncamMap == 'PLATO-CS': 
+        #     df = pd.read_feather(f'{idir}/PlatoCS_NCAM_{pointingField}.ftr')
+        #     skip = 5
+        # else:
+        #     df = pd.read_feather(f'{idir}/PlatoGO_PIC210_LOPS2.ftr')
+        #     skip = 8
+        df = df.loc[::skip]
         # Convert to galactic coordinates
         starPF = SkyCoord(df.ra*u.deg, df.dec*u.deg, frame='icrs', unit='deg')
         starPF = starPF.transform_to('galactic')
@@ -1496,6 +1505,47 @@ def plotPlatoFOV(pointingField, system="galactic", fovSize=29,
     
     # Return figure
     
+    return fig, ax
+
+
+def plot_aitoff(df_agn, df_all=False, df_lop=False, df_best=False, NED=False):
+    """Function to generate plot galactic aFetch Gaia info for each source in data frame.    
+    """    
+    if df_best is not False:
+        df = df_best
+    elif df_lop is not False:
+        df = df_lop
+    elif df_all is not False:
+        df = df_all
+    else:
+        df = df_agn
+    title = (f'Total: {df.shape[0]}, ' +
+             f'LOPN1: {df[df.b > 0].shape[0]}, ' + 
+             f'LOPS2: {df[df.b < 0].shape[0]}')
+    # Plot PLATO AGNs
+    fig, ax = drawStarsInSkyAitoff(
+        df_agn.ra, df_agn.dec, column=df_agn.ncam, cbarMap='Blues',
+        cbarLabel=r'N-CAM visibility, $n_{\rm NCAM}$',
+        title=title, fs=13, figsize=(10,7))
+    # Plot all candidates
+    if df_all is not False:
+        if NED:
+            ra, dec = df_all.RA, df_all.Dec
+        else:
+            ra, dec = df_all.ra, df_all.dec
+        gal = SkyCoord(ra, dec, frame='icrs', unit=u.deg).galactic
+        ax.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian,
+                   c='k', marker='o', s=20, ec='w', lw=0.7, zorder=4)
+    # Plot candidates within LOPs
+    if df_lop is not False:
+        gal = SkyCoord(ra, dec, frame='icrs', unit=u.deg).galactic
+        ax.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian,
+                   c='purple', marker='o', s=20, ec='w', lw=0.8, zorder=5)
+    # Plot best candidates within LOPs
+    if df_best is not False:
+        gal = SkyCoord(df_best.ra, df_best.dec, frame='icrs', unit=u.deg).galactic
+        ax.scatter(-gal.l.wrap_at('180d').radian, gal.b.radian,
+                   c='purple', marker='o', s=20, ec='w', lw=0.8, zorder=5);
     return fig, ax
 
 #--------------------------------------------------------------#
@@ -2539,16 +2589,16 @@ def plotPeriodogram(df0, dm0=None, scaling='density', lw=0.5,
         ax.plot(freq_model, psd_model, '-', c=cm, lw=lw, label=label_model, alpha=0.7)
 
     x1, x2, x3 = 3, 20, freq[-1]
-    y1 = 50**2
     # Plot mission requirements (from the red book)
     if show_misreq:
         lw = 1.5
         var = 3600e-6 * np.array([225, 103, 71, 58, 50])**2
+        y1 = var**2
         plt.plot([x1, x3], [var[0],    var[0]], linestyle='-', lw=lw, c='m', label='Random Noise')
-        plt.plot([x1, x2], [var[1]+y1, var[1]], linestyle='-', lw=lw, label='Req. 06 N-CAM', c='royalblue')
-        plt.plot([x1, x2], [var[2]+y1, var[2]], linestyle='-', lw=lw, label='Req. 12 N-CAM', c='lime')
-        plt.plot([x1, x2], [var[3]+y1, var[3]], linestyle='-', lw=lw, label='Req. 18 N-CAM', c='yellow')
-        plt.plot([x1, x2], [var[4]+y1, var[4]], linestyle='-', lw=lw, label='Req. 24 N-CAM', c='red')
+        plt.plot([x1, x2], [var[1]+y1[1], var[1]], linestyle='-', lw=lw, label='Req. 06 N-CAM', c='b')
+        plt.plot([x1, x2], [var[2]+y1[2], var[2]], linestyle='-', lw=lw, label='Req. 12 N-CAM', c='lime')
+        plt.plot([x1, x2], [var[3]+y1[3], var[3]], linestyle='-', lw=lw, label='Req. 18 N-CAM', c='yellow')
+        plt.plot([x1, x2], [var[4]+y1[4], var[4]], linestyle='-', lw=lw, label='Req. 24 N-CAM', c='red')
         plt.plot([x2, x3], [var[1],    var[1]], linestyle='-', lw=lw, c='royalblue')
         plt.plot([x2, x3], [var[2],    var[2]], linestyle='-', lw=lw, c='lime')
         plt.plot([x2, x3], [var[3],    var[3]], linestyle='-', lw=lw, c='yellow')
