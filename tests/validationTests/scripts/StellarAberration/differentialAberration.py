@@ -115,11 +115,13 @@ class DifferentialAberration(Test):
 
         fig, ax = plt.subplots()
         for i in range(npos):
-            ell = EllipseModel()
-            points = np.array([ (x, y) for x, y in zip(dx[i,:], dy[i,:])])
-            ell.estimate(points)
 
-            xc, yc, a, b, theta = ell.params
+            points = np.array([ (x, y) for x, y in zip(dx[i,:], dy[i,:])])
+            ell = EllipseModel.from_estimate(points)
+
+            xc, yc = ell.center
+            a, b = ell.axis_lengths
+            theta = ell.theta
 
             plt.scatter(dx[i,:], dy[i,:], label=f'(row, col) = ({self.positions[i]}, {self.positions[i]}) pix', color=colors[i])
             plt.scatter([0.3, 0.3, -0.3, -0.3], [0.3, -0.3, 0.3, -0.3])

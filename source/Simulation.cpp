@@ -362,6 +362,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
 
 	int numColumnsBiasMap =  configParams.getInteger("SubField/NumBiasPrescanColumns");     // [pixels]
 	int numBiasPrescanRows = configParams.getInteger("SubField/NumBiasPrescanRows");        // [pixels]
+	int numBiasPrescanColumns = configParams.getInteger("SubField/NumBiasPrescanColumns");  // [pixels]
 	int numRowsSmearingMap = configParams.getInteger("SubField/NumSmearingOverscanRows");   // [pixels]
 
 
@@ -373,7 +374,7 @@ pair<double, double> Simulation::configureReadoutTime(ConfigurationParameters &c
         //              - serial pre-scan
         //              - Parallel pre-scan
 
-        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanRows;
+        int numColumnsReadout = numColumns / 2 + numColumnsBiasMap + numBiasPrescanColumns;
 
         // How many rows will be actually read out by the FEE?
         //      - nominal mode: image area + parallel over-scan

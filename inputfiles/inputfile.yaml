@@ -209,8 +209,12 @@ CCD:
     Polarization:
         ExpectedValue:               0.989           # Expected value (mean of all detector pixels)
     Contamination:
-        ParticulateContaminationEfficiency: 0.980   # Throughput efficiency due to particulate contamination
-        MolecularContaminationEfficiency:   0.960   # Throughput efficiency due to molecular   contamination
+        ParticulateContaminationEfficiency: 0.972    # Throughput efficiency due to particulate contamination
+        MolecularContaminationEfficiency:   0.9573   # Throughput efficiency due to molecular contamination
+    BadPixelMap:
+        includeBadPixelMap:          yes
+        badPixelParameter:           0.001           # Parameter that governs the distribution of bad pixels.
+                                                     # For now this is the chance of having a bad pixel, following a bernoulli distribution.
     DarkSignal:
       DarkCurrent:                   1.2             # Dark current [e-/s]
       DSNU:                          15.0            # Dark signal non-uniformity [%]
@@ -286,6 +290,7 @@ RandomSeeds:
     DriftSeed:                       1433429158      # Unique positive integer, or -1 to auto-set using clock
     CosmicSeed:                      1494750830      # Unique positive integer, or -1 to auto-set using clock
     DarkSignalSeed:                  1468838669      # Unique positive integer, or -1 to auto-set using clock
+    BadPixelSeed:                    1443910483      # Unique positive integer, or -1 to auto-set using clock
 
 
 ControlHDF5Content:                                  # Data that can be written to the HDF5 output file
@@ -307,6 +312,7 @@ ControlHDF5Content:                                  # Data that can be written 
     WriteStarPositions:              yes             # Star Positions written in pixel and focal plane coordinates
     WriteGhostPositions:             yes             # Ghost positions (extended and point-like) written in pixel and focal plane coordinates
     WriteCosmics:                    yes             # Cosmic rays written as pixel columns, rows and fluxes
+    WriteBadPixelMap:                yes             # Bad pixel map (binary values)
 
 
 ControlTcpConnection:
