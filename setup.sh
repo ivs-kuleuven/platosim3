@@ -45,11 +45,12 @@ else
     touch $PLATO_SETUP
 
     # Export paths
-    echo "#!/usr/bin/env bash"                   >> $PLATO_SETUP
-    echo "export POETRY=$POETRY"                 >> $PLATO_SETUP
-    echo "export PLATO_PROJECT_HOME=$PWD"        >> $PLATO_SETUP 
-    echo "export PLATO_WORKDIR=$PLATO_WORKDIR"   >> $PLATO_SETUP
-
+    echo "#!/usr/bin/env bash"                                      >> $PLATO_SETUP
+    echo "export POETRY=$POETRY"                                    >> $PLATO_SETUP
+    echo "export PLATO_PROJECT_HOME=$PWD"                           >> $PLATO_SETUP 
+    echo "export PLATO_WORKDIR=$PLATO_WORKDIR"                      >> $PLATO_SETUP
+    echo "export PYTHONPATH=$PYTHONPATH:$PLATO_PROJECT_HOME/python" >> $PLATO_SETUP
+    
     # Add Write a bash_profile that will be loaded
     #if grep -q "source $PLATO_SETUP" "$HOME/.bashrc"; then
     echo ""                                          >> $HOME/.bashrc
