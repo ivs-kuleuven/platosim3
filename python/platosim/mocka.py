@@ -865,7 +865,10 @@ def ft_io_compact(path, star, batch, name, ID):
     ]
 
     # Fetch pulsation modes (freq [mhHz], ampl [ppt, mma])
-    pfile = f'{path}/{star}/templates/pulsations/pulsations_{star}_{name}.txt' 
+    if star == 'WD':
+        pfile = f'{path}/{star}/templates/pulsations/pulsations_{name}.txt'
+    else:
+        pfile = f'{path}/{star}/templates/pulsations/pulsations_{star}_{name}.txt' 
     dp = pd.read_csv(pfile)
     dp.freq = ut.muhz2cpd(dp.freq)
     filename = Path(pfile).name
@@ -951,6 +954,37 @@ def plot_ft_io_compact_all(path, star, batch, name, figsize=(15, 10)):
         plt.yticks(fontsize=fs)
     fig.suptitle(f'{name}', size=15)
     fig.text(0.5, 0.17, r'Frequency, $\nu$ [$\mu$Hz]', ha='center')
+    fig.text(-0.01, 0.5, r'Amplitude, $A$ [ppt]', va='center', rotation='vertical')
+    plt.tight_layout()
+
+    return fig, ax
+
+
+def plot_ft_io_compact_all_4x5(path, star, batch, name, figsize=(12, 12)):
+
+    # Number of star IDs
+    N = 20
+    n = int(N/4)
+    fs = 9
+    grid = [1, 6, 11, 16, 2, 7, 12, 17, 3, 8, 13, 18, 4, 9, 14, 19, 5, 10, 15, 20]
+    fig = plt.figure(figsize=figsize)    
+    for i,j in zip(tqdm(grid, bar_format=ut.tqdmBar()), range(1,N+1)):
+        df_freq, df_ampl, dv_freq, dv_ampl, flim, alim, dt = ft_io_compact(path, star, batch, name, i)
+        ax = fig.add_subplot(5,4,j)
+        ax.plot(ut.cpd2muhz(df_freq), df_ampl*2, '-', lw=1, c='k', label='Simulation')
+        ax.plot(ut.cpd2muhz(dv_freq), dv_ampl*2, '-', lw=0.3, c='orange', label='Template')
+        ax.set_title(f'ID {dt.ID[0]}\n' +  
+                     r'$n_{\rm CAM} = $' + f'{int(dt.shape[0]/8)}, ' +
+                     r'$G = $' + f'{dt.mag[0]:.1f}, ' +
+                     f'SPR = {dt.SPR.mean()*100:.1f}\%, ' +
+                     r'$\vartheta_{\rm OA} = $' + f'{dt.rOA.mean():.2f}'+r'$^\circ$', 
+                     fontsize=fs)
+        ax.set_xlim(ut.cpd2muhz(flim[0]), ut.cpd2muhz(flim[1]))
+        ax.set_ylim(0, alim[1]+0.15*alim[1])
+        plt.xticks(fontsize=fs)
+        plt.yticks(fontsize=fs)
+    fig.suptitle(f'{name}', size=15)
+    fig.text(0.5, -0.01, r'Frequency, $\nu$ [$\mu$Hz]', ha='center')
     fig.text(-0.01, 0.5, r'Amplitude, $A$ [ppt]', va='center', rotation='vertical')
     plt.tight_layout()
 
