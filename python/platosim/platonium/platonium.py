@@ -516,7 +516,7 @@ class PLATOnium(object):
                     else:
                         df = pd.read_feather(self.catTarFile)
                         dc = pd.read_feather(self.catConFile)
-                    
+
                 # Check if target and contaminant catalogues are consistent
                 # NOTE This allows the user to have multiple catalogues in same project folder
                 if str(Path(self.catTarFile).stem[:-8]) != str(Path(self.catConFile).stem[:-13]):
@@ -546,7 +546,7 @@ class PLATOnium(object):
             # Check source name and passband
             self._check_source_name(self.df)
             self._check_passband_name(self.df)
-            
+
             # If requested select only the target, else include contaminants
             if not self.starcatFile:
                 if self.conNone:
@@ -1228,7 +1228,7 @@ class PLATOnium(object):
         # Add photometric mask to plot if available
         if sim['Photometry/IncludePhotometry']: mask = 1
         else: mask = None
-            
+
         # Run simulation for first image cadence
         self.outputSimName = self.outputDir.joinpath(self.outputFileName)
         sim.outputDir = self.outputDir
@@ -1279,24 +1279,42 @@ class PLATOnium(object):
             showStarPositions = False
 
         # Plot the subfield
-        fig2, _ = f.showImage(
-            self.beginExposureNr,
-            showStarPositions=showStarPositions,
-            clip=clipPercentile,
-            showMaskOfStarID=mask,
-            useTitle=title,
-            colorMap=cmap,
-            colorBar=True,
-            imgScale=imgScale,
-            showGrid=showGrid,
-            figsize=figsize
-        )
-
+        if self.df0.mag.iloc[0] < 6:
+            # Plot for bright stars (GO proposals)
+            fig2, _ = f.showExtendedImage(
+                self.beginExposureNr,
+                showStarPositions=showStarPositions,
+                showMaskOfStarID=mask,
+                useTitle=f'N-CAM {self.group}.{self.camera} observation of {self.sample} (Gaia DR3 {title[7:27]})',
+                #useTitle=f'F-CAM red observation of {self.sample} (Gaia DR3 {title[7:27]})',
+                colorMap=cmap,
+                colorBar=False,
+                imgScale='log', clip=20,
+                showGrid=True,
+                flipAxes=True,
+                ds=self.ds,
+                figsize=(15, 5)
+            )
+        else:
+            fig2, _ = f.showImage(
+                self.beginExposureNr,
+                showStarPositions=showStarPositions,
+                clip=clipPercentile,
+                showMaskOfStarID=mask,
+                useTitle=title,
+                colorMap=cmap,
+                colorBar=True,
+                imgScale=imgScale,
+                showGrid=showGrid,
+                figsize=figsize
+            )
+        
         # Save figure if requested
         if self.savePlot:
-            filename1 = f'{self.outputDir}/focalplane_{self.outputFileName}.png'
+            if not self.group == 5:
+                filename1 = f'{self.outputDir}/focalplane_{self.outputFileName}.png'
+                fig1.savefig(filename1, bbox_inches='tight', dpi=200)
             filename2 = f'{self.outputDir}/subfield_{self.outputFileName}.png'
-            fig1.savefig(filename1, bbox_inches='tight', dpi=200)
             fig2.savefig(filename2, bbox_inches='tight', dpi=200)
             
         # Remove the output files

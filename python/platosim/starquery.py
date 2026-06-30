@@ -18,10 +18,12 @@ import pathlib
 import http.client as httplib
 import urllib.parse as urllib
 from xml.dom.minidom import parseString
+from tqdm import tqdm
 
 # PlatoSim standard
 import h5py
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import astropy.units as u
 from astropy.io.votable  import parse
@@ -685,3 +687,32 @@ def gaiaQueryRegion(ra, dec, radius=1,
 
     # Reset index and return
     return df.reset_index(drop=True)
+
+
+
+def fetch_gaia_info(df, NED=False):
+    """Fetch Gaia info for each source in data frame.
+    Use NASA/IPAC Extragalactic Database (NED).
+    """
+    for i in tqdm(range(df.shape[0]), bar_format=ut.tqdmBar()):
+        di = df.reset_index(drop=True).loc[i]
+        if NED:
+            ra, dec = di.RA, di.Dec
+        else:
+            ra, dec = di.ra, di.dec
+        dx = gaiaQueryCone(ra, dec, radius=0.01, mag_max=21)
+        if dx.shape[0] > 1:
+            dx = dx[dx.dis == 0]
+        if i == 0:
+            dq = dx
+        else:
+            dq = pd.concat((dq, dx))
+            
+    # Alter data frame
+    dq = dq.reset_index(drop=True)
+    dq = dq.drop(columns='dis')
+    if NED:
+        dq.insert(0, 'source', df['Object Name'])
+        dq['z'] = df['Redshift (z)']
+        
+    return dq
